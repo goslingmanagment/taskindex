@@ -50,11 +50,12 @@ currently reports 20 pre-existing errors in unchanged template components,
 `hooks/use-mobile.ts`, and `scripts/verify-api.mjs`.
 
 Deferred product work and the scope of the future AI interface are in
-[`BACKLOG.md`](BACKLOG.md). Direction-based columns and a structured card history
-are proposals awaiting visual review, not changes to the current task model.
-Their interactive comparison is preserved in
+[`BACKLOG.md`](BACKLOG.md). On 2026-09-08 the owner reaffirmed the existing
+«Все задачи» and project sidebar. Direction-based columns are no longer proposed;
+structured card history remains pending. The earlier comparison is preserved in
 [`docs/proposals/taskindex-comparison.html`](docs/proposals/taskindex-comparison.html)
-as an inline HTML fragment. Agency examples are based on the 2026-09-07 snapshot;
+as a historical inline HTML fragment, not the accepted navigation design.
+Agency examples are based on the 2026-09-07 snapshot;
 development/personal examples are illustrative. No operational data is changed.
 
 ## Data and hosting

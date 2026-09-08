@@ -1,5 +1,18 @@
 # TaskIndex backlog
 
+## Interface decision — 2026-09-08
+
+Keep the existing sidebar: «Все задачи» followed by the area's projects with
+colored dots (for example Hub, ChatGoose, ContentOps, tg-assistant, psyflow).
+The owner reaffirmed this layout with a screenshot. The existing status board
+and project filtering stay in place; the proposal to replace them with columns
+by direction/project is withdrawn.
+
+The earlier preference for «Просторно» concerned density in the comparison
+mockup only. It did not approve replacing the sidebar or a broader redesign.
+Global search and Focus remain approved. Structured card history remains a
+separate proposal awaiting a decision.
+
 ## Later — full AI access and context
 
 Owner request, 2026-09-08: every part of TaskIndex must be available to an AI
@@ -32,8 +45,6 @@ product requirement, not a decision to add a specific SDK, protocol, or service.
 
 ## Awaiting visual review
 
-- Columns by direction/project inside Agency, Development and Personal, keeping
-  status on each card and using the same task records. No data migration yet.
 - A compact current summary and next step with expandable dated history and
   source links. Show the same example before and after before changing the editor.
 
