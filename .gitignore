@@ -1,0 +1,24 @@
+# Local operating system files
+.DS_Store
+Thumbs.db
+
+# Dependencies and generated output
+node_modules/
+dist/
+build/
+coverage/
+*.log
+
+# Local environment and credentials
+.env
+.env.*
+!.env.example
+.dev.vars
+.dev.vars.*
+
+# Local runtime state
+.wrangler/
+*.sqlite
+*.sqlite-*
+*.db
+*.db-*
