@@ -22,3 +22,16 @@ coverage/
 *.sqlite-*
 *.db
 *.db-*
+
+# Framework and tooling state
+.next/
+.vinext/
+out/
+.vercel/
+outputs/
+work/
+next-env.d.ts
+*.tsbuildinfo
+*.pem
+.pnp.*
+.yarn/
