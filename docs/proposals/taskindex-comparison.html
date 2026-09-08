@@ -1,4 +1,4 @@
-<div id="taskindex-comparison" aria-label="TaskIndex: сравнение доски и карточки">
+<div id="taskindex-comparison" data-density="compact" aria-label="TaskIndex: сравнение доски и карточки">
   <style>
     #taskindex-comparison { --ti-bg: light-dark(#f6f7f9,#202329); --ti-panel: light-dark(#fff,#292d34); --ti-text: light-dark(#222b39,#eef0f4); --ti-muted: light-dark(#626e7f,#a8b1bf); --ti-line: light-dark(#e0e4ea,#404650); --ti-accent: light-dark(#305ecb,#9fb8ff); --ti-selected: light-dark(#eaf0ff,#303f61); --ti-space: 14px; color: var(--ti-text); font: 14px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif; }
     #taskindex-comparison * { box-sizing: border-box; }
@@ -9,14 +9,14 @@
     #taskindex-comparison .ti-button[aria-pressed="true"] { color: var(--ti-accent); background: var(--ti-selected); border-color: var(--ti-accent); }
     #taskindex-comparison .ti-window { border: 1px solid var(--ti-line); border-radius: 12px; overflow: hidden; background: var(--ti-bg); }
     #taskindex-comparison .ti-chrome { padding: 14px 18px; background: var(--ti-panel); border-bottom: 1px solid var(--ti-line); }
-    #taskindex-comparison .ti-brand { margin-right: 20px; font-weight: 600; }
+    #taskindex-comparison .ti-brand { margin-right: 12px; font-weight: 500; }
     #taskindex-comparison .ti-area { border: 0; padding: 6px 10px; border-radius: 6px; background: transparent; color: var(--ti-muted); }
     #taskindex-comparison .ti-area[aria-pressed="true"] { color: var(--ti-accent); background: var(--ti-selected); }
     #taskindex-comparison .ti-board-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; padding: 20px 18px 10px; flex-wrap: wrap; }
-    #taskindex-comparison .ti-board-head h2 { margin: 0; font-size: 20px; font-weight: 600; }
+    #taskindex-comparison .ti-board-head h2 { margin: 0; font-size: 20px; font-weight: 500; }
     #taskindex-comparison .ti-meta { color: var(--ti-muted); font-size: 12px; }
     #taskindex-comparison .ti-filters { padding: 0 18px 14px; }
-    #taskindex-comparison .ti-columns { display: grid; grid-template-columns: repeat(var(--ti-cols,4),minmax(0,1fr)); gap: 12px; padding: 10px 18px 22px; align-items: start; }
+    #taskindex-comparison .ti-columns { display: grid; grid-template-columns: repeat(var(--ti-cols,4),minmax(0,1fr)); gap: var(--ti-column-gap,8px); padding: 10px 18px 22px; align-items: start; }
     #taskindex-comparison .ti-column-title { display: flex; justify-content: space-between; gap: 5px; font-weight: 500; margin: 0 3px 12px; }
     #taskindex-comparison .ti-column-title span { color: var(--ti-muted); }
     #taskindex-comparison .ti-task { display: block; width: 100%; background: var(--ti-panel); text-align: left; border: 1px solid var(--ti-line); border-radius: 9px; padding: var(--ti-space); margin-bottom: 9px; }
@@ -30,7 +30,7 @@
     #taskindex-comparison .ti-selection { margin: 0; padding: 0 18px 18px; color: var(--ti-muted); }
     #taskindex-comparison .ti-compare { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 16px; align-items: start; }
     #taskindex-comparison .ti-editor { padding: 20px; background: var(--ti-panel); border: 1px solid var(--ti-line); border-radius: 12px; }
-    #taskindex-comparison .ti-editor h2 { margin: 15px 0 8px; font-size: 19px; line-height: 1.35; font-weight: 600; }
+    #taskindex-comparison .ti-editor h2 { margin: 15px 0 8px; font-size: 19px; line-height: 1.35; font-weight: 500; }
     #taskindex-comparison .ti-editor h3 { margin: 23px 0 8px; font-size: 14px; font-weight: 500; }
     #taskindex-comparison .ti-field { border: 1px solid var(--ti-line); border-radius: 7px; padding: 12px; white-space: pre-line; overflow-wrap: anywhere; }
     #taskindex-comparison .ti-properties { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin: 18px 0; }
@@ -42,9 +42,32 @@
     #taskindex-comparison .ti-editor summary { cursor: pointer; font-weight: 500; }
     #taskindex-comparison .ti-event { display: grid; grid-template-columns: 62px 1fr; gap: 8px; margin-top: 14px; }
     #taskindex-comparison .ti-event time { color: var(--ti-muted); }
+    #taskindex-comparison .ti-density { margin-left: auto; display: flex; gap: 6px; align-items: center; color: var(--ti-muted); font-size: 12px; }
+    #taskindex-comparison .ti-density select { background: var(--ti-panel); border: 1px solid var(--ti-line); border-radius: 5px; padding: 5px 7px; color: var(--ti-text); font: inherit; font-size: 14px; }
+    #taskindex-comparison:not([data-density="comfortable"]) .ti-chrome { padding: 8px 12px; }
+    #taskindex-comparison:not([data-density="comfortable"]) .ti-board-head { padding: 12px 12px 6px; }
+    #taskindex-comparison:not([data-density="comfortable"]) .ti-board-head h2 { font-size: 18px; }
+    #taskindex-comparison:not([data-density="comfortable"]) .ti-filters { padding: 0 12px 6px; }
+    #taskindex-comparison:not([data-density="comfortable"]) .ti-filters .ti-button { padding: 3px 8px; }
+    #taskindex-comparison:not([data-density="comfortable"]) .ti-columns { padding: 6px 12px 12px; }
+    #taskindex-comparison:not([data-density="comfortable"]) .ti-column-title { margin-bottom: 8px; }
+    #taskindex-comparison:not([data-density="comfortable"]) .ti-task { border-radius: 5px; margin-bottom: 5px; }
+    #taskindex-comparison:not([data-density="comfortable"]) .ti-task-title { margin-bottom: 3px; line-height: 1.4; }
+    #taskindex-comparison:not([data-density="comfortable"]) .ti-selection { padding: 0 12px 10px; font-size: 12px; }
+    #taskindex-comparison:not([data-density="comfortable"]) .ti-editor { padding: 14px; border-radius: 8px; }
+    #taskindex-comparison:not([data-density="comfortable"]) .ti-editor h2 { margin-top: 8px; font-size: 17px; }
+    #taskindex-comparison:not([data-density="comfortable"]) .ti-editor h3 { margin: 12px 0 4px; }
+    #taskindex-comparison:not([data-density="comfortable"]) .ti-properties { gap: 8px; margin: 10px 0; }
+    #taskindex-comparison:not([data-density="comfortable"]) .ti-properties span { margin-bottom: 2px; }
+    #taskindex-comparison:not([data-density="comfortable"]) .ti-next { padding: 6px 0; border-radius: 0; background: transparent; color: var(--ti-accent); }
+    #taskindex-comparison:not([data-density="comfortable"]) .ti-editor details { margin-top: 10px; padding-top: 8px; }
+    #taskindex-comparison:not([data-density="comfortable"]) .ti-event { margin-top: 8px; }
+    #taskindex-comparison[data-density="rows"] .ti-task { background: transparent; border-color: transparent; border-bottom-color: var(--ti-line); border-radius: 0; margin-bottom: 0; }
+    #taskindex-comparison[data-density="rows"] .ti-task[aria-pressed="true"] { background: var(--ti-selected); border-color: var(--ti-accent); box-shadow: none; }
     #taskindex-comparison [hidden] { display: none; }
     @media (max-width: 760px) { #taskindex-comparison .ti-columns { grid-template-columns: repeat(2,minmax(0,1fr)); } #taskindex-comparison .ti-compare { grid-template-columns: 1fr; } }
     @media (max-width: 430px) { #taskindex-comparison .ti-columns { grid-template-columns: 1fr; } #taskindex-comparison .ti-brand { flex-basis: 100%; } }
+    @media (pointer: coarse) { #taskindex-comparison button, #taskindex-comparison select { min-height: 44px; } }
   </style>
   <div class="ti-controls">
     <div class="ti-switch" aria-label="Что сравниваем">
@@ -55,6 +78,13 @@
       <button class="ti-button" type="button" data-layout="before" aria-pressed="true">Сейчас: по статусам</button>
       <button class="ti-button" type="button" data-layout="after" aria-pressed="false">Вариант: по направлениям</button>
     </div>
+    <label class="ti-density">Плотность
+      <select data-density-control aria-label="Плотность карточек">
+        <option value="comfortable">Просторно</option>
+        <option value="compact" selected>Компактно</option>
+        <option value="rows">Строки</option>
+      </select>
+    </label>
   </div>
   <section class="ti-window" data-board aria-label="Схематичный пример доски TaskIndex">
     <div class="ti-chrome">
@@ -66,7 +96,7 @@
     <div class="ti-board-head"><h2 data-area-title>Агентство</h2><span class="ti-meta" data-board-meta>6 карточек · снимок 07.09</span></div>
     <div class="ti-filters" data-filters aria-label="Фильтр направления"></div>
     <div class="ti-columns" data-columns></div>
-    <p class="ti-selection" data-selection aria-live="polite">Выбери карточку — выделение сохранится при смене колонок.</p>
+    <p class="ti-selection" data-selection aria-live="polite" hidden></p>
   </section>
   <section class="ti-compare" data-card hidden aria-label="Одна карточка, два способа показать тот же контекст">
     <article class="ti-editor">
@@ -91,7 +121,7 @@
       <h3>Следующий шаг · предлагается</h3>
       <div class="ti-next">Проверить очередную часть и собрать правки.</div>
       <div class="ti-properties"><div><span>Мяч у</span>Карины</div><div><span>Срок</span>10 сентября</div></div>
-      <details open><summary>История · 1 событие</summary><div class="ti-event"><time>06.09</time><div>Выдано ТЗ №3 на 18 FYP.<br><span class="ti-meta">«Ari контент», сообщения 1235–1253</span></div></div></details>
+      <details><summary>История · 1 событие</summary><div class="ti-event"><time>06.09</time><div>Выдано ТЗ №3 на 18 FYP.<br><span class="ti-meta">«Ari контент», сообщения 1235–1253</span></div></div></details>
       <details><summary>После сдачи</summary><p>Менеджерская ссылка Asuna и старт постинга.</p></details>
       <details><summary>Источник и актуальность</summary><p class="ti-meta">TASKS.md:6 · снимок 07.09.2026. Позднейшая переписка не проверялась. Следующий шаг — предложение, его можно изменить.</p></details>
     </article>
@@ -99,7 +129,7 @@
   <script>
     (() => {
       const root = document.getElementById('taskindex-comparison');
-      const state = { topic: 'board', layout: 'before', area: 'agency', filter: 'all', selected: '', density: 'comfortable' };
+      const state = { topic: 'board', layout: 'after', area: 'agency', filter: 'all', selected: '', density: 'compact', columnGap: 8 };
       const statusNames = { todo: 'Очередь', doing: 'В работе', waiting: 'Жду', done: 'Готово' };
       const areaNames = { agency: 'Агентство', development: 'Разработка', personal: 'Личное' };
       const examples = {
@@ -131,7 +161,9 @@
         const el = document.createElement('button'); el.type = 'button'; el.className = className; el.textContent = text; return el;
       }
       function render() {
-        root.style.setProperty('--ti-space', state.density === 'compact' ? '10px' : '14px');
+        root.dataset.density = state.density;
+        root.style.setProperty('--ti-space', state.density === 'comfortable' ? '14px' : state.density === 'compact' ? '7px 9px' : '5px 3px');
+        root.style.setProperty('--ti-column-gap', state.columnGap + 'px');
         root.querySelector('[data-board]').hidden = state.topic !== 'board';
         root.querySelector('[data-card]').hidden = state.topic !== 'card';
         root.querySelector('[data-layout-switch]').hidden = state.topic !== 'board';
@@ -168,15 +200,19 @@
           columns.append(column);
         });
         const selected = data.find(t => t.id === state.selected);
-        root.querySelector('[data-selection]').textContent = selected ? selected.title + ' · ' + selected.project + ' · ' + statusNames[selected.status] : 'Выбери карточку — выделение сохранится при смене колонок.';
+        root.querySelector('[data-selection]').hidden = !selected;
+        root.querySelector('[data-selection]').textContent = selected ? selected.title + ' · ' + selected.project + ' · ' + statusNames[selected.status] : '';
       }
+      root.querySelector('[data-density-control]').addEventListener('change', (event) => {
+        state.density = event.target.value; render();
+      });
       ['topic','layout','area'].forEach(key => root.querySelectorAll('[data-' + key + ']').forEach(el => el.addEventListener('click', () => {
         state[key] = el.dataset[key]; if (key === 'area') { state.filter = 'all'; state.selected = ''; } render();
       })));
       render();
       if (globalThis.Tweak) {
         const tweak = new Tweak({ container: root, onChange: render });
-        tweak.addSelect(state, 'density', { label: 'Плотность карточек', options: [{ label: 'Обычная', value: 'comfortable' }, { label: 'Компактная', value: 'compact' }] });
+        tweak.addSlider(state, 'columnGap', { label: 'Между колонками', min: 4, max: 16, unit: 'px' });
       }
     })();
   </script>
