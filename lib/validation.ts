@@ -57,6 +57,8 @@ export function validateTask(input: unknown): Task {
     throw new InputError('Неверный порядок задачи.');
   if (typeof v.demo !== 'boolean' || typeof v.archived !== 'boolean')
     throw new InputError('Неверное состояние задачи.');
+  if (v.focus !== undefined && typeof v.focus !== 'boolean')
+    throw new InputError('Неверное состояние фокуса.');
   if (!Array.isArray(v.checklist) || v.checklist.length > 100)
     throw new InputError('В списке может быть до 100 шагов.');
   const checklist = v.checklist.map((c) => {
@@ -85,6 +87,7 @@ export function validateTask(input: unknown): Task {
     rank: v.rank,
     demo: v.demo,
     archived: v.archived,
+    ...(v.focus !== undefined ? { focus: v.focus } : {}),
     revision: revision(v.revision),
   };
 }

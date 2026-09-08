@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 import './globals.css';
 export const metadata: Metadata = {
-  title: 'Пространство — задачи',
+  title: 'TaskIndex — задачи',
   description: 'Агентство, разработка и личное. Каждому делу своё место.',
   robots: { index: false, follow: false },
 };

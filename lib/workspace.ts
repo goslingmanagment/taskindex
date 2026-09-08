@@ -57,6 +57,7 @@ export type Task = {
   rank: number;
   demo: boolean;
   archived: boolean;
+  focus?: boolean;
   revision: number;
 };
 export type WorkspaceData = { projects: Project[]; tasks: Task[] };

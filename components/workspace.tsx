@@ -24,6 +24,7 @@ import {
   Undo2,
   LoaderCircle,
   SlidersHorizontal,
+  Star,
 } from 'lucide-react';
 import {
   Sidebar,
@@ -66,6 +67,8 @@ import { useWorkspace } from '@/lib/use-workspace';
 import { TaskEditor } from './task-editor';
 import { QuickCreate, ProjectDialog } from './workspace-dialogs';
 import { registerWorkspaceTools } from '@/lib/webmcp';
+import { byRank, focusGroups, searchTasks } from '@/lib/workspace-queries';
+import { WorkspaceOverview } from './workspace-overview';
 const icons = {
   agency: BriefcaseBusiness,
   development: Code2,
@@ -103,6 +106,9 @@ function WorkspaceBody() {
     [todayOnly, setTodayOnly] = useState(false),
     [archive, setArchive] = useState(false),
     [showDemo, setShowDemo] = useState(true);
+  const [focusView, setFocusView] = useState(false);
+  const [searchArchive, setSearchArchive] = useState(false);
+  const [today, setToday] = useState(() => localDate());
   const [selected, setSelected] = useState<Task | null>(null),
     [create, setCreate] = useState<Status | null>(null),
     [projectDialog, setProjectDialog] = useState<Project | 'new' | null>(null);
@@ -119,7 +125,10 @@ function WorkspaceBody() {
     bodyRef = useRef<HTMLDivElement>(null),
     inlineId = useRef('');
   const { setOpenMobile } = useSidebar();
-  const today = localDate();
+  useEffect(() => {
+    const timer = window.setInterval(() => setToday(localDate()), 60_000);
+    return () => window.clearInterval(timer);
+  }, []);
   useEffect(() => {
     queueMicrotask(() => {
       try {
@@ -194,22 +203,31 @@ function WorkspaceBody() {
       projectId === 'all' ||
       t.projectId === (projectId === 'none' ? '' : projectId),
   );
-  const tasks = contextual
-    .filter(
-      (t) =>
-        (!query ||
-          `${t.title} ${t.note} ${t.waitingFor} ${projects.find((p) => p.id === t.projectId)?.name || ''}`
-            .toLocaleLowerCase('ru')
-            .includes(query.toLocaleLowerCase('ru'))) &&
-        (!todayOnly ||
-          (t.status !== 'done' &&
-            ((t.due && t.due <= today) ||
-              (t.status === 'waiting' && t.followUp && t.followUp <= today)))),
-    )
-    .sort((a, b) => a.rank - b.rank || a.id.localeCompare(b.id));
+  const searching = query.trim().length > 0;
+  const globalView = searching || focusView;
+  const focus = focusGroups(data.tasks, today, showDemo);
+  const found = searching
+    ? searchTasks(data.tasks, data.projects, query, showDemo, searchArchive)
+    : [];
+  const tasks = searching
+    ? found
+    : focusView
+      ? focus.flatMap((group) => group.tasks)
+      : contextual
+          .filter(
+            (t) =>
+              !todayOnly ||
+              (t.status !== 'done' &&
+                ((t.due && t.due <= today) ||
+                  (t.status === 'waiting' &&
+                    t.followUp &&
+                    t.followUp <= today))),
+          )
+          .sort(byRank);
   function navigate(nextArea: AreaId, nextProject = 'all') {
     if (inlineBusy) return;
     setArea(nextArea);
+    setFocusView(false);
     setProjectId(nextProject);
     setQuery('');
     setTodayOnly(false);
@@ -246,7 +264,7 @@ function WorkspaceBody() {
       const column = data.tasks
         .filter(
           (t) =>
-            t.area === area &&
+            t.area === task.area &&
             !t.archived &&
             t.status === status &&
             t.id !== task.id,
@@ -266,7 +284,7 @@ function WorkspaceBody() {
         `Задача → ${STATUSES.find((s) => s.id === status)!.name}`,
       );
     },
-    [area, data.tasks, change],
+    [data.tasks, change],
   );
   const safely = (promise: Promise<unknown>) =>
     void promise.catch((e) =>
@@ -378,13 +396,13 @@ function WorkspaceBody() {
   }, [tasks, data, area, projectId, newTask, move]);
   useEffect(() => registerWorkspaceTools(toolState), []);
   const card = (task: Task) => {
-    const p = projects.find((p) => p.id === task.projectId);
+    const p = data.projects.find((p) => p.id === task.projectId);
     return (
       // eslint-disable-next-line jsx-a11y/no-noninteractive-element-interactions -- Native dragging supplements accessible buttons for every card action.
       <article
         key={task.id}
         className={`task-card ${task.status === 'done' ? 'task-done' : ''} ${dragging === task.id ? 'dragging' : ''} ${dropTarget === task.id ? 'drop-before' : ''}`}
-        draggable={!archive && !pending}
+        draggable={!archive && !pending && !globalView}
         onDragStart={(e) => {
           e.dataTransfer.setData('text/plain', task.id);
           e.dataTransfer.effectAllowed = 'move';
@@ -462,7 +480,19 @@ function WorkspaceBody() {
           </p>
         )}
         <div className="card-label-row">
-          {p && projectId !== p.id && (
+          {globalView && (
+            <span className="task-context">
+              {AREAS.find((a) => a.id === task.area)?.name} ·{' '}
+              {STATUSES.find((s) => s.id === task.status)?.name}
+              {task.archived ? ' · Архив' : ''}
+            </span>
+          )}
+          {task.focus && task.status !== 'done' && !task.archived && (
+            <span className="focus-mark">
+              <Star size={13} fill="currentColor" />В фокусе
+            </span>
+          )}
+          {p && (globalView || projectId !== p.id) && (
             <span className="project-tag">
               <span className="tag-dot" style={{ background: p.color }} />
               {p.name}
@@ -522,6 +552,22 @@ function WorkspaceBody() {
             ···
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
+            <DropdownMenuItem
+              disabled={!!pending || task.archived || task.status === 'done'}
+              onClick={() =>
+                safely(
+                  change(
+                    task,
+                    { focus: !task.focus },
+                    task.focus ? 'Задача убрана из фокуса' : 'Задача в фокусе',
+                  ),
+                )
+              }
+            >
+              <Star />
+              {task.focus ? 'Убрать из фокуса' : 'В фокус'}
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
             {STATUSES.map((s) => (
               <DropdownMenuItem
                 key={s.id}
@@ -546,7 +592,8 @@ function WorkspaceBody() {
                           0,
                           ...data.tasks
                             .filter(
-                              (t) => t.area === area && t.status === 'todo',
+                              (t) =>
+                                t.area === task.area && t.status === 'todo',
                             )
                             .map((t) => t.rank),
                         ) - 1024,
@@ -700,17 +747,43 @@ function WorkspaceBody() {
           <span className="brand-symbol">
             <PanelsTopLeft size={22} />
           </span>
-          <span>пространство</span>
+          <span>TaskIndex</span>
         </SidebarHeader>
         <SidebarContent className="side-body">
           <SidebarMenu className="area-nav">
+            <SidebarMenuItem>
+              <SidebarMenuButton
+                className="area-button"
+                isActive={focusView && !searching}
+                onClick={() => {
+                  if (inlineBusy) return;
+                  setFocusView(true);
+                  setQuery('');
+                  setArchive(false);
+                  setInline(null);
+                  setOpenMobile(false);
+                  bodyRef.current?.scrollTo({ left: 0, top: 0 });
+                }}
+              >
+                <span className="area-icon">
+                  <Star size={18} />
+                </span>
+                <span>Фокус</span>
+                <span className="focus-count">
+                  {focus.reduce(
+                    (count, group) => count + group.tasks.length,
+                    0,
+                  ) || ''}
+                </span>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
             {AREAS.map((a) => {
               const Icon = icons[a.id];
               return (
                 <SidebarMenuItem key={a.id}>
                   <SidebarMenuButton
                     className="area-button"
-                    isActive={a.id === area}
+                    isActive={a.id === area && !globalView}
                     onClick={() => navigate(a.id)}
                   >
                     <span className="area-icon">
@@ -729,7 +802,7 @@ function WorkspaceBody() {
             <SidebarMenuItem>
               <SidebarMenuButton
                 className="project-button"
-                isActive={projectId === 'all' && !archive}
+                isActive={projectId === 'all' && !archive && !globalView}
                 onClick={() => navigate(area)}
               >
                 <LayoutGrid />
@@ -740,7 +813,7 @@ function WorkspaceBody() {
               <SidebarMenuItem key={p.id}>
                 <SidebarMenuButton
                   className="project-button"
-                  isActive={projectId === p.id && !archive}
+                  isActive={projectId === p.id && !archive && !globalView}
                   onClick={() => navigate(area, p.id)}
                 >
                   <span
@@ -762,7 +835,7 @@ function WorkspaceBody() {
                 <SidebarMenuItem>
                   <SidebarMenuButton
                     className="project-button"
-                    isActive={projectId === 'none' && !archive}
+                    isActive={projectId === 'none' && !archive && !globalView}
                     onClick={() => navigate(area, 'none')}
                   >
                     <span className="project-dot unassigned-dot" />
@@ -787,6 +860,7 @@ function WorkspaceBody() {
             className={'archive-link ' + (archive ? 'active' : '')}
             onClick={() => {
               setArchive(!archive);
+              setFocusView(false);
               setQuery('');
               setTodayOnly(false);
               setProjectId('all');
@@ -814,17 +888,27 @@ function WorkspaceBody() {
             <div className="board-title">
               <SidebarTrigger aria-label="Открыть навигацию" />
               <div className="board-name">
-                {(project || archive || projectId === 'none') && (
-                  <button className="area-crumb" onClick={() => navigate(area)}>
-                    {current.name}
-                    <ChevronRight size={15} />
-                  </button>
-                )}
+                {!globalView &&
+                  (project || archive || projectId === 'none') && (
+                    <button
+                      className="area-crumb"
+                      onClick={() => navigate(area)}
+                    >
+                      {current.name}
+                      <ChevronRight size={15} />
+                    </button>
+                  )}
                 <h1>
-                  {archive
-                    ? 'Архив'
-                    : project?.name ||
-                      (projectId === 'none' ? 'Без направления' : current.name)}
+                  {searching
+                    ? 'Поиск'
+                    : focusView
+                      ? 'Фокус'
+                      : archive
+                        ? 'Архив'
+                        : project?.name ||
+                          (projectId === 'none'
+                            ? 'Без направления'
+                            : current.name)}
                 </h1>
               </div>
             </div>
@@ -843,8 +927,8 @@ function WorkspaceBody() {
                 </button>
                 <input
                   ref={searchRef}
-                  placeholder="Найти на этой доске…"
-                  aria-label="Найти на этой доске"
+                  placeholder="Найти во всех областях…"
+                  aria-label="Найти во всех областях"
                   value={query}
                   onChange={(e) => setQuery(e.target.value)}
                   onKeyDown={(e) => {
@@ -879,24 +963,31 @@ function WorkspaceBody() {
             </div>
           </div>
           <div className="toolbar">
-            <Tabs value={view} onValueChange={(v) => setView(String(v))}>
-              <TabsList className="view-tabs" aria-label="Вид задач">
-                <TabsTrigger value="board">
-                  <PanelsTopLeft />
-                  Доска
-                </TabsTrigger>
-                <TabsTrigger value="list">
-                  <List />
-                  Список
-                </TabsTrigger>
-              </TabsList>
-              <TabsContent value="board" className="sr-only">
-                Задачи по колонкам
-              </TabsContent>
-              <TabsContent value="list" className="sr-only">
-                Задачи списком
-              </TabsContent>
-            </Tabs>
+            {globalView ? (
+              <output className="overview-scope">
+                Все области · {tasks.length} задач
+                {searching && searchArchive ? ' в архиве' : ''}
+              </output>
+            ) : (
+              <Tabs value={view} onValueChange={(v) => setView(String(v))}>
+                <TabsList className="view-tabs" aria-label="Вид задач">
+                  <TabsTrigger value="board">
+                    <PanelsTopLeft />
+                    Доска
+                  </TabsTrigger>
+                  <TabsTrigger value="list">
+                    <List />
+                    Список
+                  </TabsTrigger>
+                </TabsList>
+                <TabsContent value="board" className="sr-only">
+                  Задачи по колонкам
+                </TabsContent>
+                <TabsContent value="list" className="sr-only">
+                  Задачи списком
+                </TabsContent>
+              </Tabs>
+            )}
             <div className="toolbar-actions">
               <span className="sync-status" aria-live="polite">
                 {pending ? (
@@ -910,17 +1001,29 @@ function WorkspaceBody() {
                   </span>
                 ) : null}
               </span>
-              <label
-                htmlFor="today-only"
-                className={'today-toggle ' + (todayOnly ? 'active' : '')}
-              >
-                <Checkbox
-                  id="today-only"
-                  checked={todayOnly}
-                  onCheckedChange={setTodayOnly}
-                />
-                <span>На сегодня</span>
-              </label>
+              {!globalView && (
+                <label
+                  htmlFor="today-only"
+                  className={'today-toggle ' + (todayOnly ? 'active' : '')}
+                >
+                  <Checkbox
+                    id="today-only"
+                    checked={todayOnly}
+                    onCheckedChange={setTodayOnly}
+                  />
+                  <span>На сегодня</span>
+                </label>
+              )}
+              {searching && (
+                <label className="today-toggle" htmlFor="search-archive">
+                  <Checkbox
+                    id="search-archive"
+                    checked={searchArchive}
+                    onCheckedChange={setSearchArchive}
+                  />
+                  <span>Искать в архиве</span>
+                </label>
+              )}
               <DropdownMenu>
                 <DropdownMenuTrigger
                   render={
@@ -934,7 +1037,7 @@ function WorkspaceBody() {
                   <SlidersHorizontal size={17} />
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
-                  {project && !archive && (
+                  {project && !archive && !globalView && (
                     <DropdownMenuItem onClick={() => setProjectDialog(project)}>
                       <Pencil />
                       Переименовать проект
@@ -956,13 +1059,16 @@ function WorkspaceBody() {
           </div>
         </header>
         <div className="board-body" ref={bodyRef}>
-          {showDemo && contextual.some((t) => t.demo) && (
-            <div className="demo-notice">
-              <span>На доске есть примеры задач</span>
-              <button onClick={() => setShowDemo(false)}>Скрыть примеры</button>
-            </div>
-          )}
-          {todayOnly && (
+          {showDemo &&
+            (globalView ? tasks : contextual).some((t) => t.demo) && (
+              <div className="demo-notice">
+                <span>На доске есть примеры задач</span>
+                <button onClick={() => setShowDemo(false)}>
+                  Скрыть примеры
+                </button>
+              </div>
+            )}
+          {todayOnly && !globalView && (
             <p className="filter-note">
               Срок или дата проверки — сегодня и раньше
             </p>
@@ -986,6 +1092,21 @@ function WorkspaceBody() {
                 </div>
               ))}
             </div>
+          ) : globalView ? (
+            <WorkspaceOverview
+              searching={searching}
+              groups={
+                searching
+                  ? AREAS.map((a) => ({
+                      id: a.id,
+                      title: a.name,
+                      tasks: tasks.filter((t) => t.area === a.id),
+                    }))
+                  : focus
+              }
+              renderTask={card}
+              onBrowse={() => navigate(area)}
+            />
           ) : tasks.length === 0 &&
             (query || todayOnly || archive || !contextual.length) ? (
             <Empty className="main-empty">
@@ -1088,7 +1209,9 @@ function WorkspaceBody() {
           status={create}
           projects={data.projects}
           onClose={() => setCreate(null)}
-          onSave={newTask}
+          onSave={(task) =>
+            newTask(focusView ? { ...task, focus: true } : task)
+          }
         />
       )}
       {projectDialog && (
