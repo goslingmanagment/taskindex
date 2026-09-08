@@ -1,0 +1,183 @@
+<div id="taskindex-comparison" aria-label="TaskIndex: сравнение доски и карточки">
+  <style>
+    #taskindex-comparison { --ti-bg: light-dark(#f6f7f9,#202329); --ti-panel: light-dark(#fff,#292d34); --ti-text: light-dark(#222b39,#eef0f4); --ti-muted: light-dark(#626e7f,#a8b1bf); --ti-line: light-dark(#e0e4ea,#404650); --ti-accent: light-dark(#305ecb,#9fb8ff); --ti-selected: light-dark(#eaf0ff,#303f61); --ti-space: 14px; color: var(--ti-text); font: 14px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif; }
+    #taskindex-comparison * { box-sizing: border-box; }
+    #taskindex-comparison button { font: inherit; color: inherit; cursor: pointer; }
+    #taskindex-comparison .ti-controls, #taskindex-comparison .ti-switch, #taskindex-comparison .ti-chrome, #taskindex-comparison .ti-filters { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
+    #taskindex-comparison .ti-controls { justify-content: space-between; margin-bottom: 14px; }
+    #taskindex-comparison .ti-button { background: var(--ti-panel); border: 1px solid var(--ti-line); border-radius: 7px; padding: 7px 12px; }
+    #taskindex-comparison .ti-button[aria-pressed="true"] { color: var(--ti-accent); background: var(--ti-selected); border-color: var(--ti-accent); }
+    #taskindex-comparison .ti-window { border: 1px solid var(--ti-line); border-radius: 12px; overflow: hidden; background: var(--ti-bg); }
+    #taskindex-comparison .ti-chrome { padding: 14px 18px; background: var(--ti-panel); border-bottom: 1px solid var(--ti-line); }
+    #taskindex-comparison .ti-brand { margin-right: 20px; font-weight: 600; }
+    #taskindex-comparison .ti-area { border: 0; padding: 6px 10px; border-radius: 6px; background: transparent; color: var(--ti-muted); }
+    #taskindex-comparison .ti-area[aria-pressed="true"] { color: var(--ti-accent); background: var(--ti-selected); }
+    #taskindex-comparison .ti-board-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; padding: 20px 18px 10px; flex-wrap: wrap; }
+    #taskindex-comparison .ti-board-head h2 { margin: 0; font-size: 20px; font-weight: 600; }
+    #taskindex-comparison .ti-meta { color: var(--ti-muted); font-size: 12px; }
+    #taskindex-comparison .ti-filters { padding: 0 18px 14px; }
+    #taskindex-comparison .ti-columns { display: grid; grid-template-columns: repeat(var(--ti-cols,4),minmax(0,1fr)); gap: 12px; padding: 10px 18px 22px; align-items: start; }
+    #taskindex-comparison .ti-column-title { display: flex; justify-content: space-between; gap: 5px; font-weight: 500; margin: 0 3px 12px; }
+    #taskindex-comparison .ti-column-title span { color: var(--ti-muted); }
+    #taskindex-comparison .ti-task { display: block; width: 100%; background: var(--ti-panel); text-align: left; border: 1px solid var(--ti-line); border-radius: 9px; padding: var(--ti-space); margin-bottom: 9px; }
+    #taskindex-comparison .ti-task[aria-pressed="true"] { border-color: var(--ti-accent); box-shadow: 0 0 0 1px var(--ti-accent); }
+    #taskindex-comparison .ti-task-title { display: block; margin-bottom: 10px; overflow-wrap: anywhere; }
+    #taskindex-comparison .ti-tag { display: inline-flex; align-items: center; gap: 5px; font-size: 12px; color: var(--ti-muted); }
+    #taskindex-comparison .ti-tag::before { content: ""; height: 6px; width: 6px; border-radius: 50%; background: var(--ti-accent); }
+    #taskindex-comparison .ti-task[data-status="waiting"] .ti-tag { color: light-dark(#926319,#e4b863); }
+    #taskindex-comparison .ti-task[data-status="waiting"] .ti-tag::before { background: currentColor; }
+    #taskindex-comparison .ti-empty { color: var(--ti-muted); padding: 12px 3px; }
+    #taskindex-comparison .ti-selection { margin: 0; padding: 0 18px 18px; color: var(--ti-muted); }
+    #taskindex-comparison .ti-compare { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 16px; align-items: start; }
+    #taskindex-comparison .ti-editor { padding: 20px; background: var(--ti-panel); border: 1px solid var(--ti-line); border-radius: 12px; }
+    #taskindex-comparison .ti-editor h2 { margin: 15px 0 8px; font-size: 19px; line-height: 1.35; font-weight: 600; }
+    #taskindex-comparison .ti-editor h3 { margin: 23px 0 8px; font-size: 14px; font-weight: 500; }
+    #taskindex-comparison .ti-field { border: 1px solid var(--ti-line); border-radius: 7px; padding: 12px; white-space: pre-line; overflow-wrap: anywhere; }
+    #taskindex-comparison .ti-properties { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin: 18px 0; }
+    #taskindex-comparison .ti-properties div { min-width: 0; }
+    #taskindex-comparison .ti-properties span { display: block; margin-bottom: 5px; color: var(--ti-muted); font-size: 12px; }
+    #taskindex-comparison .ti-next { background: var(--ti-selected); border-radius: 8px; padding: 14px; }
+    #taskindex-comparison .ti-editor p { margin: 8px 0; }
+    #taskindex-comparison .ti-editor details { margin-top: 18px; border-top: 1px solid var(--ti-line); padding-top: 14px; }
+    #taskindex-comparison .ti-editor summary { cursor: pointer; font-weight: 500; }
+    #taskindex-comparison .ti-event { display: grid; grid-template-columns: 62px 1fr; gap: 8px; margin-top: 14px; }
+    #taskindex-comparison .ti-event time { color: var(--ti-muted); }
+    #taskindex-comparison [hidden] { display: none; }
+    @media (max-width: 760px) { #taskindex-comparison .ti-columns { grid-template-columns: repeat(2,minmax(0,1fr)); } #taskindex-comparison .ti-compare { grid-template-columns: 1fr; } }
+    @media (max-width: 430px) { #taskindex-comparison .ti-columns { grid-template-columns: 1fr; } #taskindex-comparison .ti-brand { flex-basis: 100%; } }
+  </style>
+  <div class="ti-controls">
+    <div class="ti-switch" aria-label="Что сравниваем">
+      <button class="ti-button" type="button" data-topic="board" aria-pressed="true">1 · Колонки</button>
+      <button class="ti-button" type="button" data-topic="card" aria-pressed="false">4 · Карточка до и после</button>
+    </div>
+    <div class="ti-switch" data-layout-switch aria-label="Вариант доски">
+      <button class="ti-button" type="button" data-layout="before" aria-pressed="true">Сейчас: по статусам</button>
+      <button class="ti-button" type="button" data-layout="after" aria-pressed="false">Вариант: по направлениям</button>
+    </div>
+  </div>
+  <section class="ti-window" data-board aria-label="Схематичный пример доски TaskIndex">
+    <div class="ti-chrome">
+      <span class="ti-brand">TaskIndex</span>
+      <button class="ti-area" type="button" data-area="agency" aria-pressed="true">Агентство</button>
+      <button class="ti-area" type="button" data-area="development" aria-pressed="false">Разработка</button>
+      <button class="ti-area" type="button" data-area="personal" aria-pressed="false">Личное</button>
+    </div>
+    <div class="ti-board-head"><h2 data-area-title>Агентство</h2><span class="ti-meta" data-board-meta>6 карточек · снимок 07.09</span></div>
+    <div class="ti-filters" data-filters aria-label="Фильтр направления"></div>
+    <div class="ti-columns" data-columns></div>
+    <p class="ti-selection" data-selection aria-live="polite">Выбери карточку — выделение сохранится при смене колонок.</p>
+  </section>
+  <section class="ti-compare" data-card hidden aria-label="Одна карточка, два способа показать тот же контекст">
+    <article class="ti-editor">
+      <span class="ti-meta">СЕЙЧАС · содержимое текущей карточки</span>
+      <h2>Принять у Ари 18 FYP по ТЗ №3</h2>
+      <span class="ti-tag">Агентство / Контент</span>
+      <div class="ti-properties"><div><span>Состояние</span>Жду</div><div><span>Срок</span>10 сентября</div><div><span>Чего ждём</span>Карина: съёмка и сдача частями</div><div><span>Вернуться</span>Не указано</div></div>
+      <h3>Заметка</h3>
+      <div class="ti-field">ТЗ выдано 06.09 в «Ari контент», сообщения 1235–1253. Карина сдаёт частями; по ходу нужны правки. После сдачи — менеджерская ссылка Asuna и старт постинга.
+
+Источники:
+/Users/dmitriy/fansly/OS/TASKS.md:6
+
+Собрано 07.09.2026. Это снимок источников; изменения на доске сохраняются отдельно.</div>
+    </article>
+    <article class="ti-editor">
+      <span class="ti-meta">ПРЕДЛОЖЕНИЕ · те же сведения, по порядку</span>
+      <h2>Принять у Ари 18 FYP по ТЗ №3</h2>
+      <span class="ti-tag">Агентство / Контент · Жду</span>
+      <h3>Сейчас</h3>
+      <p>Карина сдаёт материал частями. По ходу нужны правки.</p>
+      <h3>Следующий шаг · предлагается</h3>
+      <div class="ti-next">Проверить очередную часть и собрать правки.</div>
+      <div class="ti-properties"><div><span>Мяч у</span>Карины</div><div><span>Срок</span>10 сентября</div></div>
+      <details open><summary>История · 1 событие</summary><div class="ti-event"><time>06.09</time><div>Выдано ТЗ №3 на 18 FYP.<br><span class="ti-meta">«Ari контент», сообщения 1235–1253</span></div></div></details>
+      <details><summary>После сдачи</summary><p>Менеджерская ссылка Asuna и старт постинга.</p></details>
+      <details><summary>Источник и актуальность</summary><p class="ti-meta">TASKS.md:6 · снимок 07.09.2026. Позднейшая переписка не проверялась. Следующий шаг — предложение, его можно изменить.</p></details>
+    </article>
+  </section>
+  <script>
+    (() => {
+      const root = document.getElementById('taskindex-comparison');
+      const state = { topic: 'board', layout: 'before', area: 'agency', filter: 'all', selected: '', density: 'comfortable' };
+      const statusNames = { todo: 'Очередь', doing: 'В работе', waiting: 'Жду', done: 'Готово' };
+      const areaNames = { agency: 'Агентство', development: 'Разработка', personal: 'Личное' };
+      const examples = {
+        agency: [
+          { id: 'a1', title: 'Расширить источники кандидатов', project: 'Найм', status: 'todo' },
+          { id: 'a2', title: 'Подготовить профиль Юли для HR-постинга', project: 'Найм', status: 'todo' },
+          { id: 'a3', title: 'Принять у Ари 18 FYP по ТЗ №3', project: 'Контент', status: 'waiting' },
+          { id: 'a4', title: 'Передать 19 рефов Лоры в производство', project: 'Контент', status: 'todo' },
+          { id: 'a5', title: 'Получить рефы Ари от dropstead', project: 'Трафик', status: 'waiting' },
+          { id: 'a6', title: 'Обновить список несданных кастомов', project: 'Контент', status: 'todo' }
+        ],
+        development: [
+          { id: 'd1', title: 'Проверить новый импорт', project: 'Hub', status: 'doing' },
+          { id: 'd2', title: 'Разобрать замечания к поиску', project: 'Hub', status: 'todo' },
+          { id: 'd3', title: 'Уточнить правила имён файлов', project: 'ContentOps', status: 'todo' },
+          { id: 'd4', title: 'Проверить восстановление файла', project: 'ContentOps', status: 'waiting' },
+          { id: 'd5', title: 'Добавить общий поиск', project: 'TaskIndex', status: 'doing' },
+          { id: 'd6', title: 'Продумать доступ для ИИ', project: 'TaskIndex', status: 'todo' }
+        ],
+        personal: [
+          { id: 'p1', title: 'Выбрать время для записи', project: 'Здоровье', status: 'todo' },
+          { id: 'p2', title: 'Дождаться ответа мастера', project: 'Дом', status: 'waiting' },
+          { id: 'p3', title: 'Разобрать идеи на выходные', project: 'Планы', status: 'todo' }
+        ]
+      };
+      const columns = root.querySelector('[data-columns]');
+      const filters = root.querySelector('[data-filters]');
+      function button(text, className) {
+        const el = document.createElement('button'); el.type = 'button'; el.className = className; el.textContent = text; return el;
+      }
+      function render() {
+        root.style.setProperty('--ti-space', state.density === 'compact' ? '10px' : '14px');
+        root.querySelector('[data-board]').hidden = state.topic !== 'board';
+        root.querySelector('[data-card]').hidden = state.topic !== 'card';
+        root.querySelector('[data-layout-switch]').hidden = state.topic !== 'board';
+        ['topic','layout','area'].forEach(key => root.querySelectorAll('[data-' + key + ']').forEach(el => el.setAttribute('aria-pressed', String(el.dataset[key] === state[key]))));
+        root.querySelector('[data-area-title]').textContent = areaNames[state.area];
+        const data = examples[state.area];
+        const projectNames = [...new Set(data.map(t => t.project))];
+        root.querySelector('[data-board-meta]').textContent = data.length + ' карточек · ' + (state.area === 'agency' ? 'снимок 07.09' : 'условный пример');
+        filters.replaceChildren();
+        filters.hidden = state.layout === 'after';
+        ['all', ...projectNames].forEach(name => {
+          const el = button(name === 'all' ? 'Все направления' : name, 'ti-button');
+          el.setAttribute('aria-pressed', String(state.filter === name));
+          el.addEventListener('click', () => { state.filter = name; render(); });
+          filters.append(el);
+        });
+        const groups = state.layout === 'before' ? Object.keys(statusNames) : projectNames;
+        columns.style.setProperty('--ti-cols', String(groups.length));
+        columns.replaceChildren();
+        groups.forEach(group => {
+          const items = data.filter(t => state.layout === 'before' ? t.status === group && (state.filter === 'all' || state.filter === t.project) : t.project === group);
+          const column = document.createElement('section');
+          const heading = document.createElement('div'); heading.className = 'ti-column-title';
+          heading.append(state.layout === 'before' ? statusNames[group] : group);
+          const count = document.createElement('span'); count.textContent = String(items.length); heading.append(count); column.append(heading);
+          items.forEach(task => {
+            const el = button('', 'ti-task'); el.dataset.status = task.status;
+            el.setAttribute('aria-pressed', String(state.selected === task.id));
+            const title = document.createElement('span'); title.className = 'ti-task-title'; title.textContent = task.title;
+            const tag = document.createElement('span'); tag.className = 'ti-tag'; tag.textContent = state.layout === 'before' ? task.project : statusNames[task.status];
+            el.append(title,tag); el.addEventListener('click', () => { state.selected = task.id; render(); }); column.append(el);
+          });
+          if (!items.length) { const empty = document.createElement('div'); empty.className = 'ti-empty'; empty.textContent = 'Нет задач'; column.append(empty); }
+          columns.append(column);
+        });
+        const selected = data.find(t => t.id === state.selected);
+        root.querySelector('[data-selection]').textContent = selected ? selected.title + ' · ' + selected.project + ' · ' + statusNames[selected.status] : 'Выбери карточку — выделение сохранится при смене колонок.';
+      }
+      ['topic','layout','area'].forEach(key => root.querySelectorAll('[data-' + key + ']').forEach(el => el.addEventListener('click', () => {
+        state[key] = el.dataset[key]; if (key === 'area') { state.filter = 'all'; state.selected = ''; } render();
+      })));
+      render();
+      if (globalThis.Tweak) {
+        const tweak = new Tweak({ container: root, onChange: render });
+        tweak.addSelect(state, 'density', { label: 'Плотность карточек', options: [{ label: 'Обычная', value: 'comfortable' }, { label: 'Компактная', value: 'compact' }] });
+      }
+    })();
+  </script>
+</div>
