@@ -1,4 +1,4 @@
-<div id="taskindex-comparison" data-density="compact" aria-label="TaskIndex: сравнение доски и карточки">
+<div id="taskindex-comparison" data-density="comfortable" aria-label="TaskIndex: сравнение доски и карточки">
   <style>
     #taskindex-comparison { --ti-bg: light-dark(#f6f7f9,#202329); --ti-panel: light-dark(#fff,#292d34); --ti-text: light-dark(#222b39,#eef0f4); --ti-muted: light-dark(#626e7f,#a8b1bf); --ti-line: light-dark(#e0e4ea,#404650); --ti-accent: light-dark(#305ecb,#9fb8ff); --ti-selected: light-dark(#eaf0ff,#303f61); --ti-space: 14px; color: var(--ti-text); font: 14px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif; }
     #taskindex-comparison * { box-sizing: border-box; }
@@ -80,8 +80,8 @@
     </div>
     <label class="ti-density">Плотность
       <select data-density-control aria-label="Плотность карточек">
-        <option value="comfortable">Просторно</option>
-        <option value="compact" selected>Компактно</option>
+        <option value="comfortable" selected>Просторно</option>
+        <option value="compact">Компактно</option>
         <option value="rows">Строки</option>
       </select>
     </label>
@@ -129,7 +129,7 @@
   <script>
     (() => {
       const root = document.getElementById('taskindex-comparison');
-      const state = { topic: 'board', layout: 'after', area: 'agency', filter: 'all', selected: '', density: 'compact', columnGap: 8 };
+      const state = { topic: 'board', layout: 'after', area: 'agency', filter: 'all', selected: '', density: 'comfortable', columnGap: 8 };
       const statusNames = { todo: 'Очередь', doing: 'В работе', waiting: 'Жду', done: 'Готово' };
       const areaNames = { agency: 'Агентство', development: 'Разработка', personal: 'Личное' };
       const examples = {
