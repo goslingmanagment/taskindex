@@ -67,7 +67,8 @@ Better Auth использует `X-Real-IP`, который Nginx переза�
    `TASKINDEX_DOMAIN`, установить конфигурацию на хост, проверить `nginx -t` и
    применить её. Для первого certbot HTTP challenge сначала доступен только
    HTTP server block; TLS block включать после появления сертификата. Проверить
-   обновление сертификата через настроенный timer certbot.
+   обновление сертификата через настроенный timer certbot. Что делает блок 443
+   и как это проверить, — в разделе «Nginx: публичная поверхность» ниже.
 6. Открыть запись командой `docker compose -f deploy/compose.yml exec -T app taskindex-admin open-writes`.
    Проверить `/health` с `writes:open`, вход по паролю, регистрацию passkey и вход
    по нему на телефоне. Выполнить тестовый агентский цикл в отдельном окружении
@@ -79,6 +80,42 @@ Better Auth использует `X-Real-IP`, который Nginx переза�
 разрешение. Приложение должно закрывать SSE и завершать короткие запросы при
 SIGTERM; Compose даёт ему 20 секунд, затем принудительно завершает. Принудительный
 выход не считается успешным drain в `deploy.sh`.
+
+## Nginx: публичная поверхность
+
+Блок 443 в `nginx/taskindex.conf` (решение владельца 2026-09-10, TI-056):
+
+- `location = /health` отвечает только с `127.0.0.1` и `::1` (`allow`/`deny all`).
+  Все потребители `/health` внутри периметра: `deploy.sh`, `rollback.sh`, drill и
+  healthcheck compose ходят на `127.0.0.1:3100` мимо Nginx. Внешние мониторы
+  доступности используют `GET /`, а не `/health`. Содержимое ответа не менялось.
+- HSTS `max-age=31536000` без `includeSubDomains` и без `preload`: пока владелец
+  не подтвердил, что на поддоменах нет HTTP-сервисов, поддомены не трогаем.
+  Заголовок ставит только терминатор TLS; приложение HSTS не шлёт.
+- `http2 on;` требует nginx ≥ 1.25.1 (Debian 13, Ubuntu 24.10+). На Debian 12
+  (1.22) и Ubuntu 24.04 (1.24) удалить эту строку и написать `listen 443 ssl http2;`.
+  Версию смотреть `nginx -v` при установке.
+- `server_tokens off`, `ssl_session_cache`/`ssl_session_timeout`/`ssl_session_tickets off`,
+  gzip для css/js/json/svg; для `/api/events/stream` gzip выключен явно, иначе
+  модуль gzip буферизует SSE и игнорирует `no-transform`. Внутри `location` нет
+  `add_header`, чтобы не терять наследование HSTS. Security-заголовки
+  (`X-Frame-Options`, `nosniff`, CSP report-only) и `Cache-Control` для статики
+  ставит приложение, не Nginx.
+
+Проверка после `nginx -s reload` (D — домен):
+
+```sh
+curl -sI --http2 https://D/ | head -1                                # HTTP/2 200
+curl -sI https://D/ | grep -i strict-transport                       # max-age=31536000
+curl -s -o /dev/null -w '%{http_code}\n' https://D/health            # 403
+curl -s http://127.0.0.1:3100/health                                 # на VPS: ok:true
+curl -sI https://D/ | grep -i '^server:'                             # server: nginx, без версии
+curl -sI -H 'Accept-Encoding: gzip' https://D/assets/<js> | grep -i content-encoding  # gzip
+```
+
+Синтаксис проверен 2026-09-10 в `nginx:stable-alpine` (1.30.4) с самоподписанным
+сертификатом: `nginx -t` успешен; снаружи `/health` → 403, `/` → HTTP/2 с HSTS и
+`server: nginx`; изнутри контейнера `/health` проходит к upstream.
 
 ## Следующий релиз
 
