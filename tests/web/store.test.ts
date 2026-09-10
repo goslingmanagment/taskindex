@@ -289,6 +289,32 @@ describe('ordered operation store', () => {
     await expect(store.retry('op1')).rejects.toThrow('прежней версии');
     expect(storage.length).toBe(1);
   });
+  it('refuses to send a command when browser storage is unavailable (TI-006)', async () => {
+    // Astra probe 03-storage-probe: the localStorage getter throws, browserStorage() is undefined.
+    let postCount = 0;
+    const store = new WorkspaceStore(
+      async <T>(): Promise<T> => {
+        postCount++;
+        throw unavailable();
+      },
+      undefined,
+      async () => {},
+    );
+    store.loadSnapshot(snapshot());
+    expect(store.getSnapshot().storageAvailable).toBe(false);
+    await expect(
+      store.submit(
+        {
+          command: 'task.create',
+          payload: { area: 'agency', title: 'Без конверта' },
+        },
+        'missing-storage-operation',
+      ),
+    ).rejects.toThrow('Хранилище браузера недоступно');
+    expect(postCount).toBe(0);
+    expect(store.getSnapshot().pending).toHaveLength(0);
+    expect(store.getSnapshot().data.tasks).toHaveLength(1);
+  });
   it('keeps optimistic entity identity and timestamps stable on unrelated store publishes', () => {
     const store = new WorkspaceStore(
       <T>() => new Promise<T>(() => {}),

@@ -33,7 +33,11 @@ export type StoreState = {
   connectionFailed: boolean;
   lastEvents: DomainEvent[];
   operationsVersion: number;
+  /** TI-006: without a durable outbox no command is sent; the UI shows a degradation banner. */
+  storageAvailable: boolean;
 };
+export const STORAGE_UNAVAILABLE_MESSAGE =
+  'Хранилище браузера недоступно: изменения не отправляются. Скопируйте текст и повторите в обычном окне.';
 type Transport = <T>(path: string, init?: RequestInit) => Promise<T>;
 const empty = (): WorkspaceState => ({ projects: [], tasks: [], comments: [] });
 const opKey = (id: string) => `taskindex/ops/${id}`;
@@ -52,6 +56,7 @@ export class WorkspaceStore {
     connectionFailed: false,
     lastEvents: [],
     operationsVersion: 0,
+    storageAvailable: true,
   };
   private listeners = new Set<() => void>();
   private buffer = new Map<number, DomainEvent>();
@@ -64,7 +69,9 @@ export class WorkspaceStore {
     private storage: StorageLike | undefined = browserStorage(),
     private delay: (ms: number) => Promise<void> = (ms) =>
       new Promise((r) => setTimeout(r, ms)),
-  ) {}
+  ) {
+    this.state = { ...this.state, storageAvailable: storage !== undefined };
+  }
   subscribe = (listener: () => void) => {
     this.listeners.add(listener);
     return () => {
@@ -117,10 +124,8 @@ export class WorkspaceStore {
   }
   private persist(envelope: OperationEnvelope) {
     // Persist before sending: when storage rejects this write, no request is sent.
-    this.storage?.setItem(
-      opKey(envelope.operationId),
-      JSON.stringify(envelope),
-    );
+    if (!this.storage) throw new Error(STORAGE_UNAVAILABLE_MESSAGE);
+    this.storage.setItem(opKey(envelope.operationId), JSON.stringify(envelope));
   }
   private finish(id: string) {
     try {
@@ -284,6 +289,8 @@ export class WorkspaceStore {
   ): Promise<OperationSuccess> {
     if (!this.state.generation)
       return Promise.reject(new Error('Дождитесь загрузки пространства.'));
+    if (!this.state.storageAvailable)
+      return Promise.reject(new Error(STORAGE_UNAVAILABLE_MESSAGE));
     const envelope: OperationEnvelope = {
       ...command,
       operationId,

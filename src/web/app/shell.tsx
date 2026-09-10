@@ -51,6 +51,7 @@ import { WorkspaceOverview } from './overview';
 import { QuickCreate, ProjectDialog } from './dialogs';
 import { TaskEditor } from './editor';
 import { Activity } from './activity';
+import { PendingNotice } from './pending-notice';
 export function Workspace() {
   return (
     <Toaster>
@@ -188,7 +189,8 @@ function WorkspaceBody() {
         !create &&
         !projectDialog &&
         !loading &&
-        !error
+        !error &&
+        state.storageAvailable
       ) {
         e.preventDefault();
         setCreate('todo');
@@ -196,7 +198,7 @@ function WorkspaceBody() {
     };
     window.addEventListener('keydown', keyboard);
     return () => window.removeEventListener('keydown', keyboard);
-  }, [selected, create, projectDialog, loading, error]);
+  }, [selected, create, projectDialog, loading, error, state.storageAvailable]);
   useEffect(() => {
     if (
       !loading &&
@@ -294,7 +296,8 @@ function WorkspaceBody() {
     );
   };
   const renderTask = (task: Task) => renderCard(task);
-  const disabled = loading || !!error;
+  // TI-006: without durable browser storage no command may be sent.
+  const disabled = loading || !!error || !state.storageAvailable;
   return (
     <>
       <WorkspaceSidebar
@@ -528,31 +531,7 @@ function WorkspaceBody() {
           </div>
         </header>
         <div className="board-body" ref={bodyRef}>
-          {pending
-            .filter((p) => p.status === 'unknown')
-            .map((p) => (
-              <output className="pending-notice" key={p.envelope.operationId}>
-                <span>
-                  {p.envelope.generation === state.generation
-                    ? 'Изменение не подтверждено'
-                    : 'Изменение от прежней версии базы. Перенесите текст вручную.'}
-                </span>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  disabled={p.envelope.generation !== state.generation}
-                  onClick={() =>
-                    void workspaceStore
-                      .retry(p.envelope.operationId)
-                      .catch((e) =>
-                        toast.add({ title: e.message, type: 'error' }),
-                      )
-                  }
-                >
-                  Повторить
-                </Button>
-              </output>
-            ))}
+          <PendingNotice />
           {todayOnly && !globalView && (
             <p className="filter-note">
               Срок или дата проверки — сегодня и раньше
