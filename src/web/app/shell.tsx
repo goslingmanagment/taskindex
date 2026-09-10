@@ -52,6 +52,7 @@ import { QuickCreate, ProjectDialog } from './dialogs';
 import { TaskEditor } from './editor';
 import { Activity } from './activity';
 import { PendingNotice } from './pending-notice';
+import { pendingTaskLabel } from './editor-base';
 export function Workspace() {
   return (
     <Toaster>
@@ -115,6 +116,10 @@ function WorkspaceBody() {
     projects = data.projects.filter((p) => p.area === area),
     project = projects.find((p) => p.id === projectId);
   const selected = data.tasks.find((task) => task.id === location.task) ?? null;
+  // TI-007: the editor is based on the confirmed record, never on an optimistic preview.
+  const confirmedSelected =
+    selected &&
+    (state.confirmed.tasks.find((task) => task.id === selected.id) ?? selected);
   const searching = query.trim().length > 0,
     globalView = searching || focusView || activity;
   const focus = focusGroups(data.tasks, today);
@@ -644,6 +649,8 @@ function WorkspaceBody() {
         <TaskEditor
           key={`${state.generation}/${selected.id}`}
           task={selected}
+          base={confirmedSelected ?? selected}
+          pendingLabel={pendingTaskLabel(pending, selected.id)}
           projects={data.projects}
           onClose={() => update({ task: '' })}
           onSave={async (task, base, operationId) => {

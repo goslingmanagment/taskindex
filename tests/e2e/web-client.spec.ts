@@ -91,3 +91,93 @@ test('TI-006 a browser without localStorage shows the degradation banner and sen
   );
   expect(writes).toEqual([]);
 });
+
+test('TI-007 the editor bases its save on the confirmed revision, not on a rejected optimistic move', async ({
+  page,
+}) => {
+  await login(page, 102);
+  const id = randomUUID();
+  const title = 'TI-007 карточка';
+  expect(
+    (await command(page, 'task.create', { id, area: 'agency', title })).ok(),
+  ).toBe(true);
+  await expect(
+    page.getByRole('button', { name: `Открыть: ${title}`, exact: true }),
+  ).toBeVisible();
+  // The move stays pending until the test rejects it definitively (Astra a01-rejected-variant).
+  let reject!: () => void;
+  const rejected = new Promise<void>((resolve) => {
+    reject = resolve;
+  });
+  await page.route('**/api/commands', async (route) => {
+    const data = route.request().postDataJSON();
+    if (data.command === 'task.move' && data.payload.id === id) {
+      await rejected;
+      await route.fulfill({
+        status: 400,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          ok: false,
+          code: 'invalid',
+          retryable: false,
+          message: 'Сосед ушёл.',
+        }),
+      });
+      return;
+    }
+    await route.continue();
+  });
+  await page
+    .getByRole('button', { name: `Завершить: ${title}`, exact: true })
+    .click();
+  await expect
+    .poll(() =>
+      page.evaluate(
+        () =>
+          Object.keys(localStorage).filter((k) =>
+            k.startsWith('taskindex/ops/'),
+          ).length,
+      ),
+    )
+    .toBe(1);
+  // Opened while the optimistic revision 2 is on screen and the server is still at 1.
+  await page
+    .getByRole('button', { name: `Открыть: ${title}`, exact: true })
+    .click();
+  await expect(
+    page.getByRole('dialog', { name: 'Редактирование задачи', exact: true }),
+  ).toBeVisible();
+  await expect(page.getByText('Ожидает подтверждения')).toBeVisible();
+  reject();
+  await expect
+    .poll(() =>
+      page.evaluate(
+        () =>
+          Object.keys(localStorage).filter((k) =>
+            k.startsWith('taskindex/ops/'),
+          ).length,
+      ),
+    )
+    .toBe(0);
+  await expect(page.getByText('Ожидает подтверждения')).toBeHidden();
+  await page
+    .getByRole('textbox', { name: 'Название задачи', exact: true })
+    .fill('TI-007 сохранено после отказа');
+  const save = page.waitForRequest(
+    (request) =>
+      request.url().endsWith('/api/commands') &&
+      request.method() === 'POST' &&
+      request.postDataJSON()?.command === 'task.save',
+  );
+  await page.getByRole('button', { name: 'Сохранить', exact: true }).click();
+  expect((await save).postDataJSON().payload.baseRevision).toBe(1);
+  await expect(
+    page.getByRole('dialog', { name: 'Редактирование задачи', exact: true }),
+  ).toBeHidden();
+  const latest = await (await page.request.get(`/api/tasks/${id}`)).json();
+  expect(latest).toMatchObject({
+    title: 'TI-007 сохранено после отказа',
+    status: 'todo',
+    revision: 2,
+  });
+});

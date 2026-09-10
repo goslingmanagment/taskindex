@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from 'react';
 import { ApiError } from '../lib/use-workspace';
 import { workspaceStore } from './store';
 import { readDraft, writeDraft, clearDraft } from './drafts';
+import { editorBaseRevision, isFutureBaseError } from './editor-base';
 import { TaskDiscussion } from './activity';
 import {
   Check,
@@ -89,13 +90,20 @@ export function Choice({
 }
 export function TaskEditor({
   task,
+  base,
+  pendingLabel,
   projects,
   onClose,
   onSave,
   onArchive,
   onFirst,
 }: {
+  /** The task as displayed (optimistic previews included); identifies the card. */
   task: Task;
+  /** TI-007: the confirmed record; every save, archive and move is based on it. */
+  base: Task;
+  /** Label of a command of this task that is still unconfirmed. */
+  pendingLabel?: string;
   projects: Project[];
   onClose: () => void;
   onSave: (t: Task, base: Task, operationId: string) => Promise<Task>;
@@ -112,12 +120,15 @@ export function TaskEditor({
   );
   const foreign = restored && restored.generation !== generation;
   const [draft, setDraft] = useState<Task>(() => ({
-    ...task,
+    ...base,
     ...(!foreign ? restored?.fields.task : {}),
   }));
   const [saved, setSaved] = useState(() => ({
-    ...task,
-    revision: !foreign && restored ? restored.baseRevision : task.revision,
+    ...base,
+    revision: editorBaseRevision(
+      !foreign && restored ? restored.baseRevision : undefined,
+      base,
+    ),
   }));
   const [busy, setBusy] = useState(false),
     [error, setError] = useState(''),
@@ -237,6 +248,19 @@ export function TaskEditor({
         saveIntent.current = null;
       if (e instanceof ApiError && e.status === 409 && e.current)
         setConflict(e.current as Task);
+      if (
+        e instanceof ApiError &&
+        e.detail.code === 'invalid' &&
+        isFutureBaseError(e.detail.message)
+      ) {
+        // The base got ahead of the server: fall back to the confirmed revision
+        // (the draft effect rewrites baseRevision) and let the owner save again.
+        setSaved((s) => ({ ...s, revision: base.revision }));
+        setError(
+          'Версия карточки не совпала с сервером. Проверьте текст и сохраните ещё раз.',
+        );
+        return;
+      }
       setError(e instanceof Error ? e.message : 'Не сохранилось.');
     } finally {
       setBusy(false);
@@ -298,6 +322,11 @@ export function TaskEditor({
             </SheetDescription>
           </SheetHeader>
           <fieldset disabled={busy} className="editor-body">
+            {pendingLabel && (
+              <output className="pending-notice editor-pending">
+                Ожидает подтверждения: {pendingLabel.toLowerCase()}
+              </output>
+            )}
             {foreign && (
               <details className="conflict-box">
                 <summary>Черновик от прежней версии базы</summary>

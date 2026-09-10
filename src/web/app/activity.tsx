@@ -17,26 +17,9 @@ import {
 import { toast } from '../ui/toast';
 import { request } from './api';
 import { workspaceStore } from './store';
+import { commandLabels } from './labels';
 import { readDraft, writeDraft, clearDraft } from './drafts';
-const labels: Record<string, string> = {
-  'task.create': 'Создана задача',
-  'task.sync': 'Обновлено из источника',
-  'task.update': 'Изменена задача',
-  'task.save': 'Сохранена карточка',
-  'task.move': 'Задача перемещена',
-  'task.archive': 'Задача в архиве',
-  'task.restore': 'Задача возвращена',
-  'project.create': 'Создано направление',
-  'project.update': 'Изменено направление',
-  'comment.add': 'Добавлен комментарий',
-  'comment.remove': 'Удалён комментарий',
-  undo: 'Отменено изменение',
-  batch: 'Пакет изменений',
-  'checklist.add': 'Добавлен шаг',
-  'checklist.update': 'Изменён шаг',
-  'checklist.remove': 'Удалён шаг',
-  'checklist.reorder': 'Переставлены шаги',
-};
+const labels = commandLabels;
 const fields: Record<string, string> = {
   title: 'Название',
   status: 'Состояние',
