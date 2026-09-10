@@ -10,7 +10,8 @@
     "jsx-a11y"
   ],
   "categories": {
-    "correctness": "error"
+    "correctness": "error",
+    "suspicious": "warn"
   },
   "env": {
     "builtin": true,
@@ -22,25 +23,40 @@
     "typeCheck": false
   },
   "ignorePatterns": [
-    "out/**",
     "build/**",
-    "dist/**",
     "coverage/**",
+    "data/**",
+    "dist/**",
+    "docs/**",
     "docs/reference/**",
-    "test-results/**",
-    "playwright-report/**"
+    "drizzle/v2/meta/**",
+    "out/**",
+    "playwright-report/**",
+    "public/**",
+    "test-results/**"
   ],
   "rules": {
+    "eslint/max-lines-per-function": [
+      "warn",
+      {
+        "max": 120,
+        "skipBlankLines": true,
+        "skipComments": true
+      }
+    ],
+    "eslint/no-nested-ternary": "warn",
+    "import/no-anonymous-default-export": "warn",
     "no-array-constructor": "error",
     "no-var": "error",
     "prefer-const": "error",
     "prefer-rest-params": "error",
     "prefer-spread": "error",
-    "import/no-anonymous-default-export": "warn",
+    "react/button-has-type": "warn",
     "react/display-name": "error",
     "react/jsx-no-comment-textnodes": "error",
     "react/no-unescaped-entities": "error",
     "react/react-compiler": "error",
+    "react/react-in-jsx-scope": "off",
     "react/require-render-return": "error",
     "react/rules-of-hooks": "error",
     "typescript/ban-ts-comment": "error",
@@ -48,8 +64,20 @@
     "typescript/no-empty-object-type": "error",
     "typescript/no-explicit-any": "error",
     "typescript/no-namespace": "error",
+    "typescript/no-non-null-assertion": "off",
     "typescript/no-require-imports": "error",
+    "typescript/no-unnecessary-type-assertion": "warn",
     "typescript/no-unnecessary-type-constraint": "error",
-    "typescript/no-unsafe-function-type": "error"
+    "typescript/no-unnecessary-type-conversion": "warn",
+    "typescript/no-unnecessary-type-parameters": "warn",
+    "typescript/no-unsafe-function-type": "error",
+    "typescript/no-unsafe-type-assertion": "off",
+    "typescript/prefer-nullish-coalescing": "warn",
+    "unicorn/catch-error-name": [
+      "warn",
+      {
+        "name": "error"
+      }
+    ]
   }
 }

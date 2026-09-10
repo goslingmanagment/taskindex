@@ -115,7 +115,7 @@ describe('ordered operation store', () => {
       'op1',
     );
     store.ingest([event(1, 1, 2)]);
-    expect(store.getSnapshot().confirmed.tasks[0].title).toBe('Исходное');
+    expect(store.getSnapshot().confirmed.tasks[0]!.title).toBe('Исходное');
     expect(store.getSnapshot().pending).toHaveLength(1);
     expect(storage.length).toBe(1);
     store.ingest([event(2, 1, 2)]);
@@ -209,7 +209,7 @@ describe('ordered operation store', () => {
     expect(bodies).toHaveLength(4);
     expect(new Set(bodies).size).toBe(1);
     expect(storage.getItem('taskindex/ops/op1')).toBe(bodies[0]);
-    expect(store.getSnapshot().pending[0].status).toBe('unknown');
+    expect(store.getSnapshot().pending[0]!.status).toBe('unknown');
   });
   it('removes a definitive conflict but preserves the error current value', async () => {
     const current = { ...task(), title: 'Чужое', revision: 2 };
@@ -237,7 +237,7 @@ describe('ordered operation store', () => {
       ),
     ).rejects.toMatchObject({ current });
     expect(store.getSnapshot().pending).toHaveLength(0);
-    expect(store.getSnapshot().confirmed.tasks[0].title).toBe('Исходное');
+    expect(store.getSnapshot().confirmed.tasks[0]!.title).toBe('Исходное');
     expect(storage.length).toBe(0);
   });
   it('reconciles a persisted operation after reload and does not resend a completed command', async () => {
@@ -286,11 +286,11 @@ describe('ordered operation store', () => {
     }, storage);
     store.loadSnapshot(snapshot());
     await store.recover();
-    expect(store.getSnapshot().data.tasks[0].title).toBe('Исходное');
+    expect(store.getSnapshot().data.tasks[0]!.title).toBe('Исходное');
     await expect(store.retry('op1')).rejects.toThrow('прежней версии');
     expect(storage.length).toBe(1);
     expect(store.getSnapshot().pending).toHaveLength(1);
-    expect(store.getSnapshot().pending[0].message).toBe(
+    expect(store.getSnapshot().pending[0]!.message).toBe(
       'Изменение от прежней версии базы',
     );
     store.dismiss('op1');
@@ -343,11 +343,11 @@ describe('ordered operation store', () => {
     await spin();
     store.ingest([event(1)]);
     expect(store.getSnapshot().seq).toBe(1);
-    expect(store.getSnapshot().confirmed.tasks[0].title).toBe('Название 1');
+    expect(store.getSnapshot().confirmed.tasks[0]!.title).toBe('Название 1');
     release(snapshot());
     await refreshing;
     expect(store.getSnapshot().seq).toBe(1);
-    expect(store.getSnapshot().confirmed.tasks[0].title).toBe('Название 1');
+    expect(store.getSnapshot().confirmed.tasks[0]!.title).toBe('Название 1');
     expect(store.getSnapshot().loading).toBe(false);
     expect(requests.some((path) => path.includes('since=1'))).toBe(true);
   });
@@ -364,18 +364,18 @@ describe('ordered operation store', () => {
     const fresh = store.resync();
     await spin();
     expect(snapshots).toHaveLength(2);
-    snapshots[1]({
+    snapshots[1]!({
       ...snapshot(),
       generation: 'gen2',
       seq: 5,
       tasks: [{ ...task(), title: 'Из новой базы', revision: 3 }],
     });
     await fresh;
-    snapshots[0](snapshot());
+    snapshots[0]!(snapshot());
     await stale;
     expect(store.getSnapshot().generation).toBe('gen2');
     expect(store.getSnapshot().seq).toBe(5);
-    expect(store.getSnapshot().confirmed.tasks[0].title).toBe('Из новой базы');
+    expect(store.getSnapshot().confirmed.tasks[0]!.title).toBe('Из новой базы');
     expect(store.getSnapshot().loading).toBe(false);
   });
   it('TI-074 previews are attributed to the actor from /api/me, as the confirmed record will be', async () => {
@@ -442,7 +442,7 @@ describe('ordered operation store', () => {
       changes: { deletedAt: { from: null, to: '2026-09-08T01:00:00Z' } },
     };
     store.ingest([removed]);
-    expect(store.getSnapshot().data.tasks[0].commentCount).toBe(0);
+    expect(store.getSnapshot().data.tasks[0]!.commentCount).toBe(0);
     const added: DomainEvent = {
       ...event(2),
       entityKind: 'comment',
@@ -457,7 +457,7 @@ describe('ordered operation store', () => {
     };
     store.ingest([added]);
     store.ingest([added]);
-    expect(store.getSnapshot().data.tasks[0].commentCount).toBe(1);
+    expect(store.getSnapshot().data.tasks[0]!.commentCount).toBe(1);
   });
   it('sends only dirty editor fields in one atomic save', () => {
     const base = task(),

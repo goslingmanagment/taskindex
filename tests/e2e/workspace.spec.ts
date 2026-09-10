@@ -525,14 +525,14 @@ test('mouse and emulated touch drag both persist task moves', async ({
       projectId,
       title: 'Мышью',
     })
-  ).results[0].record as Task;
+  ).results[0]!.record as Task;
   const touch = (
     await command(page, 'task.create', {
       area: 'agency',
       projectId,
       title: 'Касанием',
     })
-  ).results[0].record as Task;
+  ).results[0]!.record as Task;
   await command(page, 'task.create', {
     area: 'agency',
     projectId,
@@ -700,7 +700,7 @@ test('register passkey, sign out, and sign in with a virtual WebAuthn authentica
     authenticatorId,
   });
   expect(credentials.credentials).toHaveLength(1);
-  expect(credentials.credentials[0].rpId).toBe('localhost');
+  expect(credentials.credentials[0]!.rpId).toBe('localhost');
   await page.getByRole('button', { name: 'Дмитрий', exact: true }).click();
   await page.getByRole('menuitem', { name: 'Выйти', exact: true }).click();
   await expect(

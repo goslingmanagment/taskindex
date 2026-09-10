@@ -64,7 +64,7 @@ export function useWorkspace() {
             },
           };
       const result = await workspaceStore.submit(command, operationId);
-      return { task: result.results[0].record as Task, result };
+      return { task: result.results[0]!.record as Task, result };
     },
     saveProject: async (project: Project, operationId?: string) => {
       const result = await workspaceStore.submit(
@@ -91,7 +91,7 @@ export function useWorkspace() {
             },
         operationId,
       );
-      return result.results[0].record as Project;
+      return result.results[0]!.record as Project;
     },
   };
 }

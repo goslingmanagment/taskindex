@@ -104,7 +104,7 @@ export function executeOperation(
       commandHash: hash,
       createdAt: now,
     };
-    let error: DomainError | undefined;
+    let failure: DomainError | undefined;
     for (const [index, command] of commands.entries())
       try {
         const applied = applyCommand(state, command, {
@@ -129,34 +129,34 @@ export function executeOperation(
             firstSeq: start,
             lastSeq: start,
           });
-      } catch (e) {
-        if (!(e instanceof DomainError)) throw e;
-        error = e;
-        if ('commands' in envelope) error.details.commandIndex = index;
+      } catch (error) {
+        if (!(error instanceof DomainError)) throw error;
+        failure = error;
+        if ('commands' in envelope) failure.details.commandIndex = index;
         break;
       }
-    if (error) {
+    if (failure) {
       const body = {
-        ...error.toJSON(),
+        ...failure.toJSON(),
         operationId: envelope.operationId,
         generation: gen,
       };
-      if (!envelope.dryRun && error.code !== 'unavailable')
+      if (!envelope.dryRun && failure.code !== 'unavailable')
         db.orm
           .insert(schema.operations)
           .values({
             ...stored,
-            status: error.status,
+            status: failure.status,
             result: body,
             firstSeq: null,
             lastSeq: null,
           })
           .run();
       return {
-        status: error.status,
+        status: failure.status,
         body,
         freshEvents: [],
-        freshOperation: !envelope.dryRun && error.code !== 'unavailable',
+        freshOperation: !envelope.dryRun && failure.code !== 'unavailable',
       };
     }
     const firstSeq = events.length ? start : null,

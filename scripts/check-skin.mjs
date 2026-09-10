@@ -21,23 +21,56 @@ const read = (path) => readFileSync(path, 'utf8');
 // Комментарии заменяются пробелами той же длины: содержимое не проверяется,
 // но номера строк остаются настоящими.
 const bare = (css) =>
-  css.replace(/\/\*[\s\S]*?\*\//g, (block) =>
-    block.replace(/[^\n]/g, ' '),
-  );
+  css.replace(/\/\*[\s\S]*?\*\//g, (block) => block.replace(/[^\n]/g, ' '));
 
 // 1. Ни одного литерала цвета вне tokens.css.
 const NAMED = new Set([
-  'white', 'black', 'red', 'green', 'blue', 'gray', 'grey', 'silver', 'maroon',
-  'olive', 'lime', 'aqua', 'teal', 'navy', 'fuchsia', 'purple', 'yellow',
-  'orange', 'pink', 'brown', 'gold', 'beige', 'ivory', 'khaki', 'salmon',
-  'coral', 'crimson', 'indigo', 'violet', 'tan', 'plum', 'orchid', 'wheat',
+  'white',
+  'black',
+  'red',
+  'green',
+  'blue',
+  'gray',
+  'grey',
+  'silver',
+  'maroon',
+  'olive',
+  'lime',
+  'aqua',
+  'teal',
+  'navy',
+  'fuchsia',
+  'purple',
+  'yellow',
+  'orange',
+  'pink',
+  'brown',
+  'gold',
+  'beige',
+  'ivory',
+  'khaki',
+  'salmon',
+  'coral',
+  'crimson',
+  'indigo',
+  'violet',
+  'tan',
+  'plum',
+  'orchid',
+  'wheat',
 ]);
 const COLOR_PROPERTY =
   /(^|[\s;{])(color|background|background-color|border|border-[a-z-]+|outline|outline-color|box-shadow|text-shadow|fill|stroke|caret-color|accent-color|text-decoration-color|column-rule-color)\s*:\s*([^;{}]*)/g;
 for (const name of [...skinFiles.map((f) => join(SKIN_DIR, f)), STYLES]) {
   const css = bare(read(name));
-  for (const hit of css.matchAll(/#[0-9a-fA-F]{3,8}\b|\b(?:rgba?|hsla?|oklch|lab)\(/g))
-    fail(name, lineOf(css, hit.index), `литерал цвета «${hit[0]}» вне ${TOKENS}`);
+  for (const hit of css.matchAll(
+    /#[0-9a-fA-F]{3,8}\b|\b(?:rgba?|hsla?|oklch|lab)\(/g,
+  ))
+    fail(
+      name,
+      lineOf(css, hit.index),
+      `литерал цвета «${hit[0]}» вне ${TOKENS}`,
+    );
   for (const declaration of css.matchAll(COLOR_PROPERTY))
     for (const word of declaration[3].match(/[a-z]+/g) ?? [])
       if (NAMED.has(word))
@@ -67,7 +100,11 @@ for (const name of [...skinFiles.map((f) => join(SKIN_DIR, f)), STYLES]) {
     name === STYLES ? blockRange(css, '@media (prefers-reduced-motion') : null;
   for (const hit of css.matchAll(/!important/g))
     if (!allowed || hit.index < allowed[0] || hit.index > allowed[1])
-      fail(name, lineOf(css, hit.index), '!important вне prefers-reduced-motion');
+      fail(
+        name,
+        lineOf(css, hit.index),
+        '!important вне prefers-reduced-motion',
+      );
 }
 
 // Разбор правил: селектор, контекст (@media), тело.
@@ -121,7 +158,10 @@ const homes = new Map();
 for (const file of skinFiles) {
   const css = read(join(SKIN_DIR, file));
   for (const rule of rules(css))
-    for (const part of rule.prelude.split(',').map((s) => s.trim()).filter(Boolean)) {
+    for (const part of rule.prelude
+      .split(',')
+      .map((s) => s.trim())
+      .filter(Boolean)) {
       const key = `${rule.context}||${part}`;
       const seen = homes.get(key) ?? new Set();
       seen.add(file);
@@ -130,7 +170,11 @@ for (const file of skinFiles) {
 }
 for (const [key, files] of homes)
   if (files.size > 1)
-    fail(SKIN_DIR, 0, `селектор «${key.split('||')[1]}» в двух файлах: ${[...files].join(', ')}`);
+    fail(
+      SKIN_DIR,
+      0,
+      `селектор «${key.split('||')[1]}» в двух файлах: ${[...files].join(', ')}`,
+    );
 
 // 4. Никаких селекторов элементов, которые рисуют примитивы, внутрь примитива.
 // Собственная разметка приложения (h1..h6, p, span, div, li, label, form, svg,
@@ -140,7 +184,10 @@ const PRIMITIVE_ELEMENTS = /(^|[\s>+~])(button|input|textarea|select)\b/;
 for (const file of skinFiles) {
   const css = read(join(SKIN_DIR, file));
   for (const rule of rules(css))
-    for (const part of rule.prelude.split(',').map((s) => s.trim()).filter(Boolean)) {
+    for (const part of rule.prelude
+      .split(',')
+      .map((s) => s.trim())
+      .filter(Boolean)) {
       if (!/^[.[]/.test(part)) continue;
       const rest = part.replace(/^[^\s>+~]+/, '');
       if (PRIMITIVE_ELEMENTS.test(rest))
@@ -161,26 +208,44 @@ for (const file of skinFiles) {
   const css = read(join(SKIN_DIR, file));
   for (const hit of css.matchAll(/data-slot=['"]([a-z-]+)['"]/g))
     if (!declared.has(hit[1]))
-      fail(join(SKIN_DIR, file), lineOf(css, hit.index), `слот «${hit[1]}» не объявлен в ${UI_DIR}`);
+      fail(
+        join(SKIN_DIR, file),
+        lineOf(css, hit.index),
+        `слот «${hit[1]}» не объявлен в ${UI_DIR}`,
+      );
 }
 
 // 6. Токены определяются только в tokens.css, по блоку на пару (скин, режим).
-const ALLOWED_BLOCKS = /^(:root|\.dark|:root\[data-skin='[a-z0-9-]+'\]|:root\[data-skin='[a-z0-9-]+'\]\.dark|:root\[data-theme='[a-z]+'\]|@theme[a-z ]*|@media \(prefers-color-scheme: dark\)|:root:not\(\[data-theme='light'\]\))$/;
+const ALLOWED_BLOCKS =
+  /^(:root|\.dark|:root\[data-skin='[a-z0-9-]+'\]|:root\[data-skin='[a-z0-9-]+'\]\.dark|:root\[data-theme='[a-z]+'\]|@theme[a-z ]*|@media \(prefers-color-scheme: dark\)|:root:not\(\[data-theme='light'\]\))$/;
 const tokensCss = read(TOKENS);
 const definedIn = new Map();
 for (const rule of rules(tokensCss)) {
   if (!ALLOWED_BLOCKS.test(rule.prelude))
-    fail(TOKENS, lineOf(tokensCss, rule.index), `неожиданный блок «${rule.prelude}»`);
+    fail(
+      TOKENS,
+      lineOf(tokensCss, rule.index),
+      `неожиданный блок «${rule.prelude}»`,
+    );
   for (const hit of rule.body.matchAll(/^\s*(--[a-z0-9-]+)\s*:/gm)) {
     const key = `${rule.context}||${rule.prelude}||${hit[1]}`;
-    if (definedIn.has(key)) fail(TOKENS, lineOf(tokensCss, rule.index), `токен ${hit[1]} определён дважды в одном блоке`);
+    if (definedIn.has(key))
+      fail(
+        TOKENS,
+        lineOf(tokensCss, rule.index),
+        `токен ${hit[1]} определён дважды в одном блоке`,
+      );
     definedIn.set(key, true);
   }
 }
 for (const name of [...skinFiles.map((f) => join(SKIN_DIR, f)), STYLES]) {
   const css = bare(read(name));
   for (const hit of css.matchAll(/^\s*(--[a-z0-9-]+)\s*:/gm))
-    fail(name, lineOf(css, hit.index), `токен ${hit[1]} определён вне ${TOKENS}`);
+    fail(
+      name,
+      lineOf(css, hit.index),
+      `токен ${hit[1]} определён вне ${TOKENS}`,
+    );
 }
 
 // 7. Мёртвых классов в скине нет.
@@ -203,7 +268,11 @@ for (const file of skinFiles) {
   for (const hit of css.matchAll(/\.(-?[A-Za-z_][A-Za-z0-9_-]*)/g))
     if (!words.has(hit[1]) && !seen.has(hit[1])) {
       seen.add(hit[1]);
-      fail(join(SKIN_DIR, file), lineOf(css, hit.index), `класс «${hit[1]}» не встречается в src/web/**`);
+      fail(
+        join(SKIN_DIR, file),
+        lineOf(css, hit.index),
+        `класс «${hit[1]}» не встречается в src/web/**`,
+      );
     }
 }
 
@@ -212,7 +281,9 @@ const palette = new Map();
 for (const rule of rules(tokensCss)) {
   if (rule.prelude !== ':root' && rule.prelude !== '.dark') continue;
   const mode = rule.prelude === ':root' ? 'light' : 'dark';
-  for (const hit of rule.body.matchAll(/(--[a-z0-9-]+)\s*:\s*(#[0-9a-fA-F]{3,8})\s*;/g))
+  for (const hit of rule.body.matchAll(
+    /(--[a-z0-9-]+)\s*:\s*(#[0-9a-fA-F]{3,8})\s*;/g,
+  ))
     palette.set(`${mode}${hit[1]}`, hit[2]);
 }
 function channel(value) {
@@ -256,7 +327,11 @@ for (const mode of ['light', 'dark'])
     if (!a || !b) continue;
     const ratio = contrast(a, b);
     if (ratio + 1e-9 < threshold)
-      fail(TOKENS, 0, `контраст ${fg} на ${bg} (${mode}) = ${ratio.toFixed(2)}:1, нужно ${threshold}:1`);
+      fail(
+        TOKENS,
+        0,
+        `контраст ${fg} на ${bg} (${mode}) = ${ratio.toFixed(2)}:1, нужно ${threshold}:1`,
+      );
   }
 
 // 9. Собранный CSS не растёт (план 08, тест 10).
@@ -266,7 +341,11 @@ if (existsSync(assets)) {
   for (const name of readdirSync(assets).filter((n) => n.endsWith('.css'))) {
     const size = statSync(join(assets, name)).size;
     if (size > BUNDLE_LIMIT)
-      fail(join(assets, name), 0, `собранный CSS ${size} Б больше предела ${BUNDLE_LIMIT} Б`);
+      fail(
+        join(assets, name),
+        0,
+        `собранный CSS ${size} Б больше предела ${BUNDLE_LIMIT} Б`,
+      );
   }
 }
 

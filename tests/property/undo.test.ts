@@ -248,14 +248,14 @@ describe('undo restores the subject fields of the oracle', () => {
             payload: { id: 't', baseRevision: 1, [fields[second]!]: 'second' },
           };
           if (first === second) {
-            let error: DomainError | undefined;
+            let failure: DomainError | undefined;
             try {
               w.apply(stale, 'second');
-            } catch (e) {
-              error = e as DomainError;
+            } catch (error) {
+              failure = error as DomainError;
             }
-            expect(error?.code).toBe('conflict');
-            const details = error!.details as OperationError;
+            expect(failure?.code).toBe('conflict');
+            const details = failure!.details as OperationError;
             expect(details.conflicts).toEqual([
               { entityKind: 'task', entityId: 't', fields: [fields[first]] },
             ]);

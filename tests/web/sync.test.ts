@@ -193,7 +193,7 @@ describe('startSync reconnects a closed EventSource', () => {
       h.stream.fail(true);
       const pending = h.timeouts.filter((t) => t.ms >= 0);
       expect(pending).toHaveLength(1);
-      delays.push(pending[0].ms);
+      delays.push(pending[0]!.ms);
       expect(h.streams).toHaveLength(attempt + 1);
       await h.runTimeouts();
       expect(h.streams).toHaveLength(attempt + 2);
@@ -209,7 +209,7 @@ describe('startSync reconnects a closed EventSource', () => {
     expect(h.paths.filter((p) => p === '/api/me')).toHaveLength(meBefore + 6);
     h.stream.open();
     h.stream.fail(true);
-    expect(h.timeouts.filter((t) => t.ms >= 0)[0].ms).toBe(1000);
+    expect(h.timeouts.filter((t) => t.ms >= 0)[0]!.ms).toBe(1000);
   });
   it('stops reconnecting once /api/me answers 401 or 403 and reports the revoked access', async () => {
     const h = harness({
@@ -270,13 +270,13 @@ describe('startSync reconnects a closed EventSource', () => {
   it('the minute timer catches up and reconnects when no stream is alive', async () => {
     const h = harness();
     await flush();
-    expect(h.intervals[0].ms).toBe(RESYNC_INTERVAL_MS);
+    expect(h.intervals[0]!.ms).toBe(RESYNC_INTERVAL_MS);
     h.stream.open();
     h.stream.fail(true);
     const pending = h.timeouts.filter((t) => t.ms >= 0);
     expect(pending).toHaveLength(1);
     // The timer ticks while a reconnect is scheduled: it must not open a duplicate.
-    h.intervals[0].fn();
+    h.intervals[0]!.fn();
     await flush();
     expect(h.streams).toHaveLength(1);
     await h.runTimeouts();
