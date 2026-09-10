@@ -83,9 +83,9 @@
 | [TI-012](#ti-012) | P2 | ОТКРЫТО | Стоимость команд, истории и пагинации |
 | [TI-013](#ti-013) | P2 | ИСПРАВЛЕНО | Неизменность применённых SQL-миграций |
 | [TI-014](#ti-014) | P2 | ОТКРЫТО | Совместимость таблиц, событий, результатов и клиентов |
-| [TI-015](#ti-015) | P2 | ОТКРЫТО | Неизменяемая конфигурация выпуска для отката |
-| [TI-016](#ti-016) | P2 | ОТКРЫТО | Обязательная проверка конкретного выпуска |
-| [TI-017](#ti-017) | P2 | ОТКРЫТО | Испытания deploy.sh и его аварийных ветвей |
+| [TI-015](#ti-015) | P2 | ИСПРАВЛЕНО | Неизменяемая конфигурация выпуска для отката |
+| [TI-016](#ti-016) | P2 | ИСПРАВЛЕНО | Обязательная проверка конкретного выпуска |
+| [TI-017](#ti-017) | P2 | ИСПРАВЛЕНО | Испытания deploy.sh и его аварийных ветвей |
 | [TI-018](#ti-018) | P2 | ОТКРЫТО | WebKit и приёмка на настоящем телефоне |
 | [TI-019](#ti-019) | P2 | ОТКРЫТО | Сохранение точных типов команд до обработчика |
 | [TI-020](#ti-020) | P2 | ИСПРАВЛЕНО | Диагностируемые ошибки и корреляция запросов |
@@ -101,7 +101,7 @@
 | [TI-030](#ti-030) | P2 | ОТКРЫТО | Русские ошибки и доступные имена интерфейса |
 | [TI-031](#ti-031) | P2 | ОТКРЫТО | Единое русское склонение количества задач |
 | [TI-032](#ti-032) | P2 | ОТКРЫТО | История изменений на языке пользователя |
-| [TI-033](#ti-033) | P2 | ОТКРЫТО | Сверка документации с реализованными контрактами |
+| [TI-033](#ti-033) | P2 | ИСПРАВЛЕНО | Сверка документации с реализованными контрактами |
 | [TI-034](#ti-034) | P2 | ОТКРЫТО | Рабочая приёмка после исправлений |
 | [TI-035](#ti-035) | P1 | ИСПРАВЛЕНО | CLI пересылает чужой outbox под текущим агентом |
 | [TI-036](#ti-036) | P1 | ИСПРАВЛЕНО | Проверка API-ключа пишет auth-метаданные при каждом GET |
@@ -130,17 +130,17 @@
 | [TI-059](#ti-059) | P2 | ПРЕДЛОЖЕНО | Большие server/CLI/UI модули смешивают независимые обязанности |
 | [TI-060](#ti-060) | P2 | ПРЕДЛОЖЕНО | Лимиты повторяются в схемах, командах и JSX |
 | [TI-061](#ti-061) | P2 | ПРЕДЛОЖЕНО | Несколько canonical() могут разойтись в хешировании |
-| [TI-062](#ti-062) | P2 | ПРЕДЛОЖЕНО | Конфигурация разбросана, часть переменных не отражает runtime |
+| [TI-062](#ti-062) | P2 | ИСПРАВЛЕНО | Конфигурация разбросана, часть переменных не отражает runtime |
 | [TI-063](#ti-063) | P3 | ПРЕДЛОЖЕНО | Комментарии дублируются в store и отдельной загрузке по любому seq |
 | [TI-064](#ti-064) | P3 | РЕШЕНИЕ | Выбор Drizzle/better-sqlite3 требует измерения, замена не обоснована |
 | [TI-065](#ti-065) | P3 | ПРЕДЛОЖЕНО | CSS shadcn привязан к пакету генератора и его транзитивным зависимостям |
 | [TI-066](#ti-066) | P3 | ПРЕДЛОЖЕНО | Dev/build конфигурация содержит лишнюю работу и широкое наблюдение |
 | [TI-067](#ti-067) | P2 | ИСПРАВЛЕНО | Пути runtime/migrations/static зависят от текущего каталога |
-| [TI-068](#ti-068) | P3 | РЕШЕНИЕ | Место сборки и состав production image можно упростить |
+| [TI-068](#ti-068) | P3 | ИСПРАВЛЕНО | Место сборки и состав production image можно упростить |
 | [TI-069](#ti-069) | P2 | ИСПРАВЛЕНО | E2E проверяет Vite dev, но не production static serving |
 | [TI-070](#ti-070) | P2 | ПРЕДЛОЖЕНО | Общее состояние, ожидания и дубли делают E2E хрупкими |
 | [TI-071](#ti-071) | P3 | ПРЕДЛОЖЕНО | Lint, мёртвый код и соглашения дают неполный сигнал качества |
-| [TI-072](#ti-072) | P2 | ПРЕДЛОЖЕНО | Нет безопасного обзора deploy-плана и воспроизводимого bootstrap |
+| [TI-072](#ti-072) | P2 | ИСПРАВЛЕНО | Нет безопасного обзора deploy-плана и воспроизводимого bootstrap |
 | [TI-073](#ti-073) | P3 | РЕШЕНИЕ | События хранятся и отдельно, и в результате операции |
 | [TI-074](#ti-074) | P3 | ИСПРАВЛЕНО | Имя владельца зашито в UI |
 | [TI-075](#ti-075) | — | СНЯТО | Гипотеза: каждый health создаёт новые WAL-кадры |
@@ -657,7 +657,7 @@
 
 ### TI-015 — Неизменяемая конфигурация выпуска для отката
 
-**Тип:** Риск выпуска. **Статус:** ОТКРЫТО. **Приоритет:** P2.
+**Тип:** Риск выпуска. **Статус:** ИСПРАВЛЕНО. **Приоритет:** P2.
 
 **Источники:** [Astra:A-04](/Users/dmitriy/code/taskindex/docs/audits/2026-09-08-multiside-review/02-architecture.md:102); [FC:compare-stack-arch A-04](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/compare-stack-arch.md:87); [План 11 §3.2](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/11-deploy-and-ops.md:111).
 
@@ -683,6 +683,8 @@
 - Сверка Fable: реализация — снимок `deploy/.runtime/releases/<deployment>/{compose.yml,litestream.yml,common.sh,rollback.sh,release.json}` при каждом релизе, путь в `current.json`/`last-backup.json`, `TASKINDEX_COMPOSE_FILE` в `dc()`, `rollback.sh` только из снимка с проверкой sha256, возврат checkout в `on_failure` во всех ветках до открытия записи, режим совместимости для первого релиза без снимка; harness с релизами A и B, различающимися в `compose.yml` ([план 11 §3.2](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/11-deploy-and-ops.md:111), [шаг 7](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/11-deploy-and-ops.md:283)).
 - **Решение** (принято 2026-09-10; решение делегировано владельцем Fable): план 11 принят как путь реализации — снимок релиза `deploy/.runtime/releases/<deployment>/…`, `rollback.sh` только из снимка с проверкой sha256, возврат checkout в `on_failure` во всех ветках до открытия записи, harness с релизами A и B (§3.2, шаг 7) ([план 11, решение владельца](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/11-deploy-and-ops.md:398); [README планов, «Решения владельца»](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/README.md:148)).
 
+**Закрытие (2026-09-10).** Коммит `1780060`. Снимок релиза `deploy/.runtime/releases/<deployment>/{compose.yml, litestream.yml, common.sh, rollback.sh, release.json}` (sha256 файлов, commit, образ) создаётся при bootstrap/deploy/rollback; `dc()` берёт compose из `current.json.release`; `rollback.sh` работает из снимка и проверяет sha256; `on_failure` возвращает чекаут на `previous_ref` во всех ветках до открытия записи (detached HEAD не остаётся); отсутствие снимка — отказ; режим совместимости для старого `current.json` с предупреждением. Доказательство: harness `deploy/drill/deploy-drill.sh`, строки `after-migrate`/`health` (после отказа B работает A со своим образом и compose, чекаут на ветке, lock свободен) и `deploy` (`releaseFiles`=5, `releaseSha`, `releaseCommit`=B); `local-drill.sh` — `current.json` после отката указывает на снимок. Оговорка в плане 11: compose разрешает относительные пути от каталога первого `-f`, поэтому `compose.local.yml` переведён на абсолютные пути через `TASKINDEX_DEPLOY_DIR`; `build:` вынесен в `compose.build.yml`.
+
 **Связанные планы:** [astra-15-immutable-release-rollback.md](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/astra-15-immutable-release-rollback.md); [11-deploy-and-ops.md](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/11-deploy-and-ops.md).
 
 Исходная оценка в плане: P2; до изменения deploy-конфигурации.
@@ -691,7 +693,7 @@
 
 ### TI-016 — Обязательная проверка конкретного выпуска
 
-**Тип:** Проверки выпуска. **Статус:** ОТКРЫТО. **Приоритет:** P2.
+**Тип:** Проверки выпуска. **Статус:** ИСПРАВЛЕНО. **Приоритет:** P2.
 
 **Источники:** [Astra:S-06](/Users/dmitriy/code/taskindex/docs/audits/2026-09-08-multiside-review/01-stack.md:128); [FC:compare-stack-arch S-06](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/compare-stack-arch.md:94); [План 11 §3.4](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/11-deploy-and-ops.md:134); [План 10, доп. шаг 22](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/10-code-quality-and-tests.md:343).
 
@@ -717,6 +719,8 @@
 - Сверка Fable: gate и место сборки связаны — если образ собирается в CI после зелёного `check`, CI и есть gate. Принято: workflow на Node 24 (`npm ci`, `check` с `lint:shell`, `build`, e2e с артефактами в `test-results/`), затем образ `linux/amd64` с label `org.opencontainers.image.revision=<sha>`; `deploy.sh COMMIT` требует готовый образ с совпадающим label (`--image REF`), сборка на VPS только с `--build-here`; запасной путь `deploy/release.sh` ([план 11 §3.4](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/11-deploy-and-ops.md:134), [шаг 8](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/11-deploy-and-ops.md:285); workflow и `scripts/gate.mjs` — [план 10, доп. шаг 22](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/10-code-quality-and-tests.md:343)).
 - **Решение** (принято 2026-09-10; решение делегировано владельцем Fable): GitHub Actions на Node 24.20.0, `npm run check` как гейт релиза; образ `linux/amd64` собирается в CI после зелёного `check` и переносится `docker save | ssh docker load`; `--build-here` только аварийно; реестр GHCR не заводится ([план 11, решение владельца](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/11-deploy-and-ops.md:398); [README планов, строка «Сборка образа»](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/README.md:165)).
 
+**Закрытие (2026-09-10).** Коммиты `18a6023`, `1780060`. `.github/workflows/ci.yml`: job `check` (Node из `.node-version`, `npm ci`, `npm run check`, `npm run build`, Playwright chromium, `npm run e2e`, артефакт `test-results`), job `image` только на push в `main`/тег: `linux/amd64`, `BUILD=sha`, метка `org.opencontainers.image.revision`, образ как артефакт `docker save | gzip` (без GHCR и автодеплоя — решение владельца); `scripts/gate.mjs` — те же команды локально с отчётом `test-results/gate.json`; `deploy.sh --image <архив|ref>` проверяет метку образа = целевой commit, `--build-here` только аварийно. Доказательства: harness строки `image-missing`, `image-label` (образ с чужой меткой отвергнут до остановки сервисов), `before-stop` (загрузка архива через `--image`, метка = B); `actionlint` чистый. Ограничение: живой прогон CI из сессии невозможен, версии actions не проверены на раннере.
+
 **Связанные планы:** [astra-16-release-validation-gate.md](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/astra-16-release-validation-gate.md); [11-deploy-and-ops.md](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/11-deploy-and-ops.md); [10-code-quality-and-tests.md](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/10-code-quality-and-tests.md).
 
 Исходная оценка в плане: P2.
@@ -725,7 +729,7 @@
 
 ### TI-017 — Испытания deploy.sh и его аварийных ветвей
 
-**Тип:** Проверки выпуска. **Статус:** ОТКРЫТО. **Приоритет:** P2.
+**Тип:** Проверки выпуска. **Статус:** ИСПРАВЛЕНО. **Приоритет:** P2.
 
 **Источники:** [Astra:Q-05](/Users/dmitriy/code/taskindex/docs/audits/2026-09-08-multiside-review/04-code-quality.md:91); [FS:T2](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/review-1-stack.md:127); [FQ:§10](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/review-4-quality.md:184); [FC:compare-quality-method Q-05](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/compare-quality-method.md:56); [План 11 §3.3](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/11-deploy-and-ops.md:123); [План 10, доп. шаг 20](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/10-code-quality-and-tests.md:341).
 
@@ -751,6 +755,8 @@
 - Настоящий deploy.sh с фазами/ERR-trap/opened, а не только прямой rollback helper. Статический check deploy/database.mjs и shell — отдельный быстрый слой. Существующие TASKINDEX_FAIL_AT использовать в изолированном harness.
 - Сверка Fable: harness `deploy/drill/deploy-drill.sh` на Linux запускает настоящий `deploy.sh` в отдельном worktree и compose-проекте по матрице `TASKINDEX_FAIL_AT` = `before-stop`, `after-migrate`, `health`, `after-open`, без инъекции (две точки новые), с guard «`TASKINDEX_FAIL_AT` только при `TASKINDEX_COMPOSE_PROJECT`»; копии алгоритма в тесте нет ([план 11 §3.3](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/11-deploy-and-ops.md:123), [шаг 9](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/11-deploy-and-ops.md:287)). Статический слой: `bash -n`, `shellcheck` (при наличии) и `tsc -p tsconfig.deploy.json` для `deploy/*.mjs` в `check` ([план 10, доп. шаг 20](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/10-code-quality-and-tests.md:341); `lint:shell` обязателен в CI — [план 11, шаг 11](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/11-deploy-and-ops.md:293)).
 - **Решение** (принято 2026-09-10; решение делегировано владельцем Fable): план 11 принят как путь реализации — harness настоящего `deploy.sh` (`deploy/drill/deploy-drill.sh`) с матрицей `TASKINDEX_FAIL_AT` и guard по `TASKINDEX_COMPOSE_PROJECT` (§3.3, шаг 9); статический слой — план 10, доп. шаг 20, без изменений ([план 11, решение владельца](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/11-deploy-and-ops.md:398); [README планов, «Решения владельца»](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/README.md:148)).
+
+**Закрытие (2026-09-10).** Коммит `d26f988`. `deploy/drill/deploy-drill.sh` исполняет настоящий `deploy.sh` (на macOS — внутри контейнера `docker:cli` с bash/jq/curl, docker.sock и стендом по тому же абсолютному пути; проверка `uname` не подменяется): три коммита A/B/C, образы как в CI, `bootstrap.sh` для A, задачи через CLI до/после, матрица `TASKINDEX_FAIL_AT`. Результат: `{"ok":true}` с 10 строками — `guard`, `image-missing`, `image-label`, `lock-held`, `plan`, `before-stop`, `after-migrate` (откат из снимка A, реплика `-restore-`, новое поколение), `health`, `deploy` (A→B), `after-open` (B→C: автоматический откат базы запрещён, `writesAccepted`). Найденные и исправленные по ходу дефекты: `deploy.sh`/`bootstrap.sh` брали repo от cwd; один повтор `docker load` при транзиентной ошибке демона.
 
 **Связанные планы:** [astra-17-deploy-entrypoint-failure-tests.md](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/astra-17-deploy-entrypoint-failure-tests.md); [11-deploy-and-ops.md](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/11-deploy-and-ops.md); [10-code-quality-and-tests.md](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/10-code-quality-and-tests.md).
 
@@ -1294,7 +1300,7 @@
 
 ### TI-033 — Сверка документации с реализованными контрактами
 
-**Тип:** Документация. **Статус:** ОТКРЫТО. **Приоритет:** P2.
+**Тип:** Документация. **Статус:** ИСПРАВЛЕНО. **Приоритет:** P2.
 
 **Источники:** [FI:B6](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/review-5-ai-ready.md:137); [FI:A13](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/review-5-ai-ready.md:107); [FQ:§10](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/review-4-quality.md:184); [FA:Ж4](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/review-2-architecture.md:100); [FA:Ж6](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/review-2-architecture.md:102); [FA:Ж8](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/review-2-architecture.md:104); [FA:Ж9](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/review-2-architecture.md:105); [FA:Ж12](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/review-2-architecture.md:108); [FA:Ж13](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/review-2-architecture.md:109); [BACKLOG: BL-DOCS](/Users/dmitriy/code/taskindex/BACKLOG.md); [Исходное workflow-ревью BACKLOG](/Users/dmitriy/code/taskindex/docs/audits/2026-09-08-workflows/claude-review/REPORT.md); [ASTRA-VS-FABLE §5 (Ж4)](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/ASTRA-VS-FABLE.md:174); [План 12, доп. шаг 11](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/12-ai-readiness-and-docs.md:438).
 
@@ -1321,6 +1327,8 @@
 - Сохранить как явные контракты, а не баги по умолчанию: dryRun меняет hash envelope; первое owner save может писать ownerTouchedAt; task.sync area locked — допустимый пропуск; домен хранит ISO, auth — integer ms; restore вне runbook без mark-restored не обязан автоматически менять generation. Изменение любого из этих решений требует отдельного обоснования.
 - Публичный health описан в исходном плане; требования к поверхности решаются в TI-056. Утверждение FA:V7 о WAL от health снято в TI-075. Уже реализованное event:operations не записывать как отсутствующую возможность.
 - **Решение** (принято 2026-09-10; решение делегировано владельцем Fable): флаг `--json` удаляется, а не документируется как no-op — позиция плана 03 (§1.3: флаг присутствует в `switches`/`controls`/`HELP` и нигде не читается, вывод всегда JSON; критерий 9; шаг 8: неизвестный флаг → `invalid_arguments` с `hint: "вывод всегда JSON, флаг удалён"`; шаг 14: правка `README.md`, `SKILL.md` и §10 плана v2 как отклонение) ([план 03 §1.3](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/03-cli-outbox-and-ergonomics.md:25); [критерий 9](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/03-cli-outbox-and-ergonomics.md:67); [шаг 8](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/03-cli-outbox-and-ergonomics.md:186); [шаг 14](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/03-cli-outbox-and-ergonomics.md:198)). Таблица сверки документации — план 12, доп. шаг 11, без изменений.
+
+**Закрытие (2026-09-10).** Коммиты `9f62217`, `84b4661`, `61ba79e` (B) и `6b02885` (C). Раздел «Отклонения от плана (сверка с кодом 2026-09-10)» в конце `docs/plans/2026-09-08-taskindex-v2.md`: таблица «утверждение → код/тест → фактическое поведение → документ → статус» (архивные соседи, rate limit только на вход и своя таблица ключей, `approved_deployment`, fingerprint курсора, backup через `better-sqlite3`, `event: operations` реализовано, `--json` удалён, путь outbox, подтверждение операций, попытки, `--generation`, `TIMEZONE`/`LOG_LEVEL`, `BUILD`, установка скилла, приёмка, права агентов — реализовано TI-027, перезапуск `--all`); README и `deploy/README.md` приведены к коду (ключи агентов, журнал, nginx, мониторинг репликации, приёмка в `docs/acceptance/`). Тесты: `tests/cli/docs.test.ts` (SKILL.md/README сверяются со спецификацией CLI; `--json` отклоняется с hint).
 
 **Связанные планы:** [astra-33-contract-documentation-reconciliation.md](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/astra-33-contract-documentation-reconciliation.md); [12-ai-readiness-and-docs.md](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/12-ai-readiness-and-docs.md).
 
@@ -2203,7 +2211,7 @@
 
 ### TI-062 — Конфигурация разбросана, часть переменных не отражает runtime
 
-**Тип:** Качество конфигурации. **Статус:** ПРЕДЛОЖЕНО. **Приоритет:** P2.
+**Тип:** Качество конфигурации. **Статус:** ИСПРАВЛЕНО. **Приоритет:** P2.
 
 **Источники:** [FA:Ж6](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/review-2-architecture.md:102); [FI:B6](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/review-5-ai-ready.md:137); [FQ:§7](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/review-4-quality.md:144); [FQ:§10](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/review-4-quality.md:184); [FQ:R7](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/review-4-quality.md:286); [FC:compare-quality-method, строка 27 матрицы](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/compare-quality-method.md:47); [План 06, шаг 1](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/06-server-structure-config-logging.md:102); [План 11 §3.8](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/11-deploy-and-ops.md:169).
 
@@ -2226,6 +2234,8 @@
 - Общий модуль не должен заставлять CLI чтения валидировать все server/admin secrets. BUILD_ID проверять по реальным потребителям перед удалением.
 - Сверка Fable: `server/config.ts` на Zod по entrypoint ([план 06, шаг 1](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/06-server-structure-config-logging.md:102)); `LOG_LEVEL` реализовать, `TIMEZONE` оставить параметром миграции с комментарием, `HOST` явный; compose и `.env.example` правятся один раз вместе с `LITESTREAM_HEARTBEAT_URL` ([план 11 §3.8](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/11-deploy-and-ops.md:169), шаг 14). `'Europe/Moscow'` в `src/web` и `src/shared` убирается планом 07 (шаг 10), на сервере — планом 06.
 - **Решение** (принято 2026-09-10; решение делегировано владельцем Fable): `LOG_LEVEL` реализуется (уровни `error`, `info`, `debug`), а не удаляется, потому что уже объявлен в compose и документации; `TIMEZONE` остаётся переменной только для `migrate`, документация исправляется; `HOST` явный, dev на `127.0.0.1` (TI-057) ([план 06, решение владельца](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/06-server-structure-config-logging.md:246)).
+
+**Закрытие (2026-09-10).** Коммиты `681f027` (A: `src/server/config.ts` на Zod с `loadServerConfig`/`loadAdminConfig`, `LOG_LEVEL` реализован, `BUILD_ID` не читается, `HOST`) и `6b02885` (C: `compose.yml` `HOST: '0.0.0.0'`, комментарии `TIMEZONE` только для `migrate` и `LOG_LEVEL`; `.env.example` то же и назначение `TASKINDEX_IMAGE`; `deploy/README.md` разделы «Ключи агентов» и «Журнал и переменные сервера»). Сверка утверждений документации с кодом выполнена по `config.ts`, `agent-keys.ts`, `sse.ts`, `log.ts`. Тесты: `tests/unit/config.test.ts`.
 
 **Связанные планы:** [06-server-structure-config-logging.md](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/06-server-structure-config-logging.md); [11-deploy-and-ops.md](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/11-deploy-and-ops.md); [07-web-client-fixes-and-structure.md](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/07-web-client-fixes-and-structure.md).
 
@@ -2373,7 +2383,7 @@
 
 ### TI-068 — Место сборки и состав production image можно упростить
 
-**Тип:** Оптимизация эксплуатации. **Статус:** РЕШЕНИЕ. **Приоритет:** P3.
+**Тип:** Оптимизация эксплуатации. **Статус:** ИСПРАВЛЕНО. **Приоритет:** P3.
 
 **Источники:** [FS:P1](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/review-1-stack.md:133); [FS:P2](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/review-1-stack.md:135); [FC:compare-stack-arch P1/P2](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/compare-stack-arch.md:37); [План 11 §3.4](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/11-deploy-and-ops.md:134); [План 11 §1.6](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/11-deploy-and-ops.md:44); [README планов, «Решения владельца»](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/README.md:158).
 
@@ -2397,6 +2407,8 @@
 - Сверка Fable: рекомендация — сборка `linux/amd64` в CI после зелёного `check` с label `org.opencontainers.image.revision`, доставка через GHCR (`docker pull`) или `docker save | zstd | ssh docker load` (`deploy/release.sh`), `deploy.sh --image REF` проверяет label, `--build-here` только как аварийный путь ([план 11 §3.4](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/11-deploy-and-ops.md:134), шаги 5, 8). Решение владельца записано в README планов как «локально или в CI с переносом образа».
 
 **Выбранный вариант.** Принято 2026-09-10; решение делегировано владельцем Fable, владелец отдельно подтвердил скины и раскладку «Фокус». Сборка образа `linux/amd64` в GitHub Actions на Node 24.20.0 после зелёного `npm run check` (гейт релиза), перенос `docker save | ssh docker load`, `deploy.sh --image REF` с проверкой label `org.opencontainers.image.revision`; `--build-here` только аварийно; реестр GHCR не заводится; `npm prune --omit=dev` без `--omit=optional` (§1.6). Последствия: первый критерий закрытия («место сборки обосновано измерениями») выполняется решением владельца и выбранным процессом доставки, замер VPS для выбора не требуется; остальные критерии (native SQLite в runtime image, identity image/config, двухверсионный rollback, отсутствие секретов в layers) без изменений. Оставшийся объём: workflow, `deploy/release.sh`, `--image`, шаги 5, 8, 11 плана 11 ([план 11, решение владельца](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/11-deploy-and-ops.md:398); [README планов, строка «Сборка образа»](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/README.md:165)).
+
+**Закрытие (2026-09-10).** Коммиты `1780060`, `18a6023`. Сборка образа в GitHub Actions на Node 24 с `npm run check` как гейтом, перенос `docker save | gzip` → `deploy.sh --image` (решение владельца, без GHCR); `Dockerfile`: `npm prune --omit=dev`, `COPY deploy/health.mjs`, `LABEL org.opencontainers.image.revision=$BUILD`; `deploy/health.mjs` заменил 7 inline-проб (`compose` healthcheck, `wait_health`, `deploy.sh`, `local-drill.sh`). Доказательство: `bash deploy/local-drill.sh` → `{"ok":true,…}`, `docker image inspect taskindex:v2-drill` → метка `local-drill`.
 
 **Связанные планы:** [09-data-layer-and-dependencies.md](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/09-data-layer-and-dependencies.md); [11-deploy-and-ops.md](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/11-deploy-and-ops.md).
 
@@ -2498,7 +2510,7 @@
 
 ### TI-072 — Нет безопасного обзора deploy-плана и воспроизводимого bootstrap
 
-**Тип:** Инструменты эксплуатации. **Статус:** ПРЕДЛОЖЕНО. **Приоритет:** P2.
+**Тип:** Инструменты эксплуатации. **Статус:** ИСПРАВЛЕНО. **Приоритет:** P2.
 
 **Источники:** [FI:B10](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/review-5-ai-ready.md:154); [FQ:§10](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/review-4-quality.md:184); [План 11 §3.7](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/11-deploy-and-ops.md:165); [План 11 §3.6](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/11-deploy-and-ops.md:159); [План 11 §1.7](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/11-deploy-and-ops.md:48).
 
@@ -2522,6 +2534,8 @@
 - Сверка Fable: `deploy/health.mjs` в образе заменяет все семь проб ([план 11 §3.6](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/11-deploy-and-ops.md:159), шаг 6); heredoc-программы → `deploy/drill/*.mjs` с `@ts-check`, предел 120 символов, `for tool in` (шаг 10); `npm run lint:shell` (`bash -n` + `shellcheck -x`) в `check` и CI (шаг 11); `deploy.sh --plan COMMIT` печатает JSON плана без Docker и без записи на диск (шаг 12); `deploy/bootstrap.sh` повторяет шаги README с guard'ами и пишет `current.json` и снимок релиза, запись открывается только с `--open-writes` (шаг 13); предупреждение о `git checkout --detach` в README (шаг 14) ([план 11 §3.7](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/11-deploy-and-ops.md:165)).
 
 **План:** минимальный объём и критерии записаны в этой карточке; отдельный подробный файл для этого пункта пока не создан. Сверка Fable: подробный план теперь есть — [11-deploy-and-ops.md §3.6–3.7](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/11-deploy-and-ops.md:159) (шаги 6, 10–14, тесты 7–8).
+
+**Закрытие (2026-09-10).** Коммит `c984fe4`. `deploy.sh --plan` печатает JSON (target, previousRef, image, deployment, runtimeDir, lock, current, phases, willChangeCheckout, docker или `unavailable`) без `mkdir`, lock и checkout; `deploy/bootstrap.sh` (проверки как у `deploy.sh`, `migrate`, `create-owner` из stdin, агент и ключ по флагам, снимок релиза, `up`, `wait_health held`, `confirmed_sync`, `--open-writes`; повторный запуск на существующей базе отказывает); heredoc-программы drill в `deploy/drill/*.mjs`, строки ≤120; `npm run lint:shell` (`bash -n`, shellcheck, `tsc -p tsconfig.deploy.json`, oxlint deploy) в `check`. Тесты: `tests/deploy/deploy-plan.test.ts` (3: план без Docker и без изменения чекаута; занятый lock и записанный релиз; неизвестный commit) — новый контракт; harness строки `plan`, bootstrap A. Хвост: `tests/deploy` попадёт в `npm run check` после добавления в `vitest.config.ts` (запрос A).
 
 **Связанные записи / зависимости исходного плана:** [TI-002](#ti-002), [TI-015](#ti-015), [TI-017](#ti-017), [TI-033](#ti-033), [TI-034](#ti-034), [TI-068](#ti-068).
 
