@@ -47,6 +47,7 @@ services:
       LITESTREAM_S3_ENDPOINT: ${LITESTREAM_S3_ENDPOINT:-}
       LITESTREAM_S3_REGION: ${LITESTREAM_S3_REGION:-us-east-1}
       LITESTREAM_FORCE_PATH_STYLE: ${LITESTREAM_FORCE_PATH_STYLE:-false}
+      LITESTREAM_HEARTBEAT_URL: ${LITESTREAM_HEARTBEAT_URL:?Set the dead-man switch ping URL (healthchecks.io check, 1m period)}
       AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID:?Supply using op run}
       AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY:?Supply using op run}
     volumes:

@@ -5,3 +5,13 @@ services:
   litestream:
     volumes:
       - ./litestream.local.yml:/etc/litestream.yml:ro
+  # Локальный приёмник heartbeat Litestream (TI-002); порт на хост не публикуется.
+  # Volume data не монтируется: rollback.sh отказывает, пока его держит другой контейнер.
+  heartbeat:
+    image: ${TASKINDEX_IMAGE}
+    command: ['node', '/drill/heartbeat-receiver.mjs']
+    environment:
+      HEARTBEAT_LOG: /tmp/heartbeat.log
+    volumes:
+      - ./drill:/drill:ro
+    restart: unless-stopped

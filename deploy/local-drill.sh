@@ -1,10 +1,19 @@
 #!/usr/bin/env bash
 set -Eeuo pipefail
 umask 077
-if [[ ${1:-} == --help ]]; then
-  printf '%s\n' 'Usage: deploy/local-drill.sh [--skip-build]' 'Creates an isolated named Docker volume and local Litestream replica. Never deletes volumes or backups.'
-  exit 0
-fi
+skip_build=false heartbeat=false
+for argument in "$@"; do
+  case $argument in
+    --help)
+      printf '%s\n' 'Usage: deploy/local-drill.sh [--skip-build] [--heartbeat]' \
+        'Creates an isolated named Docker volume and local Litestream replica. Never deletes volumes or backups.' \
+        '--heartbeat additionally proves the Litestream dead-man switch: ping while healthy, silence while the replica is unreachable, ping again after recovery (about 8 minutes).'
+      exit 0 ;;
+    --skip-build) skip_build=true ;;
+    --heartbeat) heartbeat=true ;;
+    *) printf 'Unknown argument: %s\n' "$argument" >&2; exit 1 ;;
+  esac
+done
 repo=$(cd "$(dirname "$0")/.." && pwd)
 for tool in docker jq; do command -v "$tool" >/dev/null || { printf 'Missing: %s\n' "$tool" >&2; exit 1; }; done
 project="taskindex-drill-$(date -u +%Y%m%d%H%M%S)-$RANDOM"
@@ -13,6 +22,8 @@ export TASKINDEX_IMAGE=${TASKINDEX_IMAGE:-taskindex:v2-drill} TASKINDEX_BUILD=${
 export BASE_URL=http://localhost:3000 BETTER_AUTH_SECRET=local-drill-secret-not-a-production-credential-123456789
 export AWS_ACCESS_KEY_ID=local-drill AWS_SECRET_ACCESS_KEY=local-drill
 export LITESTREAM_REPLICA_URL="file:///data/test-replica/$project"
+# Пинги Litestream принимает сервис heartbeat из compose.local.yml (deploy/drill/heartbeat-receiver.mjs).
+export LITESTREAM_HEARTBEAT_URL=http://heartbeat:8787/ping
 export TASKINDEX_COMPOSE_PROJECT="$project" TASKINDEX_COMPOSE_OVERRIDE="$repo/deploy/compose.local.yml"
 export TASKINDEX_RUNTIME_DIR="${TMPDIR:-/tmp}/$project"
 mkdir -p "$TASKINDEX_RUNTIME_DIR"
@@ -20,17 +31,17 @@ source "$repo/deploy/common.sh"
 failed() {
   local code=$?
   trap - ERR
-  dc stop -t 40 app litestream || true
+  dc stop -t 40 app litestream heartbeat || true
   printf 'Drill failed; retained project=%s volume=%s\n' "$project" "$TASKINDEX_VOLUME" >&2
   exit "$code"
 }
 trap failed ERR
-if [[ ${1:-} != --skip-build ]]; then dc build app; fi
+if [[ $skip_build != true ]]; then dc build app; fi
 dc run --rm --no-deps -T app taskindex-admin migrate
 printf '%s\n' 'local-drill-password-only' | dc run --rm --no-deps -T app taskindex-admin create-owner --email owner@example.test
 dc run --rm --no-deps -T app taskindex-admin agent create --id drill-agent --label 'Локальная проверка'
 dc run --rm --no-deps -T app taskindex-admin agent-key create --agent drill-agent --scope write --out /data/drill-key.json
-dc up -d app litestream
+dc up -d app litestream heartbeat
 health() {
   local expected=$1
   for ((attempt=0; attempt<30; attempt++)); do
@@ -51,6 +62,51 @@ const child = spawnSync(process.execPath, ['dist/cli/index.js', 'task', 'create'
 process.exit(child.status ?? 1);
 JS
 }
+heartbeat_count() {
+  dc exec -T heartbeat sh -c 'if [ -f /tmp/heartbeat.log ]; then wc -l < /tmp/heartbeat.log; else echo 0; fi' | tr -dc '0-9'
+}
+wait_heartbeat() {
+  # wait_heartbeat BASELINE SECONDS: success once the ping count exceeds BASELINE.
+  local baseline=$1 seconds=$2
+  for ((attempt=0; attempt<seconds; attempt++)); do
+    if (( $(heartbeat_count) > baseline )); then return 0; fi
+    sleep 1
+  done
+  return 1
+}
+heartbeat_drill() {
+  # heartbeat-interval is 1m: (a) a ping arrives while the replica is healthy; (b) with the replica
+  # directory unreadable, /health stays green but pings stop; (c) pings resume after chmod back;
+  # (d) idle: app paused (no healthcheck writes either), do pings still arrive without writes.
+  local before healthy=false broken=false recovered=false idle=false
+  if wait_heartbeat 0 90; then healthy=true; fi
+  dc run --rm --no-deps --user root -T app chmod 000 "/data/test-replica/$project"
+  agent_create drill-heartbeat-broken
+  health open
+  # One full interval of settling: a tick right after the break may still see a recent sync.
+  sleep 75
+  before=$(heartbeat_count)
+  sleep 90
+  if (( $(heartbeat_count) > before )); then broken=true; fi
+  dc run --rm --no-deps --user root -T app chmod 755 "/data/test-replica/$project"
+  before=$(heartbeat_count)
+  if wait_heartbeat "$before" 120; then recovered=true; fi
+  dc pause app
+  before=$(heartbeat_count)
+  sleep 130
+  if (( $(heartbeat_count) > before )); then idle=true; fi
+  dc unpause app
+  health open
+  heartbeat_result=$(jq -nc --argjson healthy "$healthy" --argjson broken "$broken" --argjson recovered "$recovered" --argjson idle "$idle" \
+    '{healthy:$healthy,broken:$broken,recovered:$recovered,idle:$idle}')
+  printf 'heartbeat: %s\n' "$heartbeat_result"
+  if [[ $healthy != true || $broken != false || $recovered != true ]]; then
+    printf '%s\n' 'Heartbeat drill failed: expected a ping while healthy, none while broken, and one after recovery' >&2
+    return 1
+  fi
+}
+heartbeat_result=null
+if [[ $heartbeat == true ]]; then heartbeat_drill; fi
 agent_create drill-before-restore
 dc restart app
 health open
@@ -116,5 +172,7 @@ const after=JSON.parse(readFileSync('/data/backups/drill-new-replica.json','utf8
 if(before.generation===after.generation||after.tasks.length!==before.tasks.length+1)throw new Error('Replication after restore lost the new generation or command');
 console.log(JSON.stringify({ok:true,stage:'new-replica-verified',generation:after.generation,seq:after.seq}));
 JS
+dc stop -t 5 heartbeat
 trap - ERR
-jq -n --arg project "$project" --arg volume "$TASKINDEX_VOLUME" --arg runtime "$TASKINDEX_RUNTIME_DIR" '{ok:true,project:$project,volume:$volume,runtime:$runtime,stopped:true,scope:"local file replica, failed migrated candidate rollback, persistent gate and post-open refusal; production S3 still needs rehearsal"}'
+jq -n --arg project "$project" --arg volume "$TASKINDEX_VOLUME" --arg runtime "$TASKINDEX_RUNTIME_DIR" --argjson heartbeat "$heartbeat_result" \
+  '{ok:true,project:$project,volume:$volume,runtime:$runtime,stopped:true,heartbeat:$heartbeat,scope:"local file replica, failed migrated candidate rollback, persistent gate and post-open refusal; production S3 and the real heartbeat receiver still need rehearsal"}'
