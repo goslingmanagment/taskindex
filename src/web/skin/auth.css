@@ -35,6 +35,6 @@
 .auth-card form {
   gap: 20px;
 }
-.auth-card input {
+.auth-card [data-slot='input'] {
   width: 100%;
 }

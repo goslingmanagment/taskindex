@@ -1,20 +1,15 @@
 /* Доска, список, карточка задачи и обзор пространства. Файл подключается со слоем skin из styles.css. */
 .board-title p {
   font-size: 13px;
-  color: #738197;
+  color: var(--text-faint-3);
   margin: 7px 0 0;
 }
 .board-title p span {
   padding: 0 8px;
 }
-.column-head > button {
-  color: #748399;
-  height: 26px;
-  width: 26px;
-}
 .task-card:hover {
-  border-color: #bbcbea;
-  box-shadow: 0 4px 12px #213b6410;
+  border-color: var(--accent-border-hover);
+  box-shadow: 0 4px 12px var(--primary-shadow);
   transform: translateY(-1px);
 }
 .task-card:hover .complete-circle,
@@ -29,7 +24,7 @@
   opacity: 1;
   position: static;
   border: 0;
-  color: #258169;
+  color: var(--success-foreground);
   width: 18px;
   height: 18px;
   margin-top: 1px;
@@ -40,13 +35,13 @@
   gap: 5px;
 }
 .due-label {
-  color: #6a7c98;
+  color: var(--text-faint-5);
 }
 .waiting-line svg {
   margin-top: 2px;
 }
 .check-date {
-  color: #927448;
+  color: var(--warning-foreground-2);
 }
 .list-view .project-tag {
   margin: 0;
@@ -60,7 +55,7 @@
 }
 .list-view .task-card:hover {
   box-shadow: none;
-  background: #fbfcff;
+  background: var(--surface-hover);
 }
 @media (min-width: 1600px) {
   .kanban {
@@ -90,7 +85,7 @@
   }
 }
 @media (max-width: 767px) {
-  .search-box input,
+  .search-box .search-field,
   .search-box kbd {
     display: none;
   }
@@ -121,7 +116,7 @@
   }
 }
 .card-open:focus-visible {
-  outline: 3px solid #7a9be9;
+  outline: 3px solid var(--ring-medium);
   outline-offset: 2px;
 }
 .task-card:hover .card-menu,
@@ -133,7 +128,7 @@
   width: 16px;
   height: 16px;
   min-width: 16px;
-  border: 1.5px solid #d7dfe9;
+  border: 1.5px solid var(--line-soft-3);
   border-radius: 50%;
   background: transparent;
   opacity: 0;
@@ -155,19 +150,19 @@
   opacity: 0.35;
 }
 .column.drop-column {
-  outline: 2px dashed #7898e8;
+  outline: 2px dashed var(--drop-outline);
   outline-offset: 2px;
 }
-.search-box button {
+.search-box .search-icon-button {
   background: none;
   border: 0;
   padding: 0;
   display: flex;
 }
 .search-box:focus-within {
-  color: #3763df;
+  color: var(--accent-strong);
 }
-.search-box:focus-within input {
+.search-box:focus-within .search-field {
   outline: 0;
 }
 .card-meta:empty {
@@ -176,8 +171,8 @@
 .inline-create {
   margin-top: 9px;
 }
-.inline-create input {
-  background: #fff;
+.inline-create [data-slot='input'] {
+  background: var(--card);
   min-height: 42px;
   font-size: 16px;
 }
@@ -194,9 +189,9 @@
   align-items: center;
   gap: 10px;
 }
-.date-row button {
+.date-row [data-slot='button'] {
   font-size: 13px;
-  color: #8391a5;
+  color: var(--text-faint-6);
 }
 .list-view .column-empty {
   display: none;
@@ -291,7 +286,7 @@
   font-size: 14px;
   color: var(--muted-foreground);
 }
-.search-box input {
+.search-box .search-field {
   outline: none;
   width: 100%;
   min-width: 0;
@@ -299,7 +294,7 @@
   background: transparent;
   color: var(--foreground);
 }
-.search-box input::placeholder {
+.search-box .search-field::placeholder {
   color: var(--muted-foreground);
 }
 .primary-add {
@@ -311,8 +306,8 @@
   border-radius: 6px;
 }
 .primary-add kbd {
-  border-color: #ffffff44;
-  color: #d8e3ff;
+  border-color: var(--line-on-primary);
+  color: var(--accent-on-primary);
   margin-left: 12px;
   display: none;
 }
@@ -320,7 +315,7 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  border-bottom: 1px solid #e5eaf2;
+  border-bottom: 1px solid var(--line-soft-2);
   margin-top: 17px;
   min-height: 44px;
   border: 0;
@@ -344,7 +339,7 @@
 }
 .view-tabs [data-slot='tabs-trigger'][data-active] {
   background: transparent;
-  border-bottom: 2px solid #3763df;
+  border-bottom: 2px solid var(--accent-strong);
   box-shadow: none;
   color: var(--primary);
   border-color: var(--primary);
@@ -434,7 +429,7 @@
 }
 .task-card:hover,
 .list-view .task-card:hover {
-  border-color: #bbc5d4;
+  border-color: var(--line-soft-5);
   box-shadow: none;
   transform: none;
 }
@@ -463,19 +458,19 @@
   min-width: 18px;
   height: 18px;
   margin-top: 3px;
-  border-color: #cbd2dc;
+  border-color: var(--line-soft-4);
   z-index: 2;
 }
 .complete-circle:hover {
   width: 18px;
   height: 18px;
-  background: #f2f6f2;
-  border-color: #799a86;
+  background: var(--success-soft);
+  border-color: var(--success-border);
 }
 .task-done .task-title-row h3 {
   text-decoration: line-through;
   padding-left: 0;
-  color: #6c7d73;
+  color: var(--success-foreground-2);
 }
 .card-menu {
   position: absolute;
@@ -484,7 +479,7 @@
   background: transparent;
   right: 6px;
   top: 8px;
-  color: #8b94a4;
+  color: var(--text-faint-7);
   width: 28px;
   height: 28px;
   letter-spacing: 1px;
@@ -542,11 +537,11 @@
   color: var(--muted-foreground);
 }
 .card-meta .overdue {
-  color: #ad444c;
+  color: var(--destructive-text-2);
 }
 .card-meta .check-now {
   border-radius: 4px;
-  color: #93691f;
+  color: var(--warning-foreground-3);
   background: none;
   padding: 0;
 }
@@ -557,7 +552,7 @@
   margin: 10px 0 0 26px;
   font-size: 13px;
   line-height: 1.5;
-  color: #896a36;
+  color: var(--warning-foreground);
 }
 .column-add {
   justify-content: flex-start;
@@ -716,19 +711,19 @@
     width: 36px;
     justify-content: center;
   }
-  .search-box > button {
+  .search-box > .search-icon-button {
     width: 36px;
     height: 40px;
     align-items: center;
     justify-content: center;
   }
-  .search-box input {
+  .search-box .search-field {
     display: none;
   }
   .search-open {
     position: absolute;
     z-index: 20;
-    border: 1px solid #c4d2ea;
+    border: 1px solid var(--accent-border-soft);
     border-radius: 8px;
     padding: 0 11px;
     left: 16px;
@@ -739,7 +734,7 @@
     background: var(--card);
     height: 44px;
   }
-  .search-open input {
+  .search-open .search-field {
     display: block;
   }
   .primary-add {

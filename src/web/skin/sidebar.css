@@ -1,6 +1,6 @@
 /* Навигация: боковая панель, области, направления, профиль. Файл подключается со слоем skin из styles.css. */
 .today-toggle.active {
-  color: #345fcc;
+  color: var(--accent-strong-2);
 }
 .today-toggle [data-slot='checkbox'] {
   width: 15px;
@@ -10,14 +10,14 @@
   margin-left: auto;
 }
 .archive-link.active {
-  color: #3763df;
+  color: var(--accent-strong);
 }
 .unassigned-dot {
-  background: #c2cbda;
+  background: var(--marker-neutral);
   border-radius: 50%;
 }
 .workspace-sidebar {
-  border-right: 1px solid #e3e8f1;
+  border-right: 1px solid var(--line-soft-11);
   border-color: var(--border);
 }
 .brand {
@@ -129,7 +129,7 @@
   color: var(--muted-foreground);
   font-size: 14px;
 }
-@media (max-width: 767px) {
+@media (width < theme(--breakpoint-md)) {
   .brand {
     height: 64px;
   }

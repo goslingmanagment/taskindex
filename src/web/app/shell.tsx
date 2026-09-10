@@ -390,6 +390,7 @@ function WorkspaceBody() {
                 className={'search-box ' + (mobileSearch ? 'search-open' : '')}
               >
                 <button
+                  className="search-icon-button"
                   aria-label="Открыть поиск"
                   onClick={() => {
                     setMobileSearch(true);
@@ -399,6 +400,7 @@ function WorkspaceBody() {
                   <Search size={17} />
                 </button>
                 <input
+                  className="search-field"
                   ref={searchRef}
                   placeholder="Найти во всех областях…"
                   aria-label="Найти во всех областях"
@@ -414,6 +416,7 @@ function WorkspaceBody() {
                 />
                 {query ? (
                   <button
+                    className="search-icon-button"
                     onClick={() => update({ q: '' }, true)}
                     aria-label="Очистить поиск"
                   >

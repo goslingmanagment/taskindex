@@ -340,6 +340,7 @@ export function ProjectDialog({
             <label className="project-color">
               Цвет{' '}
               <input
+                className="color-field"
                 type="color"
                 aria-label="Цвет направления"
                 value={color}

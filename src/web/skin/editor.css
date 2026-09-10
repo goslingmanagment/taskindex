@@ -5,7 +5,7 @@
   gap: 10px;
 }
 .editor-title:focus {
-  box-shadow: 0 2px 0 #bdcdf1;
+  box-shadow: 0 2px 0 var(--accent-underline);
 }
 .editor-fields label,
 .waiting-editor label {
@@ -13,7 +13,7 @@
   display: flex;
   flex-direction: column;
   gap: 8px;
-  color: #7b899d;
+  color: var(--text-faint-11);
 }
 .full-field {
   grid-column: 1/-1;
@@ -30,14 +30,13 @@
 .waiting-editor label {
   margin-top: 16px;
 }
-.waiting-editor input[type='date'],
-.date-row input[type='date'] {
-  border: 1px solid #d9e1eb;
+.date-field {
+  border: 1px solid var(--line-soft-6);
   border-radius: 6px;
   padding: 8px 10px;
-  color: #52647c;
+  color: var(--text-faint-12);
   font-family: inherit;
-  background: #fff;
+  background: var(--card);
   font-size: 14px;
   min-width: 0;
   max-width: 100%;
@@ -48,7 +47,7 @@
 .detail-section h3 > span {
   margin-left: auto;
   font-size: 12px;
-  color: #8995a8;
+  color: var(--text-faint-13);
   font-weight: 400;
 }
 .checklist-row {
@@ -57,7 +56,7 @@
   gap: 10px;
   margin-bottom: 5px;
 }
-.checklist-row input {
+.checklist-row [data-slot='input'] {
   border: 0;
   box-shadow: none;
   min-height: 37px;
@@ -67,10 +66,10 @@
 }
 .checklist-row .step-done {
   text-decoration: line-through;
-  color: #879a8f;
+  color: var(--success-foreground-3);
 }
-.checklist-row button {
-  color: #8d9aad;
+.checklist-row [data-slot='button'] {
+  color: var(--text-faint-14);
 }
 .checklist-progress {
   margin-bottom: 15px;
@@ -80,15 +79,15 @@
   gap: 8px;
   margin-top: 11px;
 }
-.new-step input {
+.new-step [data-slot='input'] {
   font-size: 14px;
   border-style: dashed;
 }
-.new-step button {
-  color: #8395ac;
+.new-step [data-slot='button'] {
+  color: var(--text-faint-15);
 }
-.secondary-actions button {
-  color: #8492a6;
+.secondary-actions [data-slot='button'] {
+  color: var(--text-faint-16);
   font-size: 13px;
 }
 .editor-actions {
@@ -97,16 +96,16 @@
   justify-content: flex-end;
   gap: 10px;
 }
-.editor-footer button {
+.editor-footer [data-slot='button'] {
   height: 38px;
   padding: 0 13px;
   font-size: 14px;
 }
-@media (max-width: 767px) {
+@media (width < theme(--breakpoint-md)) {
   .save-hint {
     display: none;
   }
-  .secondary-actions button {
+  .secondary-actions [data-slot='button'] {
     font-size: 12px;
   }
 }
@@ -119,7 +118,7 @@
 .editor-conflict details {
   margin-bottom: 10px;
 }
-.editor-conflict button {
+.editor-conflict [data-slot='button'] {
   max-width: 100%;
   height: auto;
   min-height: 38px;
@@ -130,10 +129,10 @@
   gap: 0;
   width: 520px;
   background: var(--card);
-  box-shadow: -8px 0 32px #1d253a0b;
+  box-shadow: -8px 0 32px var(--surface-shadow-soft);
 }
 .editor-header {
-  border-bottom: 1px solid #e8ecf3;
+  border-bottom: 1px solid var(--line-soft-7);
   display: flex;
   flex-direction: row;
   justify-content: space-between;
@@ -185,7 +184,7 @@
   font-size: 13px;
   color: var(--muted-foreground);
 }
-.editor-location button {
+.editor-location [data-slot='button'] {
   font-size: 13px;
   color: var(--muted-foreground);
 }
@@ -203,9 +202,10 @@
   margin-top: 23px;
 }
 .waiting-editor h3 {
-  color: #896a36;
+  color: var(--warning-foreground);
 }
-.waiting-editor input {
+.waiting-editor [data-slot='input'],
+.waiting-editor .date-field {
   min-height: 39px;
   font-size: 14px;
   background: var(--card);
@@ -221,9 +221,9 @@
   gap: 14px;
   margin-top: 23px;
 }
-.add-details button {
+.add-details [data-slot='button'] {
   font-size: 13px;
-  border-color: #e3e8f0;
+  border-color: var(--line-soft-8);
   border: 0;
   background: transparent;
   padding: 0 2px;
@@ -240,14 +240,14 @@
   font-size: 16px;
   line-height: 1.6;
   min-height: 115px;
-  border: 1px solid #e2e7f0;
+  border: 1px solid var(--line-soft-9);
   padding: 12px;
   resize: vertical;
   background: var(--card);
   border-color: var(--border);
 }
 .editor-footer {
-  border-top: 1px solid #e5eaf2;
+  border-top: 1px solid var(--line-soft-2);
   background: var(--card);
   border-color: var(--border);
   padding: 16px 24px;
@@ -263,11 +263,11 @@
   justify-content: space-between;
   margin-top: 30px;
   padding-top: 14px;
-  border-top: 1px solid #e8ecf2;
+  border-top: 1px solid var(--line-soft-10);
   gap: 10px;
   border-color: var(--border);
 }
-@media (max-width: 767px) {
+@media (width < theme(--breakpoint-md)) {
   .task-sheet {
     max-width: 100vw;
     width: 100vw;
@@ -294,7 +294,7 @@
   .editor-footer {
     padding: 14px 16px;
   }
-  .editor-footer button {
+  .editor-footer [data-slot='button'] {
     height: 42px;
   }
 }

@@ -414,6 +414,7 @@ export function TaskEditor({
                 <label>
                   Когда вернуться к задаче
                   <input
+                    className="date-field"
                     type="date"
                     value={draft.followUp || ''}
                     onChange={(e) =>
@@ -477,6 +478,7 @@ export function TaskEditor({
                 </h3>
                 <div className="date-row">
                   <input
+                    className="date-field"
                     aria-label="Срок задачи"
                     type="date"
                     value={draft.due || ''}

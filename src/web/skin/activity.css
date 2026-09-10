@@ -29,7 +29,7 @@
   justify-content: space-between;
   gap: 12px;
 }
-.operation-heading > button:first-child {
+.operation-heading > [data-slot='collapsible-trigger'] {
   display: flex;
   flex-wrap: wrap;
   text-align: left;
@@ -118,7 +118,7 @@
   color: var(--muted-foreground);
   font-weight: 400;
 }
-.task-discussion textarea {
+.task-discussion [data-slot='textarea'] {
   margin: 12px 0;
 }
 .comment-list li {
@@ -137,11 +137,11 @@
   margin-top: 8px;
   font-size: 14px;
 }
-@media (max-width: 767px) {
+@media (width < theme(--breakpoint-md)) {
   .operation-heading {
     gap: 4px;
   }
-  .operation-heading > button:first-child {
+  .operation-heading > [data-slot='collapsible-trigger'] {
     flex-direction: column;
     align-items: flex-start;
   }

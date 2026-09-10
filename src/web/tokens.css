@@ -8,6 +8,19 @@
    определениями токенов в проекте нет (проверяет scripts/check-skin.mjs).
    Вариант dark не зависит от data-skin. TI-025, план 08, шаги 2 и 15. */
 
+@theme static {
+  /* Брейкпоинты скина. static — чтобы Tailwind вывел переменные в :root и их мог
+     прочитать use-mobile.ts. Значения равны прежним пиксельным порогам:
+     48rem = 768px (медиазапросы были max-width: 767px), 100rem = 1600px.
+     Промежуточные пороги доски пока названы, но не сведены к lg/xl: это меняет
+     раскладку и относится к фазе B (план 08, шаг 6). */
+  --breakpoint-md: 48rem;
+  --breakpoint-board-2col: 75rem;
+  --breakpoint-board-narrow: 68.75rem;
+  --breakpoint-board-single: 62.5rem;
+  --breakpoint-wide: 100rem;
+}
+
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
@@ -85,6 +98,70 @@
   --font-sans-stack:
     -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;
   --font-mono-stack: ui-monospace, monospace;
+
+  /* Роли скина (план 08, шаг 7). Значения перенесены из правил без изменения,
+     поэтому у одной роли пока несколько оттенков с числовым суффиксом: сведение
+     близких оттенков — фаза B, она меняет пиксели и идёт отдельными коммитами. */
+  --text-faint: #7d899e;
+  --text-faint-2: #72839b;
+  --text-faint-3: #738197;
+  --text-faint-4: #748399;
+  --text-faint-5: #6a7c98;
+  --text-faint-6: #8391a5;
+  --text-faint-7: #8b94a4;
+  --text-faint-8: #8492a7;
+  --text-faint-9: #b2bdcc;
+  --text-faint-10: #8695a9;
+  --text-faint-11: #7b899d;
+  --text-faint-12: #52647c;
+  --text-faint-13: #8995a8;
+  --text-faint-14: #8d9aad;
+  --text-faint-15: #8395ac;
+  --text-faint-16: #8492a6;
+  --accent-strong: #3763df;
+  --accent-strong-2: #345fcc;
+  --accent-on-primary: #d8e3ff;
+  --accent-border-soft: #c4d2ea;
+  --accent-border-hover: #bbcbea;
+  --accent-underline: #bdcdf1;
+  --primary-shadow: #213b6410;
+  --ring-soft: #8ea9f0;
+  --ring-medium: #7a9be9;
+  --drop-outline: #7898e8;
+  --warning-foreground: #896a36;
+  --warning-foreground-2: #927448;
+  --warning-foreground-3: #93691f;
+  --warning-foreground-4: #907643;
+  --warning-soft: #fff8e9;
+  --warning-soft-2: #fffbf2;
+  --warning-border: #dcc492;
+  --warning-border-2: #eddfbb;
+  --success-foreground: #258169;
+  --success-foreground-2: #6c7d73;
+  --success-foreground-3: #879a8f;
+  --success-soft: #f2f6f2;
+  --success-border: #799a86;
+  --destructive-text: #b44b53;
+  --destructive-text-2: #ad444c;
+  --destructive-soft: #fff2f2;
+  --surface-hover: #fbfcff;
+  --surface-shadow: #1d253a12;
+  --surface-shadow-soft: #1d253a0b;
+  --marker-neutral: #c2cbda;
+  --line-soft: #e3e8ef;
+  --line-dashed: #ced8e6;
+  --line-dashed-strong: #d5dce6;
+  --line-soft-2: #e5eaf2;
+  --line-soft-3: #d7dfe9;
+  --line-soft-4: #cbd2dc;
+  --line-soft-5: #bbc5d4;
+  --line-soft-6: #d9e1eb;
+  --line-soft-7: #e8ecf3;
+  --line-soft-8: #e3e8f0;
+  --line-soft-9: #e2e7f0;
+  --line-soft-10: #e8ecf2;
+  --line-soft-11: #e3e8f1;
+  --line-on-primary: #ffffff44;
 }
 
 /* Тёмная палитра. Пока подключается только классом .dark, который приложение
