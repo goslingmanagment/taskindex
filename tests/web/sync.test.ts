@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { DomainEvent, Snapshot } from '../../src/shared/model';
+import { defaultAppearance } from '../../src/shared/domain-schemas';
 import { WorkspaceStore } from '../../src/web/app/store';
 import { ApiError } from '../../src/web/app/api';
 import {
@@ -82,6 +83,7 @@ const snapshot = (generation = 'gen1', seq = 0): Snapshot => ({
       orderKey: 'a0',
     }),
   ],
+  appearance: defaultAppearance(),
 });
 const event = (seq: number): DomainEvent => ({
   seq,

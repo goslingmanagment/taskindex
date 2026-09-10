@@ -5,6 +5,7 @@ import type {
   Snapshot,
   StoredOperation,
 } from '../../src/shared/model';
+import { defaultAppearance } from '../../src/shared/domain-schemas';
 import { WorkspaceStore } from '../../src/web/app/store';
 import { ApiError } from '../../src/web/app/api';
 import { makeTask } from '../../src/web/lib/workspace';
@@ -45,6 +46,7 @@ const snapshot = (): Snapshot => ({
   timezone: 'Europe/Moscow',
   projects: [],
   tasks: [task()],
+  appearance: defaultAppearance(),
 });
 function event(
   seq: number,

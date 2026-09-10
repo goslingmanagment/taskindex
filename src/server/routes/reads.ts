@@ -5,6 +5,7 @@ import { areaSchema, statusSchema } from '../../shared/schemas.js';
 import {
   appearanceSchema,
   commentSchema,
+  defaultAppearance,
   exportSchema,
   meSchema,
   pageSchema,
@@ -80,7 +81,9 @@ export const registerReadRoutes = <T extends OpenAPIHono<Env>>(
                 timezone: timezone(),
                 projects: state.projects,
                 tasks: state.tasks,
-                appearance: state.appearance[0],
+                // Строка предпочтения одна на пространство и создаётся
+                // чтением, так что запасной вариант нужен только индексу.
+                appearance: state.appearance[0] ?? defaultAppearance(),
               };
             }),
             200,

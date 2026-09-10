@@ -231,11 +231,10 @@ export const snapshotSchema = z
     timezone: z.string().describe('Часовой пояс IANA'),
     projects: z.array(projectSchema).describe('Проекты'),
     tasks: z.array(taskSchema).describe('Все задачи, включая архив'),
-    // Optional in the schema until the web tests (owner C) add the field to
-    // their Snapshot literals; the server always sends it (2026-09-10).
-    appearance: appearanceSchema
-      .optional()
-      .describe('Предпочтение оформления владельца'),
+    // Обязательно с 2026-09-11: сервер всегда шлёт запись (её отдаёт
+    // defaultAppearance() даже для нетронутого пространства), а необязательное
+    // поле заставляло каждого потребителя снимка держать ветку «а вдруг нет».
+    appearance: appearanceSchema.describe('Предпочтение оформления владельца'),
   })
   .strict()
   .meta({ id: 'Snapshot' });
