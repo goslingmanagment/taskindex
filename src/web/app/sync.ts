@@ -1,60 +1,150 @@
 import { todayInTimezone } from '@shared/queries';
+import { ApiError, request } from './api';
 import { workspaceStore, type WorkspaceStore } from './store';
-export function startSync(store: WorkspaceStore = workspaceStore) {
+export const SSE_RECONNECT_MIN_MS = 1000;
+export const SSE_RECONNECT_MAX_MS = 30000;
+export const RESYNC_INTERVAL_MS = 60000;
+export type SyncDeps = {
+  EventSource: typeof EventSource;
+  setTimeout: (fn: () => void, ms: number) => unknown;
+  clearTimeout: (id: unknown) => void;
+  setInterval: (fn: () => void, ms: number) => unknown;
+  clearInterval: (id: unknown) => void;
+  addEventListener: (type: 'online', fn: () => void) => void;
+  removeEventListener: (type: 'online', fn: () => void) => void;
+  request: <T>(path: string) => Promise<T>;
+};
+const browserSyncDeps = (): SyncDeps => ({
+  EventSource,
+  setTimeout: (fn, ms) => setTimeout(fn, ms),
+  clearTimeout: (id) => clearTimeout(id as number),
+  setInterval: (fn, ms) => setInterval(fn, ms),
+  clearInterval: (id) => clearInterval(id as number),
+  addEventListener: (type, fn) => window.addEventListener(type, fn),
+  removeEventListener: (type, fn) => window.removeEventListener(type, fn),
+  request,
+});
+// TI-043: the browser retries an EventSource only while it is CONNECTING. Once it
+// is CLOSED (401/5xx, wrong content type, proxy failure) the stream is recreated
+// here with exponential backoff, after /api/me confirms the session still holds;
+// 401/403 there, and the server's `revoked` event, end reconnection for good.
+export function startSync(
+  store: WorkspaceStore = workspaceStore,
+  deps: SyncDeps = browserSyncDeps(),
+) {
   let stream: EventSource | null = null,
+    identity = '',
     closed = false,
-    identity = '';
+    revoked = false,
+    attempt = 0,
+    reconnect: unknown = null;
   const connect = () => {
     const state = store.getSnapshot();
-    if (closed || state.loading || !state.generation) return;
+    if (closed || revoked || state.loading || !state.generation) return;
     const next = state.generation;
-    if (next === identity && stream) return;
+    if (next === identity) {
+      if (stream && stream.readyState !== deps.EventSource.CLOSED) return;
+      if (reconnect !== null) return;
+    } else if (reconnect !== null) {
+      deps.clearTimeout(reconnect);
+      reconnect = null;
+    }
     stream?.close();
     identity = next;
-    stream = new EventSource(
+    const source = new deps.EventSource(
       `/api/events/stream?generation=${encodeURIComponent(next)}&since=${state.seq}`,
     );
-    stream.onopen = () => {
+    stream = source;
+    source.onopen = () => {
+      if (source !== stream) return;
+      attempt = 0;
       store.setConnected(true);
       // Reconcile operations that were recorded while this connection was down.
       store.invalidateOperations();
     };
-    stream.onerror = () => store.setConnected(false);
-    stream.onmessage = (event) => {
+    source.onerror = () => {
+      if (source !== stream) return;
+      if (source.readyState === deps.EventSource.CLOSED) {
+        stream = null;
+        schedule();
+      }
+      store.setConnected(false);
+    };
+    source.onmessage = (event) => {
       try {
         store.ingest([JSON.parse(event.data)]);
       } catch {
         void store.catchUp();
       }
     };
-    stream.addEventListener('reset', () => {
-      stream?.close();
+    source.addEventListener('reset', () => {
+      if (source !== stream) return;
+      source.close();
       stream = null;
       identity = '';
       void store.resync().catch(() => {});
     });
-    stream.addEventListener('operations', () => store.invalidateOperations());
+    source.addEventListener('operations', () => store.invalidateOperations());
+    source.addEventListener('revoked', () => {
+      if (source !== stream) return;
+      source.close();
+      stream = null;
+      stop();
+    });
+  };
+  const stop = () => {
+    revoked = true;
+    if (reconnect !== null) deps.clearTimeout(reconnect);
+    reconnect = null;
+    store.setRevoked();
+  };
+  const schedule = () => {
+    if (closed || revoked || reconnect !== null) return;
+    const delay = Math.min(
+      SSE_RECONNECT_MIN_MS * 2 ** attempt,
+      SSE_RECONNECT_MAX_MS,
+    );
+    attempt++;
+    reconnect = deps.setTimeout(() => {
+      reconnect = null;
+      void deps
+        .request('/api/me')
+        .then(connect)
+        .catch((error: unknown) => {
+          if (
+            error instanceof ApiError &&
+            (error.status === 401 || error.status === 403)
+          )
+            stop();
+          else schedule();
+        });
+    }, delay);
   };
   const unsubscribe = store.subscribe(connect);
   void store
     .refresh()
     .then(connect)
     .catch(() => {});
-  const timer = setInterval(() => {
+  const timer = deps.setInterval(() => {
     const state = store.getSnapshot();
     store.setToday(todayInTimezone(state.timezone));
-    if (!state.connected) void store.catchUp();
-  }, 60000);
+    if (state.connected || revoked) return;
+    void store.catchUp();
+    if (stream === null && reconnect === null) connect();
+  }, RESYNC_INTERVAL_MS);
   const online = () => {
+    if (revoked) return;
     void store.catchUp();
     void store.recover();
+    if (stream === null && reconnect === null) connect();
   };
-  window.addEventListener('online', online);
+  deps.addEventListener('online', online);
   return () => {
     closed = true;
     unsubscribe();
     stream?.close();
-    clearInterval(timer);
-    window.removeEventListener('online', online);
+    if (reconnect !== null) deps.clearTimeout(reconnect);
+    deps.clearInterval(timer);
+    deps.removeEventListener('online', online);
   };
 }

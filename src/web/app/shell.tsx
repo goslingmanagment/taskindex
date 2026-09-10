@@ -470,7 +470,17 @@ function WorkspaceBody() {
                       : 'connecting'
                 }
               >
-                {pending.some((p) => p.status === 'sending') ? (
+                {state.revoked ? (
+                  <>
+                    Доступ отозван.{' '}
+                    <button
+                      type="button"
+                      onClick={() => window.location.reload()}
+                    >
+                      Войти заново
+                    </button>
+                  </>
+                ) : pending.some((p) => p.status === 'sending') ? (
                   <>
                     <LoaderCircle size={13} className="animate-spin" />
                     Сохраняем…

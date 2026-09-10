@@ -34,6 +34,8 @@ export type StoreState = {
   operationsVersion: number;
   /** TI-006: without a durable outbox no command is sent; the UI shows a degradation banner. */
   storageAvailable: boolean;
+  /** TI-043: the server revoked this session or key; the stream is not reopened. */
+  revoked: boolean;
 };
 export const STORAGE_UNAVAILABLE_MESSAGE =
   'Хранилище браузера недоступно: изменения не отправляются. Скопируйте текст и повторите в обычном окне.';
@@ -56,6 +58,7 @@ export class WorkspaceStore {
     lastEvents: [],
     operationsVersion: 0,
     storageAvailable: true,
+    revoked: false,
   };
   private listeners = new Set<() => void>();
   private buffer = new Map<number, DomainEvent>();
@@ -153,6 +156,9 @@ export class WorkspaceStore {
   dismiss = (id: string) => this.finish(id);
   setConnected(connected: boolean) {
     this.publish({ connected, connectionFailed: !connected });
+  }
+  setRevoked() {
+    this.publish({ revoked: true, connected: false, connectionFailed: true });
   }
   invalidateOperations() {
     this.publish({ operationsVersion: this.state.operationsVersion + 1 });
