@@ -102,20 +102,22 @@ function sign<T extends bigint | string>(x: T, y: T): number {
   if (x < y) return -1;
   return x > y ? 1 : 0;
 }
+// An ISO instant as a comparable string, or null when the value is not one.
+const instant = (value: string) => {
+  if (!z.iso.datetime({ offset: true }).safeParse(value).success) return null;
+  const parts = /^(.*T\d{2}:\d{2}:\d{2})(?:\.(\d+))?(Z|[+-]\d{2}:\d{2})$/.exec(
+    value,
+  );
+  return parts
+    ? {
+        seconds: Date.parse(`${parts[1]}${parts[3]}`),
+        fraction: parts[2] ?? '',
+      }
+    : null;
+};
 /** @internal for tests */
 export function compareOriginVersion(a: string, b: string): number | null {
   if (/^\d+$/.test(a) && /^\d+$/.test(b)) return sign(BigInt(a), BigInt(b));
-  const instant = (value: string) => {
-    if (!z.iso.datetime({ offset: true }).safeParse(value).success) return null;
-    const parts =
-      /^(.*T\d{2}:\d{2}:\d{2})(?:\.(\d+))?(Z|[+-]\d{2}:\d{2})$/.exec(value);
-    return parts
-      ? {
-          seconds: Date.parse(`${parts[1]}${parts[3]}`),
-          fraction: parts[2] ?? '',
-        }
-      : null;
-  };
   const left = instant(a),
     right = instant(b);
   if (left && right) {
@@ -193,7 +195,7 @@ function order(state: WorkspaceState, task: Task, position?: Position) {
       (t) =>
         t.id !== task.id && t.area === task.area && t.status === task.status,
     )
-    .sort(byOrder);
+    .toSorted(byOrder);
   if (!position)
     return generateKeyBetween(column.at(-1)?.orderKey ?? null, null);
   const id = position.before ?? position.after;
@@ -216,7 +218,7 @@ function focusOrder(
 ): string {
   const desk = state.tasks
     .filter((t) => t.id !== task.id && t.focusKey !== null)
-    .sort(byFocusKey);
+    .toSorted(byFocusKey);
   if (!position) return generateKeyBetween(desk.at(-1)?.focusKey ?? null, null);
   if ('first' in position)
     return generateKeyBetween(null, desk[0]?.focusKey ?? null);
@@ -408,7 +410,7 @@ function applyUndo(s: Session, p: CommandOf<'undo'>['payload']): CommandResult {
       for (const [key, change] of Object.entries(e.changes)) {
         if (isSubjectField(kind, key))
           net[key] = {
-            from: net[key] ? net[key]!.from : change.from,
+            from: net[key] ? net[key].from : change.from,
             to: change.to,
           };
       }
@@ -948,7 +950,7 @@ export function applyCommand(
             ...after.ownerFields,
             ...Object.keys(changes).filter((k) => isSubjectField('task', k)),
           ]),
-        ].sort();
+        ].toSorted();
         changes = changesBetween(before, after);
       }
       if (Object.keys(changes).length === 0) return changes;

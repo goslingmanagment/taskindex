@@ -91,7 +91,7 @@ export function buildDigest(
             status: 'waiting',
             hasFollowUp: true,
           }),
-          `tasks:${JSON.stringify({ status: 'waiting', hasFollowUp: 'true' })}`,
+          `tasks:${JSON.stringify({ status: 'waiting', hasFollowUp: true })}`,
           taskKey,
         ),
         href: `/api/tasks?status=waiting&hasFollowUp=true&generation=${gen}`,

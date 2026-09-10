@@ -9,6 +9,7 @@ import type {
   OperationSuccess,
 } from '../shared/model.js';
 import type { HistoryAccess } from '../shared/commands.js';
+import { AGENT_ACTOR_PREFIX } from '../shared/constants.js';
 import type { StoredResult } from './schema.js';
 
 // The event journal: indexed selections for the reducer (plan 01, step 2),
@@ -74,7 +75,7 @@ export function readOwnerCommentEvents(
         gt(schema.events.seq, since),
         eq(schema.events.entityKind, 'comment'),
         eq(schema.events.command, 'comment.add'),
-        sql`${schema.events.actorId} NOT LIKE 'agent:%'`,
+        sql`${schema.events.actorId} NOT LIKE ${`${AGENT_ACTOR_PREFIX}%`}`,
       ),
     )
     .orderBy(asc(schema.events.seq))

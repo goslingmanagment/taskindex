@@ -7,8 +7,11 @@ import type {
   Status,
 } from './model.js';
 import { LIMITS } from './limits.js';
-export const compareStrings = (a: string, b: string) =>
-  a < b ? -1 : a > b ? 1 : 0;
+import { isAgentActor, projectFilterToId } from './constants.js';
+export const compareStrings = (a: string, b: string) => {
+  if (a < b) return -1;
+  return a > b ? 1 : 0;
+};
 export const byOrder = (a: Task, b: Task) =>
   compareStrings(a.orderKey, b.orderKey) || compareStrings(a.id, b.id);
 // The desk order: only tasks in focus carry a key, so '' never competes.
@@ -71,8 +74,26 @@ export function searchTasks(
             .includes(w),
         ),
     )
-    .sort(byOrder);
+    .toSorted(byOrder);
 }
+// The one group an active task belongs to, in the accepted priority order:
+// selected by the owner, new from an agent, due, follow-up due; or none.
+function focusGroupOf(t: Task, today: string): FocusGroup['id'] | undefined {
+  if (t.archived || t.status === 'done') return undefined;
+  if (t.focus) return 'selected';
+  if (isAgentActor(t.createdBy) && !t.ownerTouchedAt) return 'new';
+  if (t.due && t.due <= today) return 'due';
+  if (t.status === 'waiting' && t.followUp && t.followUp <= today)
+    return 'follow-ups';
+  return undefined;
+}
+const groupOrder = (id: FocusGroup['id']) => (a: Task, b: Task) => {
+  if (id === 'due')
+    return compareStrings(a.due ?? '', b.due ?? '') || byOrder(a, b);
+  if (id === 'follow-ups')
+    return compareStrings(a.followUp ?? '', b.followUp ?? '') || byOrder(a, b);
+  return byOrder(a, b);
+};
 export function focusGroups(tasks: Task[], today: string): FocusGroup[] {
   const groups: FocusGroup[] = [
     { id: 'selected', title: 'Выбрано мной', tasks: [] },
@@ -81,26 +102,10 @@ export function focusGroups(tasks: Task[], today: string): FocusGroup[] {
     { id: 'follow-ups', title: 'Пора вернуться', tasks: [] },
   ];
   for (const t of tasks) {
-    if (t.archived || t.status === 'done') continue;
-    const i = t.focus
-      ? 0
-      : t.createdBy.startsWith('agent:') && !t.ownerTouchedAt
-        ? 1
-        : t.due && t.due <= today
-          ? 2
-          : t.status === 'waiting' && t.followUp && t.followUp <= today
-            ? 3
-            : -1;
-    if (i >= 0) groups[i]!.tasks.push(t);
+    const id = focusGroupOf(t, today);
+    if (id) groups.find((g) => g.id === id)!.tasks.push(t);
   }
-  for (const g of groups)
-    g.tasks.sort((a, b) =>
-      g.id === 'due'
-        ? compareStrings(a.due ?? '', b.due ?? '') || byOrder(a, b)
-        : g.id === 'follow-ups'
-          ? compareStrings(a.followUp ?? '', b.followUp ?? '') || byOrder(a, b)
-          : byOrder(a, b),
-    );
+  for (const g of groups) g.tasks.sort(groupOrder(g.id));
   return groups;
 }
 // The desk (plan 13, §3.3): a pure selector over the tasks. `current` is
@@ -109,14 +114,14 @@ export function focusGroups(tasks: Task[], today: string): FocusGroup[] {
 // left the desk in the last 14 days, newest first.
 export function focusDesk(tasks: Task[], today: string): FocusDesk {
   const active = tasks.filter((t) => !t.archived && t.status !== 'done');
-  const desk = active.filter((t) => t.focusKey !== null).sort(byFocusKey);
+  const desk = active.filter((t) => t.focusKey !== null).toSorted(byFocusKey);
   const rank = (t: Task) => {
     if (!t.followUp) return 2;
     return t.followUp <= today ? 0 : 1;
   };
   const waiting = active
     .filter((t) => t.status === 'waiting')
-    .sort(
+    .toSorted(
       (a, b) =>
         rank(a) - rank(b) ||
         compareStrings(a.followUp ?? '', b.followUp ?? '') ||
@@ -132,7 +137,7 @@ export function focusDesk(tasks: Task[], today: string): FocusDesk {
         t.focusLeftAt !== null &&
         t.focusLeftAt.slice(0, 10) >= since,
     )
-    .sort(
+    .toSorted(
       (a, b) => compareStrings(b.focusLeftAt!, a.focusLeftAt!) || byOrder(a, b),
     )
     .slice(0, LIMITS.deskRecent);
@@ -174,17 +179,17 @@ export function queryTasks(
     (t) =>
       (!filter.area || t.area === filter.area) &&
       (!filter.project ||
-        filter.project === 'all' ||
-        (filter.project === 'none'
-          ? t.projectId === null
-          : t.projectId === filter.project)) &&
+        projectFilterToId(filter.project) === undefined ||
+        t.projectId === projectFilterToId(filter.project)) &&
       (!filter.status || t.status === filter.status) &&
       (filter.focus === undefined || t.focus === filter.focus) &&
       (filter.hasFollowUp === undefined ||
         Boolean(t.followUp) === filter.hasFollowUp) &&
       (!filter.today ||
         (t.status !== 'done' &&
-          ((t.due && t.due <= today) ||
-            (t.status === 'waiting' && t.followUp && t.followUp <= today)))),
+          ((t.due !== null && t.due <= today) ||
+            (t.status === 'waiting' &&
+              t.followUp !== null &&
+              t.followUp <= today)))),
   );
 }

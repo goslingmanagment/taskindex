@@ -37,7 +37,7 @@ export type BundledMigration = { name: string; sha256: string };
 export function bundledMigrations(dir: string): BundledMigration[] {
   return readdirSync(dir)
     .filter((n) => n.endsWith('.sql'))
-    .sort()
+    .toSorted()
     .map((name) => ({
       name,
       sha256: createHash('sha256')
@@ -136,13 +136,13 @@ export const initializeDatabase = migrate;
 // The schema matches the image only when the applied chain has exactly the
 // bundled names with the bundled checksums; a journal without checksums must
 // go through `migrate` first (baseline backfill).
+const mismatch = () =>
+  fail(
+    'unavailable',
+    'Схема базы не соответствует образу. Запустите миграции подходящим образом.',
+  );
 export function assertSchema(db: DatabaseHandle, migrationsDir?: string) {
   const bundled = bundledMigrations(migrationsDirectory(migrationsDir));
-  const mismatch = () =>
-    fail(
-      'unavailable',
-      'Схема базы не соответствует образу. Запустите миграции подходящим образом.',
-    );
   const applied = readJournal(db) ?? mismatch();
   for (const row of applied) {
     const file = bundled.find((m) => m.name === row.name);

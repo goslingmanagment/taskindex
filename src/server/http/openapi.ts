@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { idSchema } from '../../shared/schemas.js';
+import { booleanQuery, idSchema } from '../../shared/schemas.js';
 import { operationErrorSchema } from '../../shared/domain-schemas.js';
 import { LIMITS } from '../../shared/limits.js';
 
@@ -30,12 +30,7 @@ export const pageQuery = z.object({
 });
 
 export const flag = (description: string) =>
-  z
-    .enum(['true', 'false', '1', '0'])
-    .optional()
-    .describe(`${description}: true/false или 1/0`);
-
-export const truthy = (value?: string) => value === 'true' || value === '1';
+  booleanQuery.optional().describe(`${description}: true/false или 1/0`);
 
 export const idParam = z.object({
   id: idSchema.describe('Идентификатор записи'),

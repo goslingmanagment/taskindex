@@ -26,14 +26,7 @@ import {
   withRead,
 } from '../db.js';
 import { exportWorkspace } from '../admin.js';
-import {
-  flag,
-  idParam,
-  json,
-  pageQuery,
-  readErrors,
-  truthy,
-} from '../http/openapi.js';
+import { flag, idParam, json, pageQuery, readErrors } from '../http/openapi.js';
 import type { Deps, Env } from '../http/deps.js';
 
 export const registerReadRoutes = <T extends OpenAPIHono<Env>>(
@@ -143,25 +136,18 @@ export const registerReadRoutes = <T extends OpenAPIHono<Env>>(
         (c) => {
           const q = c.req.valid('query');
           const state = projection.read();
-          const values = queryTasks(
-            state.tasks,
-            state.projects,
-            {
-              ...q,
-              archived: truthy(q.archived),
-              focus: q.focus === undefined ? undefined : truthy(q.focus),
-              today: truthy(q.today),
-              hasFollowUp:
-                q.hasFollowUp === undefined ? undefined : truthy(q.hasFollowUp),
-            },
-            todayInTimezone(timezone(), now()),
-          );
           const {
             cursor: _cursor,
             limit: _limit,
             generation: _generation,
             ...identity
           } = q;
+          const values = queryTasks(
+            state.tasks,
+            state.projects,
+            identity,
+            todayInTimezone(timezone(), now()),
+          );
           return c.json(
             paging.keysetPage(
               values,

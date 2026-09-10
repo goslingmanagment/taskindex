@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import { LIMITS } from './limits.js';
 import { appearanceModeSchema, skinIdSchema } from './appearance.js';
+import { ALL_PROJECTS, NO_PROJECT } from './constants.js';
 /** @deprecated import `z` from 'zod' directly; the re-export is kept until plan 10 removes the last consumers. */
 export { z };
 export const idSchema = z
@@ -11,11 +12,15 @@ export const idSchema = z
 // record: `all`/`none` are project filters, `lookup`/`by-origin` are path
 // segments under /api/tasks. Checked for every new task and project id.
 export const RESERVED_IDS: ReadonlySet<string> = new Set([
-  'all',
-  'none',
+  ALL_PROJECTS,
+  NO_PROJECT,
   'by-origin',
   'lookup',
 ]);
+// A boolean in a query string: true/false or 1/0 (plan 10, step 9).
+export const booleanQuery = z
+  .enum(['true', 'false', '1', '0'])
+  .transform((value) => value === 'true' || value === '1');
 const newIdSchema = idSchema
   .refine(
     (id) => !RESERVED_IDS.has(id),

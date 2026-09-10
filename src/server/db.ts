@@ -28,12 +28,14 @@ const toTask = (
   commentCount: number,
 ): Task =>
   ({ ...row, checklist: toChecklist(checklist), commentCount }) as Task;
+// The row codecs of the workspace (plan 10, step 10): a project row drops
+// its search key, a task row gains its steps and comment count.
+const toProject = ({
+  nameKey: _nameKey,
+  ...p
+}: typeof schema.projects.$inferSelect): Project => p as Project;
 export function readProjects(db: DatabaseHandle): Project[] {
-  return db.orm
-    .select()
-    .from(schema.projects)
-    .all()
-    .map(({ nameKey: _nameKey, ...p }) => p as Project);
+  return db.orm.select().from(schema.projects).all().map(toProject);
 }
 function readAppearance(db: DatabaseHandle): Appearance {
   // A workspace whose owner never chose anything has no row: the default
@@ -172,14 +174,14 @@ export function touchedByEvents(
 // Persists the records that differ from `previous`: named by `touched` when
 // the caller knows them (the executor), found by a JSON diff otherwise
 // (import writes everything, tests compare the two paths).
+const byId = <T extends { id: string }>(rows: T[] | undefined) =>
+  new Map((rows ?? []).map((r) => [r.id, r]));
 export function writeState(
   db: DatabaseHandle,
   state: WorkspaceState,
   previous?: WorkspaceState,
   touched?: Touched,
 ) {
-  const byId = <T extends { id: string }>(rows: T[] | undefined) =>
-    new Map((rows ?? []).map((r) => [r.id, r]));
   const differs = <T extends { id: string }>(
     rows: T[],
     before: Map<string, T>,

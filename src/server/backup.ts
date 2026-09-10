@@ -91,7 +91,7 @@ export function upgradeExport(raw: unknown): ExportData {
 }
 // Format 1: positions in (createdAt, id) order (0002_operation_seq.sql).
 function withPositions(data: z.infer<typeof exportSchemaV1>) {
-  const ordered = [...data.operations].sort(
+  const ordered = data.operations.toSorted(
     (a, b) =>
       compareStrings(a.createdAt, b.createdAt) || compareStrings(a.id, b.id),
   );
@@ -120,7 +120,7 @@ function withFocusKeys<
 >(tasks: T[]): (T & { focusKey: string | null; focusLeftAt: null })[] {
   const focused = tasks
     .filter((t) => t.focus)
-    .sort(
+    .toSorted(
       (a, b) =>
         compareStrings(a.area, b.area) ||
         compareStrings(a.status, b.status) ||
@@ -134,13 +134,14 @@ function withFocusKeys<
     focusLeftAt: null,
   }));
 }
+const invalid = (message: string): never =>
+  fail('invalid', `Повреждённый экспорт: ${message}`);
+const same = (a: unknown, b: unknown) => canonicalJson(a) === canonicalJson(b);
+const sorted = <T extends { id: string }>(rows: T[]) =>
+  rows.toSorted((a, b) => compareStrings(a.id, b.id));
+const withoutGeneration = (rows: { generation: string }[]) =>
+  rows.map(({ generation: _generation, ...event }) => event);
 export function validateExport(data: ExportData) {
-  const invalid = (message: string): never =>
-    fail('invalid', `Повреждённый экспорт: ${message}`);
-  const same = (a: unknown, b: unknown) =>
-    canonicalJson(a) === canonicalJson(b);
-  const sorted = <T extends { id: string }>(rows: T[]) =>
-    [...rows].sort((a, b) => (a.id < b.id ? -1 : a.id > b.id ? 1 : 0));
   for (const rows of [
     data.tasks,
     data.projects,
@@ -154,7 +155,7 @@ export function validateExport(data: ExportData) {
   // transaction and never deleted, so an export holds exactly 1..N.
   const positions = data.operations
     .map((o) => o.operationSeq)
-    .sort((a, b) => a - b);
+    .toSorted((a, b) => a - b);
   if (positions.some((position, index) => position !== index + 1))
     invalid('позиции операций не образуют непрерывную последовательность.');
   const expectedItems = data.tasks.flatMap((t) =>
@@ -256,8 +257,6 @@ export function validateExport(data: ExportData) {
         op.result.lastSeq !== last
       )
         invalid('некорректный сохранённый результат операции.');
-      const withoutGeneration = (rows: typeof events) =>
-        rows.map(({ generation: _generation, ...event }) => event);
       if (!same(withoutGeneration(events), withoutGeneration(op.result.events)))
         invalid('события ответа не совпадают с журналом.');
     } else if (events.length || op.status < 400 || op.result.retryable)
