@@ -70,12 +70,12 @@
 | ID | Приоритет | Статус | Тема |
 |---|---|---|---|
 | [TI-001](#ti-001) | P1 | ИСПРАВЛЕНО | Отзыв доступа к уже открытому SSE |
-| [TI-002](#ti-002) | P1 | ОТКРЫТО | Постоянный контроль прогресса резервирования |
-| [TI-003](#ti-003) | P2 | ОТКРЫТО | Согласование snapshot и событий без отката состояния |
+| [TI-002](#ti-002) | P1 | ИСПРАВЛЕНО | Постоянный контроль прогресса резервирования |
+| [TI-003](#ti-003) | P2 | ИСПРАВЛЕНО | Согласование snapshot и событий без отката состояния |
 | [TI-004](#ti-004) | P2 | ИСПРАВЛЕНО | Подтверждение CLI-операций перед удалением outbox |
 | [TI-005](#ti-005) | P2 | ОТКРЫТО | Типизированные и проверяемые ответы web-клиента |
-| [TI-006](#ti-006) | P2 | ОТКРЫТО | Обязательное сохранение web-операции до отправки |
-| [TI-007](#ti-007) | P2 | ОТКРЫТО | Редактор и зависимые операции используют подтверждённую revision |
+| [TI-006](#ti-006) | P2 | ИСПРАВЛЕНО | Обязательное сохранение web-операции до отправки |
+| [TI-007](#ti-007) | P2 | ИСПРАВЛЕНО | Редактор и зависимые операции используют подтверждённую revision |
 | [TI-008](#ti-008) | P2 | ОТКРЫТО | Курсор операций, включающий отказы и команды без изменений |
 | [TI-009](#ti-009) | P2 | ОТКРЫТО | Сохранение окончательных доменных отказов |
 | [TI-010](#ti-010) | P2 | ОТКРЫТО | Разделение ID проекта и служебных фильтров |
@@ -106,12 +106,12 @@
 | [TI-035](#ti-035) | P1 | ИСПРАВЛЕНО | CLI пересылает чужой outbox под текущим агентом |
 | [TI-036](#ti-036) | P1 | ИСПРАВЛЕНО | Проверка API-ключа пишет auth-метаданные при каждом GET |
 | [TI-037](#ti-037) | P2 | ОТКРЫТО | Полный обход страниц срывается при параллельной записи |
-| [TI-038](#ti-038) | P2 | ОТКРЫТО | Pending старого поколения остаётся в браузере без пути завершения |
+| [TI-038](#ti-038) | P2 | ИСПРАВЛЕНО | Pending старого поколения остаётся в браузере без пути завершения |
 | [TI-039](#ti-039) | P2 | ИСПРАВЛЕНО | Один повреждённый файл outbox блокирует CLI-чтения |
 | [TI-040](#ti-040) | P2 | ОТКРЫТО | Конфликт имени проекта возвращает неправильный current |
-| [TI-041](#ti-041) | P2 | ОТКРЫТО | Fallback без Web Locks накапливает scope черновиков при reload |
-| [TI-042](#ti-042) | P2 | ОТКРЫТО | Back закрытого редактора не возвращает исходный URL фильтра |
-| [TI-043](#ti-043) | P2 | ОТКРЫТО | CLOSED EventSource не создаётся заново |
+| [TI-041](#ti-041) | P2 | ИСПРАВЛЕНО | Fallback без Web Locks накапливает scope черновиков при reload |
+| [TI-042](#ti-042) | P2 | ИСПРАВЛЕНО | Back закрытого редактора не возвращает исходный URL фильтра |
+| [TI-043](#ti-043) | P2 | ИСПРАВЛЕНО | CLOSED EventSource не создаётся заново |
 | [TI-044](#ti-044) | P2 | ОТКРЫТО | CLI не предоставляет доступные API-фильтры и проверку своей личности |
 | [TI-045](#ti-045) | P2 | ОТКРЫТО | CLI help и parser не дают полный исполнимый контракт |
 | [TI-046](#ti-046) | P2 | ОТКРЫТО | Ошибки CLI/API не объясняют, какое поле и как исправить |
@@ -126,7 +126,7 @@
 | [TI-055](#ti-055) | P2 | ИСПРАВЛЕНО | HTTP-управление API-ключами расходится с предметной моделью агентов |
 | [TI-056](#ti-056) | P2 | ИСПРАВЛЕНО | Публичный health и HTTP-защиты требуют явного контракта |
 | [TI-057](#ti-057) | P2 | ИСПРАВЛЕНО | Dev backend слушает 0.0.0.0 по умолчанию |
-| [TI-058](#ti-058) | P2 | ОТКРЫТО | E2E по умолчанию перезаписывает reference-артефакты в docs |
+| [TI-058](#ti-058) | P2 | ИСПРАВЛЕНО | E2E по умолчанию перезаписывает reference-артефакты в docs |
 | [TI-059](#ti-059) | P2 | ПРЕДЛОЖЕНО | Большие server/CLI/UI модули смешивают независимые обязанности |
 | [TI-060](#ti-060) | P2 | ПРЕДЛОЖЕНО | Лимиты повторяются в схемах, командах и JSX |
 | [TI-061](#ti-061) | P2 | ПРЕДЛОЖЕНО | Несколько canonical() могут разойтись в хешировании |
@@ -137,12 +137,12 @@
 | [TI-066](#ti-066) | P3 | ПРЕДЛОЖЕНО | Dev/build конфигурация содержит лишнюю работу и широкое наблюдение |
 | [TI-067](#ti-067) | P2 | ИСПРАВЛЕНО | Пути runtime/migrations/static зависят от текущего каталога |
 | [TI-068](#ti-068) | P3 | РЕШЕНИЕ | Место сборки и состав production image можно упростить |
-| [TI-069](#ti-069) | P2 | ОТКРЫТО | E2E проверяет Vite dev, но не production static serving |
+| [TI-069](#ti-069) | P2 | ИСПРАВЛЕНО | E2E проверяет Vite dev, но не production static serving |
 | [TI-070](#ti-070) | P2 | ПРЕДЛОЖЕНО | Общее состояние, ожидания и дубли делают E2E хрупкими |
 | [TI-071](#ti-071) | P3 | ПРЕДЛОЖЕНО | Lint, мёртвый код и соглашения дают неполный сигнал качества |
 | [TI-072](#ti-072) | P2 | ПРЕДЛОЖЕНО | Нет безопасного обзора deploy-плана и воспроизводимого bootstrap |
 | [TI-073](#ti-073) | P3 | РЕШЕНИЕ | События хранятся и отдельно, и в результате операции |
-| [TI-074](#ti-074) | P3 | ПРЕДЛОЖЕНО | Имя владельца зашито в UI |
+| [TI-074](#ti-074) | P3 | ИСПРАВЛЕНО | Имя владельца зашито в UI |
 | [TI-075](#ti-075) | — | СНЯТО | Гипотеза: каждый health создаёт новые WAL-кадры |
 | [TI-076](#ti-076) | P3 | ПРЕДЛОЖЕНО | В UI активности нет фильтра по агенту, доступного в API/CLI |
 | [TI-077](#ti-077) | P3 | РЕШЕНИЕ | Жизненный цикл проекта не включает удаление/архивирование |
@@ -193,7 +193,7 @@
 
 ### TI-002 — Постоянный контроль прогресса резервирования
 
-**Тип:** Эксплуатационный риск. **Статус:** ОТКРЫТО. **Приоритет:** P1.
+**Тип:** Эксплуатационный риск. **Статус:** ИСПРАВЛЕНО. **Приоритет:** P1.
 
 **Источники:** [Astra:S-02](/Users/dmitriy/code/taskindex/docs/audits/2026-09-08-multiside-review/01-stack.md:74); [FC:compare-stack-arch S-02](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/compare-stack-arch.md:70); [План 11 §3.1](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/11-deploy-and-ops.md:98).
 
@@ -219,6 +219,8 @@
 - Сверка Fable: конкретика в [плане 11 §3.1](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/11-deploy-and-ops.md:98) и шагах 1–2: `heartbeat-url: ${LITESTREAM_HEARTBEAT_URL}`, `heartbeat-interval: 1m`, опциональный `addr` без публикации порта, переменная `LITESTREAM_HEARTBEAT_URL` с `:?`-guard в compose, приёмник `deploy/drill/heartbeat-receiver.mjs` в drill с тремя проверками (пинг при здоровой реплике, отсутствие пинга при недоступной реплике и зелёном `/health`, возобновление), раздел RPO в `deploy/README.md`. Получатель и канал оповещения — отдельное поручение владельца ([README планов, «Решения владельца»](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/README.md:160)).
 - **Решение** (принято 2026-09-10; решение делегировано владельцем Fable): получатель heartbeat — healthchecks.io, `heartbeat-interval: 1m`, оповещение владельцу при пропуске трёх интервалов; первая волна, до рабочего переключения. Оставшийся объём: план 11 §3.1, шаги 1–2 (конфигурация, `:?`-guard в compose, приёмник в drill, раздел RPO) и подтверждение реального получателя по критерию карточки ([план 11, решение владельца](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/11-deploy-and-ops.md:398); [README планов, строка «Heartbeat Litestream»](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/README.md:164)).
 
+**Закрытие (2026-09-10).** Коммит `c61280e` (конфигурация, стенд, runbook). `heartbeat-url: ${LITESTREAM_HEARTBEAT_URL}`, `heartbeat-interval: 1m` в `deploy/litestream.yml` и `litestream.local.yml`; обязательная переменная в `compose.yml` (`docker compose config` без неё падает с сообщением), `.env.example` с пометкой «секрет, healthchecks.io через op»; приёмник `deploy/drill/heartbeat-receiver.mjs` и сервис `heartbeat` в `compose.local.yml`; `local-drill.sh --heartbeat`. Проверка на стенде: `bash deploy/local-drill.sh --heartbeat` → `heartbeat: {healthy:true, broken:false, recovered:true, idle:true}`: пинг при здоровой реплике (период 60–75 с), `chmod 000` каталога реплики → `/health` зелёный, пингов нет; `chmod 755` → пинг снова; простой приложения 130 с → пинг идёт. Измеренное время обнаружения: интервал 1 мин × 3 пропуска = 4–5 мин (раздел «Мониторинг репликации и RPO» в `deploy/README.md`). Расхождение с планом 11 шаг 2 (приёмник не монтирует volume `data`) записано в план. **Оставшийся шаг владельца** (инфраструктура): завести чек healthchecks.io (период 1 мин, grace 3 мин, канал оповещения), положить ping-URL в 1Password и сослаться в env (`LITESTREAM_HEARTBEAT_URL=op://…`); restore из реального S3 (`astra-02` п. 6) — на реальном стенде (TI-034).
+
 **Связанные планы:** [astra-02-backup-progress-monitoring.md](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/astra-02-backup-progress-monitoring.md); [11-deploy-and-ops.md](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/11-deploy-and-ops.md).
 
 Исходная оценка в плане: P1.
@@ -227,7 +229,7 @@
 
 ### TI-003 — Согласование snapshot и событий без отката состояния
 
-**Тип:** Баг. **Статус:** ОТКРЫТО. **Приоритет:** P2.
+**Тип:** Баг. **Статус:** ИСПРАВЛЕНО. **Приоритет:** P2.
 
 **Источники:** [Astra:B-02](/Users/dmitriy/code/taskindex/docs/audits/2026-09-08-multiside-review/03-bugs.md:49); [Сохранённое воспроизведение](/Users/dmitriy/code/taskindex/docs/audits/2026-09-08-multiside-review/03-probe-results.json); [FC:compare-bugs «Их B-02»](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/compare-bugs.md:67); [extra-probes.mts (c)](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/probes/compare/extra-probes.mts); [План 07, доп. шаг 22](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/07-web-client-fixes-and-structure.md:271).
 
@@ -251,6 +253,8 @@
 
 - Полный reconnect сам по себе недостаточен, если он стартует с уже неверной позиции. Нельзя маскировать гонку периодическим polling без устранения нарушения watermark.
 - Сверка Fable: тяжесть низкая из-за самовосстановления, исправление дешёвое: в `refresh` после `loadSnapshot` вызывать `catchUp()`, либо в `loadSnapshot` при той же generation и `snapshot.seq < state.seq` не заменять состояние, а догонять; поздний ответ refresh старой эпохи отбрасывать ([план 07, доп. шаг 22](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/07-web-client-fixes-and-structure.md:271)). Это не отменяет требования карточки «seq не уменьшается в одной generation».
+
+**Закрытие (2026-09-10).** Коммит `22e0e46`. `loadSnapshot` не заменяет состояние снимком с меньшим `seq` в той же generation, а вызывает `catchUp`; `resync()` для всех сигналов смены generation; `refreshEpoch` отбрасывает ответ refresh, начатого до смены generation. Тесты: `tests/web/store.test.ts › TI-003 a snapshot that arrives after a newer live event never rolls the state back` (падал до: `expected +0 to be 1`), `› TI-003 a refresh answered by the previous generation is discarded after a resync`. Сценарий probe Astra `refresh-rolls-back-live-event`: после снимка `{seq:1, tasks:1}`, `catchUp since=1`, отката нет.
 
 **Связанные планы:** [astra-03-snapshot-sse-ordering.md](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/astra-03-snapshot-sse-ordering.md); [07-web-client-fixes-and-structure.md](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/07-web-client-fixes-and-structure.md).
 
@@ -333,7 +337,7 @@
 
 ### TI-006 — Обязательное сохранение web-операции до отправки
 
-**Тип:** Баг. **Статус:** ОТКРЫТО. **Приоритет:** P2.
+**Тип:** Баг. **Статус:** ИСПРАВЛЕНО. **Приоритет:** P2.
 
 **Источники:** [Astra:B-08](/Users/dmitriy/code/taskindex/docs/audits/2026-09-08-multiside-review/03-bugs.md:187); [Сохранённое воспроизведение](/Users/dmitriy/code/taskindex/docs/audits/2026-09-08-multiside-review/03-storage-probe-result.json); [FC:compare-bugs «Их B-08»](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/compare-bugs.md:91); [План 07, доп. шаг 23](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/07-web-client-fixes-and-structure.md:272).
 
@@ -358,6 +362,8 @@
 - Автоматический переход на memory-only outbox разрушит исходную гарантию. Переход на IndexedDB допустим только как отдельная обоснованная замена с миграцией и теми же тестами, а не обязательная часть исправления.
 - Сверка Fable: способ — `storageAvailable` в состоянии store, отказ `submit` до построения pending и сети, постоянный баннер и `disabled` у кнопок отправки; черновики остаются удобством с предупреждением; IndexedDB и memory-only outbox не вводятся ([план 07, доп. шаг 23](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/07-web-client-fixes-and-structure.md:272)).
 
+**Закрытие (2026-09-10).** Коммит `7413e9b`. `StoreState.storageAvailable`; при недоступном `localStorage` `submit` отклоняется до построения pending и до сети, показан постоянный баннер деградации (`pending-notice.tsx`), кнопки отправки `disabled`; persist без хранилища бросает, путь «отправить без сохранения» невозможен (решение владельца, план 07). Тесты: `tests/web/store.test.ts › refuses to send a command when browser storage is unavailable` (падал до: `expected undefined to be false`; probe Astra давал 4 POST, теперь 0), `tests/e2e/web-client.spec.ts › TI-006` (getter `localStorage` бросает SecurityError → баннер, «Добавить задачу» disabled, 0 POST `/api/commands`).
+
 **Связанные планы:** [astra-06-browser-storage-write-boundary.md](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/astra-06-browser-storage-write-boundary.md); [07-web-client-fixes-and-structure.md](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/07-web-client-fixes-and-structure.md).
 
 Исходная оценка в плане: P2.
@@ -366,7 +372,7 @@
 
 ### TI-007 — Редактор и зависимые операции используют подтверждённую revision
 
-**Тип:** Баг. **Статус:** ОТКРЫТО. **Приоритет:** P2.
+**Тип:** Баг. **Статус:** ИСПРАВЛЕНО. **Приоритет:** P2.
 
 **Источники:** [Astra:A-01](/Users/dmitriy/code/taskindex/docs/audits/2026-09-08-multiside-review/02-architecture.md:49); [Сохранённое воспроизведение](/Users/dmitriy/code/taskindex/docs/audits/2026-09-08-multiside-review/02-architecture-probes.json); [FC:compare-bugs «Их A-01»](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/compare-bugs.md:95); [compare/a01-rejected-variant.mts](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/probes/compare/a01-rejected-variant.mts); [План 07, доп. шаг 24](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/07-web-client-fixes-and-structure.md:273).
 
@@ -390,6 +396,8 @@
 
 - Безусловный rebase может перезаписать чужую правку. Сохранить текущую полевую проверку конфликтов и не подменять её повтором с самой свежей revision.
 - Сверка Fable: корневая правка — база редактора из `confirmed` (`confirmedTask(id)`), `restored.baseRevision` только если не больше подтверждённой, при отказе «из будущего» сброс `saved.revision` и `baseRevision` черновика на подтверждённую; блокировка зависимого submit не нужна, потому что сервер сливает по полям через `assertMerge`, вместо неё индикатор pending по задаче; полевая панель конфликта сохраняется ([план 07, доп. шаг 24](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/07-web-client-fixes-and-structure.md:273)).
+
+**Закрытие (2026-09-10).** Коммит `c8b50fb`. База редактора и зависимых операций — из `state.confirmed` (`confirmedTask(id)`), `saved`/черновик из базы, `restored.baseRevision` не больше подтверждённой; при «Базовая версия из будущего» `saved.revision` сбрасывается на подтверждённую; блокировки при pending нет, индикатор «Ожидает подтверждения: …» (решение владельца). Тесты: `tests/e2e/web-client.spec.ts › TI-007 …` (падал до: `task.save` уходил с `baseRevision` 2 вместо 1 после отклонённого `task.move`, вариант `a01-rejected-variant`), `tests/web/editor-base.test.ts`. Подписи команд вынесены в `labels.ts`.
 
 **Связанные планы:** [astra-07-confirmed-editor-revisions.md](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/astra-07-confirmed-editor-revisions.md); [07-web-client-fixes-and-structure.md](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/07-web-client-fixes-and-structure.md).
 
@@ -1460,7 +1468,7 @@
 
 ### TI-038 — Pending старого поколения остаётся в браузере без пути завершения
 
-**Тип:** Баг UI. **Статус:** ОТКРЫТО. **Приоритет:** P2.
+**Тип:** Баг UI. **Статус:** ИСПРАВЛЕНО. **Приоритет:** P2.
 
 **Источники:** [FB:B-04](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/review-3-bugs.md:68); [repro/store-foreign-pending.mts](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/probes/repro/store-foreign-pending.mts); [FC:compare-bugs, уникальные пункты](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/compare-bugs.md:103); [План 07, шаги 1–2](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/07-web-client-fixes-and-structure.md:153).
 
@@ -1481,6 +1489,8 @@
 **Детали и оговорки:**
 
 - Сверка Fable: реализация — `dismiss(id)` в store, панель `pending-notice.tsx` с именем команды, извлечёнными текстами и кнопкой «Убрать»; удаление только выбранного intent после явного действия ([план 07, шаги 1–2](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/07-web-client-fixes-and-structure.md:153); тесты 1–2).
+
+**Закрытие (2026-09-10).** Коммит `dcfe262`. Pending прежнего поколения показывает подпись и тексты конверта (`describeEnvelope`, `src/web/app/pending.ts`), сообщение «Изменение от прежней версии базы», кнопка «Убрать» (`store.dismiss`), «Повторить» только для своего поколения; `attempts` удалён. Тесты: `tests/web/store.test.ts › … lets the owner dismiss them` (падал до: `message` undefined), `tests/web/pending.test.ts`, `tests/e2e/web-client.spec.ts › TI-038` (текст виден, после «Убрать» и reload ключей `taskindex/ops/` нет).
 
 **Связанные планы:** [07-web-client-fixes-and-structure.md](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/07-web-client-fixes-and-structure.md).
 
@@ -1552,7 +1562,7 @@
 
 ### TI-041 — Fallback без Web Locks накапливает scope черновиков при reload
 
-**Тип:** Баг UI. **Статус:** ОТКРЫТО. **Приоритет:** P2.
+**Тип:** Баг UI. **Статус:** ИСПРАВЛЕНО. **Приоритет:** P2.
 
 **Источники:** [FB:B-07](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/review-3-bugs.md:117); [Независимая сверка Astra/Fable](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/ASTRA-VS-FABLE.md); [repro/drafts-scope.mts](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/probes/repro/drafts-scope.mts); [FC:compare-bugs, строка 7 матрицы](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/compare-bugs.md:25); [План 07, шаг 5](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/07-web-client-fixes-and-structure.md:157).
 
@@ -1575,6 +1585,8 @@
 - Автоматическое удаление по возрасту без оценки живых вкладок может уничтожить намерение; TTL не принят как готовое решение.
 - Сверка Fable: `chooseScope(deps)` с инъекцией storage/session/locks/now; уборка только scope, чей маркер старше `DRAFT_SCOPE_TTL_MS` и не удерживается живой вкладкой, дубликат вкладки сохраняет независимые черновики ([план 07, шаг 5](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/07-web-client-fixes-and-structure.md:157)). Оговорка карточки о TTL сохраняется: возраст без оценки живых вкладок не является достаточным критерием.
 
+**Закрытие (2026-09-10).** Коммит `c397d9b`. `chooseScope(deps)` в `drafts.ts`: без Web Locks reload переиспользует scope, дубликат вкладки получает независимую копию, просроченные (TTL 30 дней) и не удерживаемые scope удаляются, legacy сохраняются. Тесты: `tests/web/drafts.test.ts` (4 новых; падали до: `chooseScope is not a function`; repro `drafts-scope`: 5 reload → 1 scope / 3 ключа вместо 5 / 15).
+
 **Связанные планы:** [07-web-client-fixes-and-structure.md](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/07-web-client-fixes-and-structure.md).
 
 **Связанные записи / зависимости исходного плана:** [TI-006](#ti-006), [TI-022](#ti-022).
@@ -1583,7 +1595,7 @@
 
 ### TI-042 — Back закрытого редактора не возвращает исходный URL фильтра
 
-**Тип:** Баг UI. **Статус:** ОТКРЫТО. **Приоритет:** P2.
+**Тип:** Баг UI. **Статус:** ИСПРАВЛЕНО. **Приоритет:** P2.
 
 **Источники:** [FB:B-08](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/review-3-bugs.md:135); [FC:compare-bugs, строка 8 матрицы](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/compare-bugs.md:26); [План 07, шаг 6](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/07-web-client-fixes-and-structure.md:158).
 
@@ -1605,6 +1617,8 @@
 
 - Сверка Fable: `parseLocation(search)`/`serializeLocation(state)`/`savedLocation()`; `popstate` читает строго `location.search`, возврат к `/` даёт `defaults`, первичная загрузка пустого `/` по-прежнему берёт localStorage; e2e на back/forward ([план 07, шаг 6](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/07-web-client-fixes-and-structure.md:158); тесты 6, 6a).
 
+**Закрытие (2026-09-10).** Коммит `7cf5be8`. `url.ts`: `parseLocation`/`serializeLocation`/`savedLocation`/`rememberLocation`; `popstate` читает только URL, сохранённое место применяется лишь при открытии пустого `/` (с `replaceState` показанного состояния); закрытие редактора из списка сохраняет `area`/`view` в URL. Тесты: `tests/web/url.test.ts`, `tests/e2e/web-client.spec.ts › TI-042` (падал до: после `goBack` экран оставался «Разработка» вместо «Агентство»).
+
 **Связанные планы:** [07-web-client-fixes-and-structure.md](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/07-web-client-fixes-and-structure.md).
 
 **Связанные записи / зависимости исходного плана:** [TI-059](#ti-059).
@@ -1613,7 +1627,7 @@
 
 ### TI-043 — CLOSED EventSource не создаётся заново
 
-**Тип:** Баг. **Статус:** ОТКРЫТО. **Приоритет:** P2.
+**Тип:** Баг. **Статус:** ИСПРАВЛЕНО. **Приоритет:** P2.
 
 **Источники:** [FA:V5](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/review-2-architecture.md:81); [Независимая сверка Astra/Fable](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/ASTRA-VS-FABLE.md); [FC:compare-bugs, строка 14 матрицы](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/compare-bugs.md:32); [План 07, шаг 7](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/07-web-client-fixes-and-structure.md:159); [План 05, доп. шаг 11](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/05-auth-and-agent-keys.md:196).
 
@@ -1634,6 +1648,8 @@
 **Детали и оговорки:**
 
 - Сверка Fable: `startSync(store, deps)` с инъекцией `EventSource`/таймеров; при `CLOSED` сначала `request('/api/me')`, при 401/403 переподключение прекращается, иначе пересоздание с экспоненциальной паузой 1–30 с, `onopen` сбрасывает счётчик, смена `generation` открывает новый поток ([план 07, шаг 7](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/07-web-client-fixes-and-structure.md:159)). После отзыва ключа поток завершается событием `revoked`, клиент не переподключается в цикле ([план 05, доп. шаг 11](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/05-auth-and-agent-keys.md:196)).
+
+**Закрытие (2026-09-10).** Коммит `711d16e`. `startSync(store, deps)` с инъекцией `EventSource`/таймеров; при `CLOSED` пересоздание с экспоненциальной паузой 1000…30000 мс, сброс после `onopen`; перед переподключением `GET /api/me`, при 401/403 переподключение прекращается (`state.revoked`); серверное `event: revoked` закрывает поток без цикла; в статусе синхронизации «Доступ отозван. Войти заново». Тесты: `tests/web/sync.test.ts` (6; падали до: `window is not defined`, инъекции не было).
 
 **Связанные планы:** [07-web-client-fixes-and-structure.md](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/07-web-client-fixes-and-structure.md).
 
@@ -2060,7 +2076,7 @@
 
 ### TI-058 — E2E по умолчанию перезаписывает reference-артефакты в docs
 
-**Тип:** Дефект изоляции тестов. **Статус:** ОТКРЫТО. **Приоритет:** P2.
+**Тип:** Дефект изоляции тестов. **Статус:** ИСПРАВЛЕНО. **Приоритет:** P2.
 
 **Источники:** [FQ:§9](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/review-4-quality.md:166); [FQ:R10](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/review-4-quality.md:289); [FC:compare-quality-method, побочный эффект e2e](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/compare-quality-method.md:68); [README планов, «Состояние на момент записи»](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/README.md:166); [План 10, доп. шаг 24](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/10-code-quality-and-tests.md:345).
 
@@ -2081,6 +2097,8 @@
 **Детали и оговорки:**
 
 - Сверка Fable: до смены умолчания (план 10, шаг 1) ревью запускают e2e только с `TASKINDEX_E2E_ARTIFACT_DIR`; `docs/reference` никогда не является выходом теста; проверка «неизменности» будущих ревью должна включать `docs/` ([план 10, доп. шаг 24](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/10-code-quality-and-tests.md:345)). Недетерминизм четырёх сцен — отдельная причина хрупкости, учтён в TI-070.
+
+**Закрытие (2026-09-10).** Коммит `ac4effc`. Умолчание артефактов e2e — `test-results/e2e-artifacts/` (в `.gitignore`), `mkdirSync` в `beforeAll`; запись в `docs/reference/v2-validation/` только явным `TASKINDEX_E2E_ARTIFACT_DIR=docs/reference/v2-validation` (порядок обновления эталона описан в `tests/e2e/artifacts.ts` и `docs/reference/v2-validation/README.md`). Тест: `tests/e2e/artifacts.spec.ts › e2e artifacts default to the ignored test-results directory`. Сценарий: `npm run e2e` без переменной → файлы в `test-results/e2e-artifacts/`, `git status docs/` чист.
 
 **Связанные планы:** [10-code-quality-and-tests.md](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/10-code-quality-and-tests.md).
 
@@ -2382,7 +2400,7 @@
 
 ### TI-069 — E2E проверяет Vite dev, но не production static serving
 
-**Тип:** Проверки выпуска. **Статус:** ОТКРЫТО. **Приоритет:** P2.
+**Тип:** Проверки выпуска. **Статус:** ИСПРАВЛЕНО. **Приоритет:** P2.
 
 **Источники:** [FS:Q2](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/review-1-stack.md:153); [FQ:§9](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/review-4-quality.md:166).
 
@@ -2399,6 +2417,8 @@
 - Production artifact обслуживает deep links без подмены API 404 на HTML.
 - Assets/HTML/API имеют корректный Content-Type/cache, auth и SSE работают.
 - Результат привязан к проверяемому build; обычный прогон не меняет reference docs.
+
+**Закрытие (2026-09-10).** Коммит `e253c61`. Проект Playwright `static` поверх production-сборки `dist/web` через `src/server/index.ts` (второй `webServer`). Тесты: `tests/e2e/static.spec.ts` (3: вход владельца в production-бандле, SSE online, `/health.build`; `Cache-Control` `no-cache` для `index.html`/deep link и `immutable` для `/assets`; JSON 401 для неизвестного API, `nosniff`/`DENY`/без HSTS). Полный e2e: 26 (functional 23 + static 3).
 
 **Связанные планы:** [10-code-quality-and-tests.md](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/10-code-quality-and-tests.md).
 
@@ -2529,7 +2549,7 @@
 
 ### TI-074 — Имя владельца зашито в UI
 
-**Тип:** Качество UI. **Статус:** ПРЕДЛОЖЕНО. **Приоритет:** P3.
+**Тип:** Качество UI. **Статус:** ИСПРАВЛЕНО. **Приоритет:** P3.
 
 **Источники:** [FA:V9](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/review-2-architecture.md:93); [FQ:§6](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/review-4-quality.md:130).
 
@@ -2546,6 +2566,8 @@
 - При другом owner отображается корректный label, а history actorId остаётся стабильным.
 - Неавторизованное/переходное состояние не выводит чужое имя из старого кэша.
 - Текущий пользователь и тестовая fixture проходят визуальную проверку.
+
+**Закрытие (2026-09-10).** Коммит `efebfaf`. Актор клиента из `GET /api/me` при загрузке (вместе со снимком; ошибка не ломает загрузку), запасное значение «Владелец»; `grep Дмитрий src/web` пуст; превью команды владельца показывает ту же `createdByLabel`, что и подтверждённая запись. Тест: `tests/web/store.test.ts › TI-074` (падал до: `state.actor` undefined).
 
 **Связанные планы:** [07-web-client-fixes-and-structure.md](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/07-web-client-fixes-and-structure.md).
 
