@@ -29,11 +29,34 @@ export type ChangeEffect = {
   changes: Changes;
   recordRevision: number;
 };
+// The three selections the reducer makes over the journal: what changed on a
+// record after a base revision (merge), the events of one operation and one
+// event by position (undo). The server answers them with indexed queries
+// (plan 01, step 2); tests and the web client keep passing a plain array.
+export type HistoryAccess = {
+  forRecord(kind: EntityKind, id: string, afterRevision: number): DomainEvent[];
+  forOperation(operationId: string): DomainEvent[];
+  bySeq(seq: number): DomainEvent | undefined;
+};
+export function arrayHistory(events: DomainEvent[]): HistoryAccess {
+  return {
+    forRecord: (kind, id, afterRevision) =>
+      events.filter(
+        (e) =>
+          e.entityKind === kind &&
+          e.entityId === id &&
+          e.recordRevision > afterRevision,
+      ),
+    forOperation: (operationId) =>
+      events.filter((e) => e.operationId === operationId),
+    bySeq: (seq) => events.find((e) => e.seq === seq),
+  };
+}
 export type CommandContext = {
   now: string;
   ids: () => string;
   actor: Actor;
-  history?: DomainEvent[];
+  history?: DomainEvent[] | HistoryAccess;
   operationId?: string;
   // Envelope flag: the agent acknowledges it is changing owner decisions.
   confirmOwnerFields?: boolean;
@@ -142,18 +165,13 @@ function assertMerge(
   record: Entity,
   base: number,
   keys: string[],
-  history: DomainEvent[],
+  history: HistoryAccess,
 ) {
   if (base > record.revision) fail('invalid', 'Базовая версия из будущего.');
   if (base < record.revision) {
     const changed = new Set(
       history
-        .filter(
-          (e) =>
-            e.entityKind === kind &&
-            e.entityId === record.id &&
-            e.recordRevision > base,
-        )
+        .forRecord(kind, record.id, base)
         .flatMap((e) =>
           Object.keys(e.changes).filter((k) => isSubjectField(kind, k)),
         ),
@@ -261,7 +279,7 @@ export function assertInvariants(
 type Session = {
   state: WorkspaceState;
   ctx: CommandContext;
-  history: DomainEvent[];
+  history: HistoryAccess;
   effects: ChangeEffect[];
   name: CommandName;
   emit: (
@@ -280,9 +298,10 @@ type UndoInverse = {
   keys: string[];
 };
 function applyUndo(s: Session, p: CommandOf<'undo'>['payload']): CommandResult {
-  const target = s.history.filter((e) =>
-    'seq' in p ? e.seq === p.seq : e.operationId === p.operationId,
-  );
+  const target =
+    'seq' in p
+      ? [s.history.bySeq(p.seq)].filter((e) => e !== undefined)
+      : s.history.forOperation(p.operationId);
   if (!target.length)
     fail('not_undoable', 'У операции нет отменяемых событий.');
   // Authority before semantics: an agent learns nothing about an operation
@@ -296,6 +315,7 @@ function applyUndo(s: Session, p: CommandOf<'undo'>['payload']): CommandResult {
   }
   if (target.some((e) => e.command === 'project.create'))
     fail('not_undoable', 'Создание проекта не отменяется.');
+  const targetSeqs = new Set(target.map((e) => e.seq));
   const groups = new Map<string, DomainEvent[]>();
   for (const e of target) {
     const key = `${e.entityKind}/${e.entityId}`;
@@ -344,13 +364,9 @@ function applyUndo(s: Session, p: CommandOf<'undo'>['payload']): CommandResult {
     const keys = created
       ? Object.keys(record).filter((k) => isSubjectField(kind, k))
       : Object.keys(values);
-    const later = s.history.filter(
-      (e) =>
-        e.entityKind === kind &&
-        e.entityId === record.id &&
-        e.recordRevision > last.recordRevision &&
-        !target.includes(e),
-    );
+    const later = s.history
+      .forRecord(kind, record.id, last.recordRevision)
+      .filter((e) => !targetSeqs.has(e.seq));
     const overlap = [
       ...new Set(
         later
@@ -820,7 +836,9 @@ export function applyCommand(
   const s: Session = {
     state: structuredClone(input),
     ctx,
-    history: ctx.history ?? [],
+    history: Array.isArray(ctx.history)
+      ? arrayHistory(ctx.history)
+      : (ctx.history ?? arrayHistory([])),
     effects,
     name: command.command,
     emit(kind, before, after, cmd = command.command) {

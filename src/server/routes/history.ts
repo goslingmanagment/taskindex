@@ -1,7 +1,6 @@
 import { createRoute } from '@hono/zod-openapi';
 import type { OpenAPIHono } from '@hono/zod-openapi';
 import { z } from 'zod';
-import { eq } from 'drizzle-orm';
 import { idSchema } from '../../shared/schemas.js';
 import {
   eventSchema,
@@ -10,8 +9,13 @@ import {
 } from '../../shared/domain-schemas.js';
 import { fail } from '../../shared/errors.js';
 import { LIMITS } from '../../shared/limits.js';
-import { generation, latestSeq, readEvents } from '../db.js';
-import * as tables from '../schema.js';
+import {
+  generation,
+  latestSeq,
+  readEvents,
+  readEventsForRecord,
+  taskExists,
+} from '../db.js';
 import { idParam, json, pageQuery, readErrors } from '../http/openapi.js';
 import type { Deps, Env } from '../http/deps.js';
 
@@ -83,19 +87,10 @@ export const registerHistoryRoutes = <T extends OpenAPIHono<Env>>(
       }),
       (c) => {
         const id = c.req.valid('param').id;
-        if (
-          !db.orm
-            .select({ id: tables.tasks.id })
-            .from(tables.tasks)
-            .where(eq(tables.tasks.id, id))
-            .get()
-        )
-          fail('not_found', 'Задача не найдена.');
+        if (!taskExists(db, id)) fail('not_found', 'Задача не найдена.');
         return c.json(
           page(
-            readEvents(db).filter(
-              (e) => e.entityKind === 'task' && e.entityId === id,
-            ),
+            readEventsForRecord(db, 'task', id, 0),
             c.req.valid('query'),
             `history:${id}`,
           ),

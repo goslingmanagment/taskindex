@@ -22,6 +22,7 @@ import {
   migrate,
   generation,
   latestSeq,
+  readOperation,
   readOperations,
   withoutEvents,
   writeState,
@@ -106,7 +107,7 @@ const key = (n: number) => `k${String(n).padStart(8, '0')}`;
 function task(n: number): Task {
   return {
     id: `t${n}`,
-    area: AREAS[n % 3]!,
+    area: AREAS[n % 3],
     projectId: null,
     title: `Задача ${n}`,
     status: 'todo',
@@ -342,9 +343,10 @@ function oneTaskLongJournal() {
     measure(`task.update, 1 задача, ${count} операций`, count, 5, () => {
       revision = update(db, 't0', revision, n++);
     });
-    measure(`readOperations().find(), ${count} операций`, count, 3, () => {
-      const found = readOperations(db).find((o) => o.id === `pad-${count}`);
-      if (!found) throw new Error('операция не найдена');
+    // The path of GET /api/operations/{id}: one row by id (plan 01, step 5).
+    measure(`readOperation(db, id), ${count} операций`, count, 20, () => {
+      if (!readOperation(db, `pad-${count}`))
+        throw new Error('операция не найдена');
     });
     db.close();
   }

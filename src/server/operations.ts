@@ -25,8 +25,9 @@ import {
   generation,
   latestOperationSeq,
   latestSeq,
-  readEvents,
   readState,
+  serverHistory,
+  touchedByEvents,
   writeState,
 } from './db.js';
 import * as schema from './schema.js';
@@ -88,8 +89,10 @@ export function executeOperation(
           ];
     const previous = readState(db);
     let state = previous;
-    const history = readEvents(db);
     const events: DomainEvent[] = [];
+    // The reducer asks the journal only for what it needs (plan 01, step 2):
+    // indexed reads plus the events of this packet so far.
+    const history = serverHistory(db, events);
     const results: OperationSuccess['results'] = [];
     const start = latestSeq(db) + 1;
     // The journal position is taken inside the same immediate transaction as
@@ -111,7 +114,7 @@ export function executeOperation(
           now,
           ids: options.ids ?? randomUUID,
           actor,
-          history: [...history, ...events],
+          history,
           operationId: envelope.operationId,
           confirmOwnerFields: envelope.confirmOwnerFields === true,
         });
@@ -173,7 +176,7 @@ export function executeOperation(
       ...(envelope.dryRun ? { dryRun: true } : {}),
     };
     if (!envelope.dryRun) {
-      writeState(db, state, previous);
+      writeState(db, state, previous, touchedByEvents(events));
       for (const { generation: _generation, ...event } of events)
         db.orm.insert(schema.events).values(event).run();
       db.orm

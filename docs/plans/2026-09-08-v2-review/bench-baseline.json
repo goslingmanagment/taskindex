@@ -229,6 +229,121 @@
           "msPerOp": 861.272
         }
       ]
+    },
+    {
+      "source": "v2-fixes A4, фаза 1",
+      "fixture": "Каждая задача: заметка 1 КБ и 10 шагов чеклиста. Журнал наращивается копиями события и операции task.update (padJournal), измеряются реальные executeOperation. Сценарии Astra «N задач без истории» здесь тяжелее исходных: у Astra задачи были без заметки и чеклиста.",
+      "at": "2026-09-10T21:52:00.877Z",
+      "node": "v24.20.0",
+      "platform": "darwin-arm64",
+      "results": [
+        {
+          "label": "task.update, 300 задач, заметка 1 КБ",
+          "events": 320,
+          "msPerOp": 5.343
+        },
+        {
+          "label": "task.update, 300 задач, заметка 1 КБ",
+          "events": 2020,
+          "msPerOp": 4.667
+        },
+        {
+          "label": "task.update, 300 задач, заметка 1 КБ",
+          "events": 5020,
+          "msPerOp": 4.627
+        },
+        {
+          "label": "task.update, 300 задач, заметка 1 КБ",
+          "events": 10020,
+          "msPerOp": 5.31
+        },
+        {
+          "label": "GET /api/operations?limit=50",
+          "events": 4000,
+          "msPerOp": 29.38
+        },
+        {
+          "label": "GET /api/operations/{id}",
+          "events": 4000,
+          "msPerOp": 0.235
+        },
+        {
+          "label": "GET /api/tasks/{id}/history",
+          "events": 4000,
+          "msPerOp": 0.169
+        },
+        {
+          "label": "GET /api/tasks/{id}",
+          "events": 4000,
+          "msPerOp": 0.136
+        },
+        {
+          "label": "GET /api/digest",
+          "events": 4000,
+          "msPerOp": 60.201
+        },
+        {
+          "label": "GET /api/snapshot",
+          "events": 4000,
+          "msPerOp": 29.094
+        },
+        {
+          "label": "readOperations(db)",
+          "events": 4000,
+          "msPerOp": 25.879
+        },
+        {
+          "label": "operations.result: доля events, %",
+          "events": 4000,
+          "msPerOp": 0,
+          "note": "SUM(LENGTH(result))=8932679, SUM(LENGTH(events))=null при 4000 операций и 2000 задач"
+        },
+        {
+          "label": "task.update, 100 задач без истории",
+          "events": 0,
+          "msPerOp": 2.06
+        },
+        {
+          "label": "task.update, 1000 задач без истории",
+          "events": 0,
+          "msPerOp": 14.613
+        },
+        {
+          "label": "task.update, 5000 задач без истории",
+          "events": 0,
+          "msPerOp": 81.222
+        },
+        {
+          "label": "task.update, 1 задача, 1000 операций",
+          "events": 1000,
+          "msPerOp": 0.752
+        },
+        {
+          "label": "readOperation(db, id), 1000 операций",
+          "events": 1000,
+          "msPerOp": 0.133
+        },
+        {
+          "label": "task.update, 1 задача, 10000 операций",
+          "events": 10000,
+          "msPerOp": 0.863
+        },
+        {
+          "label": "readOperation(db, id), 10000 операций",
+          "events": 10000,
+          "msPerOp": 0.117
+        },
+        {
+          "label": "task.update, 1 задача, 50000 операций",
+          "events": 50000,
+          "msPerOp": 0.993
+        },
+        {
+          "label": "readOperation(db, id), 50000 операций",
+          "events": 50000,
+          "msPerOp": 0.12
+        }
+      ]
     }
   ],
   "reference": {

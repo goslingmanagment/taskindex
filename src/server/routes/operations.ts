@@ -7,7 +7,7 @@ import {
   storedOperationSchema,
 } from '../../shared/domain-schemas.js';
 import { fail } from '../../shared/errors.js';
-import { readOperations } from '../db.js';
+import { readOperation, readOperations } from '../db.js';
 import {
   idParam,
   json,
@@ -108,9 +108,7 @@ export const registerOperationRoutes = <T extends OpenAPIHono<Env>>(
         responses: { 200: json(storedOperationSchema), ...readErrors },
       }),
       (c) => {
-        const o = readOperations(db).find(
-          (o) => o.id === c.req.valid('param').id,
-        );
+        const o = readOperation(db, c.req.valid('param').id);
         if (!o) fail('not_found', 'Операция пока неизвестна серверу.');
         const { commandHash: _hash, ...record } = o;
         return c.json(record, 200);

@@ -14,7 +14,17 @@ import {
 } from '../../shared/domain-schemas.js';
 import { fail } from '../../shared/errors.js';
 import { queryTasks, todayInTimezone } from '../../shared/queries.js';
-import { generation, latestSeq, readState, withRead } from '../db.js';
+import {
+  generation,
+  latestSeq,
+  readComments,
+  readProjects,
+  readState,
+  readTask,
+  readTaskByOrigin,
+  taskExists,
+  withRead,
+} from '../db.js';
 import { exportWorkspace } from '../admin.js';
 import {
   flag,
@@ -178,9 +188,7 @@ export const registerReadRoutes = <T extends OpenAPIHono<Env>>(
         }),
         (c) => {
           const q = c.req.valid('query');
-          const task = readState(db).tasks.find(
-            (t) => t.originSystem === q.system && t.originRef === q.ref,
-          );
+          const task = readTaskByOrigin(db, q.system, q.ref);
           if (!task) fail('not_found', 'Задача источника не найдена.');
           return c.json(task, 200);
         },
@@ -196,9 +204,7 @@ export const registerReadRoutes = <T extends OpenAPIHono<Env>>(
           responses: { 200: json(taskSchema), ...readErrors },
         }),
         (c) => {
-          const task = readState(db).tasks.find(
-            (t) => t.id === c.req.valid('param').id,
-          );
+          const task = readTask(db, c.req.valid('param').id);
           if (!task) fail('not_found', 'Задача не найдена.');
           return c.json(task, 200);
         },
@@ -212,7 +218,7 @@ export const registerReadRoutes = <T extends OpenAPIHono<Env>>(
           tags: ['projects'],
           responses: { 200: json(projectsResponseSchema), ...readErrors },
         }),
-        (c) => c.json({ projects: readState(db).projects }, 200),
+        (c) => c.json({ projects: readProjects(db) }, 200),
       )
       .openapi(
         createRoute({
@@ -230,21 +236,9 @@ export const registerReadRoutes = <T extends OpenAPIHono<Env>>(
         }),
         (c) => {
           const id = c.req.valid('param').id;
-          const state = readState(db);
-          if (!state.tasks.some((t) => t.id === id))
-            fail('not_found', 'Задача не найдена.');
+          if (!taskExists(db, id)) fail('not_found', 'Задача не найдена.');
           return c.json(
-            page(
-              state.comments
-                .filter((x) => x.taskId === id)
-                .sort(
-                  (a, b) =>
-                    a.createdAt.localeCompare(b.createdAt) ||
-                    a.id.localeCompare(b.id),
-                ),
-              c.req.valid('query'),
-              `comments:${id}`,
-            ),
+            page(readComments(db, id), c.req.valid('query'), `comments:${id}`),
             200,
           );
         },
