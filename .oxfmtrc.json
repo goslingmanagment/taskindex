@@ -26,6 +26,7 @@
     "pnpm-lock.yaml",
     "public/**",
     "skills/**",
+    "src/web/vendor/**",
     "test-results/**",
     "yarn.lock"
   ]

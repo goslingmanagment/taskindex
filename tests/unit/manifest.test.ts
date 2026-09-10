@@ -17,11 +17,18 @@ describe('манифест зависимостей', () => {
     expect(manifest.devDependencies).not.toHaveProperty('date-fns');
   });
 
-  it('shadcn и overrides.undici остаются до выноса CSS в src/web/vendor', () => {
-    // Шаг 2 плана 09 (владелец C): скопировать dist/tailwind.css в
-    // src/web/vendor/shadcn-base.css, после чего снять пакет и overrides и
-    // заменить эти две проверки на отрицательные.
-    expect(manifest.devDependencies).toHaveProperty('shadcn');
-    expect(manifest.overrides).toEqual({ undici: '7.29.1' });
+  it('не содержит shadcn: базовый CSS вынесен в src/web/vendor', () => {
+    // Шаг 2 плана 09 сделан: src/web/vendor/shadcn-base.css лежит в репозитории,
+    // styles.css импортирует его. Генератор примитивов запускается разово через
+    // `npx shadcn@latest add …`, в зависимости проекта он не возвращается.
+    expect(manifest.dependencies).not.toHaveProperty('shadcn');
+    expect(manifest.devDependencies).not.toHaveProperty('shadcn');
+  });
+
+  it('не содержит overrides: единственный потребитель undici ушёл с shadcn', () => {
+    // `overrides.undici` держался ради ветки shadcn → @dotenvx/dotenvx → undici;
+    // после снятия shadcn `npm ls undici` пуст (остался только undici-types
+    // из @types/node). Новый override — повод объяснить его в этом тесте.
+    expect(manifest.overrides).toBeUndefined();
   });
 });
