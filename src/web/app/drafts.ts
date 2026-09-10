@@ -86,6 +86,144 @@ export class DraftStorage {
 // A scope survives reloads in sessionStorage; its data remains in localStorage.
 // The lifetime lock prevents duplicated tabs (which clone sessionStorage) from
 // sharing a writer. New tabs can reclaim an inactive scope after it was closed.
+// TI-041: without Web Locks a reload keeps the previous scope instead of cloning
+// it; scopes unused for DRAFT_SCOPE_TTL_MS and not held by a live tab are removed.
+export const DRAFT_SCOPE_TTL_MS = 30 * 24 * 60 * 60 * 1000;
+export type ScopeDeps = {
+  storage?: StorageLike;
+  session?: Pick<StorageLike, 'getItem' | 'setItem'>;
+  locks?: LockManager;
+  now: () => number;
+  id?: () => string;
+};
+type Candidate = { scope: string; at: number };
+function listCandidates(storage: StorageLike | undefined): Candidate[] {
+  const candidates = new Map<string, Candidate>();
+  const add = (scope: string, at: number) => {
+    const known = candidates.get(scope);
+    if (!known || known.at < at) candidates.set(scope, { scope, at });
+  };
+  try {
+    for (let i = 0; i < (storage?.length ?? 0); i++) {
+      const key = storage!.key(i)!;
+      if (key.startsWith(scopePrefix))
+        add(key.slice(scopePrefix.length), Number(storage!.getItem(key)) || 0);
+      else if (key.startsWith(prefix('legacy'))) add('legacy', 0);
+      else if (key.startsWith('taskindex/drafts/')) {
+        const scope = key.slice('taskindex/drafts/'.length).split('/')[0];
+        if (scope) add(scope, 0);
+      }
+    }
+  } catch {
+    /* Storage access can be disabled by the browser. */
+  }
+  return [...candidates.values()].sort((a, b) => b.at - a.at);
+}
+// Resolves to true when the lock is free. With hold=true it is kept for the
+// lifetime of this document; otherwise it is released at once (a liveness probe).
+function claim(locks: LockManager | undefined, scope: string, hold: boolean) {
+  return new Promise<boolean>((resolve) => {
+    if (!locks) return resolve(false);
+    void locks
+      .request(
+        `taskindex/draft-writer/${scope}`,
+        { ifAvailable: true },
+        async (lock) => {
+          resolve(!!lock);
+          if (lock && hold) await new Promise<void>(() => {});
+        },
+      )
+      .catch(() => resolve(false));
+  });
+}
+function copyScope(
+  storage: StorageLike | undefined,
+  source: string,
+  target: string,
+  now: number,
+) {
+  try {
+    const sourcePrefix = prefix(source);
+    const copies: [string, string][] = [];
+    for (let i = 0; i < (storage?.length ?? 0); i++) {
+      const key = storage!.key(i)!;
+      if (key.startsWith(sourcePrefix))
+        copies.push([key.slice(sourcePrefix.length), storage!.getItem(key)!]);
+    }
+    for (const [id, value] of copies)
+      storage!.setItem(`${prefix(target)}${id}`, value);
+    if (copies.length) storage!.setItem(`${scopePrefix}${target}`, String(now));
+  } catch {
+    /* Never delete the source if copying fails. */
+  }
+}
+function removeScope(storage: StorageLike, scope: string) {
+  const doomed: string[] = [];
+  for (let i = 0; i < storage.length; i++) {
+    const key = storage.key(i)!;
+    if (key.startsWith(prefix(scope))) doomed.push(key);
+  }
+  for (const key of doomed) storage.removeItem(key);
+  storage.removeItem(`${scopePrefix}${scope}`);
+}
+export async function chooseScope(
+  deps: ScopeDeps,
+): Promise<{ scope: string; removed: string[] }> {
+  const { storage, session, locks, now } = deps;
+  const newId = deps.id ?? (() => crypto.randomUUID());
+  let previous: string | null = null;
+  try {
+    previous = session?.getItem(tabKey) ?? null;
+  } catch {
+    /* Persistent drafts can still be recovered without sessionStorage. */
+  }
+  const candidates = listCandidates(storage);
+  let scope: string | undefined;
+  if (locks) {
+    const choices = previous
+      ? [previous]
+      : candidates.map((candidate) => candidate.scope);
+    for (const candidate of new Set(choices))
+      if (await claim(locks, candidate, true)) {
+        scope = candidate;
+        break;
+      }
+    if (!scope) {
+      scope = newId();
+      await claim(locks, scope, true);
+      // A duplicated tab starts from the same text, but gets independent records.
+      if (previous) copyScope(storage, previous, scope, now());
+    }
+  } else if (previous) {
+    // No liveness check is possible: this tab keeps its own scope across reloads.
+    scope = previous;
+  } else {
+    scope = newId();
+    const freshest = candidates.find(
+      (candidate) => candidate.scope !== 'legacy',
+    );
+    if (freshest) copyScope(storage, freshest.scope, scope, now());
+  }
+  const removed: string[] = [];
+  if (storage)
+    for (const candidate of candidates) {
+      if (candidate.scope === scope || candidate.scope === 'legacy') continue;
+      if (now() - candidate.at < DRAFT_SCOPE_TTL_MS) continue;
+      if (locks && !(await claim(locks, candidate.scope, false))) continue;
+      try {
+        removeScope(storage, candidate.scope);
+        removed.push(candidate.scope);
+      } catch {
+        /* Storage may be unavailable. */
+      }
+    }
+  try {
+    session?.setItem(tabKey, scope);
+  } catch {
+    /* This document still has an independent writer when storage is disabled. */
+  }
+  return { scope, removed };
+}
 let drafts = new DraftStorage(browserStorage(), crypto.randomUUID());
 let initialization: Promise<void> | undefined;
 export function initializeDrafts(): Promise<void> {
@@ -93,86 +231,20 @@ export function initializeDrafts(): Promise<void> {
 }
 async function initialize() {
   const storage = browserStorage();
-  let previous: string | null = null;
-  const candidates: { scope: string; at: number }[] = [];
+  let session: ScopeDeps['session'];
   try {
-    previous = sessionStorage.getItem(tabKey);
+    session =
+      typeof sessionStorage === 'undefined' ? undefined : sessionStorage;
   } catch {
-    /* Persistent drafts can still be recovered without sessionStorage. */
+    session = undefined;
   }
-  try {
-    for (let i = 0; i < (storage?.length ?? 0); i++) {
-      const key = storage!.key(i)!;
-      if (key.startsWith(scopePrefix))
-        candidates.push({
-          scope: key.slice(scopePrefix.length),
-          at: Number(storage!.getItem(key)) || 0,
-        });
-      else if (key.startsWith(prefix('legacy')))
-        candidates.push({ scope: 'legacy', at: 0 });
-      else if (key.startsWith('taskindex/drafts/')) {
-        const scope = key.slice('taskindex/drafts/'.length).split('/')[0];
-        if (scope) candidates.push({ scope, at: 0 });
-      }
-    }
-  } catch {
-    /* Storage access can be disabled by the browser. */
-  }
-  const claim = (scope: string) =>
-    new Promise<boolean>((resolve) => {
-      if (!navigator.locks) return resolve(false);
-      void navigator.locks
-        .request(
-          `taskindex/draft-writer/${scope}`,
-          { ifAvailable: true },
-          async (lock) => {
-            resolve(!!lock);
-            if (lock) await new Promise<void>(() => {});
-          },
-        )
-        .catch(() => resolve(false));
-    });
-  let scope: string | undefined;
-  const choices = previous
-    ? [previous]
-    : candidates.sort((a, b) => b.at - a.at).map((item) => item.scope);
-  for (const candidate of new Set(choices))
-    if (await claim(candidate)) {
-      scope = candidate;
-      break;
-    }
-  if (!scope) {
-    scope = crypto.randomUUID();
-    await claim(scope);
-    // A duplicated tab starts from the same text, but gets independent records.
-    // Also retain the old records if Web Locks are unavailable.
-    const source = previous ?? (!navigator.locks ? choices[0] : undefined);
-    if (source)
-      try {
-        const sourcePrefix = prefix(source);
-        const copies: [string, string][] = [];
-        for (let i = 0; i < (storage?.length ?? 0); i++) {
-          const key = storage!.key(i)!;
-          if (key.startsWith(sourcePrefix))
-            copies.push([
-              key.slice(sourcePrefix.length),
-              storage!.getItem(key)!,
-            ]);
-        }
-        for (const [id, value] of copies)
-          storage!.setItem(`${prefix(scope)}${id}`, value);
-        if (copies.length)
-          storage!.setItem(`${scopePrefix}${scope}`, String(Date.now()));
-      } catch {
-        /* Never delete the source if copying fails. */
-      }
-  }
+  const { scope } = await chooseScope({
+    storage,
+    session,
+    locks: typeof navigator === 'undefined' ? undefined : navigator.locks,
+    now: () => Date.now(),
+  });
   drafts = new DraftStorage(storage, scope);
-  try {
-    sessionStorage.setItem(tabKey, scope);
-  } catch {
-    /* This document still has an independent writer when storage is disabled. */
-  }
 }
 export function readDraft<T>(id: string): Draft<T> | null {
   return drafts.read<T>(id);
