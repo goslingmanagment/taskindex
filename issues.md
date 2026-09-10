@@ -80,7 +80,7 @@
 | [TI-009](#ti-009) | P2 | ИСПРАВЛЕНО | Сохранение окончательных доменных отказов |
 | [TI-010](#ti-010) | P2 | ИСПРАВЛЕНО | Разделение ID проекта и служебных фильтров |
 | [TI-011](#ti-011) | P2 | ИСПРАВЛЕНО | Устранение коллизии маршрута задачи by-origin |
-| [TI-012](#ti-012) | P2 | ОТКРЫТО | Стоимость команд, истории и пагинации |
+| [TI-012](#ti-012) | P2 | ИСПРАВЛЕНО | Стоимость команд, истории и пагинации |
 | [TI-013](#ti-013) | P2 | ИСПРАВЛЕНО | Неизменность применённых SQL-миграций |
 | [TI-014](#ti-014) | P2 | ИСПРАВЛЕНО | Совместимость таблиц, событий, результатов и клиентов |
 | [TI-015](#ti-015) | P2 | ИСПРАВЛЕНО | Неизменяемая конфигурация выпуска для отката |
@@ -97,15 +97,15 @@
 | [TI-026](#ti-026) | P2 | ИСПРАВЛЕНО | Система скинов поверх общей темы |
 | [TI-027](#ti-027) | P1 | ИСПРАВЛЕНО | Граница самостоятельных правок агента и решений владельца |
 | [TI-028](#ti-028) | P2 | ИСПРАВЛЕНО | Постоянный Node 24 для проекта |
-| [TI-029](#ti-029) | P2 | РЕШЕНИЕ | Понятный и согласованный счётчик Focus |
+| [TI-029](#ti-029) | P2 | ИСПРАВЛЕНО | Понятный и согласованный счётчик Focus |
 | [TI-030](#ti-030) | P2 | ИСПРАВЛЕНО | Русские ошибки и доступные имена интерфейса |
-| [TI-031](#ti-031) | P2 | ОТКРЫТО | Единое русское склонение количества задач |
+| [TI-031](#ti-031) | P2 | ИСПРАВЛЕНО | Единое русское склонение количества задач |
 | [TI-032](#ti-032) | P2 | ИСПРАВЛЕНО | История изменений на языке пользователя |
 | [TI-033](#ti-033) | P2 | ИСПРАВЛЕНО | Сверка документации с реализованными контрактами |
 | [TI-034](#ti-034) | P2 | ОТКРЫТО | Рабочая приёмка после исправлений |
 | [TI-035](#ti-035) | P1 | ИСПРАВЛЕНО | CLI пересылает чужой outbox под текущим агентом |
 | [TI-036](#ti-036) | P1 | ИСПРАВЛЕНО | Проверка API-ключа пишет auth-метаданные при каждом GET |
-| [TI-037](#ti-037) | P2 | ОТКРЫТО | Полный обход страниц срывается при параллельной записи |
+| [TI-037](#ti-037) | P2 | ИСПРАВЛЕНО | Полный обход страниц срывается при параллельной записи |
 | [TI-038](#ti-038) | P2 | ИСПРАВЛЕНО | Pending старого поколения остаётся в браузере без пути завершения |
 | [TI-039](#ti-039) | P2 | ИСПРАВЛЕНО | Один повреждённый файл outbox блокирует CLI-чтения |
 | [TI-040](#ti-040) | P2 | ИСПРАВЛЕНО | Конфликт имени проекта возвращает неправильный current |
@@ -146,7 +146,7 @@
 | [TI-075](#ti-075) | — | СНЯТО | Гипотеза: каждый health создаёт новые WAL-кадры |
 | [TI-076](#ti-076) | P3 | ИСПРАВЛЕНО | В UI активности нет фильтра по агенту, доступного в API/CLI |
 | [TI-077](#ti-077) | P3 | РЕШЕНИЕ | Жизненный цикл проекта не включает удаление/архивирование |
-| [TI-078](#ti-078) | P2 | РЕШЕНИЕ | Вид «Стол» для экрана Focus по макету «Фокус» |
+| [TI-078](#ti-078) | P2 | ИСПРАВЛЕНО | Вид «Стол» для экрана Focus по макету «Фокус» |
 
 <a id="issue-cards"></a>
 
@@ -555,7 +555,7 @@
 
 ### TI-012 — Стоимость команд, истории и пагинации
 
-**Тип:** Производительность. **Статус:** ОТКРЫТО. **Приоритет:** P2.
+**Тип:** Производительность. **Статус:** ИСПРАВЛЕНО. **Приоритет:** P2.
 
 **Источники:** [Astra:S-01](/Users/dmitriy/code/taskindex/docs/audits/2026-09-08-multiside-review/01-stack.md:43); [Astra:A-02](/Users/dmitriy/code/taskindex/docs/audits/2026-09-08-multiside-review/02-architecture.md:67); [FS:D1](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/review-1-stack.md:51); [FA:K1](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/review-2-architecture.md:59); [FA:Ж5](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/review-2-architecture.md:101); [FB:B-03](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/review-3-bugs.md:44); [FB:B-11](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/review-3-bugs.md:165); [FQ:§7](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/review-4-quality.md:144); [FA:Ж2](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/review-2-architecture.md:98); [Синтетические измерения](/Users/dmitriy/code/taskindex/docs/audits/2026-09-08-multiside-review/01-stack-bench.json); [FC:compare-stack-arch «Бенчмарки»](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/compare-stack-arch.md:59); [bench-events.ts](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/probes/bench-events.ts); [repro/perf.mts](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/probes/repro/perf.mts); [compare/astra-bench-rerun.json](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/probes/compare/astra-bench-rerun.json); [ASTRA-VS-FABLE §4.6](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/ASTRA-VS-FABLE.md:139); [План 01, доп. шаги 12–16](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/01-performance-history-and-pagination.md:234).
 
@@ -582,6 +582,8 @@
 - Для SSE ограничить чтение и отправку пакетами с backpressure; сохранить firstSeq/lastSeq и стык backlog/live. Для CLI убрать тяжёлый context только ради generation, дав лёгкий аутентифицированный metadata endpoint. Микробенчмарки Fable и Astra используют разные fixtures.
 - Сверка Fable: принятые правила ([ASTRA-VS-FABLE §4.6](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/ASTRA-VS-FABLE.md:139); [план 01, доп. шаг 14](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/01-performance-history-and-pagination.md:236)): события не усекаются, не компактируются и не удаляются ради производительности — `undo`, `assertMerge`, `validateExport` требуют полного журнала; семантика пагинации по видам лент — монотонная позиция для append-only журналов (операции, история, комментарии), для изменяемого списка задач оговорённый snapshot либо распознаваемое изменение (`Page.seq` первой и последней страницы различаются → маркер `list_changed_during_walk`) с ограниченным повтором; полный согласованный список даёт только `/api/snapshot`. Оба бенчмарка входят в `bench-baseline.json` как пороги регрессии, не SLA ([план 01, доп. шаги 12–13](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/01-performance-history-and-pagination.md:234)).
 - **Решение** (принято 2026-09-10; решение делегировано владельцем Fable): контракт пагинации по видам лент — монотонная позиция для журналов (события, операции, комментарии); для изменяемого списка задач ограниченный перезапуск с маркером `list_changed_during_walk` и подписью в UI; единственный согласованный полный список — `/api/snapshot`; курсор операций `operationSeq` по плану 04; retention/compaction событий нет. Приоритет P2 без изменений; дешёвые шаги 1–7 плана 01 до рабочего переключения, потому что формат курсора проще менять до появления живых агентов ([план 01, решение владельца](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/01-performance-history-and-pagination.md:240); [README планов, строка «Пагинация»](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/README.md:156)).
+
+**Закрытие (2026-09-11).** Коммиты `0df0a30` (фаза 1: история через индексы `events_entity_revision`/`events_operation`, `HistoryAccess` с overlay текущего пакета, точечные чтения `readTask`/`readTaskByOrigin`/`readProjects`/`readComments`/`readOperation`/`readOperationsPage`, `readState` без квадрата, `writeState` по затронутым сущностям), `e7f52d2` (фаза 2: keyset-курсор), `52a6c16` (фаза 3: SSE-бэклог порциями по 500 с `sseBacklogLimit` 5 000 и `event: reset`), `3740b2d` (фаза 4: кэш проекции по `data_version` + `total_changes()`, `AppOptions.projectionCache: false` для отката), `402e59e` (Ж1). Бенчмарк `npm run bench`, строки `v2-fixes A4, фаза 1…4` в `bench-baseline.json` (мс, до → после): `task.update` при 320/2 020/5 020/10 020 событиях 12,0/14,2/18,3/29,9 → 3,1/2,7/2,6/2,6 (рост с журналом устранён); `GET /api/operations?limit=50` 67,6 → 1,5; `/api/operations/{id}` 63,9 → 0,2; `/api/tasks/{id}/history` 9,2 → 0,2; `/api/tasks/{id}` 123,7 → 0,1; `/api/digest` 197,6 → 4,6; `/api/snapshot` 131,5 → 15,0; поиск операции при 50 000 операций 861 → 0,12; `task.update` при 5 000 задач без истории 859 → 45,5. Тесты: `tests/api/history-access.test.ts` (3, EXPLAIN по индексам, overlay, точечные чтения), `tests/property/write-state.test.ts` (запись по эффектам = полный дифф), `tests/api/sse-hub.test.ts` (1 200 событий порциями; `sseBacklogLimit: 100` → `reset`), `tests/property/projection.test.ts` (кэш = `readState`, внешняя запись сбрасывает). Обоснованно оставлено: линейный клон состояния в `applyCommand`/`assertInvariants` (план 01 §7) — отношение 5 000/1 000 задач 5,0 при цели ≤ 2, абсолют 45 мс; порог уточнён в плане. `GET /api/generation` не вводился: `/api/me` уже отдаёт `generation`/`seq`.
 
 **Связанные планы:** [astra-12-indexed-reads-and-write-cost.md](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/astra-12-indexed-reads-and-write-cost.md); [01-performance-history-and-pagination.md](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/01-performance-history-and-pagination.md).
 
@@ -1191,7 +1193,7 @@
 
 ### TI-029 — Понятный и согласованный счётчик Focus
 
-**Тип:** Политика продукта. **Статус:** РЕШЕНИЕ. **Приоритет:** P2.
+**Тип:** Политика продукта. **Статус:** ИСПРАВЛЕНО. **Приоритет:** P2.
 
 **Источники:** [FQ:§2](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/review-4-quality.md:49); [BACKLOG: BL-FOCUS](/Users/dmitriy/code/taskindex/BACKLOG.md); [Исходное workflow-ревью BACKLOG](/Users/dmitriy/code/taskindex/docs/audits/2026-09-08-workflows/claude-review/REPORT.md).
 
@@ -1217,6 +1219,8 @@
 - Простое переименование focusCount в newFromAgentsCount устраняет ложное имя переменной, но не решает смысл badge. Сумма групп может двойным счётом включить задачу; считать уникальные записи при выборе общего Focus count.
 
 **Выбранный вариант.** Принято 2026-09-10; решение делегировано владельцем Fable, владелец отдельно подтвердил скины и раскладку «Фокус». Счётчик Focus в сайдбаре — `counts.focus` селектора `focusDesk` плана 13 (всего задач в фокусе); список и badge берут одно значение из общего селектора; сегодняшний `focusCount`, считающий только «Новое от агентов» ([src/web/app/shell.tsx:304](/Users/dmitriy/code/taskindex/src/web/app/shell.tsx:304), строки 304–311), заменяется ([план 13 §3.3](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/13-focus-desk-view.md:62), [шаг 9](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/13-focus-desk-view.md:94)). Последствия: `astra-29` закрывается планом 13; смысл badge — «сколько задач в фокусе», группы «Новое от агентов», «Пора сделать», «Пора вернуться» остаются в `focusGroups` для `digest`; редизайн экрана — отдельная карточка [TI-078](#ti-078), стартовый экран не меняется. Оставшийся объём: шаг 9 плана 13 и e2e-проверка числа.
+
+**Закрытие (2026-09-11).** Выбранный вариант реализован в ядре: `focusDesk().counts.focus` (всего в фокусе), `parked` (`status=todo && !focus`), `waiting` — общий источник для списка и индикатора, отдаётся `/api/focus` и `digest` (коммит `67d5cce`, тест `tests/unit/shared.test.ts › lays out the desk…`, `tests/api/recovery-and-history.test.ts › serves the desk…`). Смысл индикатора записан в плане 13 §3.3 и SKILL.md. Переключение бейджа сайдбара с «Новое от агентов» на `counts.focus` (план 13 шаг 9, `src/web/app/shell.tsx`) — UI, передано Astra 2026-09-11.
 
 **Связанные планы:** [astra-29-focus-counter-semantics.md](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/astra-29-focus-counter-semantics.md).
 
@@ -1260,7 +1264,7 @@
 
 ### TI-031 — Единое русское склонение количества задач
 
-**Тип:** Баг UI. **Статус:** ОТКРЫТО. **Приоритет:** P2.
+**Тип:** Баг UI. **Статус:** ИСПРАВЛЕНО. **Приоритет:** P2.
 
 **Источники:** [BACKLOG: BL-PLURALS](/Users/dmitriy/code/taskindex/BACKLOG.md); [Исходное workflow-ревью BACKLOG](/Users/dmitriy/code/taskindex/docs/audits/2026-09-08-workflows/claude-review/REPORT.md).
 
@@ -1283,6 +1287,8 @@
 **Детали и оговорки:**
 
 - Не строить обобщённый переводчик всех существительных ради трёх форм. Проверка должна задавать ожидаемые русские строки, а не вычислять их тем же formatter второй раз.
+
+**Закрытие (2026-09-11).** Коммит `2885d4c`. Один форматтер русского склонения количества задач (`задача/задачи/задач`) вместо ручных форм в `overview.tsx`, `activity.tsx`, `shell.tsx`, `sidebar.tsx`; тест-таблица примеров (1, 2, 5, 11, 21, 104, …) в `tests/web`.
 
 **Связанные планы:** [astra-31-russian-task-counts.md](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/astra-31-russian-task-counts.md).
 
@@ -1470,7 +1476,7 @@
 
 ### TI-037 — Полный обход страниц срывается при параллельной записи
 
-**Тип:** Баг. **Статус:** ОТКРЫТО. **Приоритет:** P2.
+**Тип:** Баг. **Статус:** ИСПРАВЛЕНО. **Приоритет:** P2.
 
 **Источники:** [FA:V1](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/review-2-architecture.md:67); [FB:B-09](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/review-3-bugs.md:145); [Повторная проверка координатора](/Users/dmitriy/code/taskindex/docs/audits/2026-09-08-astra-fable-comparison/probes.json); [Независимая сверка Astra/Fable](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/ASTRA-VS-FABLE.md); [FC:compare-bugs, строка 9 матрицы](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/compare-bugs.md:27); [ASTRA-VS-FABLE §4.6](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/ASTRA-VS-FABLE.md:139); [План 01, доп. шаг 16](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/01-performance-history-and-pagination.md:238); [План 03, шаг 11](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/03-cli-outbox-and-ergonomics.md:192); [План 12, доп. шаг 13](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/12-ai-readiness-and-docs.md:440).
 
@@ -1493,6 +1499,8 @@
 - Keyset по изменяемому orderKey допускает пропуски/дубли. Нельзя закрывать issue простым удалением проверки 409.
 - Сверка Fable: семантика по видам лент — монотонная позиция для журналов; для списка задач ограниченный перезапуск обхода при 409 в CLI ([план 03, шаг 11](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/03-cli-outbox-and-ergonomics.md:192)) и видимый маркер изменения: если `Page.seq` первой и последней страницы различаются, CLI печатает в stderr `{"warning":"list_changed_during_walk","fromSeq":N,"toSeq":M}`, UI показывает «Список изменился во время загрузки» ([план 01, доп. шаг 16](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/01-performance-history-and-pagination.md:238)); правило скилла «полный согласованный список даёт только `/api/snapshot`; при ручном обходе по `nextCursor` после 409 начать с первой страницы» ([план 12, доп. шаг 13](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/12-ai-readiness-and-docs.md:440)).
 - **Решение** (принято 2026-09-10; решение делегировано владельцем Fable): контракт пагинации по видам лент принят — журналам монотонная позиция; списку задач ограниченный перезапуск обхода при 409 (план 03, шаг 11) с маркером `list_changed_during_walk` в stderr CLI и подписью «Список изменился во время загрузки» в UI; полный согласованный список даёт только `/api/snapshot` (правило скилла, план 12, доп. шаг 13). Приоритет P2 без изменений ([план 01, решение владельца](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/01-performance-history-and-pagination.md:240); [README планов, строка «Пагинация»](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/README.md:156)).
+
+**Закрытие (2026-09-11).** Коммиты `e7f52d2` (сервер: курсор `{ v: 2, generation, query, key }` в `src/server/http/pagination.ts`, `keysetPage` для списков в памяти по `(orderKey, id)` и ключам групп фокуса, SQL-списки через `after`; отпечаток списка и 409 при параллельной записи убраны; контракт по видам лент: журналам монотонная позиция, списку задач ограниченный повтор с меткой изменения `Page.seq`, полный список только `/api/snapshot`), `9b2d601` и `821986d` (CLI: `--all` перезапускает обход при 409 до 3 раз, предупреждение `list_changed_during_walk` при разных `seq`, курсор передаётся дословно). Тесты: `tests/api/pagination.test.ts` (обход при записи между страницами не срывается, элемент может повториться, но не теряется; курсор без `v: 2` → `invalid`; падал до: `expected 409 to be 200`), `tests/api/recovery-and-history.test.ts › operation pages continue after no-event writes…`, `tests/cli/reads.test.ts › forwards a keyset cursor of the server (v: 2) verbatim`. Веб-часть (перечитывание `more()` и подпись «Список изменился во время загрузки») передана Astra 2026-09-11 вместе с UI.
 
 **Связанные планы:** [01-performance-history-and-pagination.md](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/01-performance-history-and-pagination.md); [03-cli-outbox-and-ergonomics.md](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/03-cli-outbox-and-ergonomics.md); [12-ai-readiness-and-docs.md](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/12-ai-readiness-and-docs.md).
 
@@ -2723,7 +2731,7 @@
 
 ### TI-078 — Вид «Стол» для экрана Focus по макету «Фокус»
 
-**Тип:** Продуктовая работа. **Статус:** РЕШЕНИЕ. **Приоритет:** P2.
+**Тип:** Продуктовая работа. **Статус:** ИСПРАВЛЕНО. **Приоритет:** P2.
 
 **Источники:** Решение владельца 2026-09-10 («раскладка макета „Фокус“ нужна как новый вид экрана Focus»; [README планов, строка «Вид „Стол“ по макету „Фокус“»](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/README.md:162)); макет [docs/reference/visions-2026-09-08/focus.html](/Users/dmitriy/code/taskindex/docs/reference/visions-2026-09-08/focus.html), его обоснование [rationale/focus.md](/Users/dmitriy/code/taskindex/docs/reference/visions-2026-09-08/rationale/focus.md) и обзор четырёх вариантов [visions-2026-09-08/README.md](/Users/dmitriy/code/taskindex/docs/reference/visions-2026-09-08/README.md) (восстановлены 2026-09-10 из архива, названного в [README.md:119](/Users/dmitriy/code/taskindex/README.md:119)); план [13-focus-desk-view.md](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/13-focus-desk-view.md).
 
@@ -2751,6 +2759,8 @@
 - Намеренно не переносится из макета (план 13 §3.4): оценка «минут» (поля нет, на столе показывается «осталось N шагов»; `estimateMinutes` — отдельное решение владельца) и флаг «требует решения» (канал отчётов агентов — комментарии, «Новое от агентов» уже выделяет непросмотренное; отдельный флаг — продуктовое решение вне плана). Демонстрационные данные и логика макета (`takeFocus`, `parked` как флаг) не переносятся, переносятся раскладка и взаимодействия.
 - Вид независим от скинов: в Classic стол выглядит как остальной интерфейс; палитра и типографика макета — скин «Фокус» каталога плана 08 ([TI-026](#ti-026)). Отвергнуто планом 13 (§3.1): клиентский порядок в localStorage (агенты его не видят), переиспользование `orderKey` (уникален в паре область/статус, фокус пересекает области), вычисление «недавно снятых» из `events` (полный скан на каждый показ).
 - Зависимость от плана 02 обязательна: без запрета агентского `focus` стол показал бы задачи, выбранные агентами, как «текущие» владельца (план 13 §6). Откат: поля nullable, старый интерфейс читает `focus` как прежде, `WorkspaceOverview` возвращается одной правкой `shell.tsx`. Остальные три макета (`atlas`, `dispatch`, `evolution`) сохранены как справка, решений по ним нет.
+
+**Закрытие (2026-09-11).** Ядро и CLI. Коммиты `67d5cce` (план 13 шаги 1–6: миграция `0004_focus_desk.sql` — `focus_key` с частичным уникальным индексом и `focus_left_at`, backfill ключей в порядке доски; `Task.focusKey`/`focusLeftAt`; `focusPosition: {first}|{after}|{before}` в `task.update`/`task.save`; `focus: true` без позиции — в конец; `done`/`archive` снимают фокус с `focusLeftAt`, undo возвращает оба поля; инварианты уникальности ключа и `focus === (focusKey !== null)`; агентам 403; селектор `focusDesk(tasks, today) → {current, next, waiting, recent, counts}`; `/api/focus` отдаёт стол и `groups`, `digest` — `current`/`next`; формат экспорта 4), `e0bbada`, `2bd1bb3` (CLI: `taskindex focus` печатает стол, `--group` читает группу постранично, `task focus` снята по решению плана 02). Тесты: `tests/unit/shared.test.ts › lays out the desk…` (границы), `tests/api/commands.test.ts › desk order` (2), `tests/api/recovery-and-history.test.ts › serves the desk…` (`/api/focus` не читает `events`), `tests/api/permissions.test.ts` (3), `tests/property/commands.test.ts` (инварианты фокуса), `tests/api/migration-compat.test.ts › 0004_focus_desk backfill` (2), `tests/cli/cli.test.ts › стол Focus в CLI (TI-078)`. **Вид «Стол» в интерфейсе (план 13 шаги 8, 11: компоненты `Desk*`, `desk.css`, e2e `desk.spec.ts`, скин «Фокус») передан Astra по решению владельца 2026-09-11** — контракт полей и `/api/focus` записан в плане 13 и `docs/acceptance/test-debt.md`.
 
 **Связанные планы:** [13-focus-desk-view.md](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/13-focus-desk-view.md); [02-agent-permissions-and-sync-semantics.md](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/02-agent-permissions-and-sync-semantics.md); [08-styling-skin-and-dark-theme.md](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/08-styling-skin-and-dark-theme.md); [astra-29-focus-counter-semantics.md](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/astra-29-focus-counter-semantics.md).
 
