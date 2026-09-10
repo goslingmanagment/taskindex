@@ -513,3 +513,110 @@ describe('saved cursor per server and agent (TI-047)', () => {
     expect((await a.run(['cursor', 'commit', 'x'])).code).toBe(2);
   });
 });
+
+// TI-048: the agent's inbox is the owner's comments, one command over
+// /api/digest, positioned by the same cursor as every other read.
+describe('inbox: the owner comments addressed to this agent (TI-048)', () => {
+  const comment = (seq: number) => ({
+    id: `c${seq}`,
+    taskId: 't1',
+    taskTitle: 'Отчёт по агентству',
+    authorId: 'owner',
+    authorLabel: 'Владелец',
+    text: `Комментарий ${seq}`,
+    createdAt: '2026-09-10T10:00:00.000Z',
+    updatedAt: '2026-09-10T10:00:00.000Z',
+    deletedAt: null,
+    revision: 1,
+    seq,
+  });
+  const digest = (comments: ReturnType<typeof comment>[], more = false) => ({
+    generation: 'g1',
+    seq: 9,
+    operationSeq: 6,
+    today: '2026-09-10',
+    timezone: 'Europe/Moscow',
+    focus: [],
+    waiting: {
+      generation: 'g1',
+      seq: 9,
+      items: [],
+      more: false,
+      nextCursor: null,
+      href: '',
+    },
+    counts: { tasks: 3, archived: 0, projects: 1 },
+    operations: {
+      generation: 'g1',
+      seq: 9,
+      items: [],
+      more: false,
+      nextCursor: null,
+      href: '/api/operations',
+    },
+    comments: {
+      generation: 'g1',
+      seq: 9,
+      items: comments,
+      more,
+      nextCursor: null,
+      href: '/api/events?generation=g1&since=7',
+    },
+  });
+
+  it('prints only the comments with generation and seq, and commits the same cursor', async () => {
+    const directory = await mkdtemp(join(tmpdir(), 'taskindex-inbox-'));
+    const a = harness(directory, 'key-a');
+    await a.run(['cursor', 'commit', '7', '--generation', 'g1']);
+    a.serve(() => json(digest([comment(8), comment(9)])));
+    const inbox = await a.run(['inbox', '--since', 'last', '--commit']);
+    expect(inbox.code).toBe(0);
+    expect(a.urls.filter((url) => url.startsWith('/api/digest'))).toEqual([
+      '/api/digest?since=7&generation=g1',
+    ]);
+    expect(inbox.output).toHaveLength(1);
+    expect(inbox.last).toEqual({
+      generation: 'g1',
+      seq: 9,
+      operationSeq: 6,
+      comments: [
+        {
+          id: 'c8',
+          taskId: 't1',
+          taskTitle: 'Отчёт по агентству',
+          authorId: 'owner',
+          authorLabel: 'Владелец',
+          text: 'Комментарий 8',
+          createdAt: '2026-09-10T10:00:00.000Z',
+          updatedAt: '2026-09-10T10:00:00.000Z',
+          deletedAt: null,
+          revision: 1,
+          seq: 8,
+        },
+        expect.objectContaining({ id: 'c9', seq: 9 }),
+      ],
+      more: false,
+      href: '/api/events?generation=g1&since=7',
+    });
+    expect(await a.cursor()).toMatchObject({ seq: 9, operationSeq: 6 });
+  });
+
+  it('does not move the cursor while the page of comments is incomplete', async () => {
+    const directory = await mkdtemp(join(tmpdir(), 'taskindex-inbox-'));
+    const a = harness(directory, 'key-a');
+    await a.run(['cursor', 'commit', '7', '--generation', 'g1']);
+    a.serve(() => json(digest([comment(8)], true)));
+    const inbox = await a.run(['inbox', '--since', 'last', '--commit']);
+    expect(inbox.code).toBe(0);
+    expect(inbox.last).toMatchObject({ more: true, comments: [{ id: 'c8' }] });
+    expect(
+      inbox.errors.find((line) => line.warning === 'cursor_not_committed'),
+    ).toBeDefined();
+    expect(await a.cursor()).toMatchObject({ seq: 7 });
+    // An empty inbox is still one line: the agent sees that nothing is new.
+    a.serve(() => json(digest([])));
+    const empty = await a.run(['inbox']);
+    expect(empty.code).toBe(0);
+    expect(empty.last).toMatchObject({ comments: [], more: false });
+  });
+});

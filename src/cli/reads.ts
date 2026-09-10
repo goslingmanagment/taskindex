@@ -88,15 +88,25 @@ async function commitRead(
   operationSeq = operationSeqOf(body),
 ): Promise<void> {
   const { state, identity, warn } = session;
-  const operations = body.operations as { more?: unknown } | undefined;
+  const part = (name: string) =>
+    (body[name] as { more?: unknown } | undefined)?.more === true;
   const incomplete =
-    spec.group === 'digest' ? operations?.more === true : body.more === true;
+    spec.group === 'digest'
+      ? part('operations')
+      : spec.group === 'inbox'
+        ? part('comments')
+        : body.more === true;
   if (incomplete) {
     warn({
       warning: 'cursor_not_committed',
       reason: 'more',
       message: 'Прочитаны не все страницы; курсор не сдвинут',
-      next: `taskindex ${spec.group === 'digest' ? 'activity' : spec.group} --since last --all --commit`,
+      next:
+        spec.group === 'digest'
+          ? 'taskindex activity --since last --all --commit'
+          : spec.group === 'inbox'
+            ? 'taskindex inbox --since <seq последнего показанного комментария>'
+            : `taskindex ${spec.group} --since last --all --commit`,
     });
     return;
   }
@@ -228,6 +238,27 @@ function intervalOf(args: Arguments): number {
   return Math.max(250, Number(value ?? 1000));
 }
 
+// `inbox`: the agent reads /api/digest but is shown only what is addressed to
+// it — the owner's comments with their text, task and `seq` — plus the two
+// positions of the read, so the next `--since` is in the same line of output.
+export function inboxOf(
+  body: Record<string, unknown>,
+): Record<string, unknown> {
+  const comments = body.comments as
+    | { items?: unknown; more?: unknown; href?: unknown }
+    | undefined;
+  return {
+    generation: body.generation,
+    seq: body.seq,
+    ...(typeof body.operationSeq === 'number'
+      ? { operationSeq: body.operationSeq }
+      : {}),
+    comments: Array.isArray(comments?.items) ? comments.items : [],
+    more: comments?.more === true,
+    ...(typeof comments?.href === 'string' ? { href: comments.href } : {}),
+  };
+}
+
 // One read: a single page, `export --out`, `operation get` (which settles the
 // held envelope by the same rule as send/resume), or `events` walked by
 // `since` with `--all` / polled with `--follow`.
@@ -295,7 +326,9 @@ export async function runRead(
     ) {
       // Polling: an empty page is noise for an agent; only pages with
       // events (and every error) are printed.
-    } else emit(exitCode(result) ? withHints(result.body) : result.body);
+    } else if (spec.group === 'inbox' && exitCode(result) === 0)
+      emit(inboxOf(result.body));
+    else emit(exitCode(result) ? withHints(result.body) : result.body);
     if (exitCode(result)) return exitCode(result);
     if (!streaming) break;
     const events = result.body.events as { seq: number }[] | undefined;

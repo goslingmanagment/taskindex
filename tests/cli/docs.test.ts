@@ -97,6 +97,8 @@ describe('documentation against the code', () => {
       '/api/snapshot',
       '`revoked`',
       'list_changed_during_walk',
+      'taskindex inbox',
+      'operationSeq',
       'issues[].path',
       'skipped: owner',
     ])

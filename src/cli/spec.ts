@@ -263,6 +263,23 @@ export const READS: ReadSpec[] = [
     example: 'taskindex digest --since last',
   },
   {
+    group: 'inbox',
+    route: '/api/digest',
+    query: [
+      sinceFlag,
+      flag(
+        'since-op',
+        'number',
+        'Окно по журналу операций для сводки; на комментарии не влияет',
+      ),
+      generationFlag,
+    ],
+    flags: [commitFlag],
+    summary:
+      'Входящие агента: комментарии владельца после since с текстом, задачей и seq',
+    example: 'taskindex inbox --since last --commit',
+  },
+  {
     group: 'focus',
     route: '/api/focus',
     pageable: true,
