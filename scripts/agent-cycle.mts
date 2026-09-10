@@ -7,6 +7,7 @@
 //   eval "$(npm run -s sandbox)" && npm run agent-cycle
 import { readFile, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
+import { runAdmin } from '../src/cli/admin-run.js';
 import { runCli } from '../src/cli/run.js';
 import { Outbox } from '../src/cli/outbox.js';
 import { statePaths } from '../src/cli/state.js';
@@ -27,7 +28,7 @@ interface Reply {
   body: Body;
 }
 
-const MANUAL = [3, 6];
+const MANUAL = [3];
 
 function assert(condition: unknown, message: string): asserts condition {
   if (!condition) throw new Error(message);
@@ -76,8 +77,9 @@ function agentCli(token: string) {
   };
 }
 
+const codexKey = await keyOf('codex');
 const claude = agentCli(await keyOf('claude'));
-const codex = agentCli(await keyOf('codex'));
+const codex = agentCli(codexKey);
 
 const login = await fetch(`${sandbox.url}/api/auth/sign-in/email`, {
   method: 'POST',
@@ -316,6 +318,24 @@ await step(2, async () => {
 });
 
 await step(4, async () => {
+  // The position of the operation log before the step: a rejected undo has no
+  // events at all, so only `activity --since last` (after=<operationSeq>)
+  // can show it afterwards (TI-008).
+  const before = await claude.run(['digest']);
+  assert(before.code === 0, 'claude: digest перед пакетом');
+  const committed = await claude.run([
+    'cursor',
+    'commit',
+    String(before.body.seq),
+    '--generation',
+    String(before.body.generation),
+    '--operation-seq',
+    String(before.body.operationSeq),
+  ]);
+  assert(
+    committed.code === 0,
+    `claude: cursor commit ${JSON.stringify(committed.body)}`,
+  );
   const file = join(sandbox.directory, `agent-cycle-batch-${suffix}.json`);
   await writeFile(
     file,
@@ -396,6 +416,18 @@ await step(4, async () => {
     forbidden.code === 4 && forbidden.body.code === 'forbidden',
     `ключ tasks отменил project.update: ${JSON.stringify(forbidden.body)}`,
   );
+  const journal = await claude.run(['activity', '--since', 'last', '--all']);
+  assert(
+    journal.code === 0,
+    `activity --since last: ${JSON.stringify(journal.body)}`,
+  );
+  const rejected = (journal.body.items as { id: string; ok: boolean }[]).find(
+    (i) => i.id === `owner-undo-y-${suffix}`,
+  );
+  assert(
+    rejected?.ok === false,
+    `отклонённый undo не виден в activity --since last: ${JSON.stringify(journal.body.items)}`,
+  );
   return {
     operationIds: [
       `cycle-batch-${suffix}`,
@@ -408,8 +440,110 @@ await step(4, async () => {
       batchTasks: row.taskCount,
       lateUndo: late.body.code,
       foreignUndo: forbidden.body.code,
+      rejectedInJournal: rejected.id,
     },
   };
+});
+
+await step(6, async () => {
+  // Revocation must reach a live stream, not only the next request: agent B
+  // subscribes, the owner revokes its key, agent A writes, and the delivery
+  // gate closes B's stream with `event: revoked` (TI-001, TI-036).
+  const adminEnv = { ...process.env, DATABASE_PATH: sandbox.database };
+  const listed: unknown[] = [];
+  assert(
+    (await runAdmin(['agent-key', 'list', '--agent', 'codex'], {
+      env: adminEnv,
+      stdout: (line) => listed.push(JSON.parse(line)),
+      stderr: () => undefined,
+    })) === 0,
+    'admin-run: agent-key list',
+  );
+  const keys = listed.at(-1) as { id: string; revokedAt: string | null }[];
+  const live = Array.isArray(keys)
+    ? keys.find((key) => !key.revokedAt)
+    : undefined;
+  assert(
+    live,
+    `у агента codex нет действующего ключа: ${JSON.stringify(listed)}`,
+  );
+  const controller = new AbortController();
+  // Without the current generation the server answers `event: reset` and
+  // closes at once, so the stream is opened from the position agent B knows.
+  const position = await codex.run(['me']);
+  assert(position.code === 0, `codex: me ${JSON.stringify(position.body)}`);
+  const stream = await fetch(
+    `${sandbox.url}/api/events/stream?generation=${encodeURIComponent(String(position.body.generation))}&since=${String(position.body.seq)}`,
+    {
+      headers: {
+        authorization: `Bearer ${codexKey}`,
+        accept: 'text/event-stream',
+      },
+      signal: controller.signal,
+    },
+  );
+  assert(
+    stream.status === 200 && stream.body,
+    `поток B: HTTP ${stream.status}`,
+  );
+  const reader = stream.body!.getReader();
+  const decoder = new TextDecoder();
+  let text = '';
+  const deadline = Date.now() + 20_000;
+  const readUntil = async (marker: string): Promise<boolean> => {
+    while (!text.includes(marker) && Date.now() < deadline) {
+      const expire = new Promise<null>((resolve) => {
+        setTimeout(() => resolve(null), deadline - Date.now()).unref();
+      });
+      const chunk = await Promise.race([reader.read(), expire]);
+      if (!chunk || chunk.done) break;
+      text += decoder.decode(chunk.value, { stream: true });
+    }
+    return text.includes(marker);
+  };
+  try {
+    assert(
+      (await runAdmin(['agent-key', 'revoke', live.id], {
+        env: adminEnv,
+        stdout: () => undefined,
+        stderr: () => undefined,
+      })) === 0,
+      'admin-run: agent-key revoke',
+    );
+    const written = await claude.run([
+      'task',
+      'create',
+      '--area',
+      'agency',
+      '--title',
+      `Запись после отзыва ключа B ${suffix}`,
+      '--operation-id',
+      `cycle-after-revoke-${suffix}`,
+    ]);
+    assert(
+      written.code === 0,
+      `claude: запись после отзыва ${JSON.stringify(written.body)}`,
+    );
+    assert(
+      await readUntil('event: revoked'),
+      `поток отозванного ключа не завершился event: revoked (получено: ${JSON.stringify(text.slice(-200))})`,
+    );
+    const rejected = await codex.run(['digest']);
+    assert(
+      rejected.code === 4,
+      `отозванный ключ всё ещё читает: ${JSON.stringify(rejected.body)}`,
+    );
+    return {
+      operationIds: [`cycle-after-revoke-${suffix}`],
+      details: {
+        keyId: live.id,
+        closed: 'revoked',
+        afterRevoke: rejected.code,
+      },
+    };
+  } finally {
+    controller.abort();
+  }
 });
 
 await step(7, async () => {
