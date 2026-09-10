@@ -239,3 +239,103 @@ test('TI-042 browser back returns to the previous view instead of the remembered
   expect(page.url()).toContain('view=list');
   expect(page.url()).not.toContain('task=');
 });
+
+test('TI-032 the activity tells what changed in words, not in ids and JSON', async ({
+  page,
+}, testInfo) => {
+  await signIn(page, testInfo);
+  const projectId = randomUUID(),
+    taskId = randomUUID(),
+    itemId = randomUUID();
+  expect(
+    (
+      await command(page, 'project.create', {
+        id: projectId,
+        area: 'agency',
+        name: 'Клиенты',
+        description: '',
+        color: '#3763df',
+      })
+    ).ok(),
+  ).toBe(true);
+  expect(
+    (
+      await command(page, 'task.create', {
+        id: taskId,
+        area: 'agency',
+        title: 'ТИ-032 читаемая история',
+      })
+    ).ok(),
+  ).toBe(true);
+  // A move to another column, a project assignment and a checklist step: the
+  // three shapes the history used to show as `todo`, an id and raw JSON.
+  expect(
+    (
+      await command(page, 'task.save', {
+        id: taskId,
+        baseRevision: 1,
+        fields: { projectId },
+        status: 'doing',
+      })
+    ).ok(),
+  ).toBe(true);
+  expect(
+    (
+      await command(page, 'checklist.add', {
+        taskId,
+        id: itemId,
+        baseRevision: 2,
+        text: 'Позвонить клиенту',
+      })
+    ).ok(),
+  ).toBe(true);
+  expect(
+    (
+      await command(page, 'checklist.update', {
+        taskId,
+        itemId,
+        baseRevision: 3,
+        done: true,
+      })
+    ).ok(),
+  ).toBe(true);
+  await page.getByRole('button', { name: 'Активность', exact: true }).click();
+  const rows = page.locator('.operation-row');
+  await expect(rows.first()).toBeVisible();
+  for (const index of [0, 1, 2, 3])
+    await rows
+      .nth(index)
+      .locator('.operation-heading')
+      .getByRole('button')
+      .first()
+      .click();
+  await expect(page.getByText('Загружаем изменения…')).toHaveCount(0);
+  const history = page.locator('.event-list');
+  await expect(
+    history.getByText('Шаг «Позвонить клиенту» отмечен выполненным'),
+  ).toBeVisible();
+  await expect(
+    history.getByText('Добавлен шаг «Позвонить клиенту»'),
+  ).toBeVisible();
+  await expect(history.getByText('«Очередь» → «В работе»')).toBeVisible();
+  await expect(history.getByText('без направления → «Клиенты»')).toBeVisible();
+  // The caveat: the project name comes from today's directory, not the event.
+  await expect(history.getByText('название на сегодня').first()).toBeVisible();
+  // No internal enum id, order key or JSON leaks into the story.
+  const story = (await page.locator('.event-row dd').allTextContents()).join(
+    '\n',
+  );
+  expect(story).not.toMatch(/todo|doing|orderKey|[{[]|"done"/);
+  // The raw payload stays one click away: bookkeeping never becomes a sentence,
+  // but it is still readable verbatim.
+  const details = page
+    .getByRole('button', { name: 'Технические детали', exact: true })
+    .first();
+  await expect(details).toBeVisible();
+  await details.click();
+  await expect(page.locator('.event-raw').first()).toContainText('createdBy');
+  // A creation reads as the values it started with, not as «не задано → …».
+  await expect(
+    page.getByText('ТИ-032 читаемая история', { exact: false }).last(),
+  ).toBeVisible();
+});

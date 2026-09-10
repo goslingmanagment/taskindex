@@ -2653,8 +2653,28 @@ fieldset:disabled {
   white-space: pre-wrap;
   overflow-wrap: anywhere;
 }
-.event-row del {
-  opacity: 0.6;
+.event-note {
+  color: var(--muted-foreground);
+  margin-inline-start: 6px;
+}
+.event-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+}
+.event-raw-trigger {
+  color: var(--muted-foreground);
+  font-size: 12px;
+}
+.event-raw {
+  margin-top: 8px;
+  padding: 8px;
+  border-radius: 8px;
+  background: var(--muted);
+  color: var(--muted-foreground);
+  font-size: 12px;
+  overflow-x: auto;
 }
 .task-discussion {
   border-top: 1px solid var(--border);

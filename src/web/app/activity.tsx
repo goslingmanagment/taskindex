@@ -18,37 +18,9 @@ import { toast } from '../ui/toast';
 import { request } from './api';
 import { workspaceStore } from './store';
 import { commandLabels, taskCount } from './labels';
+import { describeEvent } from './history';
 import { readDraft, writeDraft, clearDraft } from './drafts';
 const labels = commandLabels;
-const fields: Record<string, string> = {
-  title: 'Название',
-  status: 'Состояние',
-  note: 'Заметка',
-  due: 'Срок',
-  followUp: 'Дата возврата',
-  waitingFor: 'Чего ждём',
-  projectId: 'Направление',
-  area: 'Область',
-  focus: 'Фокус',
-  archived: 'Архив',
-  checklist: 'Шаги',
-  description: 'Описание',
-  name: 'Название',
-  text: 'Текст',
-  deletedAt: 'Удаление',
-  orderKey: 'Порядок',
-};
-function formatValue(value: unknown): string {
-  if (value === null) return '—';
-  if (value === true) return 'Да';
-  if (value === false) return 'Нет';
-  if (typeof value === 'object') return JSON.stringify(value);
-  return typeof value === 'string'
-    ? value
-    : typeof value === 'number'
-      ? String(value)
-      : '—';
-}
 function time(value: string) {
   return new Date(value).toLocaleString('ru-RU', {
     timeZone: workspaceStore.getSnapshot().timezone,
@@ -69,10 +41,16 @@ async function undo(payload: { seq: number } | { operationId: string }) {
     });
   }
 }
+// TI-032: one event told in words. Who and when comes from the event itself,
+// what changed from `describeEvent`; the stored payload stays available under
+// «Технические детали» for a report or a bug.
 function EventRow({ event }: { event: DomainEvent }) {
-  const shown = Object.entries(event.changes).filter(
-    ([field]) => field in fields,
+  const { data } = useSyncExternalStore(
+    workspaceStore.subscribe,
+    workspaceStore.getSnapshot,
   );
+  const [raw, setRaw] = useState(false);
+  const story = describeEvent(event, { projects: data.projects });
   return (
     <li className="event-row">
       <div>
@@ -81,27 +59,43 @@ function EventRow({ event }: { event: DomainEvent }) {
           {event.actorLabel} · {time(event.at)}
         </span>
       </div>
-      {shown.length > 0 && (
+      {story.lines.length > 0 ? (
         <dl>
-          {shown.map(([field, change]) => (
-            <div key={field}>
-              <dt>{fields[field]}</dt>
+          {story.lines.map((line) => (
+            <div key={line.label}>
+              <dt>{line.label}</dt>
               <dd>
-                <del>{formatValue(change.from)}</del>
-                <span> → {formatValue(change.to)}</span>
+                {line.text}
+                {line.note && <small className="event-note">{line.note}</small>}
               </dd>
             </div>
           ))}
         </dl>
+      ) : (
+        <p className="focus-hint">Предметные поля не изменились.</p>
       )}
-      <Button
-        variant="ghost"
-        size="sm"
-        disabled={event.command === 'project.create'}
-        onClick={() => void undo({ seq: event.seq })}
-      >
-        Отменить
-      </Button>
+      <div className="event-actions">
+        <Button
+          variant="ghost"
+          size="sm"
+          disabled={event.command === 'project.create'}
+          onClick={() => void undo({ seq: event.seq })}
+        >
+          Отменить
+        </Button>
+        {story.technical.length > 0 && (
+          <Collapsible open={raw} onOpenChange={setRaw}>
+            <CollapsibleTrigger className="event-raw-trigger">
+              Технические детали
+            </CollapsibleTrigger>
+            <CollapsibleContent>
+              <pre className="event-raw">
+                {JSON.stringify(Object.fromEntries(story.technical), null, 2)}
+              </pre>
+            </CollapsibleContent>
+          </Collapsible>
+        )}
+      </div>
     </li>
   );
 }
