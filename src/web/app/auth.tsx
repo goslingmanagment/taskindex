@@ -11,6 +11,7 @@ import {
   DropdownMenuItem,
 } from '../ui/dropdown-menu';
 import { toast } from '../ui/toast';
+import { authErrorMessage } from './auth-errors';
 export const authClient = createAuthClient({ plugins: [passkeyClient()] });
 export function AuthGate({ children }: { children: ReactNode }) {
   const session = authClient.useSession();
@@ -28,11 +29,15 @@ export function AuthGate({ children }: { children: ReactNode }) {
       const result = passkey
         ? await authClient.signIn.passkey()
         : await authClient.signIn.email({ email, password });
-      if (result.error)
-        throw new Error(result.error.message || 'Не удалось войти.');
+      if (result.error) {
+        setError(
+          authErrorMessage(result.error, passkey ? 'passkey' : 'signIn'),
+        );
+        return;
+      }
       await session.refetch();
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Не удалось войти.');
+      setError(authErrorMessage(e, passkey ? 'passkey' : 'signIn'));
     } finally {
       setBusy(false);
     }
@@ -102,14 +107,16 @@ export function AccountMenu() {
   async function addPasskey() {
     try {
       const result = await authClient.passkey.addPasskey({ name: 'TaskIndex' });
-      if (result.error)
-        throw new Error(result.error.message || 'Не удалось добавить passkey.');
+      if (result.error) {
+        toast.add({
+          title: authErrorMessage(result.error, 'addPasskey'),
+          type: 'error',
+        });
+        return;
+      }
       toast.add({ title: 'Passkey добавлен', type: 'success' });
     } catch (e) {
-      toast.add({
-        title: e instanceof Error ? e.message : 'Не удалось добавить passkey.',
-        type: 'error',
-      });
+      toast.add({ title: authErrorMessage(e, 'addPasskey'), type: 'error' });
     }
   }
   return (
