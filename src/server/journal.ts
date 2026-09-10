@@ -24,9 +24,10 @@ function summarize(
     o,
     ids: [
       ...new Set(
-        eventsOf(o.id).flatMap((e) =>
-          e.entityKind === 'task' ? [e.entityId] : e.taskId ? [e.taskId] : [],
-        ),
+        eventsOf(o.id).flatMap((e) => {
+          const id = e.entityKind === 'task' ? e.entityId : e.taskId;
+          return id ? [id] : [];
+        }),
       ),
     ],
   }));
@@ -82,9 +83,9 @@ export function readOperation(
   return row ? summarize(db, [row], journalOf(db, [id]))[0] : undefined;
 }
 // One page of the journal (plan 01, step 5; key operationSeq, step 15).
-// `after` reads forward from a position (the cursor of TI-008); otherwise the
-// window since/until by lastSeq reads newest first. `cursor` continues either
-// order from the last position shown.
+// `after` reads forward from a position (the cursor of TI-008), ignoring the
+// event window; otherwise the window since/until by lastSeq reads newest
+// first. `cursor` continues either order from the last position shown.
 export function readOperationsPage(
   db: DatabaseHandle,
   q: {

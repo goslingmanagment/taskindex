@@ -186,10 +186,12 @@ describe('TI-008 operation journal cursor', () => {
       'no-effect',
       'initial',
     ]);
+    // sinceOp is the first page of the journal behind href (after=1): the
+    // operations in journal order, so href + nextCursor continues it.
     const tail = await digest('?sinceOp=1');
     expect(tail.operations.items.map((i) => i.id)).toEqual([
-      'rejected',
       'no-effect',
+      'rejected',
     ]);
     expect(tail.operations.href).toContain('after=1');
     expect((await digest('?sinceOp=3')).operations.items).toEqual([]);

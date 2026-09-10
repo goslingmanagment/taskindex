@@ -7,7 +7,7 @@ import {
   storedOperationSchema,
 } from '../../shared/domain-schemas.js';
 import { fail } from '../../shared/errors.js';
-import { readOperation, readOperations } from '../db.js';
+import { readOperation, readOperationsPage } from '../db.js';
 import {
   idParam,
   json,
@@ -16,12 +16,13 @@ import {
   stripStored,
 } from '../http/openapi.js';
 import type { Deps, Env } from '../http/deps.js';
+import { keyField } from '../http/pagination.js';
 
 export const registerOperationRoutes = <T extends OpenAPIHono<Env>>(
   app: T,
   deps: Deps,
 ) => {
-  const { db, page } = deps;
+  const { db, paging } = deps;
   return app
     .openapi(
       createRoute({
@@ -30,7 +31,7 @@ export const registerOperationRoutes = <T extends OpenAPIHono<Env>>(
         operationId: 'listOperations',
         summary: 'Журнал операций',
         description:
-          'Два курсора. after — позиция журнала operationSeq: страница по возрастанию, включает отказы и операции без событий, следующая страница — after = operationSeq последней. since/until — окно по событиям (lastSeq), новые сверху; операции без событий в окно since > 0 не входят. Без after и since — все операции, новые сверху.',
+          'Два курсора. after — позиция журнала operationSeq: страница по возрастанию, включает отказы и операции без событий, следующая страница — after = operationSeq последней; since/until при after не учитываются. since/until — окно по событиям (lastSeq), новые сверху; операции без событий в окно since > 0 не входят. Без after и since — все операции, новые сверху. nextCursor продолжает любую из лент с позиции operationSeq.',
         tags: ['operations'],
         request: {
           query: pageQuery.extend({
@@ -79,18 +80,22 @@ export const registerOperationRoutes = <T extends OpenAPIHono<Env>>(
           generation: _generation,
           ...identity
         } = q;
-        const rows = readOperations(db)
-          .filter(
-            (o) =>
-              (!q.actor || o.actorId === q.actor) &&
-              (q.after === undefined || o.operationSeq > q.after) &&
-              (!q.since || (o.lastSeq ?? 0) > q.since) &&
-              (q.until === undefined || (o.lastSeq ?? 0) <= q.until),
-          )
-          .map(stripStored);
-        const ordered = q.after === undefined ? rows.reverse() : rows;
+        const name = `operations:${JSON.stringify(identity)}`;
+        const key = paging.cursorKey(q, name);
+        const { rows, more } = readOperationsPage(db, {
+          actor: q.actor,
+          after: q.after,
+          since: q.since,
+          until: q.until,
+          cursor: key
+            ? { operationSeq: keyField(key, 'operationSeq', 'number') }
+            : undefined,
+          limit: q.limit,
+        });
         return c.json(
-          page(ordered, q, `operations:${JSON.stringify(identity)}`),
+          paging.pageOf(rows.map(stripStored), more, name, (o) => ({
+            operationSeq: o.operationSeq,
+          })),
           200,
         );
       },

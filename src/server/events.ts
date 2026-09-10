@@ -1,4 +1,4 @@
-import { and, asc, eq, gt } from 'drizzle-orm';
+import { and, asc, eq, gt, sql } from 'drizzle-orm';
 import * as schema from './schema.js';
 import type { DatabaseHandle } from './sqlite.js';
 import { generation } from './sqlite.js';
@@ -58,6 +58,29 @@ export function readEventsForRecord(
   return (page ? query.limit(page.limit).all() : query.all()).map(
     toEvent(generation(db)),
   );
+}
+// Owner comments after `since` for the digest: the journal filtered in SQL
+// (entity_kind first in events_entity_revision), not the whole tail parsed.
+export function readOwnerCommentEvents(
+  db: DatabaseHandle,
+  since: number,
+  limit: number,
+): DomainEvent[] {
+  return db.orm
+    .select()
+    .from(schema.events)
+    .where(
+      and(
+        gt(schema.events.seq, since),
+        eq(schema.events.entityKind, 'comment'),
+        eq(schema.events.command, 'comment.add'),
+        sql`${schema.events.actorId} NOT LIKE 'agent:%'`,
+      ),
+    )
+    .orderBy(asc(schema.events.seq))
+    .limit(limit)
+    .all()
+    .map(toEvent(generation(db)));
 }
 export function readEventBySeq(
   db: DatabaseHandle,

@@ -7,12 +7,13 @@ import { focusGroups, todayInTimezone } from '../../shared/queries.js';
 import { generation, latestSeq, readState } from '../db.js';
 import { json, pageQuery, readErrors } from '../http/openapi.js';
 import type { Deps, Env } from '../http/deps.js';
+import { focusKey } from '../http/pagination.js';
 
 export const registerFocusRoutes = <T extends OpenAPIHono<Env>>(
   app: T,
   deps: Deps,
 ) => {
-  const { db, now, timezone, checkGeneration, page } = deps;
+  const { db, now, timezone, checkGeneration, paging } = deps;
   return app.openapi(
     createRoute({
       method: 'get',
@@ -42,7 +43,15 @@ export const registerFocusRoutes = <T extends OpenAPIHono<Env>>(
       if (q.group) {
         const selected = groups.find((g) => g.id === q.group);
         if (!selected) fail('invalid', 'Неизвестная группа Focus.');
-        return c.json(page(selected.tasks, q, `focus:${q.group}`), 200);
+        return c.json(
+          paging.keysetPage(
+            selected.tasks,
+            q,
+            `focus:${q.group}`,
+            focusKey(q.group),
+          ),
+          200,
+        );
       }
       return c.json(
         { generation: generation(db), seq: latestSeq(db), groups },

@@ -17,13 +17,14 @@ import {
   taskExists,
 } from '../db.js';
 import { idParam, json, pageQuery, readErrors } from '../http/openapi.js';
+import { keyField } from '../http/pagination.js';
 import type { Deps, Env } from '../http/deps.js';
 
 export const registerHistoryRoutes = <T extends OpenAPIHono<Env>>(
   app: T,
   deps: Deps,
 ) => {
-  const { db, checkGeneration, page } = deps;
+  const { db, checkGeneration, paging } = deps;
   return app
     .openapi(
       createRoute({
@@ -77,7 +78,8 @@ export const registerHistoryRoutes = <T extends OpenAPIHono<Env>>(
         path: '/api/tasks/{id}/history',
         operationId: 'getTaskHistory',
         summary: 'История изменений задачи',
-        description: 'События задачи по возрастанию seq.',
+        description:
+          'События задачи по возрастанию seq; курсор продолжает с позиции seq.',
         tags: ['tasks'],
         request: { params: idParam, query: pageQuery },
         responses: {
@@ -88,12 +90,15 @@ export const registerHistoryRoutes = <T extends OpenAPIHono<Env>>(
       (c) => {
         const id = c.req.valid('param').id;
         if (!taskExists(db, id)) fail('not_found', 'Задача не найдена.');
+        const q = c.req.valid('query');
+        const identity = `history:${id}`;
+        const key = paging.cursorKey(q, identity);
+        const rows = readEventsForRecord(db, 'task', id, 0, {
+          afterSeq: key ? keyField(key, 'seq', 'number') : 0,
+          limit: q.limit + 1,
+        });
         return c.json(
-          page(
-            readEventsForRecord(db, 'task', id, 0),
-            c.req.valid('query'),
-            `history:${id}`,
-          ),
+          paging.slicePage(rows, q, identity, (e) => ({ seq: e.seq })),
           200,
         );
       },

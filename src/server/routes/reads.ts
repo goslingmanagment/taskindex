@@ -14,6 +14,7 @@ import {
 } from '../../shared/domain-schemas.js';
 import { fail } from '../../shared/errors.js';
 import { queryTasks, todayInTimezone } from '../../shared/queries.js';
+import { keyField, taskKey } from '../http/pagination.js';
 import {
   generation,
   latestSeq,
@@ -40,7 +41,7 @@ export const registerReadRoutes = <T extends OpenAPIHono<Env>>(
   app: T,
   deps: Deps,
 ) => {
-  const { db, version, now, timezone, page } = deps;
+  const { db, version, now, timezone, paging } = deps;
   return (
     app
       .openapi(
@@ -113,7 +114,7 @@ export const registerReadRoutes = <T extends OpenAPIHono<Env>>(
           operationId: 'listTasks',
           summary: 'Поиск и фильтр задач',
           description:
-            'Страницы стабильны внутри одного seq: изменение данных между страницами даёт 409 conflict, начните заново.',
+            'Страницы по ключу (orderKey, id): запись между страницами не даёт 409, но перемещённая задача может повториться или выпасть; seq страницы меняется, если данные менялись (list_changed_during_walk). Согласованный полный список даёт /api/snapshot.',
           tags: ['tasks'],
           request: {
             query: pageQuery.extend({
@@ -163,7 +164,12 @@ export const registerReadRoutes = <T extends OpenAPIHono<Env>>(
             ...identity
           } = q;
           return c.json(
-            page(values, q, `tasks:${JSON.stringify(identity)}`),
+            paging.keysetPage(
+              values,
+              q,
+              `tasks:${JSON.stringify(identity)}`,
+              taskKey,
+            ),
             200,
           );
         },
@@ -226,7 +232,8 @@ export const registerReadRoutes = <T extends OpenAPIHono<Env>>(
           path: '/api/tasks/{id}/comments',
           operationId: 'listTaskComments',
           summary: 'Комментарии задачи',
-          description: 'По времени создания, включая мягко удалённые.',
+          description:
+            'По времени создания, включая мягко удалённые; курсор продолжает с позиции (createdAt, id).',
           tags: ['comments'],
           request: { params: idParam, query: pageQuery },
           responses: {
@@ -237,8 +244,23 @@ export const registerReadRoutes = <T extends OpenAPIHono<Env>>(
         (c) => {
           const id = c.req.valid('param').id;
           if (!taskExists(db, id)) fail('not_found', 'Задача не найдена.');
+          const q = c.req.valid('query');
+          const identity = `comments:${id}`;
+          const key = paging.cursorKey(q, identity);
+          const rows = readComments(db, id, {
+            after: key
+              ? {
+                  createdAt: keyField(key, 'createdAt', 'string'),
+                  id: keyField(key, 'id', 'string'),
+                }
+              : undefined,
+            limit: q.limit + 1,
+          });
           return c.json(
-            page(readComments(db, id), c.req.valid('query'), `comments:${id}`),
+            paging.slicePage(rows, q, identity, (x) => ({
+              createdAt: x.createdAt,
+              id: x.id,
+            })),
             200,
           );
         },

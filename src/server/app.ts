@@ -65,7 +65,7 @@ export function createApp(options: AppOptions) {
   const baseURL = options.baseURL ?? 'http://localhost:3001';
   const logger = options.logger ?? createLogger('info');
   const hub = options.hub ?? createEventHub();
-  const { checkGeneration, page } = createPagination(db);
+  const paging = createPagination(db);
   const deps: Deps = {
     db,
     options,
@@ -78,8 +78,8 @@ export function createApp(options: AppOptions) {
     timezone: () => getSetting(db, 'timezone') ?? 'Europe/Moscow',
     opened: () =>
       writesAreOpen(db, options.writes ?? 'open', options.deploymentId),
-    checkGeneration,
-    page,
+    checkGeneration: paging.checkGeneration,
+    paging,
   };
 
   const app = new OpenAPIHono<Env>({ defaultHook });

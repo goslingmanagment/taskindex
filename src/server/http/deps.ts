@@ -1,8 +1,9 @@
-import type { Actor, Page } from '../../shared/model.js';
+import type { Actor } from '../../shared/model.js';
 import type { DatabaseHandle } from '../db.js';
 import type { Auth, Authorized } from '../auth.js';
 import type { EventHub } from '../sse.js';
 import type { Logger } from '../log.js';
+import type { Pagination } from './pagination.js';
 
 export type AppOptions = {
   db: DatabaseHandle;
@@ -55,5 +56,5 @@ export type Deps = {
   timezone: () => string;
   opened: () => boolean;
   checkGeneration: (given?: string) => void;
-  page: <T>(items: T[], query: PageRequest, identity: string) => Page<T>;
+  paging: Pagination;
 };

@@ -76,12 +76,15 @@ it('reports every conflicting Undo record and rejects repeated creation undo as 
     conflicts: [{ entityId: 'c', fields: ['archived'] }],
   });
 });
-it('operation pagination invalidates after no-event writes and includes comment task titles once', async () => {
+it('operation pages continue after no-event writes without duplicates and include comment task titles once', async () => {
   const f = setup();
-  await f.post({
-    command: 'task.create',
-    payload: { id: 't', area: 'agency', title: 'Task' },
-  });
+  await f.post(
+    {
+      command: 'task.create',
+      payload: { id: 't', area: 'agency', title: 'Task' },
+    },
+    { id: 'create' },
+  );
   await f.post(
     {
       command: 'comment.add',
@@ -102,30 +105,50 @@ it('operation pagination invalidates after no-event writes and includes comment 
     ],
     { id: 'mixed' },
   );
-  const page = (await (
+  const first = (await (
     await f.app.request('/api/operations?limit=1')
   ).json()) as Page<OperationSummary>;
-  expect(page.more).toBe(true);
-  expect(
-    (await f.app.request(`/api/operations?limit=1&cursor=${page.nextCursor}`))
-      .status,
-  ).toBe(200);
+  expect(first.more).toBe(true);
+  expect(first.items.map((o) => o.id)).toEqual(['mixed']);
   for (const id of ['comment', 'mixed'])
     expect(
       await (await f.app.request(`/api/operations/${id}`)).json(),
     ).toMatchObject({ taskCount: 1, titles: ['Task'] });
+  // A write without events between the pages: the second page answers 200
+  // and continues from the position of the first, so the walk shows every
+  // operation of the first page's moment once; the new one is ahead of it.
   const seq = latestSeq(f.db);
   success(
-    await f.post({
-      command: 'task.update',
-      payload: { id: 't', baseRevision: 2, note: 'Note' },
-    }),
+    await f.post(
+      {
+        command: 'task.update',
+        payload: { id: 't', baseRevision: 2, note: 'Note' },
+      },
+      { id: 'no-op' },
+    ),
   );
   expect(latestSeq(f.db)).toBe(seq);
-  expect(
-    (await f.app.request(`/api/operations?limit=1&cursor=${page.nextCursor}`))
-      .status,
-  ).toBe(409);
+  const walked = [...first.items];
+  let cursor = first.nextCursor;
+  while (cursor) {
+    const response = await f.app.request(
+      `/api/operations?limit=1&cursor=${cursor}`,
+    );
+    expect(response.status).toBe(200);
+    const page = (await response.json()) as Page<OperationSummary>;
+    walked.push(...page.items);
+    cursor = page.nextCursor;
+  }
+  expect(walked.map((o) => o.id)).toEqual(['mixed', 'comment', 'create']);
+  const full = (await (
+    await f.app.request('/api/operations?limit=100')
+  ).json()) as Page<OperationSummary>;
+  expect(full.items.map((o) => o.id)).toEqual([
+    'no-op',
+    'mixed',
+    'comment',
+    'create',
+  ]);
 });
 it('digest cursor links continue the same frozen lists and OpenAPI describes all read endpoints', async () => {
   const f = setup();
