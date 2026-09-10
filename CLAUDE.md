@@ -115,8 +115,9 @@
   запись), `auth.ts` (Better Auth: пароль и passkey владельца),
   `agent-keys.ts` (своя таблица ключей агентов), `admin.ts` (владелец,
   агенты, export/import, `mark-restored`, `open-writes`), `schema.ts`
-  (Drizzle), `sse.ts`, `index.ts` (env, `serve`, статика, SIGTERM;
-  `src/server/config.ts` появится после плана 06 / TI-036).
+  (Drizzle), `sse.ts`, `config.ts` (окружение на Zod: `BUILD`, `LOG_LEVEL`,
+  `HOST`, пути), `log.ts` (структурный лог), `static.ts`, `index.ts`
+  (`serve`, SIGTERM).
 - `src/cli`: `run.ts` (диспетчер и справка `HELP`), `client.ts` (запросы,
   повторы, коды выхода), `acknowledge.ts` (одно правило «исход → код выхода
   → конверт»), `outbox.ts` (конверты, карантин `*.corrupt`), `state.ts`
@@ -175,7 +176,8 @@ SKILL.md при необходимости.
   только при остановленном приложении.
 - Тесты не мокают модули: реальные SQLite `:memory:`, Hono `app.request`,
   Better Auth; DI через `AppOptions`, `CliOptions`, `WorkspaceStore`.
-- Переменная сборки `BUILD` (`BUILD_ID` остаётся псевдонимом до плана 06).
+- Переменная сборки `BUILD`; `LOG_LEVEL` читается `src/server/config.ts`
+  (TI-020).
 - Один коммит на карточку; в первой строке `TI-NNN`.
 
 ## Деплой
