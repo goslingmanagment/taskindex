@@ -89,17 +89,33 @@
 
 ## Проверки
 
-- `npm run check` = `tsc --noEmit`, `oxlint`, `oxfmt --check`, `vitest run`
-  (несколько секунд). Запускать перед каждым сообщением о готовности; вывод
-  ошибок и тестов приводить целиком. `npm run format` чинит форматирование.
+- `npm run check` = `tsc --noEmit`, `oxlint`, `oxfmt --check`,
+  `npm run lint:shell` (`bash -n` и `shellcheck -S warning` по `deploy/*.sh`,
+  без shellcheck пропускается с сообщением), `vitest run` (несколько секунд).
+  Запускать перед каждым сообщением о готовности; вывод ошибок и тестов
+  приводить целиком. `npm run format` чинит форматирование.
 - `npm run e2e` (Playwright, нужен `npx playwright install chromium`;
   поднимает `tests/e2e/server.ts` на портах 4173 и 4001, изолированная
   SQLite в `/tmp`). Порты фиксированы: два прогона одновременно не работают.
 - `bash deploy/local-drill.sh` (нужен Docker) репетирует деплой, откат и
   восстановление локально; к VPS и S3 не подключается.
+  `bash deploy/drill/deploy-drill.sh` (~6–8 минут, на macOS сам заворачивается
+  в Linux-контейнер) прогоняет настоящий `deploy.sh` поверх релиза, поставленного
+  `deploy/bootstrap.sh`; `--only plan,before-stop` — отдельные фазы.
+- `node scripts/gate.mjs` — локальный гейт релиза: те же команды и в том же
+  порядке, что job `check` в CI, плюс отчёт `test-results/gate.json`
+  (`--image` собирает образ, `--strict` отказывает при грязном дереве).
 - `npm run build` проверяет сборку `dist/web`, `dist/server`, `dist/cli`.
 - Каждый баг сначала получает регрессионный тест, который падает на текущем
   коде; потом исправление.
+
+## Стили
+
+Три слоя: токены (`src/web/tokens.css`, единственное место с литералами цветов),
+примитивы (`src/web/ui/*`, `src/web/vendor/shadcn-base.css`, руками не
+редактируются) и скин (`@layer skin` в `src/web/styles.css`, только `var(--…)`,
+без `!important`). В примитив скин заходит через `[data-slot='…']`, не через
+`.wrapper button`. Правила и порядок действий — раздел «Стили» в `README.md`.
 
 ## Карта кода
 
@@ -195,7 +211,8 @@
 
 Только с VPS из чистого основного чекаута:
 `op run --env-file=/protected/taskindex.env -- bash deploy/deploy.sh COMMIT`.
-Секреты только через `op`. После `open-writes` автоматический откат запрещён;
+`deploy.sh --plan` печатает JSON плана и ничего не меняет; первая установка —
+`deploy/bootstrap.sh`. Секреты только через `op`. После `open-writes` автоматический откат запрещён;
 восстановление по `deploy/README.md`. Агент деплой не запускает без явного
 поручения владельца.
 

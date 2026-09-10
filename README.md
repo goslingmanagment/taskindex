@@ -146,6 +146,39 @@ CLI сохраняет конверт до отправки в
 Сервис не запускает агентов по расписанию и не пишет в Telegram, финансы или
 другие внешние системы.
 
+## Стили
+
+Три слоя, каждый со своим правилом (TI-025, [план 08](docs/plans/2026-09-08-v2-review/08-styling-skin-and-dark-theme.md)).
+
+| Слой | Где | Правило |
+|---|---|---|
+| Токены | `src/web/tokens.css` | единственное место с литералами цветов; имена семантические (`--muted-foreground`, `--surface-raised`), а не по компонентам |
+| Примитивы | `src/web/ui/*`, `src/web/vendor/shadcn-base.css`, Tailwind, `tw-animate-css` | руками не редактируются, обновляются генератором и читают только токены |
+| Скин | `@layer skin` в `src/web/styles.css` | композиция экранов; только `var(--…)`, без `!important` и без литералов цвета |
+
+Порядок каскада объявлен один раз в `src/web/styles.css`
+(`@layer theme, base, components, utilities, skin`), поэтому скин выигрывает у
+утилит по слою, а не по `!important`. Единственное исключение —
+`prefers-reduced-motion` в слое `base`.
+
+В примитив скин заходит только через объявленный контракт: `[data-slot='…']`
+(`data-slot="button"`, `"dialog-title"`, `"tabs-trigger"`, `"checkbox"` —
+список виден в `src/web/ui/*.tsx`) или `data-sidebar`; селекторы вида
+`.wrapper button` запрещены, потому что внутренняя разметка примитива меняется
+при обновлении shadcn и Base UI. Собственная разметка приложения получает свой
+класс и одноуровневый селектор.
+
+Новый экран: свой блок правил внутри `@layer skin`; цвета только токенами, при
+нехватке роли токен добавляется в `tokens.css`. После шага 5 плана 08 скин
+разрезается по экранам, и новый экран будет отдельным файлом
+`src/web/skin/<экран>.css` с `@import './skin/<экран>.css' layer(skin);` в
+`styles.css`; тогда же появляются линт-гейт (`color-no-hex`,
+`declaration-no-important`) и `scripts/check-skin.mjs`, на который уже ссылается
+шапка `tokens.css`. Обновление примитива: `npx shadcn@latest add <компонент>`,
+затем проверить, что `data-slot`, на которые опирается скин, не изменились, и
+прогнать `npm run e2e` — `tests/e2e/skin.spec.ts` держит вычисленные размеры,
+которые раньше держались на `!important`.
+
 ## Проверки
 
 ```sh
@@ -153,19 +186,27 @@ npm run check
 npm run build
 npx playwright install chromium
 npm run e2e
+node scripts/gate.mjs
 bash deploy/local-drill.sh
+bash deploy/drill/deploy-drill.sh
 ```
 
-`check` проверяет активное дерево v2: типы, lint, формат и unit/API/property/store/CLI
-тесты. Приёмка агентского цикла: `npm run agent-cycle` поверх sandbox
+`check` проверяет активное дерево v2: типы, lint, формат, скрипты развёртывания
+(`npm run lint:shell`: `bash -n` и, если установлен, `shellcheck -S warning` по
+`deploy/*.sh`) и unit/API/property/store/CLI тесты. `scripts/gate.mjs` — локальный
+гейт релиза теми же командами и в том же порядке, что job `check` в CI, с отчётом
+`test-results/gate.json`. Приёмка агентского цикла: `npm run agent-cycle` поверх sandbox
 выполняет автоматизируемые шаги, ручные описаны в
 [docs/acceptance/agent-cycle.md](docs/acceptance/agent-cycle.md). E2E запускает изолированные настоящие SQLite и Better Auth в `/tmp` на
 портах 4173 и 4001 и пишет артефакты в `test-results/e2e-artifacts/`; эталон в
 `docs/reference/v2-validation/` обновляется только явно через
 `TASKINDEX_E2E_ARTIFACT_DIR`. Последняя команда создаёт отдельный Docker
 project/volume и локальную реплику, проверяет восстановление и сохраняет
-артефакты. Она не подключается к рабочему VPS или S3. Подробнее —
-[процедуры развёртывания](deploy/README.md).
+артефакты. `deploy/drill/deploy-drill.sh` идёт дальше: ставит релиз через
+`deploy/bootstrap.sh` и прогоняет поверх него настоящий `deploy.sh` (~6–8 минут,
+на macOS сам заворачивается в Linux-контейнер). Ни одна из них не подключается к
+рабочему VPS или S3. `bash deploy/deploy.sh --plan …` печатает JSON плана и
+ничего не меняет. Подробнее — [процедуры развёртывания](deploy/README.md).
 
 Исходники первого приложения, его D1/Sites-конфигурация и тестовый загрузчик
 удалены из рабочего дерева. Проверки прежнего поведения перенесены в Vitest.
