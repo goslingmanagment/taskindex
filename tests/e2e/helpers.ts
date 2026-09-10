@@ -11,6 +11,32 @@ export const OWNER = {
   email: 'owner@example.test',
   password: 'TaskIndex-e2e-password-2026',
 } as const;
+// TI-076: a second author in the fixture, so the activity feed has something to
+// filter. The key is seeded by `server.ts` with this exact value.
+export const AGENT = {
+  id: 'e2e-agent',
+  label: 'Помощник Э2Э',
+  key: 'ti_e2e_fixture_agent_key_2026',
+} as const;
+export async function agentCommand(
+  page: Page,
+  command: string,
+  payload: object,
+): Promise<APIResponse> {
+  const state = await snapshot(page);
+  return page.request.post('/api/commands', {
+    headers: {
+      'x-api-key': AGENT.key,
+      Origin: new URL(page.url()).origin,
+    },
+    data: {
+      generation: state.generation,
+      operationId: crypto.randomUUID(),
+      command,
+      payload,
+    },
+  });
+}
 // The fixture has no Nginx: each test gets its own client IP (derived from the
 // stable test id) so the login rate limit is never shared between tests.
 export function clientIp(testInfo: TestInfo): string {

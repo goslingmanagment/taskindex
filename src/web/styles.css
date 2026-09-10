@@ -2588,6 +2588,16 @@ fieldset:disabled {
   max-width: 1180px;
   padding: 8px 2px 36px;
 }
+.activity-filter {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin: 12px 0 16px;
+}
+.activity-filter .field-select {
+  max-width: 260px;
+}
 .operation-list {
   display: grid;
   gap: 12px;

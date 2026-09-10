@@ -5,7 +5,10 @@ import { serve } from '@hono/node-server';
 import { createServer } from 'vite';
 import { openDatabase, migrate } from '../../src/server/db';
 import { createAuth } from '../../src/server/auth';
-import { createOwner } from '../../src/server/admin';
+import { createAgent, createOwner } from '../../src/server/admin';
+import { hashAgentKey } from '../../src/server/agent-keys';
+import * as schema from '../../src/server/schema';
+import { AGENT } from './helpers';
 import { createApp } from '../../src/server/app';
 // This fixture is a separate real SQLite database and uses real owner auth.
 const dir = mkdtempSync(join(tmpdir(), 'taskindex-e2e-'));
@@ -16,6 +19,20 @@ await createOwner(db, {
   password: 'TaskIndex-e2e-password-2026',
   name: 'Дмитрий',
 });
+// TI-076: a known agent with a fixed key, so a spec can act as a second author.
+createAgent(db, { id: AGENT.id, label: AGENT.label });
+db.orm
+  .insert(schema.agentKeys)
+  .values({
+    id: 'e2e-agent-key',
+    agentId: AGENT.id,
+    scope: 'write',
+    keyHash: hashAgentKey(AGENT.key),
+    name: AGENT.label,
+    createdAt: new Date().toISOString(),
+    revokedAt: null,
+  })
+  .run();
 const origin = 'http://localhost:4173';
 const auth = createAuth(db, {
   baseURL: origin,

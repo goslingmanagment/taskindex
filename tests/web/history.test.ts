@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { Changes, DomainEvent, Project } from '../../src/shared/model';
-import { describeEvent } from '../../src/web/app/history';
+import { actorOptions, describeEvent } from '../../src/web/app/history';
 
 // TI-032: the history is a story, not a dump of enum ids, order keys and JSON.
 // Every case below is checked against the event alone — the formatter may not
@@ -195,5 +195,59 @@ describe('TI-032 the history speaks the words of the workspace', () => {
     ] as Changes[])
       for (const line of describeEvent(event(changes), ctx).lines)
         expect(line.text).not.toMatch(/[{}[\]]/u);
+  });
+});
+
+describe('TI-076 the author filter keeps every author selectable', () => {
+  const agent = (id: string, label: string, disabledAt: string | null) => ({
+    id,
+    label,
+    createdAt: '2026-09-01T10:00:00.000Z',
+    disabledAt,
+  });
+  it('offers everyone, the owner and the known agents, marking a disabled one', () => {
+    expect(
+      actorOptions(
+        [
+          agent('worker', 'Рабочий', null),
+          agent('old', 'Прежний', '2026-09-05T10:00:00.000Z'),
+        ],
+        [],
+      ),
+    ).toEqual([
+      { value: '', label: 'Все авторы' },
+      { value: 'owner', label: 'Владелец' },
+      { value: 'agent:worker', label: 'Рабочий' },
+      { value: 'agent:old', label: 'Прежний (отключён)' },
+    ]);
+  });
+  it('keeps an author that only the journal remembers', () => {
+    const options = actorOptions(
+      [agent('worker', 'Рабочий', null)],
+      [
+        { actorId: 'agent:worker', actorLabel: 'Рабочий' },
+        { actorId: 'agent:deleted', actorLabel: 'Удалённый' },
+        { actorId: 'owner', actorLabel: 'Дмитрий' },
+      ],
+    );
+    expect(options.map((o) => o.value)).toEqual([
+      '',
+      'owner',
+      'agent:worker',
+      'agent:deleted',
+    ]);
+    expect(options.at(-1)).toEqual({
+      value: 'agent:deleted',
+      label: 'Удалённый (нет в списке)',
+    });
+  });
+  it('works without the directory, from the journal alone', () => {
+    expect(
+      actorOptions(null, [{ actorId: 'agent:worker', actorLabel: 'Рабочий' }]),
+    ).toEqual([
+      { value: '', label: 'Все авторы' },
+      { value: 'owner', label: 'Владелец' },
+      { value: 'agent:worker', label: 'Рабочий (нет в списке)' },
+    ]);
   });
 });

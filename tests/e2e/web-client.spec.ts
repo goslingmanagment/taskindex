@@ -1,6 +1,6 @@
 import { test, expect } from '@playwright/test';
 import { randomUUID } from 'node:crypto';
-import { postCommand as command, signIn } from './helpers';
+import { AGENT, agentCommand, postCommand as command, signIn } from './helpers';
 // Web-client regressions from the v2 review registry (plan 07).
 
 test('TI-006 a browser without localStorage shows the degradation banner and sends no command', async ({
@@ -338,4 +338,56 @@ test('TI-032 the activity tells what changed in words, not in ids and JSON', asy
   await expect(
     page.getByText('ТИ-032 читаемая история', { exact: false }).last(),
   ).toBeVisible();
+});
+
+test('TI-076 the activity is filtered by author, in the URL and in the feed', async ({
+  page,
+}, testInfo) => {
+  await signIn(page, testInfo);
+  const ownerTitle = 'ТИ-076 работа владельца',
+    agentTitle = 'ТИ-076 работа агента';
+  expect(
+    (
+      await command(page, 'task.create', {
+        id: randomUUID(),
+        area: 'agency',
+        title: ownerTitle,
+      })
+    ).ok(),
+  ).toBe(true);
+  const byAgent = await agentCommand(page, 'task.create', {
+    id: randomUUID(),
+    area: 'agency',
+    title: agentTitle,
+  });
+  expect(byAgent.ok()).toBe(true);
+  await page.getByRole('button', { name: 'Активность', exact: true }).click();
+  await expect(page.getByText(ownerTitle, { exact: false })).toBeVisible();
+  await expect(page.getByText(agentTitle, { exact: false })).toBeVisible();
+  // The directory of agents fills the filter; the choice lands in the URL.
+  const filter = page.getByRole('combobox', { name: 'Автор изменений' });
+  await filter.click();
+  await page.getByRole('option', { name: AGENT.label, exact: true }).click();
+  await expect(page).toHaveURL(new RegExp(`actor=agent%3A${AGENT.id}`));
+  await expect(page.getByText(agentTitle, { exact: false })).toBeVisible();
+  await expect(page.getByText(ownerTitle, { exact: false })).toHaveCount(0);
+  // The API answers the same question the same way.
+  const filtered = (await (
+    await page.request.get(`/api/operations?limit=50&actor=agent:${AGENT.id}`)
+  ).json()) as { items: { actorId: string }[] };
+  expect(filtered.items.length).toBeGreaterThan(0);
+  expect(
+    filtered.items.every((item) => item.actorId === `agent:${AGENT.id}`),
+  ).toBe(true);
+  expect(await page.locator('.operation-row').count()).toBe(
+    filtered.items.length,
+  );
+  // A reload keeps the filter; «Показать всех» clears it from the URL.
+  await page.reload();
+  await expect(page.getByText(ownerTitle, { exact: false })).toHaveCount(0);
+  await page
+    .getByRole('button', { name: 'Показать всех', exact: true })
+    .click();
+  await expect(page).not.toHaveURL(/actor=/);
+  await expect(page.getByText(ownerTitle, { exact: false })).toBeVisible();
 });

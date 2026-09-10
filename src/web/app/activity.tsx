@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, useSyncExternalStore } from 'react';
 import type {
   Comment,
+  Context,
   DomainEvent,
   OperationSummary,
   Page,
@@ -14,11 +15,18 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from '../ui/collapsible';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '../ui/select';
 import { toast } from '../ui/toast';
 import { request } from './api';
 import { workspaceStore } from './store';
 import { commandLabels, taskCount } from './labels';
-import { describeEvent } from './history';
+import { actorOptions, ALL_ACTORS, describeEvent } from './history';
 import { readDraft, writeDraft, clearDraft } from './drafts';
 const labels = commandLabels;
 function time(value: string) {
@@ -99,7 +107,13 @@ function EventRow({ event }: { event: DomainEvent }) {
     </li>
   );
 }
-export function Activity() {
+export function Activity({
+  actor,
+  onActor,
+}: {
+  actor: string;
+  onActor: (actor: string) => void;
+}) {
   const { seq, generation, operationsVersion } = useSyncExternalStore(
     workspaceStore.subscribe,
     workspaceStore.getSnapshot,
@@ -107,24 +121,47 @@ export function Activity() {
   const [page, setPage] = useState<Page<OperationSummary> | null>(null),
     [error, setError] = useState(''),
     [busy, setBusy] = useState(false),
+    [agents, setAgents] = useState<Context['agents'] | null>(null),
     [loadedVersion, setLoadedVersion] = useState('');
-  const version = `${generation}/${seq}/${operationsVersion}`;
+  // The filter is part of the identity of the loaded page: a change reloads
+  // from the first page and the answers of the previous filter are dropped.
+  const version = `${generation}/${seq}/${operationsVersion}/${actor}`;
+  const query = actor ? `&actor=${encodeURIComponent(actor)}` : '';
   const loading = loadedVersion !== version;
   const requestVersion = useRef({ active: false }),
-    loadedCount = useRef(50);
+    loadedCount = useRef(50),
+    loadedActor = useRef(actor);
   useEffect(() => {
+    let active = true;
+    void request<Context>('/api/context')
+      .then((value) => {
+        if (active) setAgents(value.agents);
+      })
+      .catch(() => {
+        // The filter still works from the loaded journal without the directory.
+      });
+    return () => {
+      active = false;
+    };
+  }, [generation]);
+  useEffect(() => {
+    if (loadedActor.current !== actor) {
+      loadedActor.current = actor;
+      loadedCount.current = 50;
+      setPage(null);
+    }
     const flight = { active: true };
     requestVersion.current = flight;
     const load = async () => {
       let next = await request<Page<OperationSummary>>(
-        '/api/operations?limit=50',
+        `/api/operations?limit=50${query}`,
       );
       const items = [...next.items];
       // Preserve the depth the owner has opened, using fresh cursors throughout.
       while (next.nextCursor && items.length < loadedCount.current) {
         if (!flight.active) return null;
         next = await request<Page<OperationSummary>>(
-          `/api/operations?limit=50&cursor=${encodeURIComponent(next.nextCursor)}`,
+          `/api/operations?limit=50${query}&cursor=${encodeURIComponent(next.nextCursor)}`,
         );
         items.push(...next.items);
       }
@@ -149,14 +186,14 @@ export function Activity() {
     return () => {
       flight.active = false;
     };
-  }, [version]);
+  }, [version, actor, query]);
   async function more() {
     if (!page?.nextCursor || busy || loading) return;
     setBusy(true);
     const flight = requestVersion.current;
     try {
       const next = await request<Page<OperationSummary>>(
-        `/api/operations?limit=50&cursor=${encodeURIComponent(page.nextCursor)}`,
+        `/api/operations?limit=50${query}&cursor=${encodeURIComponent(page.nextCursor)}`,
       );
       if (flight.active) {
         const items = [...page.items, ...next.items];
@@ -170,12 +207,36 @@ export function Activity() {
       if (flight.active) setBusy(false);
     }
   }
+  const options = actorOptions(agents, page?.items ?? []);
   return (
     <section className="activity-view">
       <p className="focus-hint">
         Изменения владельца и агентов. Операцию можно раскрыть и отменить
         целиком.
       </p>
+      <div className="activity-filter">
+        <Select
+          value={actor}
+          onValueChange={(v) => onActor(v === null ? ALL_ACTORS : String(v))}
+          items={options}
+        >
+          <SelectTrigger className="field-select" aria-label="Автор изменений">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {options.map((item) => (
+              <SelectItem key={item.value} value={item.value}>
+                {item.label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        {actor && (
+          <Button variant="ghost" size="sm" onClick={() => onActor(ALL_ACTORS)}>
+            Показать всех
+          </Button>
+        )}
+      </div>
       {error && (
         <p className="form-error" role="alert">
           {error}
@@ -183,7 +244,11 @@ export function Activity() {
       )}
       {!page && !error && <output>Загружаем активность…</output>}
       {page && !page.items.length && (
-        <p className="focus-hint">Здесь появятся первые изменения.</p>
+        <p className="focus-hint">
+          {actor
+            ? 'У этого автора пока нет операций.'
+            : 'Здесь появятся первые изменения.'}
+        </p>
       )}
       <div className="operation-list">
         {page?.items.map((operation) => (

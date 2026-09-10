@@ -1,5 +1,11 @@
 import { AREAS, STATUSES } from '@shared/model';
-import type { Changes, DomainEvent, Project } from '@shared/model';
+import type {
+  Agent,
+  Changes,
+  DomainEvent,
+  OperationSummary,
+  Project,
+} from '@shared/model';
 // TI-032: the story of a change, in Russian, built only from the event itself.
 // The stored payload is untouched: this is a presentation layer over `changes`,
 // and everything it cannot explain from the event stays in the technical
@@ -254,4 +260,29 @@ export function describeEvent(
   if (!lines.length && event.command === 'task.create')
     lines.push({ label: 'Задача', text: 'Создана' });
   return { lines, technical };
+}
+
+// TI-076: the authors the owner can filter by. The directory of agents is the
+// primary source; an author that only appears in the loaded journal (an agent
+// that was removed, or one from another generation) is kept so old records stay
+// selectable instead of disappearing from the filter.
+export const ALL_ACTORS = '';
+export function actorOptions(
+  agents: readonly Agent[] | null,
+  // Only the author of each loaded operation matters here.
+  operations: readonly Pick<OperationSummary, 'actorId' | 'actorLabel'>[],
+): { value: string; label: string }[] {
+  const options = new Map<string, string>([
+    [ALL_ACTORS, 'Все авторы'],
+    ['owner', 'Владелец'],
+  ]);
+  for (const agent of agents ?? [])
+    options.set(
+      `agent:${agent.id}`,
+      agent.disabledAt ? `${agent.label} (отключён)` : agent.label,
+    );
+  for (const operation of operations)
+    if (!options.has(operation.actorId))
+      options.set(operation.actorId, `${operation.actorLabel} (нет в списке)`);
+  return [...options].map(([value, label]) => ({ value, label }));
 }

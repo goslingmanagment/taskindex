@@ -165,6 +165,7 @@ function WorkspaceBody() {
       q: '',
       focus: false,
       activity: false,
+      actor: '',
       archive: false,
       today: false,
       task: '',
@@ -321,7 +322,13 @@ function WorkspaceBody() {
         }
         navigate={navigate}
         showFocus={() => {
-          update({ focus: true, activity: false, q: '', archive: false });
+          update({
+            focus: true,
+            activity: false,
+            actor: '',
+            q: '',
+            archive: false,
+          });
           closeNavigation();
         }}
         showActivity={() => {
@@ -333,6 +340,7 @@ function WorkspaceBody() {
             archive: !archive,
             focus: false,
             activity: false,
+            actor: '',
             q: '',
             today: false,
             project: 'all',
@@ -573,7 +581,10 @@ function WorkspaceBody() {
               ))}
             </div>
           ) : activity && !searching ? (
-            <Activity />
+            <Activity
+              actor={location.actor}
+              onActor={(next) => update({ actor: next })}
+            />
           ) : (
             <DragBoard
               tasks={tasks}

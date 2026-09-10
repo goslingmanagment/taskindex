@@ -11,6 +11,8 @@ export type LocationState = {
   today: boolean;
   archiveSearch: boolean;
   activity: boolean;
+  /** TI-076: author filter of the activity feed; '' is everyone. */
+  actor: string;
 };
 export const defaultLocation: LocationState = {
   area: 'agency',
@@ -23,6 +25,7 @@ export const defaultLocation: LocationState = {
   today: false,
   archiveSearch: false,
   activity: false,
+  actor: '',
 };
 const savedKey = 'taskindex/location';
 // TI-042: two ways to read the location. The URL is the only source for
@@ -38,6 +41,7 @@ export function parseLocation(search: string): LocationState {
     view: p.get('view') === 'list' ? 'list' : 'board',
     task: p.get('task') || '',
     q: p.get('q') || '',
+    actor: p.get('actor') || '',
     ...Object.fromEntries(
       ['focus', 'archive', 'today', 'archiveSearch', 'activity'].map((k) => [
         k,
