@@ -309,6 +309,3 @@ export type Command = z.infer<typeof commandSchema>;
 export type CommandOf<K extends CommandName> = Extract<Command, { command: K }>;
 export type CommandEnvelope = z.infer<typeof commandEnvelopeSchema>;
 export type BatchEnvelope = z.infer<typeof batchEnvelopeSchema>;
-export function parseCommand(command: Command): Command {
-  return commandSchema.parse(command);
-}

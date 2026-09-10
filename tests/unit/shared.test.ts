@@ -26,6 +26,8 @@ import type {
   WorkspaceState,
 } from '../../src/shared/model.js';
 import { owner } from '../api/helpers.js';
+import { commandLabel, commandLabels } from '../../src/web/app/labels.js';
+import { WRITES } from '../../src/cli/spec.js';
 // The explicit shape the generated unions must have (plan 04, §3.4): a
 // discriminated union over the payload registry. Both assignments fail `tsc`
 // if the generated `Command` drifts from it in either direction.
@@ -67,6 +69,23 @@ describe('command unions are generated from the payload registry (TI-019)', () =
       payload: { seq: 1 },
     });
     expect(parsed.success && parsed.data.command).toBe('undo');
+  });
+  // Plan 10, step 6: `assertNever` covers the branches at compile time, so the
+  // runtime check is about the tables outside the compiler's reach — the
+  // Russian labels of the web client. The CLI needs no case: WRITE_COMMANDS is
+  // declared as Record<CommandName, …> and `tsc` keeps it complete.
+  it('every command name has a web label and a CLI write', () => {
+    for (const name of commandNames) {
+      expect(commandLabels[name], `нет подписи для ${name}`).toBeTypeOf(
+        'string',
+      );
+      expect(
+        WRITES.some((write) => write.command === name),
+        `нет команды CLI для ${name}`,
+      ).toBe(true);
+    }
+    expect(commandLabels.batch).toBeTypeOf('string');
+    expect(commandLabel('task.nope')).toBe('task.nope');
   });
   it('keeps shared free of the OpenAPI package', () => {
     expect(z.locales.ru).toBeTypeOf('function');

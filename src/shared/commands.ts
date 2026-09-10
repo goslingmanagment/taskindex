@@ -1,9 +1,11 @@
 import { generateKeyBetween } from 'fractional-indexing';
+import { z } from 'zod';
 import type {
   Actor,
   Changes,
   Command,
   CommandName,
+  CommandOf,
   CommandResult,
   DomainEvent,
   Entity,
@@ -12,11 +14,9 @@ import type {
   Task,
   Project,
   Comment,
-  ChecklistItem,
 } from './model.js';
 import { byOrder } from './queries.js';
-import { fail } from './errors.js';
-import { parseCommand, z } from './schemas.js';
+import { assertNever, fail } from './errors.js';
 import { LIMITS } from './limits.js';
 export type ChangeEffect = {
   entityKind: EntityKind;
@@ -36,7 +36,9 @@ export type CommandContext = {
   confirmOwnerFields?: boolean;
 };
 // Owner-only fields: agents cannot set them directly; task.sync skips them.
-const ownerOnlyFields = ['focus', 'focusPosition'];
+const ownerOnlyFields = ['focus', 'focusPosition'] as const;
+// Fields the source never overwrites once the owner touched the task.
+const ownerLockedFields = ['status', 'archived', 'focus', 'projectId', 'area'];
 export type CommandApplication = {
   state: WorkspaceState;
   result: CommandResult;
@@ -66,25 +68,34 @@ export const projectFields: ReadonlySet<string> = new Set<keyof Project>([
   'description',
 ]);
 export function isSubjectField(kind: EntityKind, key: string): boolean {
-  return kind === 'task'
-    ? taskFields.has(key)
-    : kind === 'project'
-      ? projectFields.has(key)
-      : key === 'deletedAt';
+  switch (kind) {
+    case 'task':
+      return taskFields.has(key);
+    case 'project':
+      return projectFields.has(key);
+    case 'comment':
+      return key === 'deletedAt';
+    default:
+      return assertNever(kind);
+  }
 }
 const equal = (a: unknown, b: unknown) =>
   JSON.stringify(a) === JSON.stringify(b);
-const object = (v: unknown) => v as Record<string, unknown>;
+// Records are told apart by shape: only tasks carry a checklist, only
+// comments a taskId.
+const isTask = (record: Entity): record is Task => 'checklist' in record;
+const isComment = (record: Entity): record is Comment => 'taskId' in record;
 export function requireScope(actor: Actor, kind: EntityKind) {
   if (actor.scope === 'read' || (kind === 'project' && actor.scope !== 'write'))
     fail('forbidden', 'У ключа недостаточно прав.');
 }
+// -1, 0 or 1 for values a comparison operator already orders (BigInt, string).
+function sign<T extends bigint | string>(x: T, y: T): number {
+  if (x < y) return -1;
+  return x > y ? 1 : 0;
+}
 export function compareOriginVersion(a: string, b: string): number | null {
-  if (/^\d+$/.test(a) && /^\d+$/.test(b)) {
-    const x = BigInt(a),
-      y = BigInt(b);
-    return x < y ? -1 : x > y ? 1 : 0;
-  }
+  if (/^\d+$/.test(a) && /^\d+$/.test(b)) return sign(BigInt(a), BigInt(b));
   const instant = (value: string) => {
     if (!z.iso.datetime({ offset: true }).safeParse(value).success) return null;
     const parts =
@@ -102,16 +113,17 @@ export function compareOriginVersion(a: string, b: string): number | null {
     const seconds = Math.sign(left.seconds - right.seconds);
     if (seconds) return seconds;
     const width = Math.max(left.fraction.length, right.fraction.length);
-    const x = left.fraction.padEnd(width, '0'),
-      y = right.fraction.padEnd(width, '0');
-    return x < y ? -1 : x > y ? 1 : 0;
+    return sign(
+      left.fraction.padEnd(width, '0'),
+      right.fraction.padEnd(width, '0'),
+    );
   }
 
   return null;
 }
 function changesBetween(before: Entity | undefined, after: Entity): Changes {
-  const a = before ? object(before) : {};
-  const b = object(after);
+  const a: Record<string, unknown> = before ?? {};
+  const b: Record<string, unknown> = after;
   return Object.fromEntries(
     Object.keys(b)
       .filter(
@@ -122,13 +134,26 @@ function changesBetween(before: Entity | undefined, after: Entity): Changes {
       .map((k) => [k, { from: before ? a[k] : null, to: b[k] }]),
   );
 }
+function records(state: WorkspaceState, kind: 'task'): Task[];
+function records(state: WorkspaceState, kind: 'project'): Project[];
+function records(state: WorkspaceState, kind: 'comment'): Comment[];
+function records(state: WorkspaceState, kind: EntityKind): Entity[];
 function records(state: WorkspaceState, kind: EntityKind): Entity[] {
-  return kind === 'task'
-    ? state.tasks
-    : kind === 'project'
-      ? state.projects
-      : state.comments;
+  switch (kind) {
+    case 'task':
+      return state.tasks;
+    case 'project':
+      return state.projects;
+    case 'comment':
+      return state.comments;
+    default:
+      return assertNever(kind);
+  }
 }
+function get(state: WorkspaceState, kind: 'task', id: string): Task;
+function get(state: WorkspaceState, kind: 'project', id: string): Project;
+function get(state: WorkspaceState, kind: 'comment', id: string): Comment;
+function get(state: WorkspaceState, kind: EntityKind, id: string): Entity;
 function get(state: WorkspaceState, kind: EntityKind, id: string): Entity {
   return (
     records(state, kind).find((r) => r.id === id) ??
@@ -164,11 +189,8 @@ function assertMerge(
       });
   }
 }
-function order(
-  state: WorkspaceState,
-  task: Task,
-  position?: { before?: string; after?: string },
-) {
+type Position = { before?: string; after?: string };
+function order(state: WorkspaceState, task: Task, position?: Position) {
   const column = state.tasks
     .filter(
       (t) =>
@@ -257,493 +279,628 @@ export function assertInvariants(
     }
   }
 }
-export function applyCommand(
-  input: WorkspaceState,
-  raw: Command,
-  ctx: CommandContext,
-): CommandApplication {
-  const command = parseCommand(raw);
-  const p = command.payload as Record<string, unknown>;
-  const name = command.command;
-  const state = structuredClone(input);
-  const effects: ChangeEffect[] = [];
-  const history = ctx.history ?? [];
-  let result: CommandResult = { record: null, changes: {} };
-  const emit = (
+// One command application: the cloned state, the context, the effects
+// collected so far and `emit`, which records a change and stamps the record.
+type Session = {
+  state: WorkspaceState;
+  ctx: CommandContext;
+  history: DomainEvent[];
+  effects: ChangeEffect[];
+  name: CommandName;
+  emit: (
     kind: EntityKind,
     before: Entity | undefined,
     after: Entity,
-    cmd: CommandName = name,
-  ) => {
-    let changes = changesBetween(before, after);
-    if (kind === 'task' && ctx.actor.kind === 'owner') {
-      const t = after as Task;
-      t.ownerTouchedAt ??= ctx.now;
-      t.ownerFields = [
-        ...new Set([
-          ...t.ownerFields,
-          ...Object.keys(changes).filter((k) => isSubjectField('task', k)),
-        ]),
-      ].sort();
-      changes = changesBetween(before, after);
-    }
-    if (Object.keys(changes).length === 0) return changes;
-    after.revision = (before?.revision ?? 0) + 1;
-    if ('updatedAt' in after) after.updatedAt = ctx.now;
-    effects.push({
-      entityKind: kind,
-      entityId: after.id,
-      ...(kind === 'comment' ? { taskId: (after as Comment).taskId } : {}),
-      command: cmd,
-      changes,
-      recordRevision: after.revision,
-    });
-    return changes;
-  };
-  if (name === 'undo') {
-    const target = history.filter((e) =>
-      p.seq !== undefined ? e.seq === p.seq : e.operationId === p.operationId,
-    );
-    if (!target.length)
-      fail('not_undoable', 'У операции нет отменяемых событий.');
-    // Authority before semantics: an agent learns nothing about an operation
-    // it may not undo. Owner decisions are never undone by agents; other
-    // agents' operations are, within the key's scope.
-    if (ctx.actor.kind !== 'owner') {
-      if (target.some((e) => e.actorId === 'owner'))
-        fail('forbidden', 'Агент не отменяет операции с событиями владельца.');
-      for (const kind of new Set(target.map((e) => e.entityKind)))
-        requireScope(ctx.actor, kind);
-    }
-    if (target.some((e) => e.command === 'project.create'))
-      fail('not_undoable', 'Создание проекта не отменяется.');
-    const groups = new Map<string, DomainEvent[]>();
-    for (const e of target) {
-      const key = `${e.entityKind}/${e.entityId}`;
-      groups.set(key, [...(groups.get(key) ?? []), e]);
-    }
-    const conflicts: {
-      entityKind: EntityKind;
-      entityId: string;
-      fields: string[];
-    }[] = [];
-    let firstConflict: Entity | undefined;
-    const inverses: {
-      kind: EntityKind;
-      record: Entity;
-      values: Record<string, unknown>;
-      base: number;
-      keys: string[];
-    }[] = [];
-    for (const events of groups.values()) {
-      events.sort((a, b) => a.seq - b.seq);
-      const first = events[0]!;
-      const kind = first.entityKind;
-      const record = get(state, kind, first.entityId);
-      const last = events.at(-1)!;
-      const created = events.some((e) => e.changes.createdAt?.from === null);
-      const net: Changes = {};
-      for (const e of events)
-        for (const [key, change] of Object.entries(e.changes)) {
-          if (isSubjectField(kind, key))
-            net[key] = {
-              from: net[key] ? net[key]!.from : change.from,
-              to: change.to,
-            };
-        }
-      let values: Record<string, unknown>;
-      if (created) {
-        values =
-          kind === 'task'
-            ? (record as Task).archived
-              ? {}
-              : { archived: true }
-            : kind === 'comment'
-              ? (record as Comment).deletedAt
-                ? {}
-                : { deletedAt: ctx.now }
-              : {};
-      } else
-        values = Object.fromEntries(
-          Object.entries(net)
-            .filter(([, v]) => !equal(v.from, v.to))
-            .map(([k, v]) => [k, v.from]),
-        );
-      if (!created && !Object.keys(values).length) continue;
-      requireScope(ctx.actor, kind);
-      if (
-        kind === 'comment' &&
-        ctx.actor.kind !== 'owner' &&
-        (record as Comment).actorId !== ctx.actor.id
-      )
-        fail('forbidden', 'Нельзя отменить чужой комментарий.');
-      const keys = created
-        ? Object.keys(object(record)).filter((k) => isSubjectField(kind, k))
-        : Object.keys(values);
-      const later = history.filter(
-        (e) =>
-          e.entityKind === kind &&
-          e.entityId === record.id &&
-          e.recordRevision > last.recordRevision &&
-          !target.includes(e),
-      );
-      const overlap = [
-        ...new Set(
-          later
-            .flatMap((e) => Object.keys(e.changes))
-            .filter((k) => keys.includes(k)),
-        ),
-      ];
-      if (overlap.length) {
-        conflicts.push({
-          entityKind: kind,
-          entityId: record.id,
-          fields: overlap,
-        });
-        firstConflict ??= record;
-      }
-      if (!Object.keys(values).length) continue;
-      inverses.push({ kind, record, values, base: last.recordRevision, keys });
-    }
-    if (conflicts.length)
-      fail('conflict', 'После операции записи уже менялись.', {
-        current: firstConflict,
-        conflicts,
-      });
-    if (!inverses.length)
-      fail('not_undoable', 'У операции нет отменяемого предметного эффекта.');
-    const changed: Entity[] = [];
-    for (const inverse of inverses) {
-      const before = structuredClone(inverse.record);
-      Object.assign(inverse.record, inverse.values);
-      const changes = emit(inverse.kind, before, inverse.record);
-      if (inverse.kind === 'comment') {
-        const c = inverse.record as Comment;
-        const task = get(state, 'task', c.taskId) as Task;
-        task.commentCount +=
-          Number(!c.deletedAt) - Number(!(before as Comment).deletedAt);
-      }
-      changed.push(inverse.record);
-      if (inverses.length === 1) result = { record: inverse.record, changes };
-    }
-    if (inverses.length > 1)
-      result = { record: null, records: changed, changes: {} };
-  } else if (name.startsWith('project.')) {
-    requireScope(ctx.actor, 'project');
-    if (name === 'project.create') {
-      const id = (p.id as string | undefined) ?? ctx.ids();
-      if (state.projects.some((r) => r.id === id))
-        fail('conflict', 'Идентификатор проекта уже занят.');
-      const record: Project = {
-        id,
-        area: p.area as Project['area'],
-        name: p.name as string,
-        color: (p.color as string).toLowerCase(),
-        description: (p.description as string | undefined) ?? '',
-        revision: 0,
-        createdAt: ctx.now,
-        updatedAt: ctx.now,
-      };
-      state.projects.push(record);
-      result = { record, changes: emit('project', undefined, record) };
-    } else {
-      const record = get(state, 'project', p.id as string) as Project;
-      const before = structuredClone(record);
-      const patch = Object.fromEntries(
-        Object.entries(p).filter(([k]) => projectFields.has(k)),
-      );
-      assertMerge(
-        'project',
-        record,
-        p.baseRevision as number,
-        Object.keys(patch),
-        history,
-      );
-      Object.assign(record, patch);
-      record.color = record.color.toLowerCase();
-      result = { record, changes: emit('project', before, record) };
-    }
-  } else if (name.startsWith('comment.')) {
-    requireScope(ctx.actor, 'comment');
-    if (name === 'comment.add') {
-      const task = get(state, 'task', p.taskId as string) as Task;
-      const id = (p.id as string | undefined) ?? ctx.ids();
-      if (state.comments.some((c) => c.id === id))
-        fail('conflict', 'Идентификатор комментария уже занят.');
-      const record: Comment = {
-        id,
-        taskId: task.id,
-        actorId: ctx.actor.id,
-        actorLabel: ctx.actor.label,
-        text: p.text as string,
-        revision: 0,
-        createdAt: ctx.now,
-        deletedAt: null,
-      };
-      state.comments.push(record);
-      task.commentCount++;
-      result = { record, changes: emit('comment', undefined, record) };
-    } else {
-      const record = get(state, 'comment', p.commentId as string) as Comment;
-      if (ctx.actor.kind !== 'owner' && record.actorId !== ctx.actor.id)
-        fail('forbidden', 'Нельзя удалить чужой комментарий.');
-      const before = structuredClone(record);
-      if (!record.deletedAt) {
-        record.deletedAt = ctx.now;
-        (get(state, 'task', record.taskId) as Task).commentCount--;
-      }
-      result = { record, changes: emit('comment', before, record) };
-    }
-  } else {
-    requireScope(ctx.actor, 'task');
-    let payload = p;
-    const syncing = name === 'task.sync';
-    const agent = ctx.actor.kind !== 'owner';
-    if (agent && !syncing) {
-      const direct = name === 'task.save' ? object(p.fields ?? {}) : p;
-      if (ownerOnlyFields.some((key) => Object.hasOwn(direct, key)))
-        fail('forbidden', 'Поле focus меняет только владелец.');
-    }
-    const origin = (p.origin ?? {}) as {
-      system?: string;
-      ref?: string;
-      url?: string;
-      version?: string;
-    };
-    const existing =
-      (syncing || name === 'task.create') && origin.system
-        ? state.tasks.find(
-            (t) =>
-              t.originSystem === origin.system && t.originRef === origin.ref,
-          )
-        : undefined;
-    if (name === 'task.create' && existing)
-      return {
-        state,
-        result: { record: existing, changes: {}, existing: true },
-        effects,
-      };
-    if (syncing) payload = p.fields as Record<string, unknown>;
-    // In sync the owner-only fields never reject the call: they are reported
-    // as skipped (reason owner) whatever the owner has or has not touched.
-    const syncSkipped: { field: string; reason: string }[] = [];
-    if (syncing && agent)
-      for (const key of ownerOnlyFields)
-        if (Object.hasOwn(payload, key)) {
-          syncSkipped.push({ field: key, reason: 'owner' });
-          const { [key]: _dropped, ...rest } = payload;
-          payload = rest;
-        }
-    if (name === 'task.create' || (syncing && !existing)) {
-      if (
-        origin.version &&
-        compareOriginVersion(origin.version, origin.version) === null
-      )
-        fail(
-          'invalid',
-          'Версия источника должна задавать порядок его состояний.',
-        );
-      const id = (payload.id as string | undefined) ?? ctx.ids();
-      if (state.tasks.some((t) => t.id === id))
-        fail('conflict', 'Идентификатор задачи уже занят.');
-      const record: Task = {
-        id,
-        area: payload.area as Task['area'],
-        projectId: (payload.projectId as string | null | undefined) ?? null,
-        title: payload.title as string,
-        status: (payload.status as Task['status']) ?? 'todo',
-        note: (payload.note as string) ?? '',
-        due: (payload.due as string | null) ?? null,
-        waitingFor: (payload.waitingFor as string) ?? '',
-        followUp: (payload.followUp as string | null) ?? null,
-        orderKey: '',
-        focus: (payload.focus as boolean) ?? false,
-        archived: false,
-        checklist: (payload.checklist as ChecklistItem[]) ?? [],
-        commentCount: 0,
-        originSystem: origin.system ?? null,
-        originRef: origin.ref ?? null,
-        originUrl: origin.url ?? null,
-        originVersion: origin.version ?? null,
-        createdBy: ctx.actor.id,
-        createdByLabel: ctx.actor.label,
-        ownerTouchedAt: null,
-        ownerFields: [],
-        revision: 0,
-        createdAt: ctx.now,
-        updatedAt: ctx.now,
-      };
-      record.orderKey = order(
-        state,
-        record,
-        payload.position as { before?: string; after?: string } | undefined,
-      );
-      state.tasks.push(record);
-      result = {
-        record,
-        changes: emit('task', undefined, record),
-        ...(syncing
-          ? { applied: Object.keys(payload), skipped: syncSkipped }
-          : {}),
-      };
-    } else {
-      const record =
-        existing ??
-        (get(
-          state,
-          'task',
-          (name.startsWith('checklist.') ? p.taskId : p.id) as string,
-        ) as Task);
-      const before = structuredClone(record);
-      let patch: Record<string, unknown> = {};
-      let position: { before?: string; after?: string } | undefined;
-      if (syncing) {
-        let reason: string | undefined;
-        if (!origin.version || !record.originVersion)
-          reason = 'freshness_unknown';
-        else {
-          const comparison = compareOriginVersion(
-            origin.version,
-            record.originVersion,
-          );
-          reason =
-            comparison === null
-              ? 'version_incomparable'
-              : comparison <= 0
-                ? 'stale'
-                : undefined;
-        }
-        if (reason)
-          return {
-            state,
-            result: { record, changes: {}, skipped: 'all', reason },
-            effects,
-          };
-        const skipped = [...syncSkipped];
-        for (const [key, value] of Object.entries(payload)) {
-          if (
-            record.ownerTouchedAt &&
-            (record.ownerFields.includes(key) ||
-              ['status', 'archived', 'focus', 'projectId', 'area'].includes(
-                key,
-              ))
-          )
-            skipped.push({
-              field: key,
-              reason: record.ownerFields.includes(key) ? 'owner' : 'locked',
-            });
-          else patch[key] = value;
-        }
-        if (origin.url !== undefined) {
-          if (record.ownerTouchedAt && record.ownerFields.includes('originUrl'))
-            skipped.push({ field: 'originUrl', reason: 'owner' });
-          else patch.originUrl = origin.url;
-        }
-        record.originVersion = origin.version!;
-        result = { record, changes: {}, applied: Object.keys(patch), skipped };
-      } else if (name === 'task.update') {
-        patch = Object.fromEntries(
-          Object.entries(p).filter(([k]) => taskFields.has(k)),
-        );
-      } else if (name === 'task.save') {
-        patch = {
-          ...object(p.fields ?? {}),
-          ...(p.status !== undefined ? { status: p.status } : {}),
-          ...(p.checklist !== undefined ? { checklist: p.checklist } : {}),
-        };
-        position = p.position as typeof position;
-      } else if (name === 'task.move') {
-        patch = { status: p.status };
-        if (p.before || p.after)
-          position = {
-            before: p.before as string | undefined,
-            after: p.after as string | undefined,
-          };
-      } else if (name === 'task.archive' || name === 'task.restore')
-        patch = { archived: name === 'task.archive' };
-      else {
-        const items = structuredClone(record.checklist);
-        const index = items.findIndex((i) => i.id === p.itemId);
-        if (name === 'checklist.add')
-          items.splice((p.position as number | undefined) ?? items.length, 0, {
-            id: (p.id as string | undefined) ?? ctx.ids(),
-            text: p.text as string,
-            done: false,
-          });
-        else if (name === 'checklist.reorder') {
-          const ids = p.itemIds as string[];
-          if (
-            ids.length !== items.length ||
-            new Set(ids).size !== ids.length ||
-            ids.some((id) => !items.some((i) => i.id === id))
-          )
-            fail('invalid', 'Укажите все шаги без повторов.');
-          items.splice(
-            0,
-            items.length,
-            ...ids.map((id) => items.find((i) => i.id === id)!),
-          );
-        } else {
-          if (index < 0) fail('not_found', 'Шаг не найден.');
-          if (name === 'checklist.remove') items.splice(index, 1);
-          else
-            Object.assign(
-              items[index]!,
-              Object.fromEntries(
-                Object.entries(p).filter(([k]) => ['text', 'done'].includes(k)),
-              ),
-            );
-        }
-        patch = { checklist: items };
-      }
-      const moves =
-        position !== undefined ||
-        name === 'task.move' ||
-        (patch.area !== undefined && patch.area !== record.area) ||
-        (patch.status !== undefined && patch.status !== record.status);
-      if (!syncing)
-        assertMerge(
-          'task',
-          record,
-          p.baseRevision as number,
-          [...Object.keys(patch), ...(moves ? ['orderKey'] : [])],
-          history,
-        );
-      // A direct agent command that changes a field the owner decided on
-      // needs an explicit confirmation in the envelope; the confirmed fields
-      // stay in the result as the trace of that delegation.
-      const confirmed: string[] = [];
-      if (agent && !syncing && record.ownerTouchedAt) {
-        const overridden = Object.keys(patch).filter(
-          (key) =>
-            record.ownerFields.includes(key) &&
-            !equal(patch[key], object(record)[key]),
-        );
-        if (overridden.length && !ctx.confirmOwnerFields)
-          fail(
-            'forbidden',
-            'Поле защищено владельцем: подтвердите поручение флагом confirmOwnerFields: true.',
-            {
-              current: record,
-              conflicts: [
-                { entityKind: 'task', entityId: record.id, fields: overridden },
-              ],
-            },
-          );
-        confirmed.push(...overridden);
-      }
-      Object.assign(record, patch);
-      if (moves) record.orderKey = order(state, record, position);
-      result = {
-        ...result,
-        record,
-        changes: emit('task', before, record),
-        ...(confirmed.length ? { confirmedOwnerFields: confirmed } : {}),
-      };
-    }
+    command?: CommandName,
+  ) => Changes;
+};
+const isAgent = (s: Session) => s.ctx.actor.kind !== 'owner';
+type UndoInverse = {
+  kind: EntityKind;
+  record: Entity;
+  values: Record<string, unknown>;
+  base: number;
+  keys: string[];
+};
+function applyUndo(s: Session, p: CommandOf<'undo'>['payload']): CommandResult {
+  const target = s.history.filter((e) =>
+    'seq' in p ? e.seq === p.seq : e.operationId === p.operationId,
+  );
+  if (!target.length)
+    fail('not_undoable', 'У операции нет отменяемых событий.');
+  // Authority before semantics: an agent learns nothing about an operation
+  // it may not undo. Owner decisions are never undone by agents; other
+  // agents' operations are, within the key's scope.
+  if (isAgent(s)) {
+    if (target.some((e) => e.actorId === 'owner'))
+      fail('forbidden', 'Агент не отменяет операции с событиями владельца.');
+    for (const kind of new Set(target.map((e) => e.entityKind)))
+      requireScope(s.ctx.actor, kind);
   }
-  assertInvariants(state, new Set(effects.map((e) => e.entityId)));
-  return { state, result, effects };
+  if (target.some((e) => e.command === 'project.create'))
+    fail('not_undoable', 'Создание проекта не отменяется.');
+  const groups = new Map<string, DomainEvent[]>();
+  for (const e of target) {
+    const key = `${e.entityKind}/${e.entityId}`;
+    groups.set(key, [...(groups.get(key) ?? []), e]);
+  }
+  const conflicts: {
+    entityKind: EntityKind;
+    entityId: string;
+    fields: string[];
+  }[] = [];
+  let firstConflict: Entity | undefined;
+  const inverses: UndoInverse[] = [];
+  for (const events of groups.values()) {
+    events.sort((a, b) => a.seq - b.seq);
+    const first = events[0]!;
+    const kind = first.entityKind;
+    const record = get(s.state, kind, first.entityId);
+    const last = events.at(-1)!;
+    const created = events.some((e) => e.changes.createdAt?.from === null);
+    const net: Changes = {};
+    for (const e of events)
+      for (const [key, change] of Object.entries(e.changes)) {
+        if (isSubjectField(kind, key))
+          net[key] = {
+            from: net[key] ? net[key]!.from : change.from,
+            to: change.to,
+          };
+      }
+    let values: Record<string, unknown>;
+    if (created) {
+      // Undoing a creation hides the record instead of deleting history.
+      if (isTask(record)) values = record.archived ? {} : { archived: true };
+      else if (isComment(record))
+        values = record.deletedAt ? {} : { deletedAt: s.ctx.now };
+      else values = {};
+    } else
+      values = Object.fromEntries(
+        Object.entries(net)
+          .filter(([, v]) => !equal(v.from, v.to))
+          .map(([k, v]) => [k, v.from]),
+      );
+    if (!created && !Object.keys(values).length) continue;
+    requireScope(s.ctx.actor, kind);
+    if (isComment(record) && isAgent(s) && record.actorId !== s.ctx.actor.id)
+      fail('forbidden', 'Нельзя отменить чужой комментарий.');
+    const keys = created
+      ? Object.keys(record).filter((k) => isSubjectField(kind, k))
+      : Object.keys(values);
+    const later = s.history.filter(
+      (e) =>
+        e.entityKind === kind &&
+        e.entityId === record.id &&
+        e.recordRevision > last.recordRevision &&
+        !target.includes(e),
+    );
+    const overlap = [
+      ...new Set(
+        later
+          .flatMap((e) => Object.keys(e.changes))
+          .filter((k) => keys.includes(k)),
+      ),
+    ];
+    if (overlap.length) {
+      conflicts.push({
+        entityKind: kind,
+        entityId: record.id,
+        fields: overlap,
+      });
+      firstConflict ??= record;
+    }
+    if (!Object.keys(values).length) continue;
+    inverses.push({ kind, record, values, base: last.recordRevision, keys });
+  }
+  if (conflicts.length)
+    fail('conflict', 'После операции записи уже менялись.', {
+      current: firstConflict,
+      conflicts,
+    });
+  if (!inverses.length)
+    fail('not_undoable', 'У операции нет отменяемого предметного эффекта.');
+  const changed: Entity[] = [];
+  let single: CommandResult | undefined;
+  for (const inverse of inverses) {
+    const before = structuredClone(inverse.record);
+    Object.assign(inverse.record, inverse.values);
+    const changes = s.emit(inverse.kind, before, inverse.record);
+    if (isComment(inverse.record) && isComment(before)) {
+      const task = get(s.state, 'task', inverse.record.taskId);
+      task.commentCount +=
+        Number(!inverse.record.deletedAt) - Number(!before.deletedAt);
+    }
+    changed.push(inverse.record);
+    single = { record: inverse.record, changes };
+  }
+  return inverses.length === 1
+    ? single!
+    : { record: null, records: changed, changes: {} };
+}
+function applyProjectCreate(
+  s: Session,
+  p: CommandOf<'project.create'>['payload'],
+): CommandResult {
+  const id = p.id ?? s.ctx.ids();
+  if (s.state.projects.some((r) => r.id === id))
+    fail('conflict', 'Идентификатор проекта уже занят.');
+  const record: Project = {
+    id,
+    area: p.area,
+    name: p.name,
+    color: p.color.toLowerCase(),
+    description: p.description ?? '',
+    revision: 0,
+    createdAt: s.ctx.now,
+    updatedAt: s.ctx.now,
+  };
+  s.state.projects.push(record);
+  return { record, changes: s.emit('project', undefined, record) };
+}
+function applyProjectUpdate(
+  s: Session,
+  p: CommandOf<'project.update'>['payload'],
+): CommandResult {
+  const record = get(s.state, 'project', p.id);
+  const before = structuredClone(record);
+  const patch: Partial<Pick<Project, 'name' | 'color' | 'description'>> = {
+    ...(p.name !== undefined ? { name: p.name } : {}),
+    ...(p.color !== undefined ? { color: p.color.toLowerCase() } : {}),
+    ...(p.description !== undefined ? { description: p.description } : {}),
+  };
+  assertMerge('project', record, p.baseRevision, Object.keys(patch), s.history);
+  Object.assign(record, patch);
+  return { record, changes: s.emit('project', before, record) };
+}
+function applyCommentAdd(
+  s: Session,
+  p: CommandOf<'comment.add'>['payload'],
+): CommandResult {
+  const task = get(s.state, 'task', p.taskId);
+  const id = p.id ?? s.ctx.ids();
+  if (s.state.comments.some((c) => c.id === id))
+    fail('conflict', 'Идентификатор комментария уже занят.');
+  const record: Comment = {
+    id,
+    taskId: task.id,
+    actorId: s.ctx.actor.id,
+    actorLabel: s.ctx.actor.label,
+    text: p.text,
+    revision: 0,
+    createdAt: s.ctx.now,
+    deletedAt: null,
+  };
+  s.state.comments.push(record);
+  task.commentCount++;
+  return { record, changes: s.emit('comment', undefined, record) };
+}
+function applyCommentRemove(
+  s: Session,
+  p: CommandOf<'comment.remove'>['payload'],
+): CommandResult {
+  const record = get(s.state, 'comment', p.commentId);
+  if (isAgent(s) && record.actorId !== s.ctx.actor.id)
+    fail('forbidden', 'Нельзя удалить чужой комментарий.');
+  const before = structuredClone(record);
+  if (!record.deletedAt) {
+    record.deletedAt = s.ctx.now;
+    get(s.state, 'task', record.taskId).commentCount--;
+  }
+  return { record, changes: s.emit('comment', before, record) };
+}
+type Origin = CommandOf<'task.sync'>['payload']['origin'];
+type CreateFields = CommandOf<'task.sync'>['payload']['fields'];
+// The sync side of ownerOnlyFields: focusPosition is a direct-write field and
+// has no place in a creation payload, so `satisfies` keeps the two lists honest.
+const ownerOnlyCreateFields = [
+  'focus',
+] as const satisfies readonly (keyof CreateFields &
+  (typeof ownerOnlyFields)[number])[];
+const findByOrigin = (state: WorkspaceState, origin: Origin | undefined) =>
+  origin
+    ? state.tasks.find(
+        (t) => t.originSystem === origin.system && t.originRef === origin.ref,
+      )
+    : undefined;
+// Direct agent commands never set owner-only fields; task.sync skips them.
+function refuseOwnerOnly(s: Session, fields: object) {
+  if (isAgent(s) && ownerOnlyFields.some((key) => Object.hasOwn(fields, key)))
+    fail('forbidden', 'Поле focus меняет только владелец.');
+}
+function createTask(
+  s: Session,
+  id: string | undefined,
+  fields: CreateFields,
+  origin: Origin | undefined,
+  position: Position | undefined,
+): Task {
+  if (
+    origin?.version &&
+    compareOriginVersion(origin.version, origin.version) === null
+  )
+    fail('invalid', 'Версия источника должна задавать порядок его состояний.');
+  const taskId = id ?? s.ctx.ids();
+  if (s.state.tasks.some((t) => t.id === taskId))
+    fail('conflict', 'Идентификатор задачи уже занят.');
+  const record: Task = {
+    id: taskId,
+    area: fields.area,
+    projectId: fields.projectId ?? null,
+    title: fields.title,
+    status: fields.status ?? 'todo',
+    note: fields.note ?? '',
+    due: fields.due ?? null,
+    waitingFor: fields.waitingFor ?? '',
+    followUp: fields.followUp ?? null,
+    orderKey: '',
+    focus: fields.focus ?? false,
+    archived: false,
+    checklist: fields.checklist ?? [],
+    commentCount: 0,
+    originSystem: origin?.system ?? null,
+    originRef: origin?.ref ?? null,
+    originUrl: origin?.url ?? null,
+    originVersion: origin?.version ?? null,
+    createdBy: s.ctx.actor.id,
+    createdByLabel: s.ctx.actor.label,
+    ownerTouchedAt: null,
+    ownerFields: [],
+    revision: 0,
+    createdAt: s.ctx.now,
+    updatedAt: s.ctx.now,
+  };
+  record.orderKey = order(s.state, record, position);
+  s.state.tasks.push(record);
+  return record;
+}
+function applyTaskCreate(
+  s: Session,
+  p: CommandOf<'task.create'>['payload'],
+): CommandResult {
+  refuseOwnerOnly(s, p);
+  const existing = findByOrigin(s.state, p.origin);
+  if (existing) return { record: existing, changes: {}, existing: true };
+  const { id, origin, position, ...fields } = p;
+  const record = createTask(s, id, fields, origin, position);
+  return { record, changes: s.emit('task', undefined, record) };
+}
+function applyTaskSync(
+  s: Session,
+  p: CommandOf<'task.sync'>['payload'],
+): CommandResult {
+  const { origin } = p;
+  // In sync the owner-only fields never reject the call: they are reported
+  // as skipped (reason owner) whatever the owner has or has not touched.
+  const skipped: { field: string; reason: string }[] = [];
+  // Both owner-only keys are optional in CreateFields, so dropping them keeps
+  // the payload a complete set of creation fields.
+  let fields: CreateFields = p.fields;
+  if (isAgent(s))
+    for (const key of ownerOnlyCreateFields)
+      if (Object.hasOwn(fields, key)) {
+        skipped.push({ field: key, reason: 'owner' });
+        const { [key]: _dropped, ...rest } = fields;
+        fields = rest;
+      }
+  const existing = findByOrigin(s.state, origin);
+  if (!existing) {
+    const record = createTask(s, undefined, fields, origin, undefined);
+    return {
+      record,
+      changes: s.emit('task', undefined, record),
+      applied: Object.keys(fields),
+      skipped,
+    };
+  }
+  const record = existing;
+  const before = structuredClone(record);
+  let reason: string | undefined;
+  if (!origin.version || !record.originVersion) reason = 'freshness_unknown';
+  else {
+    const comparison = compareOriginVersion(
+      origin.version,
+      record.originVersion,
+    );
+    if (comparison === null) reason = 'version_incomparable';
+    else if (comparison <= 0) reason = 'stale';
+  }
+  if (reason) return { record, changes: {}, skipped: 'all', reason };
+  const patch: Record<string, unknown> = {};
+  for (const [key, value] of Object.entries(fields)) {
+    if (
+      record.ownerTouchedAt &&
+      (record.ownerFields.includes(key) || ownerLockedFields.includes(key))
+    )
+      skipped.push({
+        field: key,
+        reason: record.ownerFields.includes(key) ? 'owner' : 'locked',
+      });
+    else patch[key] = value;
+  }
+  if (origin.url !== undefined) {
+    if (record.ownerTouchedAt && record.ownerFields.includes('originUrl'))
+      skipped.push({ field: 'originUrl', reason: 'owner' });
+    else patch.originUrl = origin.url;
+  }
+  record.originVersion = origin.version!;
+  const moves =
+    (patch.area !== undefined && patch.area !== record.area) ||
+    (patch.status !== undefined && patch.status !== record.status);
+  Object.assign(record, patch);
+  if (moves) record.orderKey = order(s.state, record, undefined);
+  return {
+    record,
+    changes: s.emit('task', before, record),
+    applied: Object.keys(patch),
+    skipped,
+  };
+}
+// The common tail of every direct task write: merge check against the base
+// revision, owner-field confirmation for agents, the patch itself and a new
+// order key when the task moves.
+function commitTaskPatch(
+  s: Session,
+  record: Task,
+  baseRevision: number,
+  patch: Record<string, unknown>,
+  position: Position | undefined,
+  forceMove = false,
+): CommandResult {
+  const before = structuredClone(record);
+  const moves =
+    forceMove ||
+    position !== undefined ||
+    (patch.area !== undefined && patch.area !== record.area) ||
+    (patch.status !== undefined && patch.status !== record.status);
+  assertMerge(
+    'task',
+    record,
+    baseRevision,
+    [...Object.keys(patch), ...(moves ? ['orderKey'] : [])],
+    s.history,
+  );
+  // A direct agent command that changes a field the owner decided on needs
+  // an explicit confirmation in the envelope; the confirmed fields stay in
+  // the result as the trace of that delegation.
+  const confirmed: string[] = [];
+  if (isAgent(s) && record.ownerTouchedAt) {
+    const current: Record<string, unknown> = record;
+    const overridden = Object.keys(patch).filter(
+      (key) =>
+        record.ownerFields.includes(key) && !equal(patch[key], current[key]),
+    );
+    if (overridden.length && !s.ctx.confirmOwnerFields)
+      fail(
+        'forbidden',
+        'Поле защищено владельцем: подтвердите поручение флагом confirmOwnerFields: true.',
+        {
+          current: record,
+          conflicts: [
+            { entityKind: 'task', entityId: record.id, fields: overridden },
+          ],
+        },
+      );
+    confirmed.push(...overridden);
+  }
+  Object.assign(record, patch);
+  if (moves) record.orderKey = order(s.state, record, position);
+  return {
+    record,
+    changes: s.emit('task', before, record),
+    ...(confirmed.length ? { confirmedOwnerFields: confirmed } : {}),
+  };
+}
+function applyTaskWrite(
+  s: Session,
+  command: CommandOf<
+    'task.update' | 'task.save' | 'task.move' | 'task.archive' | 'task.restore'
+  >,
+): CommandResult {
+  const p = command.payload;
+  const record = get(s.state, 'task', p.id);
+  switch (command.command) {
+    case 'task.update': {
+      const { id: _id, baseRevision, ...fields } = command.payload;
+      refuseOwnerOnly(s, fields);
+      return commitTaskPatch(s, record, baseRevision, fields, undefined);
+    }
+    case 'task.save': {
+      const { fields = {}, status, checklist, position } = command.payload;
+      refuseOwnerOnly(s, fields);
+      return commitTaskPatch(
+        s,
+        record,
+        p.baseRevision,
+        {
+          ...fields,
+          ...(status !== undefined ? { status } : {}),
+          ...(checklist !== undefined ? { checklist } : {}),
+        },
+        position,
+      );
+    }
+    case 'task.move': {
+      const { status, before, after } = command.payload;
+      return commitTaskPatch(
+        s,
+        record,
+        p.baseRevision,
+        { status },
+        before || after ? { before, after } : undefined,
+        true,
+      );
+    }
+    case 'task.archive':
+      return commitTaskPatch(
+        s,
+        record,
+        p.baseRevision,
+        { archived: true },
+        undefined,
+      );
+    case 'task.restore':
+      return commitTaskPatch(
+        s,
+        record,
+        p.baseRevision,
+        { archived: false },
+        undefined,
+      );
+    default:
+      return assertNever(command);
+  }
+}
+function applyChecklist(
+  s: Session,
+  command: CommandOf<
+    | 'checklist.add'
+    | 'checklist.update'
+    | 'checklist.remove'
+    | 'checklist.reorder'
+  >,
+): CommandResult {
+  const record = get(s.state, 'task', command.payload.taskId);
+  const items = structuredClone(record.checklist);
+  switch (command.command) {
+    case 'checklist.add': {
+      const p = command.payload;
+      items.splice(p.position ?? items.length, 0, {
+        id: p.id ?? s.ctx.ids(),
+        text: p.text,
+        done: false,
+      });
+      break;
+    }
+    case 'checklist.reorder': {
+      const ids = command.payload.itemIds;
+      if (
+        ids.length !== items.length ||
+        new Set(ids).size !== ids.length ||
+        ids.some((id) => !items.some((i) => i.id === id))
+      )
+        fail('invalid', 'Укажите все шаги без повторов.');
+      items.splice(
+        0,
+        items.length,
+        ...ids.map((id) => items.find((i) => i.id === id)!),
+      );
+      break;
+    }
+    case 'checklist.remove':
+    case 'checklist.update': {
+      const index = items.findIndex((i) => i.id === command.payload.itemId);
+      if (index < 0) fail('not_found', 'Шаг не найден.');
+      if (command.command === 'checklist.remove') items.splice(index, 1);
+      else {
+        const { text, done } = command.payload;
+        Object.assign(items[index]!, {
+          ...(text !== undefined ? { text } : {}),
+          ...(done !== undefined ? { done } : {}),
+        });
+      }
+      break;
+    }
+    default:
+      return assertNever(command);
+  }
+  return commitTaskPatch(
+    s,
+    record,
+    command.payload.baseRevision,
+    { checklist: items },
+    undefined,
+  );
+}
+// The caller validates: the server through commandEnvelopeSchema in
+// operations.ts, the web client through typed builders. `command.command`
+// is exhaustive here, so a new payload schema without a branch fails `tsc`.
+export function applyCommand(
+  input: WorkspaceState,
+  command: Command,
+  ctx: CommandContext,
+): CommandApplication {
+  const effects: ChangeEffect[] = [];
+  const s: Session = {
+    state: structuredClone(input),
+    ctx,
+    history: ctx.history ?? [],
+    effects,
+    name: command.command,
+    emit(kind, before, after, cmd = command.command) {
+      let changes = changesBetween(before, after);
+      if (isTask(after) && ctx.actor.kind === 'owner') {
+        after.ownerTouchedAt ??= ctx.now;
+        after.ownerFields = [
+          ...new Set([
+            ...after.ownerFields,
+            ...Object.keys(changes).filter((k) => isSubjectField('task', k)),
+          ]),
+        ].sort();
+        changes = changesBetween(before, after);
+      }
+      if (Object.keys(changes).length === 0) return changes;
+      after.revision = (before?.revision ?? 0) + 1;
+      if ('updatedAt' in after) after.updatedAt = ctx.now;
+      effects.push({
+        entityKind: kind,
+        entityId: after.id,
+        ...(isComment(after) ? { taskId: after.taskId } : {}),
+        command: cmd,
+        changes,
+        recordRevision: after.revision,
+      });
+      return changes;
+    },
+  };
+  let result: CommandResult;
+  switch (command.command) {
+    case 'undo':
+      result = applyUndo(s, command.payload);
+      break;
+    case 'project.create':
+      requireScope(ctx.actor, 'project');
+      result = applyProjectCreate(s, command.payload);
+      break;
+    case 'project.update':
+      requireScope(ctx.actor, 'project');
+      result = applyProjectUpdate(s, command.payload);
+      break;
+    case 'comment.add':
+      requireScope(ctx.actor, 'comment');
+      result = applyCommentAdd(s, command.payload);
+      break;
+    case 'comment.remove':
+      requireScope(ctx.actor, 'comment');
+      result = applyCommentRemove(s, command.payload);
+      break;
+    case 'task.create':
+      requireScope(ctx.actor, 'task');
+      result = applyTaskCreate(s, command.payload);
+      break;
+    case 'task.sync':
+      requireScope(ctx.actor, 'task');
+      result = applyTaskSync(s, command.payload);
+      break;
+    case 'task.update':
+    case 'task.save':
+    case 'task.move':
+    case 'task.archive':
+    case 'task.restore':
+      requireScope(ctx.actor, 'task');
+      result = applyTaskWrite(s, command);
+      break;
+    case 'checklist.add':
+    case 'checklist.update':
+    case 'checklist.remove':
+    case 'checklist.reorder':
+      requireScope(ctx.actor, 'task');
+      result = applyChecklist(s, command);
+      break;
+    default:
+      return assertNever(command);
+  }
+  assertInvariants(s.state, new Set(effects.map((e) => e.entityId)));
+  return { state: s.state, result, effects };
 }
 export function applyEvent(
   input: WorkspaceState,
@@ -760,7 +917,7 @@ export function applyEvent(
     const taskId =
       event.taskId ??
       (patch.taskId as string | undefined) ??
-      (prior as Comment | undefined)?.taskId;
+      (prior && isComment(prior) ? prior.taskId : undefined);
     const task = state.tasks.find((t) => t.id === taskId);
     const creation = event.changes.createdAt?.from === null;
     const deletion = event.changes.deletedAt;
@@ -771,6 +928,7 @@ export function applyEvent(
     }
   }
   if (prior || event.changes.createdAt?.from === null) {
+    // Replay trusts the journal: the record is rebuilt from its changes.
     const next = {
       ...prior,
       ...patch,
@@ -778,7 +936,8 @@ export function applyEvent(
       revision: event.recordRevision,
       ...(event.entityKind !== 'comment' ? { updatedAt: event.at } : {}),
     } as Entity;
-    if (event.entityKind === 'task' && !prior) (next as Task).commentCount = 0;
+    if (event.entityKind === 'task' && !prior && isTask(next))
+      next.commentCount = 0;
     if (index < 0) list.push(next);
     else list[index] = next;
   }
