@@ -83,6 +83,40 @@ describe('documentation against the code', () => {
     expect(JSON.stringify(renderHelp())).not.toContain('--json');
   });
 
+  it('SKILL.md teaches the cursor, the confirmation flag, me and the restart rules; .gitattributes marks generated files', async () => {
+    const skill = await readFile('skills/taskindex/SKILL.md', 'utf8');
+    for (const phrase of [
+      'taskindex help',
+      'taskindex me',
+      'cursor show|commit SEQ|reset',
+      '--since last',
+      '--commit',
+      '--confirm-owner-fields',
+      'tasks --today true',
+      'tasks --has-follow-up true|false',
+      '/api/snapshot',
+      '`revoked`',
+      'list_changed_during_walk',
+      'issues[].path',
+      'skipped: owner',
+    ])
+      expect(skill, `SKILL.md: ${phrase}`).toContain(phrase);
+    // The removed command is mentioned only as removed, never as a call.
+    expect(skill).not.toContain('`taskindex task focus');
+    expect(skill).not.toContain('`task focus ');
+    const attributes = await readFile('.gitattributes', 'utf8');
+    for (const pattern of [
+      'drizzle/v2/meta/** linguist-generated=true',
+      'docs/reference/**/*-sha256.json linguist-generated=true',
+      'docs/reference/**/environment.json linguist-generated=true',
+      'docs/audits/** linguist-generated=true',
+    ])
+      expect(attributes).toContain(pattern);
+    const readme = await readFile('README.md', 'utf8');
+    expect(readme).toContain('npm run cli -- help task create');
+    expect(readme).toContain('--confirm-owner-fields');
+  });
+
   it('refuses the removed --json flag with a hint', async () => {
     const output: Record<string, unknown>[] = [];
     const code = await runCli(['tasks', '--json'], {

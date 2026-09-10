@@ -1,0 +1,8 @@
+# Generated files: reviewed by their producers, not edited by hand.
+# drizzle/v2/meta/**            npm run db:generate (drizzle-kit)
+# docs/reference/**/*-sha256.json, environment.json   e2e reference run (TASKINDEX_E2E_ARTIFACT_DIR)
+# docs/audits/**                audit artefacts (logs, probes, JSON)
+drizzle/v2/meta/** linguist-generated=true
+docs/reference/**/*-sha256.json linguist-generated=true
+docs/reference/**/environment.json linguist-generated=true
+docs/audits/** linguist-generated=true

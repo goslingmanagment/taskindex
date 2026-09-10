@@ -110,13 +110,19 @@ Drizzle хранятся в `drizzle/v2/meta`. SQL проверяется до �
 ```sh
 npm run admin -- agent create --id codex-local --label 'Codex'
 npm run admin -- agent-key create --agent codex-local --scope write --out /protected/taskindex-key.json
-npm run cli -- --help
+npm run cli -- help                 # обзор: команды чтения, записи, служебные, коды выхода
+npm run cli -- help task            # действия группы
+npm run cli -- help task create     # одна команда: usage, флаги с типами, пример
+npm run cli -- me                   # актор ключа: id, label, scope
 ```
 
 Ключ сохраняется в новый файл с правами 0600; в выводе только его идентификатор
 и путь. Перенесите ключ в 1Password. Клиент получает `TASKINDEX_URL` и
 `TASKINDEX_TOKEN` из окружения, например через `op run`. Для ограниченного агента
 можно выдать scope `tasks` или `read`; ротация ключа сохраняет идентичность агента.
+Справка строится из спецификации команд (`src/cli/spec.ts`) и схем payload:
+`taskindex help <group> [<action>]` или `<команда> --help` печатают JSON с
+`usage`, `flags`, `example`, `exitCodes`, `errorCodes`. Вывод всегда JSON.
 Подробности команд, повторов и разрешений — в [скилле](skills/taskindex/SKILL.md).
 Установка скилла в Claude Code: `ln -s "$(pwd)/skills/taskindex" ~/.claude/skills/taskindex`
 из корня репозитория; для Codex текст скилла подключается через `AGENTS.md`
@@ -128,9 +134,14 @@ CLI сохраняет конверт до отправки в
 пользователем не пересылают конверты друг друга) и удаляет его только после
 подтверждённого исхода своей операции. При неизвестном исходе используйте
 `operation get` и `operation resume` с прежним идентификатором;
-`operation list` показывает свою очередь и повреждённые файлы. `--dry-run`
-показывает эффект, но не заменяет поручение владельца. Сервис не запускает агентов
-по расписанию и не пишет в Telegram, финансы или другие внешние системы.
+`operation list` показывает свою очередь и повреждённые файлы. Рядом лежит
+`cursor.json` — позиция чтения этого агента: `digest|activity|events --since last`
+читают от неё, `--commit` (или `cursor commit SEQ`) двигают её только после
+полного обхода. Поля, которые владелец правил руками, прямая команда меняет
+только с `--confirm-owner-fields` (след поручения; `focus` ставит только
+владелец). `--dry-run` показывает эффект, но не заменяет поручение владельца.
+Сервис не запускает агентов по расписанию и не пишет в Telegram, финансы или
+другие внешние системы.
 
 ## Проверки
 
