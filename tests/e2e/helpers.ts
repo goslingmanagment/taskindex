@@ -11,6 +11,50 @@ export const OWNER = {
   email: 'owner@example.test',
   password: 'TaskIndex-e2e-password-2026',
 } as const;
+// TI-070: каждый проект Playwright работает со своей чистой базой, поэтому у
+// каждой базы своя пара портов и свой файл `storageState`. Порты фиксированы
+// (не «свободный порт»), потому что прогоны сериализуются общей блокировкой в
+// `run-e2e.sh`; 4001/4173 сохранены за основной базой ради совместимости.
+export type BaseName = 'main' | 'visual' | 'dark' | 'webkit' | 'webkit-dark';
+export type Base = {
+  readonly name: BaseName;
+  readonly api: number;
+  readonly web: number;
+  readonly url: string;
+  readonly storageState: string;
+  /** Фиксированное время сервера, если снимкам проекта нужна воспроизводимость. */
+  readonly now?: string;
+};
+// TI-070: четыре сцены эталона показывали относительное время и различались
+// между прогонами. Визуальный проект получает это время и на сервере (`now` в
+// `createApp`), и в браузере (`page.clock.setFixedTime`), поэтому подписи
+// «Сегодня»/«Завтра» и метки ленты больше не зависят от даты запуска. Дата
+// совпадает с датой съёмки эталона и со сроками в `reference-data.json`.
+export const VISUAL_NOW = '2026-09-08T09:00:00.000Z';
+// `board.tsx:58`: TouchSensor activationConstraint.delay. Ожидание идёт по
+// наблюдаемому состоянию, а константа задаёт только бюджет ожидания.
+export const TOUCH_HOLD_MS = 220;
+export const AUTH_DIR = 'test-results/e2e-auth';
+function base(name: BaseName, api: number, web: number, now?: string): Base {
+  return {
+    name,
+    api,
+    web,
+    url: `http://localhost:${web}`,
+    storageState: `${AUTH_DIR}/${name}.json`,
+    ...(now ? { now } : {}),
+  };
+}
+export const BASES: readonly Base[] = [
+  base('main', 4001, 4173),
+  base('visual', 4002, 4174, VISUAL_NOW),
+  base('dark', 4003, 4175),
+  base('webkit', 4004, 4176),
+  base('webkit-dark', 4005, 4177),
+];
+export function baseOf(name: BaseName): Base {
+  return BASES.find((item) => item.name === name)!;
+}
 // TI-076: a second author in the fixture, so the activity feed has something to
 // filter. The key is seeded by `server.ts` with this exact value.
 export const AGENT = {
@@ -43,16 +87,38 @@ export function clientIp(testInfo: TestInfo): string {
   const hash = createHash('sha256').update(testInfo.testId).digest();
   return `10.${hash[0]}.${hash[1]}.${hash[2]}`;
 }
-export async function signIn(page: Page, testInfo: TestInfo) {
+// TI-070: проект `setup` кладёт сессию владельца в `storageState`, поэтому в
+// обычном тесте формы входа уже нет. Хелпер идемпотентен: заполняет форму, если
+// она открыта, и в любом случае возвращает управление на открытом пространстве.
+export async function signIn(page: Page, testInfo: TestInfo, url = '/') {
   await page.context().setExtraHTTPHeaders({ 'x-real-ip': clientIp(testInfo) });
-  await page.goto('/');
-  await page
-    .getByRole('textbox', { name: 'Почта', exact: true })
-    .fill(OWNER.email);
-  await page
-    .getByRole('textbox', { name: 'Пароль', exact: true })
-    .fill(OWNER.password);
-  await page.getByRole('button', { name: 'Войти', exact: true }).click();
+  await page.goto(url);
+  const email = page.getByRole('textbox', { name: 'Почта', exact: true });
+  const heading = page.getByRole('heading', {
+    name: 'Агентство',
+    exact: true,
+  });
+  await expect
+    .poll(async () =>
+      (await email.count()) > 0
+        ? 'form'
+        : (await heading.count()) > 0
+          ? 'workspace'
+          : 'loading',
+    )
+    .not.toBe('loading');
+  if ((await email.count()) > 0) {
+    await email.fill(OWNER.email);
+    await page
+      .getByRole('textbox', { name: 'Пароль', exact: true })
+      .fill(OWNER.password);
+    await page.getByRole('button', { name: 'Войти', exact: true }).click();
+  }
+  await expect(heading).toBeVisible();
+}
+// Пространство уже открыто сессией из `setup`: спеке нужен только переход.
+export async function openWorkspace(page: Page, url = '/') {
+  await page.goto(url);
   await expect(
     page.getByRole('heading', { name: 'Агентство', exact: true }),
   ).toBeVisible();
@@ -84,4 +150,59 @@ export async function command(
   const response = await postCommand(page, name, payload);
   expect(response.ok()).toBe(true);
   return response.json();
+}
+// TI-070: фикстура эталона больше не принадлежит одной спеке. Визуальный и
+// тёмный проекты работают каждый на своей чистой базе и наполняют её сами,
+// поэтому порядок файлов внутри прогона больше ничего не значит.
+export async function seedReferenceData(page: Page): Promise<void> {
+  const state = await snapshot(page);
+  // Идемпотентно: повторный вызов в том же пространстве ничего не создаёт,
+  // поэтому спека не зависит от того, наполнил ли базу другой её тест.
+  if (state.tasks.some((task) => task.id.startsWith('visual-'))) return;
+  const fixture = (
+    await import('./reference-data.json', { with: { type: 'json' } })
+  ).default;
+  const commands = [
+    ...fixture.projects.map((project) => ({
+      command: 'project.create',
+      payload: {
+        id: `visual-${project.id}`,
+        area: project.area,
+        name: project.name,
+        color: project.color,
+      },
+    })),
+    ...fixture.tasks.map((task) => ({
+      command: 'task.create',
+      payload: {
+        id: `visual-${task.id}`,
+        area: task.area,
+        projectId: task.projectId ? `visual-${task.projectId}` : null,
+        title: task.title,
+        status: task.status,
+        note: task.note,
+        due: task.due || null,
+        waitingFor: task.waitingFor,
+        followUp: task.followUp || null,
+        focus: 'focus' in task ? task.focus : false,
+        checklist: task.checklist.map((item) => ({
+          ...item,
+          id: `visual-${item.id}`,
+        })),
+      },
+    })),
+    {
+      command: 'task.archive',
+      payload: { id: 'visual-reference-archive', baseRevision: 1 },
+    },
+  ];
+  const response = await page.request.post('/api/commands/batch', {
+    headers: { Origin: new URL(page.url()).origin },
+    data: {
+      generation: state.generation,
+      operationId: crypto.randomUUID(),
+      commands,
+    },
+  });
+  expect(response.ok(), await response.text()).toBe(true);
 }

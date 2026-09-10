@@ -52,48 +52,55 @@ function englishIn(names: string[]): string[] {
   return offenders;
 }
 
-test('TI-030 a wrong password, a server failure and a lost connection are reported in Russian', async ({
-  page,
-}, testInfo) => {
-  await page.context().setExtraHTTPHeaders({ 'x-real-ip': clientIp(testInfo) });
-  await page.goto('/');
-  const email = page.getByRole('textbox', { name: 'Почта', exact: true });
-  const password = page.getByRole('textbox', { name: 'Пароль', exact: true });
-  const submit = page.getByRole('button', { name: 'Войти', exact: true });
-  await email.fill(OWNER.email);
-  await password.fill('совершенно-не-тот-пароль');
-  await submit.click();
-  // The server answers `INVALID_EMAIL_OR_PASSWORD` in English; the alert must not.
-  await expect(page.getByRole('alert')).toHaveText(
-    'Неверная почта или пароль.',
-  );
-  expect(englishIn(await accessibleNames(page))).toEqual([]);
+// TI-070: единственный тест, которому нужна форма входа. Сессия из `setup`
+// здесь отключена, остальные тесты файла открывают уже готовое пространство.
+test.describe('без сессии владельца', () => {
+  test.use({ storageState: { cookies: [], origins: [] } });
+  test('TI-030 a wrong password, a server failure and a lost connection are reported in Russian', async ({
+    page,
+  }, testInfo) => {
+    await page
+      .context()
+      .setExtraHTTPHeaders({ 'x-real-ip': clientIp(testInfo) });
+    await page.goto('/');
+    const email = page.getByRole('textbox', { name: 'Почта', exact: true });
+    const password = page.getByRole('textbox', { name: 'Пароль', exact: true });
+    const submit = page.getByRole('button', { name: 'Войти', exact: true });
+    await email.fill(OWNER.email);
+    await password.fill('совершенно-не-тот-пароль');
+    await submit.click();
+    // The server answers `INVALID_EMAIL_OR_PASSWORD` in English; the alert must not.
+    await expect(page.getByRole('alert')).toHaveText(
+      'Неверная почта или пароль.',
+    );
+    expect(englishIn(await accessibleNames(page))).toEqual([]);
 
-  await page.route('**/api/auth/sign-in/email', (route) =>
-    route.fulfill({
-      status: 500,
-      contentType: 'application/json',
-      body: JSON.stringify({ message: 'Internal Server Error' }),
-    }),
-  );
-  await password.fill(OWNER.password);
-  await submit.click();
-  await expect(page.getByRole('alert')).toContainText('Сервер недоступен.');
-  await expect(page.getByRole('alert')).not.toContainText(/[A-Za-z]{3,}/);
+    await page.route('**/api/auth/sign-in/email', (route) =>
+      route.fulfill({
+        status: 500,
+        contentType: 'application/json',
+        body: JSON.stringify({ message: 'Internal Server Error' }),
+      }),
+    );
+    await password.fill(OWNER.password);
+    await submit.click();
+    await expect(page.getByRole('alert')).toContainText('Сервер недоступен.');
+    await expect(page.getByRole('alert')).not.toContainText(/[A-Za-z]{3,}/);
 
-  await page.unroute('**/api/auth/sign-in/email');
-  await page.route('**/api/auth/sign-in/email', (route) => route.abort());
-  await submit.click();
-  await expect(page.getByRole('alert')).toHaveText(
-    'Нет связи с сервером. Проверьте соединение.',
-  );
-  await page.unroute('**/api/auth/sign-in/email');
+    await page.unroute('**/api/auth/sign-in/email');
+    await page.route('**/api/auth/sign-in/email', (route) => route.abort());
+    await submit.click();
+    await expect(page.getByRole('alert')).toHaveText(
+      'Нет связи с сервером. Проверьте соединение.',
+    );
+    await page.unroute('**/api/auth/sign-in/email');
 
-  // The sign-in screen still works once the connection is back.
-  await submit.click();
-  await expect(
-    page.getByRole('heading', { name: 'Агентство', exact: true }),
-  ).toBeVisible();
+    // The sign-in screen still works once the connection is back.
+    await submit.click();
+    await expect(
+      page.getByRole('heading', { name: 'Агентство', exact: true }),
+    ).toBeVisible();
+  });
 });
 
 test('TI-030 the mobile navigation announces itself in Russian', async ({

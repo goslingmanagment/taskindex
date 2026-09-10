@@ -1,11 +1,11 @@
 import { mkdirSync } from 'node:fs';
 import { test, expect, type Page } from '@playwright/test';
-import { signIn } from './helpers';
+import { openWorkspace, seedReferenceData } from './helpers';
 // TI-025 шаг 10: тёмная тема. Проект `dark` (playwright.config.ts) даёт
-// prefers-color-scheme: dark и идёт после `functional`, поэтому пространство уже
-// наполнено фикстурой визуального сравнения. Снимки складываются отдельно от
-// эталона светлой темы: они нужны для просмотра глазами, а не для побайтного
-// сравнения.
+// prefers-color-scheme: dark. TI-070: у проекта своя чистая база, поэтому спека
+// наполняет пространство сама и больше не требует, чтобы до неё отработал
+// `functional`. Снимки складываются отдельно от эталона светлой темы: они нужны
+// для просмотра глазами, а не для побайтного сравнения.
 const ARTIFACTS = 'test-results/e2e-dark';
 const DARK_BACKGROUND = 'rgb(25, 29, 36)';
 const LIGHT_BACKGROUND = 'rgb(247, 248, 250)';
@@ -15,10 +15,9 @@ const shoot = (page: Page, name: string) =>
 const background = (page: Page) =>
   page.evaluate(() => getComputedStyle(document.body).backgroundColor);
 
-test('the system preference paints the nine scenes dark', async ({
-  page,
-}, testInfo) => {
-  await signIn(page, testInfo);
+test('the system preference paints the nine scenes dark', async ({ page }) => {
+  await openWorkspace(page);
+  await seedReferenceData(page);
   await page.setViewportSize({ width: 1440, height: 1000 });
   await page.goto('/?area=agency&project=all&view=board');
   await expect(
@@ -71,8 +70,8 @@ test('the system preference paints the nine scenes dark', async ({
 
 test('the account menu overrides the system and the choice survives a reload', async ({
   page,
-}, testInfo) => {
-  await signIn(page, testInfo);
+}) => {
+  await openWorkspace(page);
   expect(await background(page)).toBe(DARK_BACKGROUND);
   await page.getByRole('button', { name: 'Дмитрий', exact: true }).click();
   await page.getByRole('menuitem', { name: 'Светлая', exact: true }).click();

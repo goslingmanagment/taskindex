@@ -205,10 +205,30 @@ bash deploy/drill/deploy-drill.sh
 гейт релиза теми же командами и в том же порядке, что job `check` в CI, с отчётом
 `test-results/gate.json`. Приёмка агентского цикла: `npm run agent-cycle` поверх sandbox
 выполняет автоматизируемые шаги, ручные описаны в
-[docs/acceptance/agent-cycle.md](docs/acceptance/agent-cycle.md). E2E запускает изолированные настоящие SQLite и Better Auth в `/tmp` на
-портах 4173 и 4001 и пишет артефакты в `test-results/e2e-artifacts/`; эталон в
-`docs/reference/v2-validation/` обновляется только явно через
-`TASKINDEX_E2E_ARTIFACT_DIR`. Последняя команда создаёт отдельный Docker
+[docs/acceptance/agent-cycle.md](docs/acceptance/agent-cycle.md). E2E запускает изолированные настоящие SQLite и Better Auth в `/tmp`
+и пишет артефакты в `test-results/e2e-artifacts/`; эталон в
+`docs/reference/v2-validation/` обновляется только отдельной командой
+`npm run e2e:publish-reference`.
+
+Проекты Playwright (`tests/e2e/playwright.config.ts`), у каждого своя чистая
+база и своя пара портов:
+
+| Проект | Что проверяет | Порты (web/API) |
+|---|---|---|
+| `setup` | вход владельца по паролю на каждой базе, сессия в `storageState` | все |
+| `functional` | основной набор спек | 4173 / 4001 |
+| `visual` | восемь эталонных снимков на замороженных часах | 4174 / 4002 |
+| `static` | production-сборка через `src/server/index.ts` | 4373 |
+| `dark` | те же сцены при `prefers-color-scheme: dark` | 4175 / 4003 |
+| `webkit` | критический путь на `devices['Desktop Safari']` | 4176 / 4004 |
+| `webkit-dark` | доска, редактор и лента WebKit в тёмной теме | 4177 / 4005 |
+
+Проекты не делят состояние: `setup` — зависимость остальных, порядок спек и
+порядок проектов ни на что не влияет, любую спеку можно запустить одну
+(`npm run e2e -- tests/e2e/regressions.spec.ts`) или проект целиком
+(`npm run e2e -- --project webkit`). Проект `visual` — единственный, который
+снимает эталон: у него заморожены и часы сервера, и часы браузера, поэтому два
+прогона подряд дают одинаковый `screenshots-sha256.json`. Последняя команда создаёт отдельный Docker
 project/volume и локальную реплику, проверяет восстановление и сохраняет
 артефакты. `deploy/drill/deploy-drill.sh` идёт дальше: ставит релиз через
 `deploy/bootstrap.sh` и прогоняет поверх него настоящий `deploy.sh` (~6–8 минут,

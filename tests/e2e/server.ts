@@ -11,7 +11,16 @@ import * as schema from '../../src/server/schema';
 import { AGENT } from './helpers';
 import { createApp } from '../../src/server/app';
 // This fixture is a separate real SQLite database and uses real owner auth.
-const dir = mkdtempSync(join(tmpdir(), 'taskindex-e2e-'));
+// TI-070: ports, the fixture name and the frozen clock come from the
+// environment, so `playwright.config.ts` can start one such server per project
+// and no project ever sees another project's records.
+const name = process.env.TASKINDEX_E2E_BASE ?? 'main';
+const apiPort = Number(process.env.TASKINDEX_E2E_API_PORT ?? 4001);
+const webPort = Number(process.env.TASKINDEX_E2E_WEB_PORT ?? 4173);
+// An ISO instant here freezes every `createdAt` the domain writes, so scenes
+// with a time label render the same on two runs in a row.
+const frozen = process.env.TASKINDEX_E2E_NOW?.trim();
+const dir = mkdtempSync(join(tmpdir(), `taskindex-e2e-${name}-`));
 const db = openDatabase(join(dir, 'workspace.db'));
 migrate(db);
 await createOwner(db, {
@@ -33,7 +42,7 @@ db.orm
     revokedAt: null,
   })
   .run();
-const origin = 'http://localhost:4173';
+const origin = `http://localhost:${webPort}`;
 const auth = createAuth(db, {
   baseURL: origin,
   secret: 'taskindex-isolated-e2e-secret-at-least-32-characters',
@@ -45,21 +54,34 @@ const app = createApp({
   baseURL: origin,
   trustedOrigins: [origin],
   build: 'isolated-e2e',
+  ...(frozen ? { now: () => frozen } : {}),
 });
-const server = serve({ fetch: app.fetch, hostname: 'localhost', port: 4001 });
+const server = serve({
+  fetch: app.fetch,
+  hostname: 'localhost',
+  port: apiPort,
+});
 const vite = await createServer({
   configFile: 'vite.config.ts',
+  // Own dependency cache: several fixtures run at once and must not optimize
+  // into the same `node_modules/.vite`.
+  cacheDir: join(dir, 'vite-cache'),
   server: {
     host: 'localhost',
     hmr: false,
     watch: null,
-    port: 4173,
+    port: webPort,
     strictPort: true,
-    proxy: { '/api': { target: 'http://localhost:4001', changeOrigin: true } },
+    proxy: {
+      '/api': { target: `http://localhost:${apiPort}`, changeOrigin: true },
+    },
   },
 });
 await vite.listen();
-console.log(`E2E fixture ready at ${origin}; isolated database ${dir}`);
+console.log(
+  `E2E fixture «${name}» ready at ${origin}; isolated database ${dir}` +
+    (frozen ? `; frozen clock ${frozen}` : ''),
+);
 let stopping = false;
 async function stop() {
   if (stopping) return;

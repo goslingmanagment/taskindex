@@ -1,55 +1,15 @@
-import { mkdirSync, writeFileSync, readFileSync, readdirSync } from 'node:fs';
-import { createHash } from 'node:crypto';
-import { test, expect, type Page, type BrowserContext } from '@playwright/test';
-import type {
-  Snapshot,
-  Task,
-  OperationSuccess,
-  OperationError,
-} from '../../src/shared/model';
-import { resolveArtifactDir } from './artifacts';
-// TI-058: по умолчанию test-results/e2e-artifacts; эталон в docs/reference только
-// явным TASKINDEX_E2E_ARTIFACT_DIR (см. tests/e2e/artifacts.ts).
-const artifacts = resolveArtifactDir();
-let ownerCookies: Awaited<ReturnType<BrowserContext['cookies']>> | undefined;
-test.beforeAll(() => {
-  mkdirSync(artifacts, { recursive: true });
-});
-test.afterAll(() => {
-  const directory = artifacts;
-  const hashes = Object.fromEntries(
-    readdirSync(directory)
-      .filter((name) => name.endsWith('.png'))
-      .sort()
-      .map((name) => [
-        name,
-        createHash('sha256')
-          .update(readFileSync(`${directory}/${name}`))
-          .digest('hex'),
-      ]),
-  );
-  writeFileSync(
-    `${directory}/screenshots-sha256.json`,
-    `${JSON.stringify(hashes, null, 2)}\n`,
-  );
-});
-async function login(page: Page) {
-  if (ownerCookies) {
-    await page.context().addCookies(ownerCookies);
-    await page.goto('/');
-  } else {
-    await page.goto('/');
-    await page.getByLabel('Почта', { exact: true }).fill('owner@example.test');
-    await page
-      .getByLabel('Пароль', { exact: true })
-      .fill('TaskIndex-e2e-password-2026');
-    await page.getByRole('button', { name: 'Войти', exact: true }).click();
-  }
-  await expect(
-    page.getByRole('heading', { name: 'Агентство', exact: true }),
-  ).toBeVisible();
-  ownerCookies = await page.context().cookies();
-}
+import { test, expect, type Page } from '@playwright/test';
+import type { Snapshot, Task, OperationError } from '../../src/shared/model';
+import {
+  TOUCH_HOLD_MS,
+  command,
+  openWorkspace,
+  signIn,
+  snapshot as snapshotOf,
+} from './helpers';
+// TI-070: спека больше не хранит общих cookies и не снимает эталон. Сессия
+// владельца приходит из проекта `setup` через `storageState`, снимки эталона
+// живут в `visual.spec.ts`, поэтому порядок тестов внутри файла ничего не решает.
 async function createTask(page: Page, title: string) {
   await page
     .getByRole('button', { name: 'Добавить задачу', exact: true })
@@ -66,30 +26,10 @@ async function createTask(page: Page, title: string) {
     page.getByRole('heading', { name: title, exact: true }),
   ).toBeVisible();
 }
-async function command(
-  page: Page,
-  commandName: string,
-  payload: Record<string, unknown>,
-) {
-  const snapshot = (await (
-    await page.request.get('/api/snapshot')
-  ).json()) as Snapshot;
-  const response = await page.request.post('/api/commands', {
-    headers: { Origin: 'http://localhost:4173' },
-    data: {
-      operationId: crypto.randomUUID(),
-      generation: snapshot.generation,
-      command: commandName,
-      payload,
-    },
-  });
-  expect(response.ok()).toBe(true);
-  return (await response.json()) as OperationSuccess;
-}
 test('real owner login, atomic editor save, comments, and operation history', async ({
   page,
 }) => {
-  await login(page);
+  await openWorkspace(page);
   await page.setViewportSize({ width: 1440, height: 1000 });
   const title = 'Э2Э: атомарное сохранение';
   await createTask(page, title);
@@ -142,7 +82,7 @@ test('real owner login, atomic editor save, comments, and operation history', as
 test('conflicting edit retains owner text and recovers a draft after reload', async ({
   page,
 }) => {
-  await login(page);
+  await openWorkspace(page);
   const title = 'Э2Э: конфликт';
   await createTask(page, title);
   await page
@@ -176,7 +116,7 @@ test('conflicting edit retains owner text and recovers a draft after reload', as
 test('mobile navigation, focus/search/archive and keyboard task movement', async ({
   page,
 }) => {
-  await login(page);
+  await openWorkspace(page);
   await page.keyboard.press('n');
   await expect(
     page.getByRole('dialog', { name: 'Новая задача', exact: true }),
@@ -247,10 +187,6 @@ test('mobile navigation, focus/search/archive and keyboard task movement', async
   await expect(
     page.getByRole('heading', { name: title, exact: true }),
   ).toBeVisible();
-  await page.screenshot({
-    path: `${artifacts}/mobile-focus.png`,
-    animations: 'disabled',
-  });
   await page
     .getByRole('button', { name: 'Открыть поиск', exact: true })
     .click();
@@ -291,7 +227,7 @@ test('reload after the server commits but its response is lost never creates a d
   page,
 }) => {
   await page.route('**/api/events/stream**', (route) => route.abort());
-  await login(page);
+  await openWorkspace(page);
   const title = 'Э2Э: потерянный ответ';
   let committed!: () => void;
   const onCommit = new Promise<void>((resolve) => {
@@ -347,171 +283,11 @@ test('reload after the server commits but its response is lost never creates a d
   expect(new Set(operationIds).size).toBe(1);
 });
 
-test('populated visual comparison uses the preserved v1 fixture through real API commands', async ({
-  page,
-  browser,
-}) => {
-  await login(page);
-  await page.setViewportSize({ width: 1440, height: 1000 });
-  writeFileSync(
-    `${artifacts}/environment.json`,
-    JSON.stringify(
-      {
-        capturedAt: new Date().toISOString(),
-        node: process.version,
-        browser: browser.version(),
-        playwright: '1.63.0',
-        desktop: { width: 1440, height: 1000 },
-        mobile: { width: 390, height: 844 },
-        origin: 'http://localhost:4173',
-        data: 'tests/e2e/reference-data.json via real /api/commands/batch',
-      },
-      null,
-      2,
-    ) + '\n',
-  );
-  const fixture = (
-    await import('./reference-data.json', { with: { type: 'json' } })
-  ).default;
-  const snapshot = (await (
-    await page.request.get('/api/snapshot')
-  ).json()) as Snapshot;
-  const commands = [
-    ...fixture.projects.map((project) => ({
-      command: 'project.create',
-      payload: {
-        id: `visual-${project.id}`,
-        area: project.area,
-        name: project.name,
-        color: project.color,
-      },
-    })),
-    ...fixture.tasks.map((task) => ({
-      command: 'task.create',
-      payload: {
-        id: `visual-${task.id}`,
-        area: task.area,
-        projectId: task.projectId ? `visual-${task.projectId}` : null,
-        title: task.title,
-        status: task.status,
-        note: task.note,
-        due: task.due || null,
-        waitingFor: task.waitingFor,
-        followUp: task.followUp || null,
-        focus: 'focus' in task ? task.focus : false,
-        checklist: task.checklist.map((item) => ({
-          ...item,
-          id: `visual-${item.id}`,
-        })),
-      },
-    })),
-    {
-      command: 'task.archive',
-      payload: { id: 'visual-reference-archive', baseRevision: 1 },
-    },
-  ];
-  const response = await page.request.post('/api/commands/batch', {
-    headers: { Origin: 'http://localhost:4173' },
-    data: {
-      generation: snapshot.generation,
-      operationId: crypto.randomUUID(),
-      commands,
-    },
-  });
-  expect(response.ok()).toBe(true);
-  // Hide prior tests in another area through real commands, keeping only the reference tasks here.
-  const before = (await (
-    await page.request.get('/api/snapshot')
-  ).json()) as Snapshot;
-  for (const task of before.tasks.filter(
-    (task) => !task.id.startsWith('visual-') && task.area === 'agency',
-  ))
-    await command(page, 'task.save', {
-      id: task.id,
-      baseRevision: task.revision,
-      fields: { area: 'personal', projectId: null },
-    });
-  await page.goto('/?area=agency&project=all&view=board');
-  await expect(
-    page.getByRole('heading', {
-      name: 'Выбрать контент-менеджера',
-      exact: true,
-    }),
-  ).toBeVisible();
-  await expect(page.locator('.sync-status')).toHaveAttribute(
-    'data-connection',
-    'online',
-  );
-  await page.mouse.move(0, 0);
-  await page.screenshot({
-    path: `${artifacts}/desktop-board.png`,
-    animations: 'disabled',
-  });
-  await page.getByRole('tab', { name: 'Список', exact: true }).click();
-  await page.screenshot({
-    path: `${artifacts}/desktop-list.png`,
-    animations: 'disabled',
-  });
-  await page.getByRole('tab', { name: 'Доска', exact: true }).click();
-  await page
-    .getByRole('button', {
-      name: 'Открыть: Выбрать контент-менеджера',
-      exact: true,
-    })
-    .click();
-  await page.screenshot({
-    path: `${artifacts}/desktop-editor.png`,
-    animations: 'disabled',
-  });
-  await command(page, 'comment.add', {
-    taskId: 'visual-a1',
-    text: 'Короткий список собран. Следующий шаг — проверить тестовые.',
-  });
-  await page.getByRole('button', { name: /^Комментарии/ }).click();
-  await page.getByRole('button', { name: 'История', exact: true }).click();
-  await expect(
-    page.getByText(
-      'Короткий список собран. Следующий шаг — проверить тестовые.',
-      { exact: true },
-    ),
-  ).toBeVisible();
-  await page.locator('.editor-body').evaluate((element) => {
-    element.scrollTop = element.scrollHeight;
-  });
-  await page.screenshot({
-    path: `${artifacts}/desktop-discussion.png`,
-    animations: 'disabled',
-  });
-  await page
-    .getByRole('button', { name: 'Закрыть карточку', exact: true })
-    .click();
-  await page.getByRole('button', { name: 'Активность', exact: true }).click();
-  await expect(page.locator('.operation-row').first()).toBeVisible();
-  await page.screenshot({
-    path: `${artifacts}/desktop-activity.png`,
-    animations: 'disabled',
-  });
-  await page.getByRole('button', { name: 'Агентство', exact: true }).click();
-  await page.setViewportSize({ width: 390, height: 844 });
-  await page.mouse.move(0, 0);
-  await page.screenshot({
-    path: `${artifacts}/mobile-board.png`,
-    animations: 'disabled',
-  });
-  await page
-    .getByRole('button', { name: 'Открыть навигацию', exact: true })
-    .click();
-  await page.getByRole('button', { name: /^Фокус/ }).click();
-  await page.screenshot({
-    path: `${artifacts}/mobile-focus.png`,
-    animations: 'disabled',
-  });
-});
 test('mouse and emulated touch drag both persist task moves', async ({
   page,
   browser,
 }) => {
-  await login(page);
+  await openWorkspace(page);
   const projectId = 'e2e-pointer';
   await command(page, 'project.create', {
     id: projectId,
@@ -573,13 +349,14 @@ test('mouse and emulated touch drag both persist task moves', async ({
     )
     .toBe('doing');
   const context = await browser.newContext({
-    baseURL: 'http://localhost:4173',
+    baseURL: test.info().project.use.baseURL,
+    storageState: test.info().project.use.storageState,
     viewport: { width: 390, height: 844 },
     isMobile: true,
     hasTouch: true,
   });
   const mobile = await context.newPage();
-  await login(mobile);
+  await openWorkspace(mobile);
   await mobile.goto(`/?area=agency&project=${projectId}&view=board`);
   const start = mobile.getByRole('button', {
     name: 'Открыть: Касанием',
@@ -594,8 +371,11 @@ test('mouse and emulated touch drag both persist task moves', async ({
     type: 'touchStart',
     touchPoints: [{ x, y }],
   });
-  // TouchSensor activates after its hold delay: wait for the drag itself, not a timer.
-  await expect(mobile.locator('article.dragging')).toHaveCount(1);
+  // TouchSensor activates after its hold delay: wait for the drag itself, not a
+  // timer. The budget comes from the sensor's own constraint (TOUCH_HOLD_MS).
+  await expect(mobile.locator('article.dragging')).toHaveCount(1, {
+    timeout: TOUCH_HOLD_MS * 20,
+  });
   for (let step = 1; step <= 8; step++)
     await session.send('Input.dispatchTouchEvent', {
       type: 'touchMove',
@@ -628,13 +408,11 @@ test('mouse and emulated touch drag both persist task moves', async ({
 test('activity identifies a rejected command and cannot undo it', async ({
   page,
 }) => {
-  await login(page);
+  await openWorkspace(page);
   await page.setViewportSize({ width: 1440, height: 1000 });
-  const snapshot = (await (
-    await page.request.get('/api/snapshot')
-  ).json()) as Snapshot;
+  const snapshot = await snapshotOf(page);
   const response = await page.request.post('/api/commands', {
-    headers: { Origin: 'http://localhost:4173' },
+    headers: { Origin: new URL(page.url()).origin },
     data: {
       operationId: crypto.randomUUID(),
       generation: snapshot.generation,
@@ -664,64 +442,65 @@ test('activity identifies a rejected command and cannot undo it', async ({
   ).toBeHidden();
   await expect(row.locator('[role="alert"]')).toHaveCount(0);
   await expect(row.getByText(result.message, { exact: true })).toBeVisible();
-  await page.screenshot({
-    path: `${artifacts}/desktop-activity-rejected.png`,
-    animations: 'disabled',
-  });
 });
 
-test('register passkey, sign out, and sign in with a virtual WebAuthn authenticator', async ({
-  page,
-}) => {
-  await login(page);
-  const cdp = await page.context().newCDPSession(page);
-  await cdp.send('WebAuthn.enable');
-  const { authenticatorId } = await cdp.send(
-    'WebAuthn.addVirtualAuthenticator',
-    {
-      options: {
-        protocol: 'ctap2',
-        transport: 'internal',
-        hasResidentKey: true,
-        hasUserVerification: true,
-        automaticPresenceSimulation: true,
-        isUserVerified: true,
+// TI-070: выход из пространства отзывает сессию, поэтому сцена работает не с
+// общей сессией проекта `setup`, а со своей: иначе она гасила бы `storageState`
+// для всех последующих тестов файла.
+test.describe('своя сессия владельца', () => {
+  test.use({ storageState: { cookies: [], origins: [] } });
+  test('register passkey, sign out, and sign in with a virtual WebAuthn authenticator', async ({
+    page,
+  }, testInfo) => {
+    await signIn(page, testInfo);
+    const cdp = await page.context().newCDPSession(page);
+    await cdp.send('WebAuthn.enable');
+    const { authenticatorId } = await cdp.send(
+      'WebAuthn.addVirtualAuthenticator',
+      {
+        options: {
+          protocol: 'ctap2',
+          transport: 'internal',
+          hasResidentKey: true,
+          hasUserVerification: true,
+          automaticPresenceSimulation: true,
+          isUserVerified: true,
+        },
       },
-    },
-  );
-  await page.getByRole('button', { name: 'Дмитрий', exact: true }).click();
-  await page
-    .getByRole('menuitem', { name: 'Добавить passkey', exact: true })
-    .click();
-  await expect(
-    page.getByText('Passkey добавлен', { exact: true }),
-  ).toBeVisible();
-  const credentials = await cdp.send('WebAuthn.getCredentials', {
-    authenticatorId,
+    );
+    await page.getByRole('button', { name: 'Дмитрий', exact: true }).click();
+    await page
+      .getByRole('menuitem', { name: 'Добавить passkey', exact: true })
+      .click();
+    await expect(
+      page.getByText('Passkey добавлен', { exact: true }),
+    ).toBeVisible();
+    const credentials = await cdp.send('WebAuthn.getCredentials', {
+      authenticatorId,
+    });
+    expect(credentials.credentials).toHaveLength(1);
+    expect(credentials.credentials[0]!.rpId).toBe('localhost');
+    await page.getByRole('button', { name: 'Дмитрий', exact: true }).click();
+    await page.getByRole('menuitem', { name: 'Выйти', exact: true }).click();
+    await expect(
+      page.getByRole('heading', { name: 'Войти в пространство', exact: true }),
+    ).toBeVisible();
+    expect((await page.request.get('/api/snapshot')).status()).toBe(401);
+    await page
+      .getByRole('button', { name: 'Войти с passkey', exact: true })
+      .click();
+    await expect(
+      page.getByRole('heading', { name: 'Агентство', exact: true }),
+    ).toBeVisible();
+    expect((await page.request.get('/api/snapshot')).ok()).toBe(true);
+    await cdp.send('WebAuthn.removeVirtualAuthenticator', { authenticatorId });
   });
-  expect(credentials.credentials).toHaveLength(1);
-  expect(credentials.credentials[0]!.rpId).toBe('localhost');
-  await page.getByRole('button', { name: 'Дмитрий', exact: true }).click();
-  await page.getByRole('menuitem', { name: 'Выйти', exact: true }).click();
-  await expect(
-    page.getByRole('heading', { name: 'Войти в пространство', exact: true }),
-  ).toBeVisible();
-  expect((await page.request.get('/api/snapshot')).status()).toBe(401);
-  await page
-    .getByRole('button', { name: 'Войти с passkey', exact: true })
-    .click();
-  await expect(
-    page.getByRole('heading', { name: 'Агентство', exact: true }),
-  ).toBeVisible();
-  expect((await page.request.get('/api/snapshot')).ok()).toBe(true);
-  ownerCookies = await page.context().cookies();
-  await cdp.send('WebAuthn.removeVirtualAuthenticator', { authenticatorId });
 });
 
 // TI-025 фаза A: скин обязан выигрывать у утилит примитивов слоем каскада, а не
 // !important. Скриншоты не покрывают диалоги, поэтому вычисленные значения
-// проверяются напрямую. Тест стоит последним в файле: он создаёт задачу, а
-// эталонные снимки уже сняты выше.
+// проверяются напрямую. TI-070: эталон снимает проект `visual` на своей базе,
+// поэтому место теста в файле роли не играет.
 test('the skin layer outranks the primitive utilities without !important', async ({
   page,
 }) => {
@@ -733,7 +512,7 @@ test('the skin layer outranks the primitive utilities without !important', async
       },
       [selector, property] as const,
     );
-  await login(page);
+  await openWorkspace(page);
   await page.setViewportSize({ width: 1440, height: 1000 });
   // The heading tabs keep the skin height, not the primitive's own.
   expect(await style('.view-tabs', 'height')).toBe('44px');
