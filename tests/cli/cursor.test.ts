@@ -47,6 +47,18 @@ const event = (seq: number) => ({
   lastSeq: seq,
 });
 
+const operation = (operationSeq: number) => ({
+  id: `op${operationSeq}`,
+  operationSeq,
+  actorId: 'owner',
+  actorLabel: 'Владелец',
+  at: '2026-09-10T10:00:00.000Z',
+  command: 'task.update',
+  ok: true,
+  firstSeq: null,
+  lastSeq: null,
+});
+
 type Handler = (url: URL) => Response;
 
 function harness(directory: string, token: keyof typeof actors) {
@@ -153,6 +165,15 @@ describe('saved cursor per server and agent (TI-047)', () => {
           nextCursor: null,
           href: '',
         },
+        comments: {
+          generation: 'g1',
+          seq: 9,
+          items: [],
+          more: false,
+          nextCursor: null,
+          href: '',
+        },
+        operationSeq: 4,
       }),
     );
     const digest = await a.run(['digest', '--since', 'last']);
@@ -186,7 +207,7 @@ describe('saved cursor per server and agent (TI-047)', () => {
     const activity = await a.run(['activity', '--since', 'last']);
     expect(activity.code).toBe(0);
     expect(a.urls.filter((url) => url.startsWith('/api/operations'))).toEqual([
-      '/api/operations?since=0&generation=g_srv',
+      '/api/operations?after=0&generation=g_srv',
     ]);
     const numeric = await a.run(['activity', '--since', '5']);
     expect(numeric.code).toBe(2);
@@ -244,21 +265,21 @@ describe('saved cursor per server and agent (TI-047)', () => {
     ).toBeDefined();
     expect(await a.cursor()).toMatchObject({ seq: 12 });
 
-    // activity --all: committed after the last page, with operationSeq when the server sends it.
+    // activity --all: committed after the last page; operationSeq is the
+    // position of the last operation of the ascending walk (TI-008).
     a.serve((url) =>
       url.searchParams.has('cursor')
         ? json({
             generation: 'g1',
             seq: 20,
-            items: [],
+            items: [operation(4), operation(5)],
             more: false,
             nextCursor: null,
-            operationSeq: 5,
           })
         : json({
             generation: 'g1',
             seq: 20,
-            items: [],
+            items: [operation(3)],
             more: true,
             nextCursor: 'c1',
           }),
@@ -299,6 +320,15 @@ describe('saved cursor per server and agent (TI-047)', () => {
           nextCursor: 'x',
           href: '/api/operations?cursor=x',
         },
+        comments: {
+          generation: 'g1',
+          seq: 25,
+          items: [],
+          more: false,
+          nextCursor: null,
+          href: '',
+        },
+        operationSeq: 9,
       }),
     );
     const digest = await a.run(['digest', '--since', 'last', '--commit']);
@@ -318,6 +348,120 @@ describe('saved cursor per server and agent (TI-047)', () => {
       1,
     );
     expect(await a.cursor()).toMatchObject({ seq: 20 });
+  });
+
+  it('the operation log has its own position: activity --since last walks after=<operationSeq> and a commit keeps it (TI-008)', async () => {
+    const directory = await mkdtemp(join(tmpdir(), 'taskindex-cursor-'));
+    const a = harness(directory, 'key-a');
+    await a.run([
+      'cursor',
+      'commit',
+      '7',
+      '--generation',
+      'g1',
+      '--operation-seq',
+      '4',
+    ]);
+    expect(await a.cursor()).toMatchObject({ seq: 7, operationSeq: 4 });
+
+    // A rejected operation has no events at all: it is only reachable by
+    // after=<operationSeq>, never by the event window since=7.
+    a.serve(() =>
+      json({
+        generation: 'g1',
+        seq: 7,
+        items: [{ ...operation(5), ok: false }],
+        more: false,
+        nextCursor: null,
+      }),
+    );
+    const activity = await a.run(['activity', '--since', 'last', '--commit']);
+    expect(activity.code).toBe(0);
+    expect(a.urls.filter((url) => url.startsWith('/api/operations'))).toEqual([
+      '/api/operations?after=4&generation=g1',
+    ]);
+    expect(activity.output.at(-1)).toMatchObject({
+      items: [{ id: 'op5', ok: false }],
+    });
+    expect(await a.cursor()).toMatchObject({ seq: 7, operationSeq: 5 });
+
+    // An explicit --after wins over the cursor.
+    await a.run(['activity', '--since', 'last', '--after', '2']);
+    expect(a.urls.at(-1)).toBe('/api/operations?after=2&generation=g1');
+
+    // A read of the event feed does not drop the operation position.
+    a.serve(() =>
+      json({ generation: 'g1', latestSeq: 11, more: false, events: [] }),
+    );
+    expect((await a.run(['events', '--since', 'last', '--commit'])).code).toBe(
+      0,
+    );
+    expect(await a.cursor()).toMatchObject({ seq: 11, operationSeq: 5 });
+
+    // A bare `cursor commit` keeps it too; --operation-seq replaces it.
+    await a.run(['cursor', 'commit', '12', '--generation', 'g1']);
+    expect(await a.cursor()).toMatchObject({ seq: 12, operationSeq: 5 });
+    await a.run([
+      'cursor',
+      'commit',
+      '13',
+      '--generation',
+      'g1',
+      '--operation-seq',
+      '8',
+    ]);
+    expect(await a.cursor()).toMatchObject({ seq: 13, operationSeq: 8 });
+    // A different generation starts both positions from scratch.
+    await a.run(['cursor', 'commit', '1', '--generation', 'g2']);
+    expect(await a.cursor()).toMatchObject({ generation: 'g2', seq: 1 });
+    expect(await a.cursor()).not.toHaveProperty('operationSeq');
+  });
+
+  it('digest --since-op windows the operation log by operationSeq', async () => {
+    const directory = await mkdtemp(join(tmpdir(), 'taskindex-cursor-'));
+    const a = harness(directory, 'key-a');
+    a.serve(() =>
+      json({
+        generation: 'g1',
+        seq: 9,
+        operationSeq: 6,
+        today: '2026-09-10',
+        timezone: 'Europe/Moscow',
+        focus: [],
+        waiting: {
+          generation: 'g1',
+          seq: 9,
+          items: [],
+          more: false,
+          nextCursor: null,
+          href: '',
+        },
+        counts: { tasks: 0, archived: 0, projects: 0 },
+        operations: {
+          generation: 'g1',
+          seq: 9,
+          items: [operation(6)],
+          more: false,
+          nextCursor: null,
+          href: '',
+        },
+        comments: {
+          generation: 'g1',
+          seq: 9,
+          items: [],
+          more: false,
+          nextCursor: null,
+          href: '',
+        },
+      }),
+    );
+    const digest = await a.run(['digest', '--since-op', '4', '--commit']);
+    expect(digest.code).toBe(0);
+    expect(a.urls.filter((url) => url.startsWith('/api/digest'))).toEqual([
+      '/api/digest?sinceOp=4',
+    ]);
+    expect(await a.cursor()).toMatchObject({ seq: 9, operationSeq: 6 });
+    expect((await a.run(['digest', '--since-op', 'x'])).code).toBe(2);
   });
 
   it('generation_changed is printed with a hint to reset the cursor', async () => {

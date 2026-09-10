@@ -123,7 +123,7 @@ const sinceFlag = flag(
 const commitFlag = flag(
   'commit',
   'boolean',
-  'После дочитывания всех страниц (more: false) записать seq и generation ответа в курсор; неполный обход курсор не двигает',
+  'После дочитывания всех страниц (more: false) записать seq, operationSeq и generation ответа в курсор; неполный обход курсор не двигает',
 );
 
 const id = (
@@ -242,7 +242,7 @@ export const READS: ReadSpec[] = [
     ],
     flags: [commitFlag],
     summary:
-      'Лента операций всех акторов, постранично; --since показывает только операции с событиями (отказы и no-op — полная лента без --since)',
+      'Лента операций всех акторов, постранично; --since last идёт по журналу операций (after=operationSeq): видны отказы и операции без изменений',
     example: 'taskindex activity --since last --all --commit',
   },
   {
@@ -259,7 +259,7 @@ export const READS: ReadSpec[] = [
     ],
     flags: [commitFlag],
     summary:
-      'Сводка: Focus, ожидание, счётчики и операции после since (только операции с событиями)',
+      'Сводка: Focus, ожидание, счётчики, комментарии владельца и операции после since (по событиям) или --since-op (по журналу операций, с отказами)',
     example: 'taskindex digest --since last',
   },
   {

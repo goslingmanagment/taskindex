@@ -214,17 +214,25 @@ export class CliState {
     }
   }
 
+  // The file holds two independent positions of the same generation: the event
+  // feed (`seq`) and the operation log (`operationSeq`). A commit that knows
+  // only one of them keeps the other, so reading events never loses the place
+  // in the operation log and back (TI-008). A new generation drops both.
   async commitCursor(
     identity: Identity | undefined,
     position: { generation: string; seq: number; operationSeq?: number },
   ): Promise<Cursor> {
+    const previous = await this.readCursor(identity);
+    const operationSeq =
+      position.operationSeq ??
+      (previous?.generation === position.generation
+        ? previous.operationSeq
+        : undefined);
     const cursor: Cursor = {
       formatVersion: 1,
       generation: position.generation,
       seq: position.seq,
-      ...(position.operationSeq !== undefined
-        ? { operationSeq: position.operationSeq }
-        : {}),
+      ...(operationSeq !== undefined ? { operationSeq } : {}),
       committedAt: new Date().toISOString(),
     };
     const file = this.cursorFile(identity);

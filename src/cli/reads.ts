@@ -61,12 +61,31 @@ export function readPath(
   return `${path}${params.size ? `?${params}` : ''}`;
 }
 
+// The position of the read in the operation log: `/api/digest` reports it as
+// `operationSeq`, a page of `/api/operations` carries it on every item, and
+// the walk ends on the largest one it saw. Without it the cursor keeps the
+// operation position it already had (TI-008).
+export function operationSeqOf(
+  body: Record<string, unknown>,
+): number | undefined {
+  if (typeof body.operationSeq === 'number') return body.operationSeq;
+  if (!Array.isArray(body.items)) return undefined;
+  let largest: number | undefined;
+  for (const item of body.items) {
+    const value = (item as { operationSeq?: unknown }).operationSeq;
+    if (typeof value === 'number' && (largest === undefined || value > largest))
+      largest = value;
+  }
+  return largest;
+}
+
 // `--commit`: the cursor moves only when the read was complete — every page
 // walked (`more: false`) — to the position the server reported for it.
 async function commitRead(
   session: Session,
   spec: ReadSpec,
   body: Record<string, unknown>,
+  operationSeq = operationSeqOf(body),
 ): Promise<void> {
   const { state, identity, warn } = session;
   const operations = body.operations as { more?: unknown } | undefined;
@@ -93,9 +112,7 @@ async function commitRead(
   const cursor = await state.commitCursor(identity, {
     generation: body.generation,
     seq,
-    ...(typeof body.operationSeq === 'number'
-      ? { operationSeq: body.operationSeq }
-      : {}),
+    ...(operationSeq !== undefined ? { operationSeq } : {}),
   });
   warn({ cursorCommitted: cursor, file: state.cursorFile(identity) });
 }
@@ -152,7 +169,19 @@ async function walkPages(
     )
       warn({ warning: 'list_changed_during_walk', fromSeq, toSeq });
     const last = pages.at(-1);
-    if (args.flags.commit && last) await commitRead(session, spec, last);
+    if (args.flags.commit && last)
+      await commitRead(
+        session,
+        spec,
+        last,
+        pages.reduce<number | undefined>((largest, body) => {
+          const value = operationSeqOf(body);
+          return value !== undefined &&
+            (largest === undefined || value > largest)
+            ? value
+            : largest;
+        }, undefined),
+      );
     return 0;
   }
 }
@@ -167,7 +196,12 @@ async function resolveSince(
   const flags = { ...session.args.flags };
   if (flags.since === 'last') {
     const cursor = await session.state.readCursor(session.identity);
-    flags.since = String(cursor?.seq ?? 0);
+    if (spec.group === 'activity') {
+      // The operation log has its own position: `after` shows rejections and
+      // operations without events, which the event window `since` never does.
+      delete flags.since;
+      flags.after ??= String(cursor?.operationSeq ?? 0);
+    } else flags.since = String(cursor?.seq ?? 0);
     if (cursor) flags.generation ??= cursor.generation;
   } else if (flags.since !== undefined && !/^\d+$/.test(String(flags.since)))
     throw new ArgumentError(
