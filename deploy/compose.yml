@@ -11,9 +11,14 @@ services:
       DATABASE_PATH: /data/taskindex.db
       BASE_URL: ${BASE_URL:?Set the real HTTPS URL}
       BETTER_AUTH_SECRET: ${BETTER_AUTH_SECRET:?Supply using op run}
+      # Читается только `taskindex-admin migrate` при первой инициализации базы;
+      # действующий пояс хранится в settings.timezone, смена переменной его не меняет.
       TIMEZONE: ${TIMEZONE:-Europe/Moscow}
+      # debug|info|warn|error: порог структурного JSON-лога сервера и admin-команд (TI-020).
       LOG_LEVEL: ${LOG_LEVEL:-info}
       BUILD: ${TASKINDEX_BUILD:-local}
+      # Внутри контейнера слушать все интерфейсы; наружу порт публикуется только на 127.0.0.1.
+      HOST: '0.0.0.0'
       PORT: '3000'
       TASKINDEX_WRITES: held
       TASKINDEX_DEPLOYMENT: ${TASKINDEX_DEPLOYMENT:?Set a unique deployment attempt ID}

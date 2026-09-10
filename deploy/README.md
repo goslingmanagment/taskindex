@@ -58,6 +58,7 @@ Better Auth использует `X-Real-IP`, который Nginx переза�
    `agent-key create --agent claude-mac --scope write --out /data/claude-key.json`.
    Новый ключ сохраняется в файл 0600; в stdout только id и путь. Перенести его
    в 1Password доверенным локальным способом; файлы с секретами не коммитить.
+   Подробнее — раздел «Ключи агентов» ниже.
 4. `docker compose -f deploy/compose.yml up -d app litestream`. Проверить
    `curl --fail http://127.0.0.1:3100/health`: `ok`, нужные build/schemaVersion,
    `dbWritable:true`, `writes:held`. Проверить реплику командой
@@ -72,7 +73,7 @@ Better Auth использует `X-Real-IP`, который Nginx переза�
 6. Открыть запись командой `docker compose -f deploy/compose.yml exec -T app taskindex-admin open-writes`.
    Проверить `/health` с `writes:open`, вход по паролю, регистрацию passkey и вход
    по нему на телефоне. Выполнить тестовый агентский цикл в отдельном окружении
-   из `tests/e2e/agent-cycle.md`; тестовые задачи в рабочую базу не писать.
+   из `docs/acceptance/agent-cycle.md`; тестовые задачи в рабочую базу не писать.
 
 `TASKINDEX_DEPLOYMENT` относится к попытке деплоя, не только к git commit.
 `open-writes` сохраняет разрешённый id в базе. Перезапуск того же контейнера
@@ -80,6 +81,51 @@ Better Auth использует `X-Real-IP`, который Nginx переза�
 разрешение. Приложение должно закрывать SSE и завершать короткие запросы при
 SIGTERM; Compose даёт ему 20 секунд, затем принудительно завершает. Принудительный
 выход не считается успешным drain в `deploy.sh`.
+
+## Ключи агентов
+
+Admin-команды работают с базой напрямую и читают только `DATABASE_PATH`,
+`TIMEZONE` (только `migrate`), `TASKINDEX_DEPLOYMENT` (только `open-writes`) и
+`LOG_LEVEL`; `BASE_URL` и `BETTER_AUTH_SECRET` им не нужны, поэтому ключ можно
+создать до того, как сервер вообще запущен:
+
+```sh
+docker compose -f deploy/compose.yml run --rm --no-deps -T app \
+  taskindex-admin agent-key create --agent claude-mac --scope write --out /data/claude-key.json
+docker compose -f deploy/compose.yml run --rm --no-deps -T app taskindex-admin agent-key list
+docker compose -f deploy/compose.yml run --rm --no-deps -T app taskindex-admin agent-key revoke KEY_ID
+```
+
+Ключ имеет вид `ti_<43 символа base64url>`; в базе хранится только SHA-256
+(таблица `agent_keys`), файл `--out` создаётся с mode 0600 и не перезаписывается.
+`agent-key list` печатает `id`, `agentId`, `scope`, `name`, `createdAt` и
+`revokedAt` (`null` у действующих). Гарантия отзыва (`agent-key revoke`,
+`agent disable`, TI-001/TI-036): новые запросы с этим ключом получают 401 сразу
+(проверка при каждом запросе); уже открытый SSE-поток закрывается не позже чем
+через 25 с (доступ перепроверяется перед каждой доставкой и на каждом heartbeat,
+`SSE_HEARTBEAT_MS`), поток завершается кадром `event: revoked`, после которого
+клиент не переподключается с тем же ключом.
+
+## Журнал и переменные сервера
+
+Сервер читает переменные через `src/server/config.ts` (Zod; неверное значение
+останавливает старт с именем поля, без вывода значения): `HOST` (в контейнере
+`0.0.0.0`, в dev по умолчанию `127.0.0.1`), `PORT`, `BASE_URL`,
+`BETTER_AUTH_SECRET` (не короче 32 символов), `DATABASE_PATH`, `BUILD`,
+`TASKINDEX_WRITES`, `TASKINDEX_DEPLOYMENT`, `LOG_LEVEL`. `TIMEZONE` сервер не
+читает: она нужна только `taskindex-admin migrate` при первой инициализации,
+действующий пояс хранится в `settings`.
+
+`LOG_LEVEL` принимает `debug|info|warn|error` (по умолчанию `info`). Журнал —
+по одной JSON-строке на событие: первыми идут `level` и `time`, затем `event`
+(`request`, `internal_error`, `post_commit_error`, …), `requestId` (значение
+заголовка `x-request-id` клиента или сгенерированный UUID; тот же id сервер
+возвращает в ответе), `method`, `path`, `actor`, `operationId`. `debug` и `info`
+уходят в stdout, `warn` и `error` — в stderr; `docker compose logs app` показывает
+оба потока. При необработанной ошибке клиент получает 500 с кодом `internal`
+(без текста исключения), а в журнал попадает `internal_error` с `requestId`, по
+которому запрос ищется в логе; тело запроса, заголовки и ключи в журнал не
+попадают.
 
 ## Nginx: публичная поверхность
 
