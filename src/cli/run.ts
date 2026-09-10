@@ -177,6 +177,63 @@ async function commitRead(
   warn({ cursorCommitted: cursor, file: state.cursorFile(identity) });
 }
 
+// `--all` on a cursor-paginated read: pages are collected and printed only
+// after a complete walk. A 409 conflict on the cursor (the list changed
+// between pages) restarts the walk from the first page, at most three times;
+// generation_changed is never retried. A walk whose first and last page carry
+// a different `seq` is reported: only /api/snapshot is a consistent full list.
+async function walkPages(
+  session: Session,
+  spec: ReadSpec,
+  first: string,
+): Promise<number> {
+  const { args, client, options, emit, warn } = session;
+  for (let attempt = 0; ; attempt += 1) {
+    const pages: Record<string, unknown>[] = [];
+    const seen = new Set<string>();
+    let path = first;
+    let failure: ApiReply | undefined;
+    while (!options.signal?.aborted) {
+      if (seen.has(path)) throw new Error('API повторил курсор страницы');
+      seen.add(path);
+      const reply = await client.request(path);
+      if (exitCode(reply)) {
+        failure = reply;
+        break;
+      }
+      pages.push(reply.body);
+      if (reply.body.more !== true) break;
+      if (typeof reply.body.nextCursor !== 'string')
+        throw new Error('API сообщил more без nextCursor');
+      const next: URL = new URL(path, client.baseUrl);
+      next.searchParams.set('cursor', reply.body.nextCursor);
+      if (typeof reply.body.generation === 'string')
+        next.searchParams.set('generation', reply.body.generation);
+      path = `${next.pathname}${next.search}`;
+    }
+    if (failure) {
+      if (failure.body.code === 'conflict' && pages.length && attempt < 3) {
+        warn({ restart: attempt + 1, reason: 'cursor_conflict' });
+        continue;
+      }
+      emit(withHints(failure.body));
+      return exitCode(failure);
+    }
+    for (const body of pages) emit(body);
+    const fromSeq = pages[0]?.seq;
+    const toSeq = pages.at(-1)?.seq;
+    if (
+      typeof fromSeq === 'number' &&
+      typeof toSeq === 'number' &&
+      fromSeq !== toSeq
+    )
+      warn({ warning: 'list_changed_during_walk', fromSeq, toSeq });
+    const last = pages.at(-1);
+    if (args.flags.commit && last) await commitRead(session, spec, last);
+    return 0;
+  }
+}
+
 async function runRead(
   session: Session,
   spec: ReadSpec,
@@ -215,6 +272,7 @@ async function runRead(
     );
   }
   let path = readPath(spec, rest, flags);
+  if (args.flags.all && spec.pageable) return walkPages(session, spec, path);
   const intervalFlag = flagString(args.flags, 'interval');
   if (intervalFlag !== undefined && !/^\d+$/.test(intervalFlag))
     throw new ArgumentError('--interval: ожидается число миллисекунд');
@@ -294,14 +352,7 @@ async function runRead(
       if (options.signal?.aborted) break;
       continue;
     }
-    if (!args.flags.all || result.body.more !== true) break;
-    if (typeof result.body.nextCursor !== 'string')
-      throw new Error('API сообщил more без nextCursor');
-    const next: URL = new URL(path, client.baseUrl);
-    next.searchParams.set('cursor', result.body.nextCursor);
-    if (typeof result.body.generation === 'string')
-      next.searchParams.set('generation', result.body.generation);
-    path = `${next.pathname}${next.search}`;
+    break;
   } while (!options.signal?.aborted);
   if (args.flags.commit && !(isEvents && (args.flags.follow || args.flags.all)))
     await commitRead(session, spec, result.body);
