@@ -7,9 +7,14 @@ import type {
   OperationSuccess,
   OperationError,
 } from '../../src/shared/model';
-const artifacts =
-  process.env.TASKINDEX_E2E_ARTIFACT_DIR ?? 'docs/reference/v2-validation';
+import { resolveArtifactDir } from './artifacts';
+// TI-058: по умолчанию test-results/e2e-artifacts; эталон в docs/reference только
+// явным TASKINDEX_E2E_ARTIFACT_DIR (см. tests/e2e/artifacts.ts).
+const artifacts = resolveArtifactDir();
 let ownerCookies: Awaited<ReturnType<BrowserContext['cookies']>> | undefined;
+test.beforeAll(() => {
+  mkdirSync(artifacts, { recursive: true });
+});
 test.afterAll(() => {
   const directory = artifacts;
   const hashes = Object.fromEntries(
@@ -86,7 +91,6 @@ test('real owner login, atomic editor save, comments, and operation history', as
 }) => {
   await login(page);
   await page.setViewportSize({ width: 1440, height: 1000 });
-  mkdirSync(artifacts, { recursive: true });
   const title = 'Э2Э: атомарное сохранение';
   await createTask(page, title);
   await page
@@ -345,7 +349,6 @@ test('populated visual comparison uses the preserved v1 fixture through real API
 }) => {
   await login(page);
   await page.setViewportSize({ width: 1440, height: 1000 });
-  mkdirSync(artifacts, { recursive: true });
   writeFileSync(
     `${artifacts}/environment.json`,
     JSON.stringify(

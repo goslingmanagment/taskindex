@@ -31,6 +31,22 @@ Desktop — 1440 × 1000, mobile — 390 × 844. Перед съёмкой до�
 npm run e2e
 ```
 
+Обычный прогон пишет снимки, `environment.json` и `screenshots-sha256.json` в
+`test-results/e2e-artifacts/` (каталог в `.gitignore`) и ничего не меняет в
+`docs/`. Снимки в этой папке — зафиксированный эталон; обновляется он только
+осознанно, явной командой после просмотра результата:
+
+```sh
+TASKINDEX_E2E_ARTIFACT_DIR=docs/reference/v2-validation npm run e2e
+```
+
+После такого прогона снимки просматривают, обновляют дату в заголовке этого
+README по `capturedAt` из `environment.json` и коммитят всё вместе. Сцены
+`desktop-activity`, `desktop-activity-rejected`, `desktop-discussion` и
+`mobile-board` содержат относительное время и могут отличаться между прогонами
+одного и того же кода (см. TI-070). Умолчание и переменная описаны в
+`tests/e2e/artifacts.ts`.
+
 Конфигурация: `tests/e2e/playwright.config.ts`. Сервер тестов создаёт отдельную
 SQLite-базу в `/tmp/taskindex-e2e-*`, мигрирует её и создаёт тестового владельца
 штатным admin API. Вход проходит через настоящий Better Auth. API слушает
