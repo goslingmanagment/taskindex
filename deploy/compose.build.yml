@@ -1,0 +1,12 @@
+# Сборка образа на этом хосте. Подключается только там, где образ действительно
+# собирается: `local-drill.sh`, `deploy.sh --build-here`, `bootstrap.sh --build-here`.
+# В снимок релиза (deploy/.runtime/releases/<deployment>/) этот файл не входит:
+# относительный context там не имел бы смысла. Обычный путь: образ из CI
+# (docker save | ssh docker load), см. deploy/README.md.
+services:
+  app:
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile
+      args:
+        BUILD: ${TASKINDEX_BUILD:-local}

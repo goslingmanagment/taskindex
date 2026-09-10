@@ -1,10 +1,12 @@
 # Test-only override. No real S3 credentials or production volume are used.
+# Пути абсолютные через TASKINDEX_DEPLOY_DIR (каталог deploy/ чекаута): относительные пути
+# compose разрешает от каталога первого файла, а им после TI-015 бывает снимок релиза.
 services:
   app:
     ports: !reset []
   litestream:
     volumes:
-      - ./litestream.local.yml:/etc/litestream.yml:ro
+      - ${TASKINDEX_DEPLOY_DIR:?Set TASKINDEX_DEPLOY_DIR to the deploy/ directory}/litestream.local.yml:/etc/litestream.yml:ro
   # Локальный приёмник heartbeat Litestream (TI-002); порт на хост не публикуется.
   # Volume data не монтируется: rollback.sh отказывает, пока его держит другой контейнер.
   heartbeat:
@@ -13,5 +15,5 @@ services:
     environment:
       HEARTBEAT_LOG: /tmp/heartbeat.log
     volumes:
-      - ./drill:/drill:ro
+      - ${TASKINDEX_DEPLOY_DIR:?Set TASKINDEX_DEPLOY_DIR to the deploy/ directory}/drill:/drill:ro
     restart: unless-stopped

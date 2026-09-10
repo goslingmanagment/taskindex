@@ -2,11 +2,6 @@ name: taskindex
 services:
   app:
     image: ${TASKINDEX_IMAGE:?Set TASKINDEX_IMAGE to an immutable release tag}
-    build:
-      context: ..
-      dockerfile: deploy/Dockerfile
-      args:
-        BUILD: ${TASKINDEX_BUILD:-local}
     environment:
       DATABASE_PATH: /data/taskindex.db
       BASE_URL: ${BASE_URL:?Set the real HTTPS URL}
@@ -29,13 +24,7 @@ services:
     restart: unless-stopped
     stop_grace_period: 20s
     healthcheck:
-      test:
-        [
-          'CMD',
-          'node',
-          '-e',
-          "fetch('http://127.0.0.1:3000/health').then(async r=>{const h=await r.json();process.exit(r.ok&&h.ok?0:1)}).catch(()=>process.exit(1))",
-        ]
+      test: ['CMD', 'node', 'deploy/health.mjs']
       interval: 10s
       timeout: 5s
       retries: 6

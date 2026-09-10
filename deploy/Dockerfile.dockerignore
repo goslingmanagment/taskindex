@@ -15,3 +15,4 @@
 !deploy
 !deploy/Dockerfile
 !deploy/database.mjs
+!deploy/health.mjs

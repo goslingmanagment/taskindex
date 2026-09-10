@@ -6,19 +6,23 @@ RUN npm ci --include=dev
 COPY tsconfig.json tsdown.config.ts vite.config.ts index.html ./
 COPY src ./src
 COPY public/favicon.svg ./public/favicon.svg
-RUN npm run build && npm prune --omit=dev --omit=optional
+# --omit=optional намеренно нет: платформенные реализации пакетов живут в optional (TI-068).
+RUN npm run build && npm prune --omit=dev
 
 FROM node:24.20.0-bookworm-slim AS runtime
-ARG BUILD=local
-ENV NODE_ENV=production PORT=3000 DATABASE_PATH=/data/taskindex.db BUILD=$BUILD
 WORKDIR /app
 RUN apt-get update && apt-get install -y --no-install-recommends tini sqlite3 ca-certificates && rm -rf /var/lib/apt/lists/* \
     && mkdir -p /data && chown node:node /data
+# BUILD после apt-слоя: он меняется с каждым коммитом и не должен сбрасывать кэш пакетов.
+ARG BUILD=local
+ENV NODE_ENV=production PORT=3000 DATABASE_PATH=/data/taskindex.db BUILD=$BUILD
+# deploy.sh и bootstrap.sh отказывают, если метка не равна целевому коммиту (TI-016).
+LABEL org.opencontainers.image.revision=$BUILD
 COPY --from=build --chown=node:node /app/node_modules ./node_modules
 COPY --from=build --chown=node:node /app/dist ./dist
 COPY --chown=node:node package.json ./package.json
 COPY --chown=node:node drizzle/v2 ./drizzle/v2
-COPY --chown=node:node deploy/database.mjs ./deploy/database.mjs
+COPY --chown=node:node deploy/database.mjs deploy/health.mjs ./deploy/
 RUN chmod +x dist/cli/index.js dist/cli/admin.js \
     && ln -s /app/dist/cli/index.js /usr/local/bin/taskindex \
     && ln -s /app/dist/cli/admin.js /usr/local/bin/taskindex-admin
