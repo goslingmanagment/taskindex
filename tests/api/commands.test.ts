@@ -5,6 +5,7 @@ import {
   getSetting,
   latestSeq,
   migrate,
+  schemaVersion,
   setSetting,
 } from '../../src/server/db.js';
 import {
@@ -300,10 +301,11 @@ describe('transactional commands', () => {
   });
   it('never relabels a newer or unknown migration as schema1', () => {
     const f = setup();
-    setSetting(f.db, 'schema_version', '2');
+    const newer = String(schemaVersion() + 1);
+    setSetting(f.db, 'schema_version', newer);
     expect(() => migrate(f.db)).toThrow();
-    expect(getSetting(f.db, 'schema_version')).toBe('2');
-    setSetting(f.db, 'schema_version', '1');
+    expect(getSetting(f.db, 'schema_version')).toBe(newer);
+    setSetting(f.db, 'schema_version', String(schemaVersion()));
     f.db.sqlite
       .prepare('INSERT INTO __taskindex_migrations(name) VALUES(?)')
       .run('future.sql');

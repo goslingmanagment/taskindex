@@ -4,13 +4,7 @@ import { bodyLimit } from 'hono/body-limit';
 import { eq } from 'drizzle-orm';
 import { randomUUID, createHash } from 'node:crypto';
 import { AREAS, STATUSES, FORMAT_VERSION } from '../shared/model.js';
-import type {
-  Actor,
-  DomainEvent,
-  Entity,
-  Page,
-  OperationSummary,
-} from '../shared/model.js';
+import type { Actor, Entity, Page, OperationSummary } from '../shared/model.js';
 import {
   z,
   idSchema,
@@ -49,25 +43,36 @@ import {
   schemaVersion,
 } from './db.js';
 import * as tables from './schema.js';
-import type { Auth } from './auth.js';
-import { authorizeRequest } from './auth.js';
+import type { Auth, Authorized } from './auth.js';
+import { authorizeRequest, staticAuthorization } from './auth.js';
 import { exportWorkspace, writesAreOpen } from './admin.js';
 import { executeOperation } from './operations.js';
+import { createEventHub, SSE_HEARTBEAT_MS } from './sse.js';
+import type { Subscriber } from './sse.js';
 export type AppOptions = {
   db: DatabaseHandle;
   auth?: Auth;
-  authorize?: (request: Request) => Actor | null | Promise<Actor | null>;
+  // Tests may return a bare Actor: it is treated as static (never revoked).
+  authorize?: (
+    request: Request,
+  ) => Actor | Authorized | null | Promise<Actor | Authorized | null>;
   build?: string;
   baseURL?: string;
   trustedOrigins?: string[];
   writes?: 'held' | 'open';
   deploymentId?: string;
   migrationsDir?: string;
+  sseHeartbeatMs?: number;
   now?: () => string;
   ids?: () => string;
 };
 type Env = {
-  Variables: { actor: Actor; operationId?: string; commandName?: string };
+  Variables: {
+    actor: Actor;
+    auth: Authorized;
+    operationId?: string;
+    commandName?: string;
+  };
 };
 const json = <T extends z.ZodType>(
   schema: T,
@@ -178,9 +183,8 @@ export function createApp(options: AppOptions) {
     .run();
   const baseURL = options.baseURL ?? 'http://localhost:3001';
   const origins = options.trustedOrigins ?? [baseURL, 'http://localhost:5173'];
-  const subscribers = new Set<(events: DomainEvent[]) => void>();
-  const operationSubscribers = new Set<() => void>();
-  const closers = new Set<() => void>();
+  const hub = createEventHub();
+  const heartbeatMs = options.sseHeartbeatMs ?? SSE_HEARTBEAT_MS;
   const now = () => options.now?.() ?? new Date().toISOString();
   const timezone = () => getSetting(db, 'timezone') ?? 'Europe/Moscow';
   const opened = () =>
@@ -296,17 +300,28 @@ export function createApp(options: AppOptions) {
     let rejectedStatus: number | undefined;
     try {
       if (c.req.path.startsWith('/api/auth/')) {
+        // Agent keys are issued and revoked only by taskindex-admin; no HTTP
+        // key management exists even if a plugin ever registers such routes.
+        if (c.req.path.startsWith('/api/auth/api-key/'))
+          fail(
+            'not_found',
+            'Ключи агентов выдаются только командой taskindex-admin.',
+          );
         if (!opened() && !['GET', 'HEAD', 'OPTIONS'].includes(c.req.method))
           fail('unavailable', 'Запись закрыта на время обновления.');
         return await next();
       }
-      const actor = options.authorize
+      const authorized = options.authorize
         ? await options.authorize(c.req.raw)
         : options.auth
           ? await authorizeRequest(db, options.auth, c.req.raw)
           : null;
-      if (!actor)
+      if (!authorized)
         fail('unauthorized', 'Войдите в TaskIndex или передайте ключ агента.');
+      const auth =
+        'actor' in authorized ? authorized : staticAuthorization(authorized);
+      const actor = auth.actor;
+      c.set('auth', auth);
       c.set('actor', actor);
       if (!['GET', 'HEAD', 'OPTIONS'].includes(c.req.method)) {
         if (
@@ -472,10 +487,8 @@ export function createApp(options: AppOptions) {
           now: now(),
           ids: options.ids,
         });
-        if (result.freshEvents.length)
-          for (const listener of subscribers) listener(result.freshEvents);
-        if (result.freshOperation)
-          for (const listener of operationSubscribers) listener();
+        hub.publish(result.freshEvents);
+        if (result.freshOperation) hub.notifyOperations();
         return c.json(result.body, result.status as 200);
       },
     )
@@ -499,10 +512,8 @@ export function createApp(options: AppOptions) {
           now: now(),
           ids: options.ids,
         });
-        if (result.freshEvents.length)
-          for (const listener of subscribers) listener(result.freshEvents);
-        if (result.freshOperation)
-          for (const listener of operationSubscribers) listener();
+        hub.publish(result.freshEvents);
+        if (result.freshOperation) hub.notifyOperations();
         return c.json(result.body, result.status as 200);
       },
     )
@@ -777,6 +788,7 @@ export function createApp(options: AppOptions) {
       );
       if (!Number.isSafeInteger(since) || since < 0)
         fail('invalid', 'Неверный курсор событий.');
+      const auth = c.get('auth');
       const encoder = new TextEncoder();
       let cleanup = () => {};
       const body = new ReadableStream<Uint8Array>({
@@ -792,61 +804,72 @@ export function createApp(options: AppOptions) {
           }
           controller.enqueue(encoder.encode(': connected\n\n'));
           let closed = false;
+          let unsubscribe = () => {};
           const close = () => {
             if (closed) return;
             closed = true;
             clearInterval(timer);
-            subscribers.delete(send);
-            operationSubscribers.delete(sendOperations);
-            closers.delete(close);
+            unsubscribe();
             try {
               controller.close();
             } catch {
               /* already cancelled */
             }
           };
-          const send = (events: DomainEvent[]) => {
+          const write = (chunk: string) => {
             if (closed) return;
             try {
-              for (const e of events)
-                controller.enqueue(
-                  encoder.encode(
-                    `id: ${e.generation}:${e.seq}\ndata: ${JSON.stringify(e)}\n\n`,
-                  ),
-                );
+              controller.enqueue(encoder.encode(chunk));
               if ((controller.desiredSize ?? 0) < -1000) close();
             } catch {
               close();
             }
           };
-          const sendOperations = () => {
-            if (closed) return;
-            try {
+          // Every message (catch-up, events, operations hint) goes through the
+          // hub, which re-checks access right before delivery. Revocation
+          // reaches an idle stream on the next heartbeat at the latest.
+          const subscriber: Subscriber = {
+            actor: auth.actor,
+            credential: auth.credential,
+            check: auth.check,
+            onEvents: (events) => {
+              for (const e of events)
+                write(
+                  `id: ${e.generation}:${e.seq}\ndata: ${JSON.stringify(e)}\n\n`,
+                );
+            },
+            onOperations: () =>
               // This is an invalidation hint, not a domain event. Do not emit
               // an SSE id: reconnect must keep the last domain-event cursor.
-              controller.enqueue(
-                encoder.encode(
-                  `event: operations\ndata: ${JSON.stringify({ generation: generation(db) })}\n\n`,
-                ),
-              );
-              if ((controller.desiredSize ?? 0) < -1000) close();
-            } catch {
+              write(
+                `event: operations\ndata: ${JSON.stringify({ generation: generation(db) })}\n\n`,
+              ),
+            close: (reason) => {
+              if (reason === 'revoked') write('event: revoked\ndata: {}\n\n');
               close();
-            }
+            },
           };
           const timer = setInterval(() => {
-            try {
-              controller.enqueue(encoder.encode(': heartbeat\n\n'));
-            } catch {
-              close();
-            }
-          }, 25000);
+            void (async () => {
+              let allowed = false;
+              try {
+                allowed = await auth.check();
+              } catch {
+                allowed = false;
+              }
+              if (closed) return;
+              if (!allowed) {
+                hub.closeFor((s) => s === subscriber);
+                subscriber.close('revoked');
+                return;
+              }
+              write(': heartbeat\n\n');
+            })();
+          }, heartbeatMs);
           timer.unref();
-          subscribers.add(send);
-          operationSubscribers.add(sendOperations);
-          closers.add(close);
+          unsubscribe = hub.subscribe(subscriber);
           cleanup = close;
-          send(readEvents(db, since));
+          hub.publishTo(subscriber, readEvents(db, since));
         },
         cancel() {
           cleanup();
@@ -1061,10 +1084,6 @@ export function createApp(options: AppOptions) {
     },
     servers: [{ url: baseURL }],
   });
-  return Object.assign(completeApi, {
-    closeStreams: () => {
-      for (const close of closers) close();
-    },
-  });
+  return Object.assign(completeApi, { closeStreams: () => hub.closeAll() });
 }
 export type AppType = ReturnType<typeof createApp>;

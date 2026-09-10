@@ -51,13 +51,7 @@ export async function runAdmin(
           'mark-restored',
           'open-writes',
         ],
-        configuration: [
-          'DATABASE_PATH',
-          'BASE_URL',
-          'BETTER_AUTH_SECRET',
-          'TIMEZONE',
-          'TASKINDEX_DEPLOYMENT',
-        ],
+        configuration: ['DATABASE_PATH', 'TIMEZONE', 'TASKINDEX_DEPLOYMENT'],
       });
       return 0;
     }
@@ -132,11 +126,7 @@ export async function runAdmin(
           const scope = required(flagString(args.flags, 'scope'), '--scope');
           if (!['read', 'tasks', 'write'].includes(scope))
             throw new ArgumentError('--scope: read, tasks или write');
-          const auth = admin.createAuth(db, {
-            baseURL: required(env.BASE_URL, 'BASE_URL'),
-            secret: required(env.BETTER_AUTH_SECRET, 'BETTER_AUTH_SECRET'),
-          });
-          const key = await admin.createAgentKey(db, auth, {
+          const key = admin.createAgentKey(db, {
             agentId: required(flagString(args.flags, 'agent'), '--agent'),
             scope: scope as Scope,
             ...(flagString(args.flags, 'name')

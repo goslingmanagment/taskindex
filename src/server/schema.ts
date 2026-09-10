@@ -198,31 +198,21 @@ export const passkey = sqliteTable('passkey', {
   createdAt: time('created_at'),
   aaguid: text('aaguid'),
 });
-export const apikey = sqliteTable('apikey', {
-  id: text('id').primaryKey(),
-  configId: text('config_id').notNull().default('default'),
-  name: text('name'),
-  start: text('start'),
-  referenceId: text('reference_id').notNull(),
-  prefix: text('prefix'),
-  key: text('key').notNull().unique(),
-  refillInterval: integer('refill_interval'),
-  refillAmount: integer('refill_amount'),
-  lastRefillAt: time('last_refill_at'),
-  enabled: integer('enabled', { mode: 'boolean' }).default(true),
-  rateLimitEnabled: integer('rate_limit_enabled', { mode: 'boolean' }).default(
-    true,
-  ),
-  rateLimitTimeWindow: integer('rate_limit_time_window'),
-  rateLimitMax: integer('rate_limit_max'),
-  requestCount: integer('request_count').default(0),
-  remaining: integer('remaining'),
-  lastRequest: time('last_request'),
-  expiresAt: time('expires_at'),
-  createdAt: time('created_at').notNull(),
-  updatedAt: time('updated_at').notNull(),
-  permissions: text('permissions'),
-  metadata: text('metadata'),
-  agentId: text('agent_id').references(() => agents.id),
-  scope: text('scope'),
-});
+export const agentKeys = sqliteTable(
+  'agent_keys',
+  {
+    id: text('id').primaryKey(),
+    agentId: text('agent_id')
+      .notNull()
+      .references(() => agents.id),
+    scope: text('scope', { enum: ['read', 'tasks', 'write'] }).notNull(),
+    keyHash: text('key_hash').notNull(),
+    name: text('name'),
+    createdAt: text('created_at').notNull(),
+    revokedAt: text('revoked_at'),
+  },
+  (t) => [
+    uniqueIndex('agent_keys_hash').on(t.keyHash),
+    index('agent_keys_agent').on(t.agentId),
+  ],
+);

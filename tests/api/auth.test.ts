@@ -7,6 +7,7 @@ import {
 } from '../../src/server/db.js';
 import { createApp } from '../../src/server/app.js';
 import { createAuth } from '../../src/server/auth.js';
+import { hashAgentKey } from '../../src/server/agent-keys.js';
 import {
   createOwner,
   resetOwnerPassword,
@@ -18,7 +19,40 @@ import {
 } from '../../src/server/admin.js';
 const cleanup: (() => void)[] = [];
 afterEach(() => cleanup.splice(0).forEach((fn) => fn()));
-async function setup(writes: 'open' | 'held' = 'open') {
+const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+// Reads an SSE response in the background; `ended()` becomes true when the
+// server closes the stream.
+function tap(response: Response) {
+  const chunks: string[] = [];
+  let ended = false;
+  const reader = response.body!.getReader();
+  const decoder = new TextDecoder();
+  const pump = (async () => {
+    for (;;) {
+      const { value, done } = await reader.read();
+      if (done) break;
+      chunks.push(decoder.decode(value));
+    }
+  })().finally(() => {
+    ended = true;
+  });
+  return {
+    text: () => chunks.join(''),
+    ended: () => ended,
+    waitEnd: async (ms: number) => {
+      await Promise.race([pump, sleep(ms)]);
+      return ended;
+    },
+  };
+}
+// Better Auth keeps sign-in rate limits in a module-level map keyed by IP, so
+// every fixture signs in from its own address.
+let fixtures = 0;
+async function setup(
+  writes: 'open' | 'held' = 'open',
+  options: { sseHeartbeatMs?: number } = {},
+) {
+  const ip = `203.0.113.${++fixtures}`;
   const db = openDatabase(':memory:');
   migrate(db);
   await createOwner(db, {
@@ -37,6 +71,7 @@ async function setup(writes: 'open' | 'held' = 'open') {
     trustedOrigins: ['http://localhost:5173'],
     writes,
     deploymentId: 'test-auth',
+    ...options,
   });
   cleanup.push(() => {
     app.closeStreams();
@@ -48,12 +83,35 @@ async function setup(writes: 'open' | 'held' = 'open') {
       headers: {
         'content-type': 'application/json',
         origin: 'http://localhost:5173',
-        'x-real-ip': '203.0.113.10',
-        'x-forwarded-for': '198.51.100.20, 203.0.113.10',
+        'x-real-ip': ip,
+        'x-forwarded-for': `198.51.100.20, ${ip}`,
       },
       body: JSON.stringify({ email: 'owner@example.test', password }),
     });
-  return { db, auth, app, signIn };
+  const cookie = async () =>
+    (await signIn()).headers.get('set-cookie')!.split(';')[0]!;
+  const changes = () =>
+    (db.sqlite.prepare('SELECT total_changes() AS n').get() as { n: number }).n;
+  const stream = (headers: Record<string, string>) =>
+    app.request(`/api/events/stream?generation=${generation(db)}`, {
+      headers,
+    });
+  const createTask = (cookie: string, title: string) =>
+    app.request('/api/commands', {
+      method: 'POST',
+      headers: {
+        cookie,
+        origin: 'http://localhost:5173',
+        'content-type': 'application/json',
+      },
+      body: JSON.stringify({
+        command: 'task.create',
+        payload: { id: title.toLowerCase(), area: 'agency', title },
+        operationId: `create-${title}`,
+        generation: generation(db),
+      }),
+    });
+  return { db, auth, app, signIn, cookie, changes, stream, createTask };
 }
 it('uses real owner sessions, rejects signup and cross-origin writes, exposes authenticated passkey setup', async () => {
   const f = await setup();
@@ -74,7 +132,7 @@ it('uses real owner sessions, rejects signup and cross-origin writes, exposes au
   const login = await f.signIn();
   expect(login.status).toBe(200);
   expect(f.db.sqlite.prepare('SELECT ip_address FROM session').get()).toEqual({
-    ip_address: '203.0.113.10',
+    ip_address: '203.0.113.1',
   });
   const cookie = login.headers.get('set-cookie')!.split(';')[0]!;
   expect(
@@ -133,18 +191,10 @@ it('uses real owner sessions, rejects signup and cross-origin writes, exposes au
 it('rotates hashed agent keys with stable actors, enforces scopes, revocation and agent disabling', async () => {
   const f = await setup();
   createAgent(f.db, { id: 'worker', label: 'Worker' });
-  const first = await createAgentKey(f.db, f.auth, {
-    agentId: 'worker',
-    scope: 'tasks',
-  });
-  const second = await createAgentKey(f.db, f.auth, {
-    agentId: 'worker',
-    scope: 'tasks',
-  });
-  const read = await createAgentKey(f.db, f.auth, {
-    agentId: 'worker',
-    scope: 'read',
-  });
+  const first = createAgentKey(f.db, { agentId: 'worker', scope: 'tasks' });
+  const second = createAgentKey(f.db, { agentId: 'worker', scope: 'tasks' });
+  const read = createAgentKey(f.db, { agentId: 'worker', scope: 'read' });
+  expect(first.key.startsWith('ti_')).toBe(true);
   const me = async (key: string) =>
     f.app.request('/api/me', { headers: { authorization: `Bearer ${key}` } });
   expect(await (await me(first.key)).json()).toMatchObject({
@@ -156,8 +206,11 @@ it('rotates hashed agent keys with stable actors, enforces scopes, revocation an
   });
   expect(JSON.stringify(listAgentKeys(f.db))).not.toContain(first.key);
   expect(
-    f.db.sqlite.prepare('SELECT key FROM apikey WHERE id=?').get(first.id),
-  ).not.toEqual({ key: first.key });
+    f.db.sqlite
+      .prepare('SELECT key_hash FROM agent_keys WHERE id=?')
+      .get(first.id),
+  ).toEqual({ key_hash: hashAgentKey(first.key) });
+  expect(hashAgentKey(first.key)).not.toBe(first.key);
   const command = async (key: string, name: 'task.create' | 'project.create') =>
     f.app.request('/api/commands', {
       method: 'POST',
@@ -189,4 +242,126 @@ it('held blocks authentication mutations as well as workspace mutations', async 
   const f = await setup('held');
   expect((await f.signIn()).status).toBe(503);
   expect((await f.app.request('/health')).status).toBe(200);
+});
+it('checks agent keys without writing to the database, also under held and across SSE heartbeats', async () => {
+  for (const mode of ['open', 'held'] as const) {
+    const f = await setup(mode, { sseHeartbeatMs: 20 });
+    createAgent(f.db, { id: 'worker', label: 'Worker' });
+    const key = createAgentKey(f.db, { agentId: 'worker', scope: 'tasks' });
+    const headers = { authorization: `Bearer ${key.key}` };
+    const n0 = f.changes();
+    for (let i = 0; i < 5; i++)
+      expect((await f.app.request('/api/me', { headers })).status).toBe(200);
+    for (let i = 0; i < 3; i++)
+      expect((await f.app.request('/api/tasks', { headers })).status).toBe(200);
+    expect(f.changes()).toBe(n0);
+    const write = await f.app.request('/api/commands', {
+      method: 'POST',
+      headers: { ...headers, 'content-type': 'application/json' },
+      body: JSON.stringify({
+        command: 'task.create',
+        payload: { id: 't', area: 'agency', title: 'T' },
+        operationId: `held-${mode}`,
+        generation: generation(f.db),
+      }),
+    });
+    expect(write.status).toBe(mode === 'held' ? 503 : 200);
+    if (mode === 'held') expect(f.changes()).toBe(n0);
+    const n1 = f.changes();
+    const t = tap(await f.stream(headers));
+    await sleep(100);
+    expect(t.ended()).toBe(false);
+    expect(t.text().split(': heartbeat').length).toBeGreaterThan(3);
+    expect(f.changes()).toBe(n1);
+    revokeAgentKey(f.db, key.id);
+    const n2 = f.changes();
+    expect(await t.waitEnd(500)).toBe(true);
+    expect(t.text().endsWith('event: revoked\ndata: {}\n\n')).toBe(true);
+    expect(f.changes()).toBe(n2);
+  }
+});
+it('keeps agent key management out of HTTP: /api/auth/api-key/* is not found for owner cookies and agent keys', async () => {
+  const f = await setup();
+  createAgent(f.db, { id: 'worker', label: 'Worker' });
+  const key = createAgentKey(f.db, { agentId: 'worker', scope: 'write' });
+  const cookie = await f.cookie();
+  const n0 = f.changes();
+  const credentials: Record<string, string>[] = [
+    { cookie, origin: 'http://localhost:5173' },
+    { authorization: `Bearer ${key.key}` },
+  ];
+  for (const headers of credentials) {
+    const create = await f.app.request('/api/auth/api-key/create', {
+      method: 'POST',
+      headers: { ...headers, 'content-type': 'application/json' },
+      body: JSON.stringify({ name: 'x' }),
+    });
+    expect(create.status).toBe(404);
+    expect(await create.json()).toEqual({
+      ok: false,
+      code: 'not_found',
+      message: 'Ключи агентов выдаются только командой taskindex-admin.',
+      retryable: false,
+    });
+    const list = await f.app.request('/api/auth/api-key/list', { headers });
+    expect(list.status).toBe(404);
+    expect(await list.json()).toMatchObject({ ok: false, code: 'not_found' });
+  }
+  expect(f.changes()).toBe(n0);
+  expect(listAgentKeys(f.db)).toHaveLength(1);
+});
+it('stops an open SSE stream after its key is revoked elsewhere: no data after revocation, closed within one heartbeat', async () => {
+  const f = await setup('open', { sseHeartbeatMs: 50 });
+  createAgent(f.db, { id: 'worker', label: 'Worker' });
+  const revoked = createAgentKey(f.db, { agentId: 'worker', scope: 'read' });
+  const kept = createAgentKey(f.db, { agentId: 'worker', scope: 'read' });
+  const cookie = await f.cookie();
+  expect((await f.createTask(cookie, 'Before')).status).toBe(200);
+  const doomed = tap(
+    await f.stream({ authorization: `Bearer ${revoked.key}` }),
+  );
+  const alive = tap(await f.stream({ authorization: `Bearer ${kept.key}` }));
+  await sleep(20);
+  expect(doomed.text()).toContain('"to":"Before"');
+  // Revocation happens in another process (admin CLI): only the database changes.
+  revokeAgentKey(f.db, revoked.id);
+  expect(
+    (
+      await f.app.request('/api/me', {
+        headers: { authorization: `Bearer ${revoked.key}` },
+      })
+    ).status,
+  ).toBe(403);
+  expect((await f.createTask(cookie, 'Secret')).status).toBe(200);
+  expect(await doomed.waitEnd(500)).toBe(true);
+  expect(doomed.text()).not.toContain('Secret');
+  expect(doomed.text().endsWith('event: revoked\ndata: {}\n\n')).toBe(true);
+  await sleep(120);
+  expect(alive.ended()).toBe(false);
+  expect(alive.text()).toContain('"to":"Secret"');
+  expect(alive.text()).toContain(': heartbeat');
+  expect(alive.text()).not.toContain('event: revoked');
+});
+it('closes idle and active streams when the agent is disabled and the owner stream after sessions are reset', async () => {
+  const f = await setup('open', { sseHeartbeatMs: 50 });
+  createAgent(f.db, { id: 'worker', label: 'Worker' });
+  const key = createAgentKey(f.db, { agentId: 'worker', scope: 'read' });
+  const idle = tap(await f.stream({ authorization: `Bearer ${key.key}` }));
+  await sleep(20);
+  disableAgent(f.db, 'worker');
+  expect(await idle.waitEnd(500)).toBe(true);
+  expect(idle.text().endsWith('event: revoked\ndata: {}\n\n')).toBe(true);
+  const cookie = await f.cookie();
+  const ownerStream = tap(await f.stream({ cookie }));
+  await sleep(20);
+  expect(ownerStream.ended()).toBe(false);
+  await resetOwnerPassword(f.db, {
+    password: 'a-new-test-password-with-entropy',
+  });
+  expect((await f.createTask(cookie, 'Secret')).status).toBe(401);
+  expect(await ownerStream.waitEnd(500)).toBe(true);
+  expect(ownerStream.text()).not.toContain('Secret');
+  expect(ownerStream.text().endsWith('event: revoked\ndata: {}\n\n')).toBe(
+    true,
+  );
 });

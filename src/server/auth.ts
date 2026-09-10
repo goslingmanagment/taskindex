@@ -1,12 +1,11 @@
 import { betterAuth } from 'better-auth';
 import { drizzleAdapter } from 'better-auth/adapters/drizzle';
-import { apiKey } from '@better-auth/api-key';
 import { passkey } from '@better-auth/passkey';
-import { eq } from 'drizzle-orm';
 import * as schema from './schema.js';
 import type { DatabaseHandle } from './db.js';
 import type { Actor } from '../shared/model.js';
-import { fail } from '../shared/errors.js';
+import { agentKeyIsActive, verifyAgentKey } from './agent-keys.js';
+import type { AgentKeyCredential } from './agent-keys.js';
 export function createAuth(
   db: DatabaseHandle,
   options: { baseURL: string; secret: string; trustedOrigins?: string[] },
@@ -22,14 +21,6 @@ export function createAuth(
     advanced: { ipAddress: { ipAddressHeaders: ['x-real-ip'] } },
     rateLimit: { enabled: true },
     plugins: [
-      apiKey({
-        enableMetadata: true,
-        enableSessionForAPIKeys: false,
-        customAPIKeyGetter: (ctx) =>
-          ctx.headers?.get('authorization')?.replace(/^Bearer\s+/i, '') ??
-          ctx.headers?.get('x-api-key') ??
-          null,
-      }),
       passkey({
         rpID: new URL(options.baseURL).hostname,
         rpName: 'TaskIndex',
@@ -39,40 +30,51 @@ export function createAuth(
   });
 }
 export type Auth = ReturnType<typeof createAuth>;
+// Private identity of a connection: never part of domain events or responses.
+export type Credential =
+  | AgentKeyCredential
+  | { kind: 'session'; sessionId: string }
+  | { kind: 'static' };
+export type Authorized = {
+  actor: Actor;
+  credential: Credential;
+  // Is this access still valid? Called before every SSE delivery and on each
+  // heartbeat; must not write to the database.
+  check: () => boolean | Promise<boolean>;
+};
+export const staticAuthorization = (actor: Actor): Authorized => ({
+  actor,
+  credential: { kind: 'static' },
+  check: () => true,
+});
 export async function authorizeRequest(
   db: DatabaseHandle,
   auth: Auth,
   request: Request,
-): Promise<Actor | null> {
+): Promise<Authorized | null> {
   const bearer = request.headers.get('authorization');
   const token =
     bearer?.match(/^Bearer\s+(.+)$/i)?.[1] ?? request.headers.get('x-api-key');
   if (token) {
-    const verified = await auth.api.verifyApiKey({ body: { key: token } });
-    if (!verified.valid || !verified.key)
-      fail('forbidden', 'Ключ недействителен или отозван.');
-    const key = db.orm
-      .select()
-      .from(schema.apikey)
-      .where(eq(schema.apikey.id, verified.key.id))
-      .get();
-    if (!key?.agentId || !['read', 'tasks', 'write'].includes(key.scope ?? ''))
-      fail('forbidden', 'Ключ не связан с агентом.');
-    const agent = db.orm
-      .select()
-      .from(schema.agents)
-      .where(eq(schema.agents.id, key.agentId))
-      .get();
-    if (!agent || agent.disabledAt) fail('forbidden', 'Агент отключён.');
+    const { actor, credential } = verifyAgentKey(db, token);
     return {
-      id: `agent:${agent.id}`,
-      agentId: agent.id,
-      label: agent.label,
-      kind: 'agent',
-      scope: key.scope as Actor['scope'],
+      actor,
+      credential,
+      check: () => agentKeyIsActive(db, credential.keyId),
     };
   }
   const s = await auth.api.getSession({ headers: request.headers });
   if (!s || s.user.id !== 'owner') return null;
-  return { id: 'owner', label: s.user.name, kind: 'owner', scope: 'write' };
+  const headers = new Headers(request.headers);
+  return {
+    actor: { id: 'owner', label: s.user.name, kind: 'owner', scope: 'write' },
+    credential: { kind: 'session', sessionId: s.session.id },
+    check: async () => {
+      const current = await auth.api.getSession({
+        headers,
+        query: { disableRefresh: true },
+      });
+      return Boolean(current && current.user.id === 'owner');
+    },
+  };
 }

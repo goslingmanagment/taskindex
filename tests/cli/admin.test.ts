@@ -13,8 +13,6 @@ async function setup() {
     DATABASE_PATH: join(directory, 'test.db'),
     TASKINDEX_MIGRATIONS_DIR: resolve('drizzle/v2'),
     TASKINDEX_DEPLOYMENT: 'deploy-one',
-    BASE_URL: 'http://localhost:3000',
-    BETTER_AUTH_SECRET: 'a-long-local-test-secret-not-for-production-12345',
   };
   return {
     directory,
@@ -97,10 +95,48 @@ describe('server-only administration', () => {
       id: string;
     };
     expect(key.key.length).toBeGreaterThan(10);
+    expect(key.key.startsWith('ti_')).toBe(true);
     expect(JSON.stringify(test.output)).not.toContain(key.key);
+    expect(test.output.at(-1)).toEqual({
+      id: key.id,
+      agentId: 'claude',
+      scope: 'write',
+      path: destination,
+    });
     expect((await stat(destination)).mode & 0o777).toBe(0o600);
     expect(await test.run(['agent-key', 'list', '--agent', 'claude'])).toBe(0);
     expect(JSON.stringify(test.output)).not.toContain(key.key);
+    expect(test.output.at(-1)).toEqual([
+      expect.objectContaining({ id: key.id, scope: 'write', revokedAt: null }),
+    ]);
+    // A second key cannot overwrite the protected file; it is revoked at once.
+    expect(
+      await test.run([
+        'agent-key',
+        'create',
+        '--agent',
+        'claude',
+        '--scope',
+        'read',
+        '--out',
+        destination,
+      ]),
+    ).toBe(1);
+    expect(JSON.stringify(test.output)).not.toContain('ti_');
+    expect(await test.run(['agent-key', 'list', '--agent', 'claude'])).toBe(0);
+    const listed = test.output.at(-1) as unknown as {
+      id: string;
+      revokedAt: string | null;
+    }[];
+    expect(listed).toHaveLength(2);
+    expect(listed.find((k) => k.id !== key.id)?.revokedAt).toEqual(
+      expect.any(String),
+    );
     expect(await test.run(['agent-key', 'revoke', key.id])).toBe(0);
+    expect(await test.run(['agent-key', 'list', '--agent', 'claude'])).toBe(0);
+    expect(test.output.at(-1)).toEqual([
+      expect.objectContaining({ id: key.id, revokedAt: expect.any(String) }),
+      expect.objectContaining({ revokedAt: expect.any(String) }),
+    ]);
   });
 });

@@ -16,7 +16,7 @@ import {
   schemaVersion,
 } from './db.js';
 import * as schema from './schema.js';
-import type { Auth } from './auth.js';
+import { issueAgentKey } from './agent-keys.js';
 import { FORMAT_VERSION } from '../shared/model.js';
 import type { ExportData, Scope, WorkspaceState } from '../shared/model.js';
 import { assertInvariants, applyEvent } from '../shared/commands.js';
@@ -24,7 +24,6 @@ import { fail } from '../shared/errors.js';
 import { idSchema, z } from '../shared/schemas.js';
 import { exportSchema } from '../shared/domain-schemas.js';
 export { migrate } from './db.js';
-export { createAuth } from './auth.js';
 export function initialize(
   db: DatabaseHandle,
   options: { timezone?: string; migrationsDir?: string } = {},
@@ -144,70 +143,13 @@ export function disableAgent(db: DatabaseHandle, id: string) {
     .run();
   return { ok: true };
 }
-export async function createAgentKey(
+export function createAgentKey(
   db: DatabaseHandle,
-  auth: Auth,
   input: { agentId: string; scope: Scope; name?: string },
 ) {
-  z.enum(['read', 'tasks', 'write']).parse(input.scope);
-  const agent = db.orm
-    .select()
-    .from(schema.agents)
-    .where(eq(schema.agents.id, input.agentId))
-    .get();
-  if (!agent || agent.disabledAt)
-    fail('forbidden', 'Агент не найден или отключён.');
-  if (
-    !db.orm.select().from(schema.user).where(eq(schema.user.id, 'owner')).get()
-  )
-    fail('not_found', 'Сначала создайте владельца.');
-  const key = await auth.api.createApiKey({
-    body: {
-      userId: 'owner',
-      name: input.name ?? agent.label,
-      metadata: { agentId: agent.id, scope: input.scope },
-      permissions: { workspace: [input.scope] },
-      rateLimitEnabled: false,
-    },
-  });
-  db.orm
-    .update(schema.apikey)
-    .set({ agentId: agent.id, scope: input.scope })
-    .where(eq(schema.apikey.id, key.id))
-    .run();
-  return { id: key.id, key: key.key, agentId: agent.id, scope: input.scope };
+  return issueAgentKey(db, input);
 }
-export function listAgentKeys(db: DatabaseHandle, agentId?: string) {
-  return db.orm
-    .select({
-      id: schema.apikey.id,
-      agentId: schema.apikey.agentId,
-      scope: schema.apikey.scope,
-      name: schema.apikey.name,
-      enabled: schema.apikey.enabled,
-      createdAt: schema.apikey.createdAt,
-      expiresAt: schema.apikey.expiresAt,
-    })
-    .from(schema.apikey)
-    .all()
-    .filter((k) => !agentId || k.agentId === agentId);
-}
-export function revokeAgentKey(db: DatabaseHandle, id: string) {
-  if (
-    !db.orm
-      .select({ id: schema.apikey.id })
-      .from(schema.apikey)
-      .where(eq(schema.apikey.id, id))
-      .get()
-  )
-    fail('not_found', 'Ключ не найден.');
-  db.orm
-    .update(schema.apikey)
-    .set({ enabled: false, updatedAt: new Date() })
-    .where(eq(schema.apikey.id, id))
-    .run();
-  return { ok: true };
-}
+export { listAgentKeys, revokeAgentKey } from './agent-keys.js';
 export function exportWorkspace(db: DatabaseHandle): ExportData {
   return db.sqlite.transaction(() => {
     const state = readState(db);
@@ -387,7 +329,7 @@ export function importWorkspace(
           schema.session,
           schema.account,
           schema.verification,
-          schema.apikey,
+          schema.agentKeys,
           schema.passkey,
           schema.agents,
           schema.projects,
@@ -411,7 +353,7 @@ export function importWorkspace(
           'Импорт разрешён только в пустую базу или с --replace.',
         );
       for (const table of [
-        schema.apikey,
+        schema.agentKeys,
         schema.passkey,
         schema.session,
         schema.account,

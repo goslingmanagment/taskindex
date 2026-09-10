@@ -42,11 +42,8 @@ it('runs two authenticated agents through owner decisions and recovers a committ
   try {
     createAgent(db, { id: 'source', label: 'Источник' });
     createAgent(db, { id: 'reviewer', label: 'Проверяющий' });
-    const sourceKey = await createAgentKey(db, auth, {
-      agentId: 'source',
-      scope: 'write',
-    });
-    const reviewerKey = await createAgentKey(db, auth, {
+    const sourceKey = createAgentKey(db, { agentId: 'source', scope: 'write' });
+    const reviewerKey = createAgentKey(db, {
       agentId: 'reviewer',
       scope: 'tasks',
     });
