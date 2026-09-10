@@ -1,6 +1,38 @@
 import { readFile, readlink } from 'node:fs/promises';
 import { describe, expect, it } from 'vitest';
-import { HELP, runCli } from '../../src/cli/run.js';
+import { runCli } from '../../src/cli/run.js';
+import { readFlags, renderHelp } from '../../src/cli/help.js';
+import {
+  GLOBAL_FLAGS,
+  READS,
+  SERVICE,
+  WRITES,
+  WRITE_FLAGS,
+  commandName,
+  payloadFlags,
+} from '../../src/cli/spec.js';
+
+// Every command and flag the CLI knows, from the specification only.
+function knownCommands(): Set<string> {
+  return new Set(
+    [...READS, ...WRITES, ...SERVICE].map((spec) => commandName(spec)),
+  );
+}
+
+function knownFlags(): Set<string> {
+  const names = new Set<string>();
+  for (const entry of [...GLOBAL_FLAGS, ...WRITE_FLAGS])
+    names.add(`--${entry.name}`);
+  for (const read of READS)
+    for (const entry of readFlags(read)) names.add(`--${entry.name}`);
+  for (const write of WRITES)
+    if (write.command !== 'batch')
+      for (const entry of payloadFlags(write.command))
+        names.add(`--${entry.name}`);
+  for (const service of SERVICE)
+    for (const entry of service.flags ?? []) names.add(`--${entry.name}`);
+  return names;
+}
 
 // Documentation that agents follow must not drift from the CLI and the pins.
 describe('documentation against the code', () => {
@@ -26,41 +58,29 @@ describe('documentation against the code', () => {
     );
   });
 
-  it('mentions in SKILL.md only commands and flags the CLI knows', async () => {
-    const skill = await readFile('skills/taskindex/SKILL.md', 'utf8');
-    const help = JSON.stringify(HELP);
-    const commands = new Set<string>();
-    for (const match of skill.matchAll(/`taskindex ([a-z]+)(?: ([a-z-]+))?/g))
-      commands.add(match[2] ? `${match[1]} ${match[2]}` : match[1]!);
-    for (const command of commands) {
-      const [group, action] = command.split(' ');
-      const known = [...HELP.reads, ...HELP.writes].some(
-        (line) =>
-          line.startsWith(`${group} `) ||
-          line === group ||
-          line.startsWith(`${group}`) ||
-          line.includes(`${group} ${action ?? ''}`),
-      );
-      expect(known, `SKILL.md: taskindex ${command}`).toBe(true);
-      if (action)
-        expect(
-          [...HELP.reads, ...HELP.writes].some(
-            (line) =>
-              line.includes(`${group} ${action}`) ||
-              (line.startsWith(`${group} `) && line.includes(action)),
-          ),
-          `SKILL.md: taskindex ${command}`,
-        ).toBe(true);
+  it('mentions in SKILL.md and README.md only commands and flags the CLI knows', async () => {
+    const commands = knownCommands();
+    const groups = new Set([...commands].map((name) => name.split(' ')[0]!));
+    const flags = knownFlags();
+    for (const file of ['skills/taskindex/SKILL.md', 'README.md']) {
+      const text = await readFile(file, 'utf8');
+      for (const match of text.matchAll(
+        /`(?:npm run cli -- |taskindex )([a-z]+)(?: ([a-z-]+))?/g,
+      )) {
+        const [, group, action] = match;
+        expect(groups.has(group!), `${file}: taskindex ${group}`).toBe(true);
+        if (action && /^[a-z-]+$/.test(action) && !action.startsWith('-'))
+          expect(
+            commands.has(`${group} ${action}`) || commands.has(group!),
+            `${file}: taskindex ${group} ${action}`,
+          ).toBe(true);
+      }
+      if (file.endsWith('SKILL.md'))
+        for (const match of text.matchAll(/`(--[a-z-]+)/g))
+          expect(flags.has(match[1]!), `${file}: ${match[1]}`).toBe(true);
+      expect(text).not.toMatch(/taskindex[^\n]*--json/);
     }
-    const flags = new Set(
-      [...skill.matchAll(/`(--[a-z-]+)/g)].map((match) => match[1]!),
-    );
-    for (const flag of flags)
-      expect(help.includes(flag), `SKILL.md: ${flag}`).toBe(true);
-    expect(skill).not.toContain('--json');
-    expect(await readFile('README.md', 'utf8')).not.toMatch(
-      /taskindex[^\n]*--json/,
-    );
+    expect(JSON.stringify(renderHelp())).not.toContain('--json');
   });
 
   it('refuses the removed --json flag with a hint', async () => {

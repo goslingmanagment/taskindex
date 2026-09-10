@@ -13,18 +13,16 @@ export interface Arguments {
   flags: Record<string, string | boolean>;
 }
 
-const switches = new Set([
-  'dry-run',
-  'follow',
-  'all',
-  'help',
-  'replace',
-  'focus',
-  'done',
-  'archived',
-]);
+// Boolean flags of the administrative CLI; `taskindex` derives its own set
+// from the command specification (`booleanFlagNames` in spec.ts).
+export const ADMIN_SWITCHES: ReadonlySet<string> = new Set(['help', 'replace']);
 
-export function parseArguments(argv: string[]): Arguments {
+// `switches` may omit their value (`--all`) or take `true|false`; every other
+// flag requires a value.
+export function parseArguments(
+  argv: string[],
+  switches: ReadonlySet<string> = ADMIN_SWITCHES,
+): Arguments {
   const positional: string[] = [];
   const flags: Arguments['flags'] = {};
   for (let index = 0; index < argv.length; index += 1) {
