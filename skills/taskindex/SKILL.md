@@ -105,6 +105,10 @@ taskindex task sync --payload '{"origin":{"system":"telegram","ref":"chat:messag
 исправляй отменой: сообщи комментарием. `focus` ставит и снимает только владелец:
 в командах его не передавай (403), в `task sync` поле пропускается
 (`skipped: owner`); команды `task focus` в CLI нет, `focus` — чтение групп Focus.
+Оформление доски (`taskindex appearance get` — режим, скин, `revision`) меняет
+только владелец командой `taskindex appearance set --mode system|light|dark
+--skin-id ID` (без `--base-revision` CLI берёт revision из `appearance get`);
+агенту сервер отвечает 403 `forbidden`.
 Поле, которое владелец правил руками (`ownerFields` задачи, после первого
 ручного сохранения — статус, архив, проект, область и чеклист целиком), прямая
 команда меняет только с флагом `--confirm-owner-fields`; без него 403 с

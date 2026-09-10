@@ -374,6 +374,18 @@ const RENAMED: Partial<Record<CommandName, Record<string, string>>> = {
   undo: { operationId: 'operation' },
 };
 
+// Payload fields the CLI fills itself when the flag is omitted, so help shows
+// them optional even though the command's schema requires them. The appearance
+// preference is one record with a fixed id, so `appearance set` reads its own
+// baseRevision from GET /api/appearance (TI-026); a task has no such single
+// address and always needs `--base-revision` from `task get`.
+const AUTOFILLED: Partial<Record<CommandName, readonly string[]>> = {
+  'appearance.update': ['baseRevision'],
+};
+
+export const autofilled = (command: CommandName): readonly string[] =>
+  AUTOFILLED[command] ?? [];
+
 // Descriptions for payload fields whose schema has none (nested objects).
 const FIELD_DESCRIPTIONS: Record<string, string> = {
   origin:
@@ -676,7 +688,10 @@ export function payloadFlags(command: CommandName): FlagSpec[] {
         key,
         kind: kindOf(node),
         description: node.description ?? FIELD_DESCRIPTIONS[key] ?? '',
-        required: variants.length === 1 && !!variant.required?.includes(key),
+        required:
+          variants.length === 1 &&
+          !!variant.required?.includes(key) &&
+          !AUTOFILLED[command]?.includes(key),
         ...(node.enum ? { values: node.enum } : {}),
         ...(types(node).includes('null') ? { nullable: true } : {}),
       });

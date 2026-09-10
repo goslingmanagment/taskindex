@@ -11,6 +11,7 @@ import {
   SERVICE,
   WRITES,
   WRITE_FLAGS,
+  autofilled,
   payloadFlags,
   type FlagSpec,
 } from '../../src/cli/spec.js';
@@ -103,12 +104,28 @@ describe('help is generated from one specification', () => {
         expect(flag, `${name}: ${property} has no flag`).toBeDefined();
         expect(rendered, `${name}: --${flag.name}`).toContain(`--${flag.name}`);
       }
-      for (const property of schema.required ?? [])
+      for (const property of schema.required ?? []) {
+        const rendered_flag = help.flags!.find(
+          (flag) => flag.flag === `--${kebab(property)}`,
+        );
+        // A field the CLI reads for itself (appearance set takes the current
+        // revision from GET /api/appearance) is offered, never demanded.
+        if (
+          autofilled(name as keyof typeof commandPayloadSchemas).includes(
+            property,
+          )
+        ) {
+          expect(
+            rendered_flag?.required,
+            `${name}: ${property} must be optional`,
+          ).toBeUndefined();
+          continue;
+        }
         expect(
-          help.flags!.find((flag) => flag.flag === `--${kebab(property)}`)
-            ?.required,
+          rendered_flag?.required,
           `${name}: ${property} must be required`,
         ).toBe(true);
+      }
       expect(help.example).toContain(`taskindex ${spec!.group}`);
       expect(help.usage).toContain('--payload JSON');
       expect(help.exitCodes).toMatchObject({ success: 0, arguments: 2 });

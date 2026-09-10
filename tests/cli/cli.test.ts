@@ -649,3 +649,111 @@ describe('CLI durable operations', () => {
     expect(urls[1]?.searchParams.get('generation')).toBe('g_first');
   });
 });
+
+// TI-026: the appearance preference is a workspace record like any other, but
+// only the owner writes it and its id is fixed, so `appearance set` can read
+// its own baseRevision.
+describe('оформление владельца в CLI (TI-026)', () => {
+  const appearance = (revision: number) => ({
+    id: 'owner',
+    mode: 'system',
+    skinId: 'classic',
+    revision,
+    updatedAt: null,
+  });
+
+  it('appearance get печатает запись, appearance set без --base-revision берёт revision оттуда', async () => {
+    const seen: string[] = [];
+    const sent: Record<string, unknown>[] = [];
+    const test = await setup((url, init) => {
+      seen.push(url.pathname);
+      if (url.pathname === '/api/appearance') return json(appearance(4));
+      if (url.pathname === '/api/context')
+        return json({ generation: 'g_first' });
+      sent.push(JSON.parse(requestBody(init)) as Record<string, unknown>);
+      return json(success(init));
+    });
+    expect(await test.run(['appearance', 'get'])).toBe(0);
+    expect(test.output.at(-1)).toMatchObject({
+      mode: 'system',
+      skinId: 'classic',
+      revision: 4,
+    });
+    expect(
+      await test.run([
+        'appearance',
+        'set',
+        '--mode',
+        'dark',
+        '--skin-id',
+        'focus',
+      ]),
+    ).toBe(0);
+    expect(sent.at(-1)).toMatchObject({
+      command: 'appearance.update',
+      payload: { baseRevision: 4, mode: 'dark', skinId: 'focus' },
+    });
+    // The explicit flag still wins and costs no extra read.
+    const before = seen.filter((path) => path === '/api/appearance').length;
+    expect(
+      await test.run([
+        'appearance',
+        'set',
+        '--base-revision',
+        '9',
+        '--mode',
+        'light',
+      ]),
+    ).toBe(0);
+    expect(sent.at(-1)).toMatchObject({
+      payload: { baseRevision: 9, mode: 'light' },
+    });
+    expect(seen.filter((path) => path === '/api/appearance')).toHaveLength(
+      before,
+    );
+  });
+
+  it('appearance set без полей — ошибка аргументов; агенту 403 объясняет, кто меняет оформление', async () => {
+    const test = await setup((url) =>
+      url.pathname === '/api/appearance'
+        ? json(appearance(1))
+        : url.pathname === '/api/context'
+          ? json({ generation: 'g_first' })
+          : json(
+              {
+                ok: false,
+                code: 'forbidden',
+                message: 'Оформление меняет только владелец.',
+                retryable: false,
+              },
+              403,
+            ),
+    );
+    expect(await test.run(['appearance', 'set'])).toBe(2);
+    expect(test.output.at(-1)).toMatchObject({
+      ok: false,
+      code: 'invalid_arguments',
+      hint: 'taskindex help appearance set',
+    });
+    expect(await test.run(['appearance', 'set', '--mode', 'dark'])).toBe(4);
+    expect(String(test.output.at(-1)!.hint)).toContain(
+      'оформление меняет только владелец',
+    );
+    // Help shows the three flags and does not demand --base-revision.
+    const help = JSON.parse(
+      JSON.stringify(renderHelp('appearance', 'set')),
+    ) as {
+      usage: string;
+      flags: { flag: string; required?: boolean }[];
+    };
+    for (const flag of ['--base-revision', '--mode', '--skin-id'])
+      expect(
+        help.flags.some((entry) => entry.flag === flag),
+        flag,
+      ).toBe(true);
+    expect(
+      help.flags.find((entry) => entry.flag === '--base-revision')?.required,
+    ).toBeUndefined();
+    expect(help.usage).toContain('[--base-revision N]');
+  });
+});

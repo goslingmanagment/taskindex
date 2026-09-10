@@ -11,10 +11,11 @@ import {
 import { exitCode } from './client.js';
 import { formatIssues, withHints } from './errors.js';
 import { OUTBOX_FORMAT_VERSION, type SavedOperation } from './outbox.js';
-import { currentGeneration, type Session } from './session.js';
+import { ReplyExit, currentGeneration, type Session } from './session.js';
 import {
   GLOBAL_FLAGS,
   WRITE_FLAGS,
+  autofilled,
   commandName,
   payloadFlags,
   type FlagSpec,
@@ -105,6 +106,25 @@ async function buildPayload(
   return payload;
 }
 
+// A payload field the CLI can read for itself (`autofilled`): `appearance set`
+// takes the current revision from GET /api/appearance, so changing the mode or
+// the skin is one command instead of get-then-set. An explicit flag wins and
+// costs no extra request; a read that fails ends the command with its own
+// reply, exactly like the generation lookup does (TI-026).
+async function fillAutofilled(
+  session: Session,
+  command: CommandName,
+  payload: Record<string, unknown>,
+): Promise<void> {
+  if (command !== 'appearance.update') return;
+  if (!autofilled(command).includes('baseRevision')) return;
+  if (payload.baseRevision !== undefined) return;
+  const reply = await session.client.request('/api/appearance');
+  if (exitCode(reply)) throw new ReplyExit(reply);
+  if (typeof reply.body.revision === 'number')
+    payload.baseRevision = reply.body.revision;
+}
+
 function dryRunOf(args: Arguments): boolean | undefined {
   return flagBoolean(args.flags, 'dry-run');
 }
@@ -161,6 +181,7 @@ export async function runWrite(
       args,
       input,
     );
+    await fillAutofilled(session, command, raw);
     const validation = commandPayloadSchemas[command].safeParse(raw);
     if (!validation.success) {
       emit({

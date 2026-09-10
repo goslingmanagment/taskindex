@@ -51,6 +51,8 @@ const HINTS: Record<string, string> = {
   followUp: 'Календарная дата YYYY-MM-DD или null',
   color: 'Цвет в форме #rrggbb',
   focus: 'focus ставит только владелец; агент это поле не передаёт',
+  mode: 'Режим оформления: system, light или dark',
+  skinId: 'Идентификатор скина из каталога: taskindex context',
 };
 
 // `a.b[0].c` from a Zod path; a server issue already carries a string.
@@ -116,6 +118,9 @@ export function withHints(
     else if (message.includes('focus'))
       result.hint =
         'focus ставит и снимает только владелец: уберите --focus; в task sync поле пропускается (skipped: owner)';
+    else if (message.includes('Оформление'))
+      result.hint =
+        'оформление меняет только владелец; агент читает его командой taskindex appearance get';
   }
   return result;
 }
