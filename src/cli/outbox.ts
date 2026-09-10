@@ -11,11 +11,8 @@ import {
   unlink,
 } from 'node:fs/promises';
 import { ArgumentError } from './arguments.js';
-import {
-  batchEnvelopeSchema,
-  commandEnvelopeSchema,
-  z,
-} from '../shared/schemas.js';
+import { canonicalJson } from '../shared/canonical-json.js';
+import { operationEnvelopeSchema, z } from '../shared/schemas.js';
 
 export const OUTBOX_FORMAT_VERSION = 2;
 
@@ -28,7 +25,7 @@ export const savedOperationSchema = z
     endpoint: z.enum(['/api/commands', '/api/commands/batch']),
     actorId: z.string().min(1),
     savedAt: z.iso.datetime({ offset: true }).optional(),
-    envelope: z.union([commandEnvelopeSchema, batchEnvelopeSchema]),
+    envelope: operationEnvelopeSchema,
   })
   .strict();
 export type SavedOperation = z.infer<typeof savedOperationSchema>;
@@ -54,23 +51,16 @@ export class CorruptEnvelopeError extends Error {
 const idPattern = /^[A-Za-z0-9_-]{1,80}$/;
 const PENDING_MAX_AGE_MS = 60 * 60 * 1000;
 
-function canonical(value: unknown): string {
-  if (Array.isArray(value)) return `[${value.map(canonical).join(',')}]`;
-  if (value !== null && typeof value === 'object') {
-    return `{${Object.entries(value)
-      .sort(([a], [b]) => a.localeCompare(b))
-      .map(([key, item]) => `${JSON.stringify(key)}:${canonical(item)}`)
-      .join(',')}}`;
-  }
-  return JSON.stringify(value);
-}
-
+// The one canonical form of the product (`canonicalJson`): the same bytes the
+// server hashes into `commandHash`, so a resaved envelope and the stored
+// operation stay the same intent. A second local implementation could sort
+// keys differently and silently split one operation in two (TI-061).
 export function sameOperation(
   left: SavedOperation,
   right: SavedOperation,
 ): boolean {
   const strip = ({ savedAt: _savedAt, ...rest }: SavedOperation) => rest;
-  return canonical(strip(left)) === canonical(strip(right));
+  return canonicalJson(strip(left)) === canonicalJson(strip(right));
 }
 
 function isMissing(error: unknown): boolean {

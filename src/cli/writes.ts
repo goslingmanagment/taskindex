@@ -22,9 +22,8 @@ import {
 } from './spec.js';
 import type { CommandName } from '../shared/model.js';
 import {
-  batchEnvelopeSchema,
-  commandEnvelopeSchema,
   commandPayloadSchemas,
+  operationEnvelopeSchema,
 } from '../shared/schemas.js';
 
 function setField(
@@ -186,9 +185,7 @@ export async function runWrite(
     ...envelopeFlags(args),
     ...body,
   };
-  const parsedEnvelope = (
-    batch ? batchEnvelopeSchema : commandEnvelopeSchema
-  ).safeParse(envelope);
+  const parsedEnvelope = operationEnvelopeSchema.safeParse(envelope);
   if (!parsedEnvelope.success) {
     emit({
       ok: false,
