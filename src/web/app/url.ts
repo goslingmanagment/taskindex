@@ -12,7 +12,7 @@ export type LocationState = {
   archiveSearch: boolean;
   activity: boolean;
 };
-const defaults: LocationState = {
+export const defaultLocation: LocationState = {
   area: 'agency',
   project: 'all',
   view: 'board',
@@ -24,18 +24,15 @@ const defaults: LocationState = {
   archiveSearch: false,
   activity: false,
 };
-function read(): LocationState {
-  let search = location.search;
-  if (!search)
-    try {
-      search = localStorage.getItem('taskindex/location') || '';
-    } catch {
-      /* Optional preference. */
-    }
+const savedKey = 'taskindex/location';
+// TI-042: two ways to read the location. The URL is the only source for
+// history navigation; the remembered location is used once, when the app
+// opens on a bare `/`.
+export function parseLocation(search: string): LocationState {
   const p = new URLSearchParams(search),
     area = p.get('area');
   return {
-    ...defaults,
+    ...defaultLocation,
     area: AREAS.some((a) => a.id === area) ? (area as AreaId) : 'agency',
     project: p.get('project') || 'all',
     view: p.get('view') === 'list' ? 'list' : 'board',
@@ -49,10 +46,41 @@ function read(): LocationState {
     ),
   };
 }
+export function serializeLocation(state: LocationState): string {
+  const p = new URLSearchParams();
+  for (const [key, val] of Object.entries(state))
+    if (val !== false && val !== '')
+      p.set(key, val === true ? '1' : String(val));
+  return `?${p.toString()}`;
+}
+export function savedLocation(): string {
+  try {
+    return localStorage.getItem(savedKey) || '';
+  } catch {
+    return '';
+  }
+}
+export function rememberLocation(query: string) {
+  try {
+    const saved = new URLSearchParams(query);
+    saved.delete('task');
+    saved.delete('q');
+    localStorage.setItem(savedKey, saved.toString());
+  } catch {
+    /* Optional preference. */
+  }
+}
 export function useLocationState() {
-  const [value, setValue] = useState(read);
+  const [value, setValue] = useState(() => {
+    const initial = parseLocation(location.search || savedLocation());
+    // The first history entry carries the state it displays, so "back" to it
+    // restores that view instead of whatever was remembered later.
+    if (!location.search)
+      history.replaceState(null, '', serializeLocation(initial));
+    return initial;
+  });
   useEffect(() => {
-    const listener = () => setValue(read());
+    const listener = () => setValue(parseLocation(location.search));
     window.addEventListener('popstate', listener);
     return () => window.removeEventListener('popstate', listener);
   }, []);
@@ -60,21 +88,10 @@ export function useLocationState() {
     (patch: Partial<LocationState>, replace = false) =>
       setValue((old) => {
         const next = { ...old, ...patch },
-          p = new URLSearchParams();
-        for (const [key, val] of Object.entries(next))
-          if (val !== false && val !== '')
-            p.set(key, val === true ? '1' : String(val));
-        const query = `?${p.toString()}`;
+          query = serializeLocation(next);
         if (location.search !== query)
           history[replace ? 'replaceState' : 'pushState'](null, '', query);
-        try {
-          const saved = new URLSearchParams(query);
-          saved.delete('task');
-          saved.delete('q');
-          localStorage.setItem('taskindex/location', saved.toString());
-        } catch {
-          /* Optional preference. */
-        }
+        rememberLocation(query);
         return next;
       }),
     [],

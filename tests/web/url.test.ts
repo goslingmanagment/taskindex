@@ -1,0 +1,32 @@
+import { describe, expect, it } from 'vitest';
+import {
+  defaultLocation,
+  parseLocation,
+  serializeLocation,
+} from '../../src/web/app/url';
+
+describe('TI-042 location is parsed from the URL only', () => {
+  it('an empty search means the defaults, never the remembered location', () => {
+    expect(parseLocation('')).toEqual(defaultLocation);
+  });
+  it('round-trips a full query without loss', () => {
+    for (const query of [
+      '?area=development&project=x&view=list&focus=1',
+      '?area=personal&project=none&view=board&task=t1&q=%D0%BF%D0%BE%D0%B8%D1%81%D0%BA',
+      '?area=agency&project=all&view=board&archive=1&archiveSearch=1',
+      '?area=agency&project=all&view=board&today=1&activity=1',
+    ]) {
+      const state = parseLocation(query);
+      expect(serializeLocation(state)).toBe(query);
+      expect(parseLocation(serializeLocation(state))).toEqual(state);
+    }
+  });
+  it('falls back to the agency board for unknown values', () => {
+    expect(parseLocation('?area=nowhere&view=grid&focus=yes')).toEqual({
+      ...defaultLocation,
+      area: 'agency',
+      view: 'board',
+      focus: false,
+    });
+  });
+});

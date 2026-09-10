@@ -220,3 +220,51 @@ test('TI-038 a pending envelope of a previous generation shows its text and can 
     ),
   ).toEqual([]);
 });
+
+test('TI-042 browser back returns to the previous view instead of the remembered one', async ({
+  page,
+}) => {
+  await login(page, 104);
+  await page.getByRole('button', { name: 'Разработка', exact: true }).click();
+  await expect(
+    page.getByRole('heading', { name: 'Разработка', exact: true }),
+  ).toBeVisible();
+  expect(page.url()).toContain('area=development');
+  await page.goBack();
+  await expect(
+    page.getByRole('heading', { name: 'Агентство', exact: true }),
+  ).toBeVisible();
+  expect(page.url()).not.toContain('area=development');
+  await page.goForward();
+  await expect(
+    page.getByRole('heading', { name: 'Разработка', exact: true }),
+  ).toBeVisible();
+  // Closing an editor opened from a filtered list keeps the filter in the URL.
+  const id = randomUUID();
+  expect(
+    (
+      await command(page, 'task.create', {
+        id,
+        area: 'development',
+        title: 'TI-042 фильтр',
+      })
+    ).ok(),
+  ).toBe(true);
+  await page.getByRole('tab', { name: 'Список', exact: true }).click();
+  await page
+    .getByRole('button', { name: 'Открыть: TI-042 фильтр', exact: true })
+    .click();
+  await expect(
+    page.getByRole('dialog', { name: 'Редактирование задачи', exact: true }),
+  ).toBeVisible();
+  expect(page.url()).toContain(`task=${id}`);
+  await page
+    .getByRole('button', { name: 'Закрыть карточку', exact: true })
+    .click();
+  await expect(
+    page.getByRole('dialog', { name: 'Редактирование задачи', exact: true }),
+  ).toBeHidden();
+  expect(page.url()).toContain('area=development');
+  expect(page.url()).toContain('view=list');
+  expect(page.url()).not.toContain('task=');
+});
