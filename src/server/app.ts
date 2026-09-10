@@ -2,6 +2,7 @@ import { OpenAPIHono, createRoute } from '@hono/zod-openapi';
 import type { Context } from 'hono';
 import type { ContentfulStatusCode } from 'hono/utils/http-status';
 import { bodyLimit } from 'hono/body-limit';
+import { secureHeaders } from 'hono/secure-headers';
 import { eq } from 'drizzle-orm';
 import { randomUUID, createHash } from 'node:crypto';
 import { AREAS, STATUSES, FORMAT_VERSION } from '../shared/model.js';
@@ -316,6 +317,28 @@ export function createApp(options: AppOptions) {
     );
     return c.json(internal.toJSON(), 500);
   });
+  // Same headers in dev, e2e and production; HSTS belongs to the TLS
+  // terminator (nginx), which alone knows the connection is encrypted.
+  // CSP starts report-only: enforce only after e2e shows zero violations.
+  app.use(
+    '*',
+    secureHeaders({
+      strictTransportSecurity: false,
+      xFrameOptions: 'DENY',
+      contentSecurityPolicyReportOnly: {
+        defaultSrc: ["'self'"],
+        scriptSrc: ["'self'"],
+        styleSrc: ["'self'"],
+        imgSrc: ["'self'", 'data:'],
+        connectSrc: ["'self'"],
+        fontSrc: ["'self'"],
+        frameAncestors: ["'none'"],
+        baseUri: ["'self'"],
+        formAction: ["'self'"],
+        objectSrc: ["'none'"],
+      },
+    }),
+  );
   app.use('/api/*', async (c, next) => {
     const started = Date.now();
     const given = c.req.header('x-request-id');

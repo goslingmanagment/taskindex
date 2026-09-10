@@ -1,7 +1,6 @@
-import { join } from 'node:path';
 import { serve } from '@hono/node-server';
-import { serveStatic } from '@hono/node-server/serve-static';
 import { createApp } from './app.js';
+import { serveWeb } from './static.js';
 import { openDatabase } from './db.js';
 import { createAuth } from './auth.js';
 import { ConfigError, loadServerConfig, webDirectory } from './config.js';
@@ -36,9 +35,7 @@ const app = createApp({
 app.all('/api/*', (c) =>
   c.json(new DomainError('not_found', 'Метод API не найден.').toJSON(), 404),
 );
-const webRoot = webDirectory(config.webDir);
-app.use('*', serveStatic({ root: webRoot }));
-app.get('*', serveStatic({ path: join(webRoot, 'index.html') }));
+serveWeb(app, webDirectory(config.webDir));
 const server = serve({ fetch: app.fetch, port, hostname: config.host });
 logger.info({
   event: 'listening',

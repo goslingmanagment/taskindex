@@ -290,6 +290,8 @@ Heredoc-программы уходят в `deploy/drill/agent-create.mjs`, `com
    ```
    (`onFound` есть в `@hono/node-server/dist/serve-static.mjs:144`.) Проверка: тест §5, п. 5; проект `static` плана 10 (шаг 16) проверяет `cache-control` на `/assets/<hash>.js` и `/`.
 
+2026-09-10: шаг 4 (приложение) выполнен в ветке `v2-fixes`: `secureHeaders` в `createApp` (report-only CSP из плана, `X-Frame-Options: DENY`, без HSTS), кэш статики вынесен в `src/server/static.ts` (`serveWeb(app, root)`); `onFound` у `@hono/node-server` 2.1.1 вызывается после сборки ответа, поэтому заголовок ставится через `c.res.headers.set`, а не `c.header`. Тест 4 — `tests/api/headers.test.ts` (там же проверка `cache-control` через `app.request` без Playwright). Тест 5 (`securitypolicyviolation` в e2e) и nginx (шаг 3) — владелец C.
+
 **Волна P1.**
 
 5. **Dockerfile и образ.** `Dockerfile:9` → `RUN npm run build && npm prune --omit=dev`. `Dockerfile:21` → `COPY --chown=node:node deploy/database.mjs deploy/health.mjs ./deploy/`; `Dockerfile.dockerignore:17` добавить `!deploy/health.mjs`. Label образа: в `compose.yml` `build` (`:5-9`) добавить `labels: { org.opencontainers.image.revision: '${TASKINDEX_BUILD:-local}' }`; в CI label ставится флагом `--label`. Проверка: `bash deploy/local-drill.sh` зелёный; `docker image inspect taskindex:v2-drill --format '{{index .Config.Labels "org.opencontainers.image.revision"}}'` печатает `local-drill`.
