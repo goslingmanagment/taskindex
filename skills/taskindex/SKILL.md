@@ -64,6 +64,15 @@ generation. `generation_changed` требует свежего контекст�
 Коды выхода: 0 успех; 1 сервер, сеть или неизвестный исход; 2 аргументы;
 3 конфликт/неприменимая отмена/смена поколения; 4 нет доступа. Смотри JSON `code`,
 `retryable`, `current`, `applied`, `skipped`, а не только числовой код.
+Исход записи и судьба конверта решаются одним правилом: `ok: true` с тем же
+`operationId` и `generation` — код 0, конверт удалён; окончательный отказ
+(`ok: false`, `retryable: false`) — конверт удалён, код 3 для `conflict`,
+`operation_mismatch`, `generation_changed`, `not_undoable`, код 4 для
+`unauthorized`/`forbidden`, иначе 1; повторяемый отказ или обрыв — код 1,
+`status: unknown`, конверт сохранён; ответ, не подтверждающий операцию
+(2xx без результата, чужой `operationId`/`generation`, не JSON) — код 1,
+`code: invalid_response`, `status: unknown`, конверт сохранён: проверь
+`operation get ID` и не создавай новый operationId.
 
 TaskIndex не отправляет сообщения, не переводит деньги и не меняет внешние
 операционные системы. Запись задачи об этих действиях не означает их выполнение.

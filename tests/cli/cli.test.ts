@@ -24,6 +24,21 @@ function requestBody(init?: RequestInit): string {
   return init.body;
 }
 
+// The server confirms a command with the full operation result; the CLI
+// settles an envelope only on that shape with the same operationId/generation.
+function success(init?: RequestInit, generation = 'g_first') {
+  const envelope = JSON.parse(requestBody(init)) as { operationId: string };
+  return {
+    ok: true,
+    operationId: envelope.operationId,
+    generation,
+    firstSeq: null,
+    lastSeq: null,
+    results: [{ record: null, changes: {} }],
+    events: [],
+  };
+}
+
 function json(body: unknown, status = 200): Response {
   return new Response(JSON.stringify(body), {
     status,
@@ -128,12 +143,7 @@ describe('CLI durable operations', () => {
       ).toBe(0o600);
       if (bodies.length === 1)
         throw new TypeError('connection reset after commit');
-      return json({
-        ok: true,
-        operationId: 'op1',
-        results: [{ record: { id: 'task1' } }],
-        events: [],
-      });
+      return json(success(init));
     });
     expect(
       await test.run([
@@ -163,8 +173,16 @@ describe('CLI durable operations', () => {
         return json({ ok: false, code: 'not_found', retryable: false }, 404);
       bodies.push(JSON.parse(requestBody(init)));
       return held
-        ? json({ ok: false, code: 'unavailable', retryable: true }, 503)
-        : json({ ok: true, results: [], events: [] });
+        ? json(
+            {
+              ok: false,
+              code: 'unavailable',
+              message: 'Запись закрыта',
+              retryable: true,
+            },
+            503,
+          )
+        : json(success(init));
     });
     expect(
       await test.run([
@@ -198,8 +216,26 @@ describe('CLI durable operations', () => {
         return json({ generation: 'g_first' });
       if (resolve)
         return json({
+          id: 'op3',
           status: 200,
-          result: { ok: true, operationId: 'op3', results: [], events: [] },
+          ok: true,
+          actorId: 'agent:test',
+          actorLabel: 'Тест',
+          command: 'comment.add',
+          createdAt: '2026-09-10T10:00:00.000Z',
+          taskCount: 1,
+          titles: [],
+          firstSeq: 1,
+          lastSeq: 1,
+          result: {
+            ok: true,
+            operationId: 'op3',
+            generation: 'g_first',
+            firstSeq: 1,
+            lastSeq: 1,
+            results: [{ record: null, changes: {} }],
+            events: [],
+          },
         });
       posts += 1;
       throw new TypeError('disconnected');
@@ -237,7 +273,12 @@ describe('CLI durable operations', () => {
       sent.push(body);
       if (generation === 'g_old') throw new TypeError('network');
       return json(
-        { ok: false, code: 'generation_changed', retryable: false },
+        {
+          ok: false,
+          code: 'generation_changed',
+          message: 'База восстановлена',
+          retryable: false,
+        },
         409,
       );
     });
@@ -279,6 +320,7 @@ describe('CLI durable operations', () => {
             {
               ok: false,
               code: status === 409 ? 'conflict' : 'forbidden',
+              message: 'Отказ',
               retryable: false,
               current: { revision: 8 },
             },
@@ -313,7 +355,7 @@ describe('CLI durable operations', () => {
         return json({ generation: 'g_first' });
       expect(url.pathname).toBe('/api/commands/batch');
       sent = JSON.parse(requestBody(init));
-      return json({ ok: true, results: [], events: [] });
+      return json(success(init));
     });
     const commands = [
       {
@@ -332,7 +374,7 @@ describe('CLI durable operations', () => {
         if (u.pathname === '/api/context')
           return json({ generation: 'g_first' });
         sent = JSON.parse(requestBody(init));
-        return json({ ok: true, results: [], events: [] });
+        return json(success(init));
       }) as typeof fetch,
       readInput: async () => JSON.stringify(commands),
       stdout: () => undefined,

@@ -6,8 +6,13 @@ import {
   commandEnvelopeSchema,
 } from '../shared/schemas.js';
 import { storedOperationSchema } from '../shared/domain-schemas.js';
-import type { Outbox } from './outbox.js';
-import type { SavedOperation } from './outbox.js';
+import {
+  acknowledge,
+  acknowledgeStored,
+  rejectionExit,
+  unconfirmed,
+} from './acknowledge.js';
+import type { Outbox, SavedOperation } from './outbox.js';
 
 export interface ApiReply {
   status: number;
@@ -21,6 +26,7 @@ export interface ClientOptions {
   sleep?: (milliseconds: number) => Promise<void>;
 }
 
+// Exit code of a reply that is printed as is (reads and settled writes).
 export function exitCode(reply: ApiReply): number {
   // A successful GET can describe a rejected operation with its own ok: false.
   if (
@@ -29,18 +35,9 @@ export function exitCode(reply: ApiReply): number {
     storedOperationSchema.safeParse(reply.body).success
   )
     return 0;
-  const code = reply.body.code;
-  if (
-    reply.status === 401 ||
-    reply.status === 403 ||
-    code === 'unauthorized' ||
-    code === 'forbidden'
-  )
-    return 4;
-  if (reply.status === 409 || code === 'conflict') return 3;
-  return reply.status >= 200 && reply.status < 300 && reply.body.ok !== false
-    ? 0
-    : 1;
+  if (reply.status >= 200 && reply.status < 300 && reply.body.ok !== false)
+    return 0;
+  return rejectionExit(reply.body.code, reply.status);
 }
 
 export class ApiClient {
@@ -122,13 +119,15 @@ export class ApiClient {
   }
 
   // The outbox is the durable record of intent: the envelope is written before
-  // the first attempt and removed only after a confirmed final outcome.
+  // the first attempt and removed only after `acknowledge` proves a final
+  // outcome of this very operation (same operationId and generation).
   async send(outbox: Outbox, operation: SavedOperation): Promise<ApiReply> {
     if (operation.baseUrl !== this.baseUrl)
       throw new ArgumentError(
         'Сохранённая операция относится к другому TASKINDEX_URL',
       );
     await outbox.put(operation);
+    const { envelope } = operation;
     let finalReply: ApiReply | undefined;
     let unknown = false;
     for (let attempt = 0; attempt <= 3; attempt += 1) {
@@ -138,23 +137,27 @@ export class ApiClient {
           ((ms) => new Promise((resolve) => setTimeout(resolve, ms)))
         )(250 * 2 ** (attempt - 1));
       try {
-        const reply = await this.request(
-          operation.endpoint,
-          operation.envelope,
-        );
+        const reply = await this.request(operation.endpoint, envelope);
         finalReply = reply;
-        const successful = exitCode(reply) === 0;
-        const definitive = reply.body.retryable === false;
-        if (successful || definitive) {
-          await outbox.remove(operation.envelope.operationId);
+        const outcome = acknowledge(reply, envelope);
+        if (outcome.kind === 'confirmed' || outcome.kind === 'rejected') {
+          await outbox.remove(envelope.operationId);
           return reply;
         }
-        // A proxy 5xx, malformed response or unspecified failure is not proof
-        // that a commit did not happen. Keep exactly the original envelope.
-        unknown ||=
-          reply.body.retryable !== true ||
-          reply.body.code === 'invalid_response' ||
-          reply.body.status === 'unknown';
+        if (outcome.kind === 'unknown') {
+          // A 2xx that is not a TaskIndex result comes from something other
+          // than the command handler (wrong URL, maintenance page): a retry
+          // cannot change that, and the outcome must be inspected instead.
+          if (reply.status >= 200 && reply.status < 300)
+            return unconfirmed(
+              envelope.operationId,
+              reply.status,
+              outcome.reason,
+            );
+          // A proxy 5xx or malformed response is not proof that a commit did
+          // not happen. Keep exactly the original envelope and retry it.
+          unknown = true;
+        }
       } catch (error) {
         if (error instanceof ArgumentError) throw error;
         unknown = true;
@@ -168,7 +171,7 @@ export class ApiClient {
       body: {
         ...finalReply?.body,
         ok: false,
-        operationId: operation.envelope.operationId,
+        operationId: envelope.operationId,
         retryable: true,
         ...(unknown || !finalReply
           ? {
@@ -187,10 +190,11 @@ export class ApiClient {
       throw new ArgumentError(
         'Сохранённая операция относится к другому TASKINDEX_URL',
       );
+    const { envelope } = operation;
     let state: ApiReply;
     try {
       state = await this.request(
-        `/api/operations/${encodeURIComponent(operation.envelope.operationId)}`,
+        `/api/operations/${encodeURIComponent(envelope.operationId)}`,
       );
     } catch {
       return {
@@ -200,30 +204,31 @@ export class ApiClient {
           code: 'network_error',
           retryable: true,
           status: 'unknown',
-          operationId: operation.envelope.operationId,
+          operationId: envelope.operationId,
           message:
             'Не удалось выяснить исход операции; сохранённый конверт оставлен для повтора',
         },
       };
     }
+    // No record of this id: the idempotent endpoint resolves it.
     if (state.status === 404) return this.send(outbox, operation);
-    if (exitCode(state) !== 0) return state;
-    const result = state.body.result;
-    if (result && typeof result === 'object') {
-      const body = result as Record<string, unknown>;
-      if (body.ok === true || body.retryable === false) {
-        await outbox.remove(operation.envelope.operationId);
-        return {
-          status: body.ok === false ? Number(state.body.status) || 409 : 200,
-          body,
-        };
-      }
+    if (state.status < 200 || state.status >= 300) return state;
+    const { acknowledgement, stored } = acknowledgeStored(state, envelope);
+    switch (acknowledgement.kind) {
+      case 'confirmed':
+        await outbox.remove(envelope.operationId);
+        return { status: 200, body: stored!.body };
+      case 'rejected':
+        await outbox.remove(envelope.operationId);
+        return stored!;
+      case 'retryable':
+        return this.send(outbox, operation);
+      case 'unknown':
+        return unconfirmed(
+          envelope.operationId,
+          state.status,
+          acknowledgement.reason,
+        );
     }
-    if (state.body.ok === true && Array.isArray(state.body.results)) {
-      await outbox.remove(operation.envelope.operationId);
-      return state;
-    }
-    // Pending/unspecified status is resolved through the idempotent endpoint.
-    return this.send(outbox, operation);
   }
 }

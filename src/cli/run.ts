@@ -17,6 +17,7 @@ import {
   required,
   type Arguments,
 } from './arguments.js';
+import { acknowledgeStored } from './acknowledge.js';
 import { ApiClient, exitCode, type ApiReply } from './client.js';
 import {
   CorruptEnvelopeError,
@@ -91,6 +92,12 @@ export const HELP = {
     conflict: 3,
     authorization: 4,
   },
+  outcomes: [
+    'успех (ok: true, тот же operationId и generation) → код 0, конверт удалён',
+    'окончательный отказ (ok: false, retryable: false; conflict/operation_mismatch/generation_changed/not_undoable → 3, unauthorized/forbidden → 4, иначе 1) → конверт удалён',
+    'повторяемый отказ или сеть (retryable: true, 5xx, обрыв) → код 1, status: unknown, конверт сохранён',
+    'неподтверждённый ответ (2xx без результата операции, чужой operationId/generation, не JSON) → код 1, code: invalid_response, status: unknown, конверт сохранён; далее operation get <id>',
+  ],
 };
 
 const controls = new Set([
@@ -178,15 +185,6 @@ function query(
   for (const name of allowed)
     if (flags[name] !== undefined) params.set(name, String(flags[name]));
   return `${path}${params.size ? `?${params}` : ''}`;
-}
-
-function resultCompleted(reply: ApiReply): boolean {
-  const nested = reply.body.result;
-  if (nested && typeof nested === 'object') {
-    const result = nested as Record<string, unknown>;
-    return result.ok === true || result.retryable === false;
-  }
-  return reply.body.ok === true && Array.isArray(reply.body.results);
 }
 
 function describe(operation: SavedOperation): Record<string, unknown> {
@@ -424,13 +422,16 @@ export async function runCli(
           });
           return 1;
         }
-        if (
-          group === 'operation' &&
-          action === 'get' &&
-          id &&
-          resultCompleted(result)
-        )
-          await outbox.remove(id);
+        if (group === 'operation' && action === 'get' && id) {
+          // The same rule as send/resume decides whether the held envelope is settled.
+          const held = pending.find(
+            (operation) => operation.envelope.operationId === id,
+          );
+          const settled =
+            held && acknowledgeStored(result, held.envelope).acknowledgement;
+          if (settled?.kind === 'confirmed' || settled?.kind === 'rejected')
+            await outbox.remove(id);
+        }
         if (group === 'export' && args.flags.out && exitCode(result) === 0) {
           const destination = required(flagString(args.flags, 'out'), '--out');
           await writeFile(
