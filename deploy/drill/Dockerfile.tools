@@ -1,0 +1,5 @@
+# Инструменты harness deploy/drill/deploy-drill.sh для macOS: deploy.sh требует Linux,
+# поэтому harness запускает сам себя в этом контейнере с docker.sock хоста.
+# docker:cli уже содержит docker CLI, плагины compose/buildx, git, flock и sha256sum.
+FROM docker:cli
+RUN apk add --no-cache bash jq curl
