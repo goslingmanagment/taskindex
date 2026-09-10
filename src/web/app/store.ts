@@ -14,7 +14,6 @@ import { browserStorage, type StorageLike } from './drafts';
 export type PendingOperation = {
   envelope: OperationEnvelope;
   status: 'sending' | 'unknown' | 'acked';
-  attempts: number;
   previewTime: string;
   previewIds: string[];
   message?: string;
@@ -150,6 +149,8 @@ export class WorkspaceStore {
       ),
     });
   }
+  /** TI-038: explicit completion chosen by the owner; removes the envelope and its outbox row. */
+  dismiss = (id: string) => this.finish(id);
   setConnected(connected: boolean) {
     this.publish({ connected, connectionFailed: !connected });
   }
@@ -347,7 +348,6 @@ export class WorkspaceStore {
         {
           envelope,
           status: 'sending',
-          attempts: 0,
           previewTime: new Date().toISOString(),
           previewIds: [],
         },
@@ -431,9 +431,13 @@ export class WorkspaceStore {
             {
               envelope,
               status: 'unknown',
-              attempts: 0,
               previewTime: new Date().toISOString(),
               previewIds: [],
+              // TI-038: an envelope of another generation is never resent; the owner
+              // sees its text in the notice and removes it explicitly.
+              ...(envelope.generation !== this.state.generation
+                ? { message: 'Изменение от прежней версии базы' }
+                : {}),
             },
           ],
         });

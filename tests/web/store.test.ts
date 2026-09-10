@@ -269,7 +269,8 @@ describe('ordered operation store', () => {
     expect(storage.length).toBe(0);
     expect(store.getSnapshot().pending).toHaveLength(0);
   });
-  it('does not replay outbox envelopes across database generations', async () => {
+  it('does not replay outbox envelopes across database generations and lets the owner dismiss them (TI-038)', async () => {
+    // Fable repro store-foreign-pending: without dismiss the envelope survives every reload.
     const storage = new MemoryStorage();
     storage.setItem(
       'taskindex/ops/op1',
@@ -288,6 +289,15 @@ describe('ordered operation store', () => {
     expect(store.getSnapshot().data.tasks[0].title).toBe('Исходное');
     await expect(store.retry('op1')).rejects.toThrow('прежней версии');
     expect(storage.length).toBe(1);
+    expect(store.getSnapshot().pending).toHaveLength(1);
+    expect(store.getSnapshot().pending[0].message).toBe(
+      'Изменение от прежней версии базы',
+    );
+    store.dismiss('op1');
+    expect(store.getSnapshot().pending).toHaveLength(0);
+    expect(storage.length).toBe(0);
+    await store.recover();
+    expect(store.getSnapshot().pending).toHaveLength(0);
   });
   it('refuses to send a command when browser storage is unavailable (TI-006)', async () => {
     // Astra probe 03-storage-probe: the localStorage getter throws, browserStorage() is undefined.

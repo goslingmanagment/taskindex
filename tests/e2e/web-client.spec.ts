@@ -181,3 +181,42 @@ test('TI-007 the editor bases its save on the confirmed revision, not on a rejec
     revision: 2,
   });
 });
+
+test('TI-038 a pending envelope of a previous generation shows its text and can be removed', async ({
+  page,
+}) => {
+  await login(page, 103);
+  await page.evaluate(() =>
+    localStorage.setItem(
+      'taskindex/ops/stale',
+      JSON.stringify({
+        operationId: 'stale',
+        generation: 'stale-generation',
+        command: 'task.create',
+        payload: { area: 'agency', title: 'Потерянный текст' },
+      }),
+    ),
+  );
+  await page.reload();
+  await expect(
+    page.getByRole('heading', { name: 'Агентство', exact: true }),
+  ).toBeVisible();
+  const notice = page.locator('[data-notice="foreign-generation"]');
+  await expect(notice).toContainText('Изменение от прежней версии базы');
+  await expect(notice).toContainText('Потерянный текст');
+  await expect(
+    notice.getByRole('button', { name: 'Повторить', exact: true }),
+  ).toHaveCount(0);
+  await notice.getByRole('button', { name: /^Убрать/ }).click();
+  await expect(notice).toHaveCount(0);
+  await page.reload();
+  await expect(
+    page.getByRole('heading', { name: 'Агентство', exact: true }),
+  ).toBeVisible();
+  await expect(notice).toHaveCount(0);
+  expect(
+    await page.evaluate(() =>
+      Object.keys(localStorage).filter((k) => k.startsWith('taskindex/ops/')),
+    ),
+  ).toEqual([]);
+});
