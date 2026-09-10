@@ -85,13 +85,16 @@ export function QuickCreate({
     setError('');
     try {
       await onSave(
-        makeTask({
-          id,
-          area,
-          projectId: selected,
-          title: title.trim(),
-          status,
-        }),
+        makeTask(
+          {
+            id,
+            area,
+            projectId: selected,
+            title: title.trim(),
+            status,
+          },
+          workspaceStore.getSnapshot().actor,
+        ),
         operationId,
       );
       clearDraft(key);

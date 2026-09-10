@@ -378,6 +378,36 @@ describe('ordered operation store', () => {
     expect(store.getSnapshot().confirmed.tasks[0].title).toBe('Из новой базы');
     expect(store.getSnapshot().loading).toBe(false);
   });
+  it('TI-074 previews are attributed to the actor from /api/me, as the confirmed record will be', async () => {
+    const actor = {
+      id: 'owner',
+      label: 'Тестовый владелец',
+      kind: 'owner' as const,
+      scope: 'write' as const,
+    };
+    const store = new WorkspaceStore(async <T>(path: string): Promise<T> => {
+      if (path === '/api/snapshot') return snapshot() as T;
+      if (path === '/api/me') return actor as T;
+      if (path === '/api/commands') return new Promise<T>(() => {});
+      return noopPage as T;
+    }, new MemoryStorage());
+    await store.refresh();
+    expect(store.getSnapshot().actor).toEqual(actor);
+    void store.submit(
+      { command: 'task.create', payload: { area: 'agency', title: 'Новое' } },
+      'op1',
+    );
+    const preview = store
+      .getSnapshot()
+      .data.tasks.find((t) => t.title === 'Новое')!;
+    expect(preview.createdBy).toBe('owner');
+    expect(preview.createdByLabel).toBe('Тестовый владелец');
+    const confirmed = makeTask(
+      { id: preview.id, area: 'agency', title: 'Новое' },
+      actor,
+    );
+    expect(confirmed.createdByLabel).toBe(preview.createdByLabel);
+  });
   it('keeps optimistic entity identity and timestamps stable on unrelated store publishes', () => {
     const store = new WorkspaceStore(
       <T>() => new Promise<T>(() => {}),

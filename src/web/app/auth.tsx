@@ -115,7 +115,7 @@ export function AccountMenu() {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger className="account-button">
-        {session.data?.user.name || 'Дмитрий'}
+        {session.data?.user.name || 'Владелец'}
       </DropdownMenuTrigger>
       <DropdownMenuContent>
         <DropdownMenuItem onClick={() => void addPasskey()}>

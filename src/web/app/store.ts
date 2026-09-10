@@ -1,4 +1,5 @@
 import type {
+  Actor,
   Command,
   DomainEvent,
   EventsPage,
@@ -36,6 +37,14 @@ export type StoreState = {
   storageAvailable: boolean;
   /** TI-043: the server revoked this session or key; the stream is not reopened. */
   revoked: boolean;
+  /** TI-074: who this client acts as (`GET /api/me`); previews are attributed to it. */
+  actor: Actor | null;
+};
+export const FALLBACK_ACTOR: Actor = {
+  id: 'owner',
+  label: 'Владелец',
+  kind: 'owner',
+  scope: 'write',
 };
 export const STORAGE_UNAVAILABLE_MESSAGE =
   'Хранилище браузера недоступно: изменения не отправляются. Скопируйте текст и повторите в обычном окне.';
@@ -59,6 +68,7 @@ export class WorkspaceStore {
     operationsVersion: 0,
     storageAvailable: true,
     revoked: false,
+    actor: null,
   };
   private listeners = new Set<() => void>();
   private buffer = new Map<number, DomainEvent>();
@@ -108,12 +118,7 @@ export class WorkspaceStore {
                   (pending.previewIds[index] = crypto.randomUUID())
                 );
               },
-              actor: {
-                id: 'owner',
-                label: 'Дмитрий',
-                kind: 'owner',
-                scope: 'write',
-              },
+              actor: this.state.actor ?? FALLBACK_ACTOR,
             },
           ).state;
         }
@@ -202,8 +207,17 @@ export class WorkspaceStore {
     const flight = (async () => {
       this.publish({ loading: true, error: '' });
       try {
-        const snapshot = await this.transport<Snapshot>('/api/snapshot');
+        const [snapshot, actor] = await Promise.all([
+          this.transport<Snapshot>('/api/snapshot'),
+          this.transport<Actor>('/api/me').catch(() => null),
+        ]);
         if (epoch !== this.refreshEpoch) return;
+        if (
+          actor &&
+          typeof actor.id === 'string' &&
+          typeof actor.label === 'string'
+        )
+          this.publish({ actor });
         this.loadSnapshot(snapshot);
         await this.catchUp();
         await this.recover();

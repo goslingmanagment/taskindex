@@ -187,14 +187,17 @@ function InlineCreate({
         ...intent.current,
       });
       await onSave(
-        makeTask({
-          id: intent.current.id,
-          area,
-          projectId:
-            projectId === 'all' || projectId === 'none' ? null : projectId,
-          status,
-          title: title.trim(),
-        }),
+        makeTask(
+          {
+            id: intent.current.id,
+            area,
+            projectId:
+              projectId === 'all' || projectId === 'none' ? null : projectId,
+            status,
+            title: title.trim(),
+          },
+          workspaceStore.getSnapshot().actor,
+        ),
         intent.current.operationId,
       );
       clearDraft(key);

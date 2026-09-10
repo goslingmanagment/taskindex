@@ -188,6 +188,7 @@ describe('startSync reconnects a closed EventSource', () => {
     expect(h.streams).toHaveLength(1);
     expect(h.timeouts.filter((t) => t.ms >= 0)).toHaveLength(0);
     const delays: number[] = [];
+    const meBefore = h.paths.filter((p) => p === '/api/me').length;
     for (let attempt = 0; attempt < 6; attempt++) {
       h.stream.fail(true);
       const pending = h.timeouts.filter((t) => t.ms >= 0);
@@ -205,7 +206,7 @@ describe('startSync reconnects a closed EventSource', () => {
       16000,
       SSE_RECONNECT_MAX_MS,
     ]);
-    expect(h.paths.filter((p) => p === '/api/me')).toHaveLength(6);
+    expect(h.paths.filter((p) => p === '/api/me')).toHaveLength(meBefore + 6);
     h.stream.open();
     h.stream.fail(true);
     expect(h.timeouts.filter((t) => t.ms >= 0)[0].ms).toBe(1000);
