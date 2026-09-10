@@ -11,7 +11,7 @@ export default defineConfig({
   },
   test: {
     environment: 'node',
-    include: ['tests/{unit,api,property,web,cli}/**/*.test.{ts,tsx}'],
+    include: ['tests/{unit,api,property,web,cli,deploy}/**/*.test.{ts,tsx}'],
     testTimeout: 15000,
     hookTimeout: 15000,
     restoreMocks: true,
