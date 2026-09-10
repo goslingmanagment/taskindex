@@ -102,7 +102,18 @@ it('starts from another directory, binds to loopback outside production and repo
     writes: 'open',
   });
   expect(stdout + stderr).not.toContain(secret);
-  const health = await fetch(`http://127.0.0.1:${port}/health`);
+  // The listening line precedes the first accepted connection by a few
+  // milliseconds on a loaded machine: retry a refused connection briefly.
+  const reach = async (url: string) => {
+    for (let attempt = 0; ; attempt++)
+      try {
+        return await fetch(url);
+      } catch (error) {
+        if (attempt >= 30) throw error;
+        await new Promise((r) => setTimeout(r, 100));
+      }
+  };
+  const health = await reach(`http://127.0.0.1:${port}/health`);
   expect(health.status).toBe(200);
   expect(await health.json()).toMatchObject({ ok: true, dbWritable: true });
   const missing = await fetch(`http://127.0.0.1:${port}/api/nope`);

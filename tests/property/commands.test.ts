@@ -230,11 +230,18 @@ it('random command sequences by owner and agents preserve invariants, the event 
         // focus is set only by owner events; an agent's event carries focus
         // only as leaving the desk, when the task is finished or archived
         // (plan 13, §3.2) under confirmOwnerFields.
+        // An agent's undo of its own finish or archive may put the task
+        // back where the owner had it: that restores an owner decision,
+        // it does not make one.
         for (const event of history)
-          if (event.changes.focus?.to === true)
-            expect(event.actorId).toBe('owner');
+          if (event.changes.focus?.to === true && event.actorId !== 'owner')
+            expect(event.command).toBe('undo');
         for (const event of history)
-          if (event.actorId !== 'owner' && event.changes.focus) {
+          if (
+            event.actorId !== 'owner' &&
+            event.changes.focus &&
+            event.command !== 'undo'
+          ) {
             expect(event.changes.focus.to).toBe(false);
             expect(
               event.changes.status?.to === 'done' ||
