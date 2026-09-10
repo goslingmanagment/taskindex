@@ -1,41 +1,12 @@
-import { test, expect, type Page } from '@playwright/test';
+import { test, expect } from '@playwright/test';
 import { randomUUID } from 'node:crypto';
+import { postCommand as command, signIn } from './helpers';
 // Web-client regressions from the v2 review registry (plan 07).
-async function login(page: Page, ip: number) {
-  // The fixture has no Nginx: each test gets its own client IP for the login rate limit.
-  await page.context().setExtraHTTPHeaders({ 'x-real-ip': `192.0.2.${ip}` });
-  await page.goto('/');
-  await page
-    .getByRole('textbox', { name: 'Почта', exact: true })
-    .fill('owner@example.test');
-  await page
-    .getByRole('textbox', { name: 'Пароль', exact: true })
-    .fill('TaskIndex-e2e-password-2026');
-  await page.getByRole('button', { name: 'Войти', exact: true }).click();
-  await expect(
-    page.getByRole('heading', { name: 'Агентство', exact: true }),
-  ).toBeVisible();
-}
-async function snapshot(page: Page) {
-  return (await page.request.get('/api/snapshot')).json();
-}
-async function command(page: Page, name: string, payload: object) {
-  const state = await snapshot(page);
-  return page.request.post('/api/commands', {
-    headers: { Origin: new URL(page.url()).origin },
-    data: {
-      generation: state.generation,
-      operationId: randomUUID(),
-      command: name,
-      payload,
-    },
-  });
-}
 
 test('TI-006 a browser without localStorage shows the degradation banner and sends no command', async ({
   page,
-}) => {
-  await login(page, 101);
+}, testInfo) => {
+  await signIn(page, testInfo);
   await page.addInitScript(() => {
     Object.defineProperty(window, 'localStorage', {
       configurable: true,
@@ -94,8 +65,8 @@ test('TI-006 a browser without localStorage shows the degradation banner and sen
 
 test('TI-007 the editor bases its save on the confirmed revision, not on a rejected optimistic move', async ({
   page,
-}) => {
-  await login(page, 102);
+}, testInfo) => {
+  await signIn(page, testInfo);
   const id = randomUUID();
   const title = 'TI-007 карточка';
   expect(
@@ -184,8 +155,8 @@ test('TI-007 the editor bases its save on the confirmed revision, not on a rejec
 
 test('TI-038 a pending envelope of a previous generation shows its text and can be removed', async ({
   page,
-}) => {
-  await login(page, 103);
+}, testInfo) => {
+  await signIn(page, testInfo);
   await page.evaluate(() =>
     localStorage.setItem(
       'taskindex/ops/stale',
@@ -223,8 +194,8 @@ test('TI-038 a pending envelope of a previous generation shows its text and can 
 
 test('TI-042 browser back returns to the previous view instead of the remembered one', async ({
   page,
-}) => {
-  await login(page, 104);
+}, testInfo) => {
+  await signIn(page, testInfo);
   await page.getByRole('button', { name: 'Разработка', exact: true }).click();
   await expect(
     page.getByRole('heading', { name: 'Разработка', exact: true }),

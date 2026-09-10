@@ -590,13 +590,20 @@ test('mouse and emulated touch drag both persist task moves', async ({
     type: 'touchStart',
     touchPoints: [{ x, y }],
   });
-  await mobile.waitForTimeout(260);
+  // TouchSensor activates after its hold delay: wait for the drag itself, not a timer.
+  await expect(mobile.locator('article.dragging')).toHaveCount(1);
   for (let step = 1; step <= 8; step++)
     await session.send('Input.dispatchTouchEvent', {
       type: 'touchMove',
       touchPoints: [{ x: x + ((380 - x) * step) / 8, y }],
     });
-  await mobile.waitForTimeout(60);
+  await expect
+    .poll(
+      async () =>
+        (await mobile.locator('.drag-overlay .task-card').boundingBox())?.x ??
+        0,
+    )
+    .toBeGreaterThan(x);
   await session.send('Input.dispatchTouchEvent', {
     type: 'touchEnd',
     touchPoints: [],

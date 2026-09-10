@@ -1,22 +1,8 @@
 import { test, expect, type Page } from '@playwright/test';
 import { randomUUID } from 'node:crypto';
+import { postCommand as command, signIn, snapshot } from './helpers';
 
 // Regressions from the live workflow audit of 2026-09-08.
-async function snapshot(page: Page) {
-  return (await page.request.get('/api/snapshot')).json();
-}
-async function command(page: Page, name: string, payload: object) {
-  const state = await snapshot(page);
-  return page.request.post('/api/commands', {
-    headers: { Origin: new URL(page.url()).origin },
-    data: {
-      generation: state.generation,
-      operationId: randomUUID(),
-      command: name,
-      payload,
-    },
-  });
-}
 async function task(page: Page, title: string) {
   const id = randomUUID();
   expect(
@@ -36,23 +22,7 @@ async function open(page: Page, title: string) {
   ).toBeVisible();
 }
 test.beforeEach(async ({ page }, testInfo) => {
-  // The local fixture has no Nginx. Give each independent test client an IP
-  // rather than spending the shared login-rate-limit bucket across tests.
-  const caseNumber = Number(testInfo.title.match(/B(\d+)/)?.[1] ?? 1);
-  await page
-    .context()
-    .setExtraHTTPHeaders({ 'x-real-ip': `192.0.2.${caseNumber}` });
-  await page.goto('/');
-  await page
-    .getByRole('textbox', { name: 'Почта', exact: true })
-    .fill('owner@example.test');
-  await page
-    .getByRole('textbox', { name: 'Пароль', exact: true })
-    .fill('TaskIndex-e2e-password-2026');
-  await page.getByRole('button', { name: 'Войти', exact: true }).click();
-  await expect(
-    page.getByRole('heading', { name: 'Агентство', exact: true }),
-  ).toBeVisible();
+  await signIn(page, testInfo);
 });
 
 test('B01 saving tab B must not delete the unsaved task draft in tab A', async ({
