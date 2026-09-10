@@ -6,6 +6,8 @@ import {
   uniqueIndex,
 } from 'drizzle-orm/sqlite-core';
 import type { Changes, OperationResponse } from '../shared/model.js';
+import { commandNames } from '../shared/schemas.js';
+const commandColumn = [...commandNames, 'batch'] as const;
 const time = (name: string) => integer(name, { mode: 'timestamp_ms' });
 export const settings = sqliteTable('settings', {
   key: text('key').primaryKey(),
@@ -101,9 +103,12 @@ export const operations = sqliteTable(
   'operations',
   {
     id: text('id').primaryKey(),
+    // Position in the operation journal (TI-008): assigned with the result in
+    // the same transaction, independent of whether the operation has events.
+    operationSeq: integer('operation_seq').notNull(),
     actorId: text('actor_id').notNull(),
     actorLabel: text('actor_label').notNull(),
-    command: text('command').notNull(),
+    command: text('command', { enum: commandColumn }).notNull(),
     commandHash: text('command_hash').notNull(),
     status: integer('status').notNull(),
     result: text('result', { mode: 'json' })
@@ -113,7 +118,10 @@ export const operations = sqliteTable(
     lastSeq: integer('last_seq'),
     createdAt: text('created_at').notNull(),
   },
-  (t) => [index('operations_created').on(t.createdAt, t.id)],
+  (t) => [
+    index('operations_created').on(t.createdAt, t.id),
+    uniqueIndex('operations_seq').on(t.operationSeq),
+  ],
 );
 export const events = sqliteTable(
   'events',
@@ -126,7 +134,7 @@ export const events = sqliteTable(
     entityKind: text('entity_kind').notNull(),
     entityId: text('entity_id').notNull(),
     taskId: text('task_id'),
-    command: text('command').notNull(),
+    command: text('command', { enum: commandNames }).notNull(),
     changes: text('changes', { mode: 'json' }).$type<Changes>().notNull(),
     recordRevision: integer('record_revision').notNull(),
     firstSeq: integer('first_seq').notNull(),

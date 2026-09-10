@@ -204,6 +204,14 @@ export function latestSeq(db: DatabaseHandle): number {
     }
   ).n;
 }
+// Position of the last stored operation in the journal (0 when empty).
+export function latestOperationSeq(db: DatabaseHandle): number {
+  return (
+    db.sqlite
+      .prepare('SELECT COALESCE(MAX(operation_seq),0) AS n FROM operations')
+      .get() as { n: number }
+  ).n;
+}
 export function readState(db: DatabaseHandle): WorkspaceState {
   const projects = db.orm
     .select()
@@ -323,11 +331,11 @@ export function writeState(
 }
 export function readOperations(
   db: DatabaseHandle,
-): (StoredOperation & { commandHash: string })[] {
+): (StoredOperation & { operationSeq: number; commandHash: string })[] {
   return db.orm
     .select()
     .from(schema.operations)
-    .orderBy(asc(schema.operations.createdAt), asc(schema.operations.id))
+    .orderBy(asc(schema.operations.operationSeq))
     .all()
     .map((o) => {
       const result = o.result;

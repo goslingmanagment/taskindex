@@ -322,7 +322,7 @@ it('SSE invalidates operations for committed rejections and no-ops without advan
   };
   expect((await f.post(rejected, { id: 'rejected' })).status).toBe(404);
   expect(await next()).toBe(
-    `event: operations\ndata: ${JSON.stringify({ generation: gen })}\n\n`,
+    `event: operations\ndata: ${JSON.stringify({ generation: gen, operationSeq: 1 })}\n\n`,
   );
   expect(latestSeq(f.db)).toBe(0);
   // Neither replay nor dry run creates another operation notification.

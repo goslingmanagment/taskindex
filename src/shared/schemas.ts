@@ -1,9 +1,28 @@
-import { z } from '@hono/zod-openapi';
+import { z } from 'zod';
+import { LIMITS } from './limits.js';
+/** @deprecated import `z` from 'zod' directly; the re-export is kept until plan 10 removes the last consumers. */
 export { z };
 export const idSchema = z
   .string()
-  .regex(/^[A-Za-z0-9_-]{1,80}$/)
-  .describe('Устойчивый идентификатор, до 80 символов');
+  .regex(new RegExp(`^[A-Za-z0-9_-]{1,${LIMITS.id}}$`))
+  .describe(`Устойчивый идентификатор, до ${LIMITS.id} символов`);
+// Words that are routes or filter values and therefore can never address a
+// record: `all`/`none` are project filters, `lookup`/`by-origin` are path
+// segments under /api/tasks. Checked for every new task and project id.
+export const RESERVED_IDS: ReadonlySet<string> = new Set([
+  'all',
+  'none',
+  'by-origin',
+  'lookup',
+]);
+export const newIdSchema = idSchema
+  .refine(
+    (id) => !RESERVED_IDS.has(id),
+    'Служебное слово нельзя использовать как идентификатор',
+  )
+  .describe(
+    'Идентификатор новой записи; служебные слова all, none, lookup, by-origin запрещены',
+  );
 export const revisionSchema = z
   .number()
   .int()
@@ -31,35 +50,38 @@ export const dateSchema = z
   }, 'Укажите существующую дату')
   .nullable()
   .describe('Календарная дата YYYY-MM-DD или null');
+export const originSystemSchema = z
+  .string()
+  .regex(new RegExp(`^[a-z0-9_-]{1,${LIMITS.originSystem}}$`))
+  .describe('Слаг источника');
 export const checklistItemSchema = z
   .object({
     id: idSchema,
-    text: text(500, true).describe('Текст шага'),
+    text: text(LIMITS.checklistText, true).describe('Текст шага'),
     done: z.boolean().describe('Шаг выполнен'),
   })
   .strict();
 export const checklistSchema = z
   .array(checklistItemSchema)
-  .max(100)
+  .max(LIMITS.checklistItems)
   .refine(
     (v) => new Set(v.map((x) => x.id)).size === v.length,
     'Шаги должны иметь разные идентификаторы',
   )
-  .describe('До 100 шагов задачи');
+  .describe(`До ${LIMITS.checklistItems} шагов задачи`);
 export const originSchema = z
   .object({
-    system: z
-      .string()
-      .regex(/^[a-z0-9_-]{1,40}$/)
-      .describe('Слаг источника'),
-    ref: text(200, true).describe('Устойчивый идентификатор объекта источника'),
+    system: originSystemSchema,
+    ref: text(LIMITS.originRef, true).describe(
+      'Устойчивый идентификатор объекта источника',
+    ),
     url: z
       .url()
-      .max(2000)
+      .max(LIMITS.originUrl)
       .refine((v) => /^https?:\/\//.test(v), 'Только http и https')
       .optional()
       .describe('Ссылка на источник'),
-    version: text(120, true)
+    version: text(LIMITS.originVersion, true)
       .optional()
       .describe('Упорядоченная версия самого источника, не время наблюдения'),
   })
@@ -74,10 +96,10 @@ export const taskFieldsSchema = z
   .object({
     area: areaSchema.optional(),
     projectId: idSchema.nullable().optional().describe('Проект или null'),
-    title: text(240, true).optional().describe('Название'),
-    note: text(16000).optional().describe('Заметка'),
+    title: text(LIMITS.taskTitle, true).optional().describe('Название'),
+    note: text(LIMITS.taskNote).optional().describe('Заметка'),
     due: dateSchema.optional(),
-    waitingFor: text(240).optional().describe('Чего ждём'),
+    waitingFor: text(LIMITS.waitingFor).optional().describe('Чего ждём'),
     followUp: dateSchema.optional(),
     focus: z
       .boolean()
@@ -89,39 +111,42 @@ export const taskFieldsSchema = z
   .strict();
 const createFields = taskFieldsSchema.extend({
   area: areaSchema,
-  title: text(240, true).describe('Название задачи'),
+  title: text(LIMITS.taskTitle, true).describe('Название задачи'),
   status: statusSchema.optional(),
   checklist: checklistSchema.optional(),
 });
+const projectColor = z
+  .string()
+  .regex(/^#[a-fA-F0-9]{6}$/)
+  .describe('Цвет #rrggbb');
 const schemas = {
   'project.create': z
     .object({
-      id: idSchema.optional(),
+      id: newIdSchema.optional(),
       area: areaSchema,
-      name: text(60, true).describe('Название проекта'),
-      color: z
-        .string()
-        .regex(/^#[a-fA-F0-9]{6}$/)
-        .describe('Цвет #rrggbb'),
-      description: text(500).optional().describe('Что складывать в проект'),
+      name: text(LIMITS.projectName, true).describe('Название проекта'),
+      color: projectColor,
+      description: text(LIMITS.projectDescription)
+        .optional()
+        .describe('Что складывать в проект'),
     })
     .strict(),
   'project.update': z
     .object({
       id: idSchema,
       baseRevision: revisionSchema,
-      name: text(60, true).optional().describe('Название проекта'),
-      color: z
-        .string()
-        .regex(/^#[a-fA-F0-9]{6}$/)
+      name: text(LIMITS.projectName, true)
         .optional()
-        .describe('Цвет проекта'),
-      description: text(500).optional().describe('Описание проекта'),
+        .describe('Название проекта'),
+      color: projectColor.optional().describe('Цвет проекта'),
+      description: text(LIMITS.projectDescription)
+        .optional()
+        .describe('Описание проекта'),
     })
     .strict(),
   'task.create': createFields
     .extend({
-      id: idSchema.optional(),
+      id: newIdSchema.optional(),
       origin: originSchema.optional(),
       position: positionSchema.optional(),
     })
@@ -163,12 +188,12 @@ const schemas = {
       taskId: idSchema,
       baseRevision: revisionSchema,
       id: idSchema.optional(),
-      text: text(500, true).describe('Текст шага'),
+      text: text(LIMITS.checklistText, true).describe('Текст шага'),
       position: z
         .number()
         .int()
         .min(0)
-        .max(100)
+        .max(LIMITS.checklistItems)
         .optional()
         .describe('Позиция шага, с нуля'),
     })
@@ -178,7 +203,7 @@ const schemas = {
       taskId: idSchema,
       baseRevision: revisionSchema,
       itemId: idSchema,
-      text: text(500, true).optional().describe('Текст шага'),
+      text: text(LIMITS.checklistText, true).optional().describe('Текст шага'),
       done: z.boolean().optional().describe('Шаг выполнен'),
     })
     .strict(),
@@ -193,14 +218,19 @@ const schemas = {
     .object({
       taskId: idSchema,
       baseRevision: revisionSchema,
-      itemIds: z.array(idSchema).max(100).describe('Все шаги в нужном порядке'),
+      itemIds: z
+        .array(idSchema)
+        .max(LIMITS.checklistItems)
+        .describe('Все шаги в нужном порядке'),
     })
     .strict(),
   'comment.add': z
     .object({
       taskId: idSchema,
       id: idSchema.optional(),
-      text: text(4000, true).describe('Комментарий или отчёт агента'),
+      text: text(LIMITS.commentText, true).describe(
+        'Комментарий или отчёт агента',
+      ),
     })
     .strict(),
   'comment.remove': z.object({ commentId: idSchema }).strict(),
@@ -216,6 +246,12 @@ const schemas = {
   ]),
 };
 export const commandPayloadSchemas = schemas;
+export type CommandName = keyof typeof schemas;
+export const commandNames = Object.keys(schemas) as [
+  CommandName,
+  ...CommandName[],
+];
+export const commandNameSchema = z.enum(commandNames).describe('Имя команды');
 const envelopeFields = {
   operationId: idSchema,
   generation: idSchema,
@@ -227,229 +263,50 @@ const envelopeFields = {
       'Агент подтверждает поручение владельца: команда меняет поля из ownerFields. Без true такая команда получает 403. Флаг остаётся в результате операции как след, поручение он не доказывает.',
     ),
 };
-export const commandSchema = z.discriminatedUnion('command', [
-  z
-    .object({
-      command: z.literal('project.create').describe('Имя команды'),
-      payload: schemas['project.create'].describe('Параметры команды'),
-    })
-    .strict(),
-  z
-    .object({
-      command: z.literal('project.update').describe('Имя команды'),
-      payload: schemas['project.update'].describe('Параметры команды'),
-    })
-    .strict(),
-  z
-    .object({
-      command: z.literal('task.create').describe('Имя команды'),
-      payload: schemas['task.create'].describe('Параметры команды'),
-    })
-    .strict(),
-  z
-    .object({
-      command: z.literal('task.sync').describe('Имя команды'),
-      payload: schemas['task.sync'].describe('Параметры команды'),
-    })
-    .strict(),
-  z
-    .object({
-      command: z.literal('task.update').describe('Имя команды'),
-      payload: schemas['task.update'].describe('Параметры команды'),
-    })
-    .strict(),
-  z
-    .object({
-      command: z.literal('task.save').describe('Имя команды'),
-      payload: schemas['task.save'].describe('Параметры команды'),
-    })
-    .strict(),
-  z
-    .object({
-      command: z.literal('task.move').describe('Имя команды'),
-      payload: schemas['task.move'].describe('Параметры команды'),
-    })
-    .strict(),
-  z
-    .object({
-      command: z.literal('task.archive').describe('Имя команды'),
-      payload: schemas['task.archive'].describe('Параметры команды'),
-    })
-    .strict(),
-  z
-    .object({
-      command: z.literal('task.restore').describe('Имя команды'),
-      payload: schemas['task.restore'].describe('Параметры команды'),
-    })
-    .strict(),
-  z
-    .object({
-      command: z.literal('checklist.add').describe('Имя команды'),
-      payload: schemas['checklist.add'].describe('Параметры команды'),
-    })
-    .strict(),
-  z
-    .object({
-      command: z.literal('checklist.update').describe('Имя команды'),
-      payload: schemas['checklist.update'].describe('Параметры команды'),
-    })
-    .strict(),
-  z
-    .object({
-      command: z.literal('checklist.remove').describe('Имя команды'),
-      payload: schemas['checklist.remove'].describe('Параметры команды'),
-    })
-    .strict(),
-  z
-    .object({
-      command: z.literal('checklist.reorder').describe('Имя команды'),
-      payload: schemas['checklist.reorder'].describe('Параметры команды'),
-    })
-    .strict(),
-  z
-    .object({
-      command: z.literal('comment.add').describe('Имя команды'),
-      payload: schemas['comment.add'].describe('Параметры команды'),
-    })
-    .strict(),
-  z
-    .object({
-      command: z.literal('comment.remove').describe('Имя команды'),
-      payload: schemas['comment.remove'].describe('Параметры команды'),
-    })
-    .strict(),
-  z
-    .object({
-      command: z.literal('undo').describe('Имя команды'),
-      payload: schemas['undo'].describe('Параметры команды'),
-    })
-    .strict(),
-]);
-export const commandEnvelopeSchema = z.discriminatedUnion('command', [
-  z
-    .object({
-      ...envelopeFields,
-      command: z.literal('project.create').describe('Имя команды'),
-      payload: schemas['project.create'].describe('Параметры команды'),
-    })
-    .strict(),
-  z
-    .object({
-      ...envelopeFields,
-      command: z.literal('project.update').describe('Имя команды'),
-      payload: schemas['project.update'].describe('Параметры команды'),
-    })
-    .strict(),
-  z
-    .object({
-      ...envelopeFields,
-      command: z.literal('task.create').describe('Имя команды'),
-      payload: schemas['task.create'].describe('Параметры команды'),
-    })
-    .strict(),
-  z
-    .object({
-      ...envelopeFields,
-      command: z.literal('task.sync').describe('Имя команды'),
-      payload: schemas['task.sync'].describe('Параметры команды'),
-    })
-    .strict(),
-  z
-    .object({
-      ...envelopeFields,
-      command: z.literal('task.update').describe('Имя команды'),
-      payload: schemas['task.update'].describe('Параметры команды'),
-    })
-    .strict(),
-  z
-    .object({
-      ...envelopeFields,
-      command: z.literal('task.save').describe('Имя команды'),
-      payload: schemas['task.save'].describe('Параметры команды'),
-    })
-    .strict(),
-  z
-    .object({
-      ...envelopeFields,
-      command: z.literal('task.move').describe('Имя команды'),
-      payload: schemas['task.move'].describe('Параметры команды'),
-    })
-    .strict(),
-  z
-    .object({
-      ...envelopeFields,
-      command: z.literal('task.archive').describe('Имя команды'),
-      payload: schemas['task.archive'].describe('Параметры команды'),
-    })
-    .strict(),
-  z
-    .object({
-      ...envelopeFields,
-      command: z.literal('task.restore').describe('Имя команды'),
-      payload: schemas['task.restore'].describe('Параметры команды'),
-    })
-    .strict(),
-  z
-    .object({
-      ...envelopeFields,
-      command: z.literal('checklist.add').describe('Имя команды'),
-      payload: schemas['checklist.add'].describe('Параметры команды'),
-    })
-    .strict(),
-  z
-    .object({
-      ...envelopeFields,
-      command: z.literal('checklist.update').describe('Имя команды'),
-      payload: schemas['checklist.update'].describe('Параметры команды'),
-    })
-    .strict(),
-  z
-    .object({
-      ...envelopeFields,
-      command: z.literal('checklist.remove').describe('Имя команды'),
-      payload: schemas['checklist.remove'].describe('Параметры команды'),
-    })
-    .strict(),
-  z
-    .object({
-      ...envelopeFields,
-      command: z.literal('checklist.reorder').describe('Имя команды'),
-      payload: schemas['checklist.reorder'].describe('Параметры команды'),
-    })
-    .strict(),
-  z
-    .object({
-      ...envelopeFields,
-      command: z.literal('comment.add').describe('Имя команды'),
-      payload: schemas['comment.add'].describe('Параметры команды'),
-    })
-    .strict(),
-  z
-    .object({
-      ...envelopeFields,
-      command: z.literal('comment.remove').describe('Имя команды'),
-      payload: schemas['comment.remove'].describe('Параметры команды'),
-    })
-    .strict(),
-  z
-    .object({
-      ...envelopeFields,
-      command: z.literal('undo').describe('Имя команды'),
-      payload: schemas['undo'].describe('Параметры команды'),
-    })
-    .strict(),
-]);
+type Member<K extends CommandName, E extends z.ZodRawShape> = z.ZodObject<
+  E & { command: z.ZodLiteral<K>; payload: (typeof schemas)[K] },
+  z.core.$strict
+>;
+type Members<E extends z.ZodRawShape> = {
+  [K in CommandName]: Member<K, E>;
+}[CommandName];
+// The union members are built from `schemas`, so adding a payload schema adds
+// the member everywhere. The only cast: `map` cannot express that the member
+// for `name` carries the payload schema of that same name; the resulting type
+// is checked against the explicit `Command` type in tests/unit/shared.test.ts.
+const members = <E extends z.ZodRawShape>(extra: E) =>
+  commandNames.map((name) =>
+    z
+      .object({
+        ...extra,
+        command: z.literal(name).describe('Имя команды'),
+        payload: schemas[name].describe('Параметры команды'),
+      })
+      .strict(),
+  ) as unknown as [Members<E>, ...Members<E>[]];
+export const commandSchema = z
+  .discriminatedUnion('command', members({}))
+  .meta({ id: 'Command' });
+export const commandEnvelopeSchema = z
+  .discriminatedUnion('command', members(envelopeFields))
+  .meta({ id: 'CommandEnvelope' });
 export const batchEnvelopeSchema = z
   .object({
     ...envelopeFields,
     commands: z
       .array(commandSchema)
       .min(1)
-      .max(100)
-      .describe('Атомарный пакет до 100 команд'),
+      .max(LIMITS.batchCommands)
+      .describe(`Атомарный пакет до ${LIMITS.batchCommands} команд`),
   })
-  .strict();
+  .strict()
+  .meta({ id: 'BatchEnvelope' });
+export const operationEnvelopeSchema = z.union([
+  commandEnvelopeSchema,
+  batchEnvelopeSchema,
+]);
 export type Command = z.infer<typeof commandSchema>;
+export type CommandOf<K extends CommandName> = Extract<Command, { command: K }>;
 export type CommandEnvelope = z.infer<typeof commandEnvelopeSchema>;
 export type BatchEnvelope = z.infer<typeof batchEnvelopeSchema>;
 export function parseCommand(command: Command): Command {

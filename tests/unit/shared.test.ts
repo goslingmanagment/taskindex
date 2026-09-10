@@ -9,9 +9,69 @@ import {
   todayInTimezone,
   byOrder,
 } from '../../src/shared/queries.js';
-import { commandEnvelopeSchema, dateSchema } from '../../src/shared/schemas.js';
-import type { Task, WorkspaceState } from '../../src/shared/model.js';
+import { z } from 'zod';
+import {
+  commandEnvelopeSchema,
+  commandNameSchema,
+  commandNames,
+  commandPayloadSchemas,
+  commandSchema,
+  dateSchema,
+  operationEnvelopeSchema,
+} from '../../src/shared/schemas.js';
+import type {
+  Command,
+  CommandName,
+  Task,
+  WorkspaceState,
+} from '../../src/shared/model.js';
 import { owner } from '../api/helpers.js';
+// The explicit shape the generated unions must have (plan 04, §3.4): a
+// discriminated union over the payload registry. Both assignments fail `tsc`
+// if the generated `Command` drifts from it in either direction.
+type ExpectedCommand = {
+  [K in CommandName]: {
+    command: K;
+    payload: z.infer<(typeof commandPayloadSchemas)[K]>;
+  };
+}[CommandName];
+const generated: ExpectedCommand = {} as Command;
+const explicit: Command = {} as ExpectedCommand;
+void generated;
+void explicit;
+describe('command unions are generated from the payload registry (TI-019)', () => {
+  it('has one member per payload schema and rejects unknown names', () => {
+    expect(commandSchema.options).toHaveLength(commandNames.length);
+    expect(commandEnvelopeSchema.options).toHaveLength(commandNames.length);
+    expect(commandNames).toEqual(Object.keys(commandPayloadSchemas));
+    expect(commandNameSchema.safeParse('task.nope').success).toBe(false);
+    expect(
+      commandEnvelopeSchema.safeParse({
+        operationId: 'op',
+        generation: 'g',
+        command: 'task.nope',
+        payload: {},
+      }).success,
+    ).toBe(false);
+    expect(
+      operationEnvelopeSchema.safeParse({
+        operationId: 'op',
+        generation: 'g',
+        commands: [
+          { command: 'task.create', payload: { area: 'agency', title: 'T' } },
+        ],
+      }).success,
+    ).toBe(true);
+    const parsed = commandSchema.safeParse({
+      command: 'undo',
+      payload: { seq: 1 },
+    });
+    expect(parsed.success && parsed.data.command).toBe('undo');
+  });
+  it('keeps shared free of the OpenAPI package', () => {
+    expect(z.locales.ru).toBeTypeOf('function');
+  });
+});
 const create = (id: string, patch: Partial<Task> = {}): Task => {
   const result = applyCommand(
     { tasks: [], projects: [], comments: [] },

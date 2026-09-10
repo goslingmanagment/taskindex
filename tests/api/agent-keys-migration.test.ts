@@ -8,6 +8,7 @@ import {
   bundledMigrations,
   migrationsDirectory,
   getSetting,
+  schemaVersion,
 } from '../../src/server/db.js';
 import {
   hashAgentKey,
@@ -85,7 +86,7 @@ it('moves plugin-issued keys into agent_keys with the same hash and timestamps, 
         )
         .all(),
     ).toEqual([{ name: 'agent_keys' }]);
-    expect(getSetting(db, 'schema_version')).toBe('2');
+    expect(getSetting(db, 'schema_version')).toBe(String(schemaVersion()));
     expect(() => assertSchema(db)).not.toThrow();
     const keys = listAgentKeys(db);
     expect(keys).toHaveLength(2);

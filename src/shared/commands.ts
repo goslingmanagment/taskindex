@@ -3,6 +3,7 @@ import type {
   Actor,
   Changes,
   Command,
+  CommandName,
   CommandResult,
   DomainEvent,
   Entity,
@@ -15,12 +16,13 @@ import type {
 } from './model.js';
 import { byOrder } from './queries.js';
 import { fail } from './errors.js';
-import { parseCommand, checklistSchema, z } from './schemas.js';
+import { parseCommand, z } from './schemas.js';
+import { LIMITS } from './limits.js';
 export type ChangeEffect = {
   entityKind: EntityKind;
   entityId: string;
   taskId?: string;
-  command: string;
+  command: CommandName;
   changes: Changes;
   recordRevision: number;
 };
@@ -40,7 +42,10 @@ export type CommandApplication = {
   result: CommandResult;
   effects: ChangeEffect[];
 };
-const taskFields = new Set([
+// Subject fields: what undo restores, what conflicts are detected on and what
+// the owner's touch protects. Declared over the record keys so a renamed field
+// fails `tsc`; exported for the independent oracle in tests/property/undo.test.ts.
+export const taskFields: ReadonlySet<string> = new Set<keyof Task>([
   'area',
   'projectId',
   'title',
@@ -55,7 +60,11 @@ const taskFields = new Set([
   'checklist',
   'originUrl',
 ]);
-const projectFields = new Set(['name', 'color', 'description']);
+export const projectFields: ReadonlySet<string> = new Set<keyof Project>([
+  'name',
+  'color',
+  'description',
+]);
 export function isSubjectField(kind: EntityKind, key: string): boolean {
   return kind === 'task'
     ? taskFields.has(key)
@@ -179,16 +188,31 @@ function order(
     ? generateKeyBetween(column[n - 1]?.orderKey ?? null, column[n]!.orderKey)
     : generateKeyBetween(column[n]!.orderKey, column[n + 1]?.orderKey ?? null);
 }
-export function assertInvariants(state: WorkspaceState) {
-  const names = new Set<string>(),
-    keys = new Set<string>(),
-    origins = new Set<string>(),
+// `changedIds` are the records the command touched: on a conflict, `current`
+// is the other member of the pair, the record that was not changed, so a
+// client can show or merge into what really exists (TI-040). Every check
+// here is a DomainError: a violation after the envelope was accepted is a
+// stored, final rejection, never a ZodError (TI-009).
+export function assertInvariants(
+  state: WorkspaceState,
+  changedIds: ReadonlySet<string> = new Set(),
+) {
+  const names = new Map<string, Project>(),
+    keys = new Map<string, Task>(),
+    origins = new Map<string, Task>(),
     itemIds = new Set<string>();
+  const unchanged = <T extends { id: string }>(previous: T, record: T): T =>
+    changedIds.has(previous.id) && !changedIds.has(record.id)
+      ? record
+      : previous;
   for (const p of state.projects) {
     const name = `${p.area}/${p.name.toLocaleLowerCase('ru').trim()}`;
-    if (names.has(name))
-      fail('conflict', 'Проект с таким именем уже существует.', { current: p });
-    names.add(name);
+    const previous = names.get(name);
+    if (previous)
+      fail('conflict', 'Проект с таким именем уже существует.', {
+        current: unchanged(previous, p),
+      });
+    names.set(name, p);
   }
   for (const t of state.tasks) {
     if (
@@ -197,14 +221,17 @@ export function assertInvariants(state: WorkspaceState) {
     )
       fail('invalid', 'Проект должен принадлежать области задачи.');
     const key = `${t.area}/${t.status}/${t.orderKey}`;
-    if (keys.has(key))
+    const occupant = keys.get(key);
+    if (occupant) {
+      const current = unchanged(occupant, t);
       fail('conflict', 'Прежнее место задачи уже занято.', {
-        current: t,
+        current,
         conflicts: [
-          { entityKind: 'task', entityId: t.id, fields: ['orderKey'] },
+          { entityKind: 'task', entityId: current.id, fields: ['orderKey'] },
         ],
       });
-    keys.add(key);
+    }
+    keys.set(key, t);
     if (
       Boolean(t.originSystem) !== Boolean(t.originRef) ||
       (!t.originSystem && t.originUrl)
@@ -212,13 +239,17 @@ export function assertInvariants(state: WorkspaceState) {
       fail('invalid', 'Укажите систему и идентификатор источника вместе.');
     if (t.originSystem) {
       const origin = JSON.stringify([t.originSystem, t.originRef]);
-      if (origins.has(origin))
+      const previous = origins.get(origin);
+      if (previous)
         fail('conflict', 'Задача этого источника уже существует.', {
-          current: t,
+          current: unchanged(previous, t),
         });
-      origins.add(origin);
+      origins.set(origin, t);
     }
-    checklistSchema.parse(t.checklist);
+    if (t.checklist.length > LIMITS.checklistItems)
+      fail('invalid', `В задаче не больше ${LIMITS.checklistItems} шагов.`);
+    if (new Set(t.checklist.map((i) => i.id)).size !== t.checklist.length)
+      fail('invalid', 'Идентификаторы шагов в задаче повторяются.');
     for (const item of t.checklist) {
       if (itemIds.has(item.id))
         fail('invalid', 'Идентификатор шага уже занят другой задачей.');
@@ -242,7 +273,7 @@ export function applyCommand(
     kind: EntityKind,
     before: Entity | undefined,
     after: Entity,
-    cmd: string = name,
+    cmd: CommandName = name,
   ) => {
     let changes = changesBetween(before, after);
     if (kind === 'task' && ctx.actor.kind === 'owner') {
@@ -711,7 +742,7 @@ export function applyCommand(
       };
     }
   }
-  assertInvariants(state);
+  assertInvariants(state, new Set(effects.map((e) => e.entityId)));
   return { state, result, effects };
 }
 export function applyEvent(

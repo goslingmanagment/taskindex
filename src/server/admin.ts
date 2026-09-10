@@ -20,9 +20,12 @@ import { issueAgentKey } from './agent-keys.js';
 import { FORMAT_VERSION } from '../shared/model.js';
 import type { ExportData, Scope, WorkspaceState } from '../shared/model.js';
 import { assertInvariants, applyEvent } from '../shared/commands.js';
+import { canonicalJson } from '../shared/canonical-json.js';
 import { fail } from '../shared/errors.js';
-import { idSchema, z } from '../shared/schemas.js';
-import { exportSchema } from '../shared/domain-schemas.js';
+import { idSchema, RESERVED_IDS, z } from '../shared/schemas.js';
+import { compareStrings } from '../shared/queries.js';
+import { exportSchema, exportSchemaV1 } from '../shared/domain-schemas.js';
+import { LIMITS } from '../shared/limits.js';
 export { migrate } from './db.js';
 export function initialize(
   db: DatabaseHandle,
@@ -110,7 +113,7 @@ export function createAgent(
   input: { id: string; label: string },
 ) {
   idSchema.parse(input.id);
-  z.string().trim().min(1).max(100).parse(input.label);
+  z.string().trim().min(1).max(LIMITS.agentLabel).parse(input.label);
   if (
     db.orm
       .select()
@@ -151,10 +154,10 @@ export function createAgentKey(
 }
 export { listAgentKeys, revokeAgentKey } from './agent-keys.js';
 export function exportWorkspace(db: DatabaseHandle): ExportData {
-  return db.sqlite.transaction(() => {
+  return db.sqlite.transaction((): ExportData => {
     const state = readState(db);
     return {
-      formatVersion: 1 as const,
+      formatVersion: FORMAT_VERSION,
       exportedAt: new Date().toISOString(),
       generation: generation(db),
       seq: latestSeq(db),
@@ -174,18 +177,36 @@ export function exportWorkspace(db: DatabaseHandle): ExportData {
     };
   })();
 }
-const canonical = (value: unknown): string =>
-  JSON.stringify(value, (_key, v: unknown) =>
-    v && typeof v === 'object' && !Array.isArray(v)
-      ? Object.fromEntries(
-          Object.entries(v).sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0)),
-        )
-      : v,
+// Reads an export of the current format or of format 1 (schema versions 1-2,
+// operations without operationSeq). Format 1 gets positions in (createdAt, id)
+// order, exactly what 0002_operation_seq.sql does to an existing database, so
+// both paths agree; see drizzle/v2/README.md for the data migration rule.
+export function upgradeExport(raw: unknown): ExportData {
+  const version = z
+    .object({ formatVersion: z.unknown() })
+    .loose()
+    .parse(raw).formatVersion;
+  if (version !== 1) return exportSchema.parse(raw);
+  const legacy = exportSchemaV1.parse(raw);
+  const ordered = [...legacy.operations].sort(
+    (a, b) =>
+      compareStrings(a.createdAt, b.createdAt) || compareStrings(a.id, b.id),
   );
-function validateExport(data: ExportData) {
+  const positions = new Map(ordered.map((o, i) => [o.id, i + 1]));
+  return {
+    ...legacy,
+    formatVersion: FORMAT_VERSION,
+    operations: legacy.operations.map((o) => ({
+      ...o,
+      operationSeq: positions.get(o.id)!,
+    })),
+  };
+}
+export function validateExport(data: ExportData) {
   const invalid = (message: string): never =>
     fail('invalid', `Повреждённый экспорт: ${message}`);
-  const same = (a: unknown, b: unknown) => canonical(a) === canonical(b);
+  const same = (a: unknown, b: unknown) =>
+    canonicalJson(a) === canonicalJson(b);
   const sorted = <T extends { id: string }>(rows: T[]) =>
     [...rows].sort((a, b) => (a.id < b.id ? -1 : a.id > b.id ? 1 : 0));
   for (const rows of [
@@ -197,6 +218,13 @@ function validateExport(data: ExportData) {
   ])
     if (new Set(rows.map((r) => r.id)).size !== rows.length)
       invalid('повторяющиеся идентификаторы.');
+  // Journal positions are dense: assigned as MAX + 1 in the writing
+  // transaction and never deleted, so an export holds exactly 1..N.
+  const positions = data.operations
+    .map((o) => o.operationSeq)
+    .sort((a, b) => a - b);
+  if (positions.some((position, index) => position !== index + 1))
+    invalid('позиции операций не образуют непрерывную последовательность.');
   const expectedItems = data.tasks.flatMap((t) =>
     t.checklist.map((item, position) => ({ ...item, taskId: t.id, position })),
   );
@@ -307,17 +335,23 @@ function validateExport(data: ExportData) {
 }
 export function importWorkspace(
   db: DatabaseHandle,
-  data: ExportData,
+  raw: ExportData | Record<string, unknown>,
   options: { replace?: boolean; migrationsDir?: string } = {},
 ) {
   assertSchema(db, options.migrationsDir);
-  data = exportSchema.parse(data);
-  if (
-    data.formatVersion !== FORMAT_VERSION ||
-    data.settings.schema_version !==
-      String(schemaVersion(options.migrationsDir))
-  )
+  const data = upgradeExport(raw);
+  const version = schemaVersion(options.migrationsDir);
+  const exported = Number(data.settings.schema_version);
+  // An export always lands on the current schema: older schema versions are
+  // accepted through the format upgrade above, newer ones are not readable.
+  if (!Number.isInteger(exported) || exported < 1 || exported > version)
     fail('invalid', 'Формат или схема экспорта не поддерживается.');
+  for (const record of [...data.tasks, ...data.projects])
+    if (RESERVED_IDS.has(record.id))
+      fail(
+        'invalid',
+        `Служебное слово нельзя использовать как идентификатор: ${record.id}.`,
+      );
   assertInvariants(data);
   validateExport(data);
   return db.sqlite
@@ -371,6 +405,7 @@ export function importWorkspace(
         db.orm.delete(table).run();
       for (const [key, value] of Object.entries(data.settings))
         if (key !== 'approved_deployment') setSetting(db, key, value);
+      setSetting(db, 'schema_version', String(version));
       writeState(db, data);
       for (const a of data.agents) db.orm.insert(schema.agents).values(a).run();
       for (const { generation: _generation, ...e } of data.events)

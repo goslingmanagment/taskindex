@@ -1,4 +1,38 @@
 import type { ErrorCode, OperationError } from './model.js';
+// The one shape of an error body. Only SQLite availability errors are
+// retryable with the same envelope; every other code is a final outcome.
+export function errorBody(
+  code: ErrorCode,
+  message: string,
+  extra: Partial<OperationError> = {},
+): OperationError {
+  return {
+    ok: false,
+    code,
+    message,
+    retryable: code === 'unavailable',
+    ...extra,
+  };
+}
+// `['payload', 'title']` -> `payload.title`, `['commands', 2, 'payload']` ->
+// `commands[2].payload`. Used for `issues[].path` on the server and in the CLI.
+export function formatIssuePath(path: readonly PropertyKey[]): string {
+  return path.reduce<string>(
+    (acc, key) =>
+      typeof key === 'number'
+        ? `${acc}[${key}]`
+        : acc
+          ? `${acc}.${String(key)}`
+          : String(key),
+    '',
+  );
+}
+export function assertNever(
+  value: never,
+  message = 'Необработанный вариант',
+): never {
+  throw new Error(`${message}: ${JSON.stringify(value)}`);
+}
 export class DomainError extends Error {
   readonly code: ErrorCode;
   readonly status: number;
@@ -26,13 +60,7 @@ export class DomainError extends Error {
     }[code];
   }
   toJSON(): OperationError {
-    return {
-      ok: false,
-      code: this.code,
-      message: this.message,
-      retryable: this.code === 'unavailable',
-      ...this.details,
-    };
+    return errorBody(this.code, this.message, this.details);
   }
 }
 export function fail(

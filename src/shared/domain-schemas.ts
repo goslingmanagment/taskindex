@@ -1,14 +1,24 @@
+import { z } from 'zod';
 import {
-  z,
   idSchema,
   areaSchema,
   statusSchema,
   dateSchema,
   checklistSchema,
+  originSystemSchema,
+  commandNameSchema,
+  commandNames,
 } from './schemas.js';
+import { LIMITS } from './limits.js';
+// Every entity and response schema carries `.meta({ id })`: the OpenAPI
+// document then lists it once under components.schemas and refers to it from
+// each route. `.extend()` drops the id, so derived schemas set their own.
 const stamp = z.iso.datetime({ offset: true }).describe('Момент времени UTC');
 const nullableStamp = stamp.nullable();
 const revision = z.number().int().positive().describe('Версия записи');
+const seq = z.number().int().nonnegative();
+// Not strict: /api/me answers with the actor plus generation and seq
+// (meSchema), so a client that parses the actor alone keeps working.
 export const actorSchema = z
   .object({
     id: z.string().describe('Идентичность актора'),
@@ -17,13 +27,26 @@ export const actorSchema = z
     scope: z.enum(['read', 'tasks', 'write']).describe('Права'),
     agentId: idSchema.optional(),
   })
-  .strict();
+  .meta({ id: 'Actor' });
+export const meSchema = actorSchema
+  .extend({
+    generation: idSchema.describe('Текущее поколение базы'),
+    seq: seq.describe('Последнее событие'),
+  })
+  .meta({ id: 'Me' });
 export const projectSchema = z
   .object({
     id: idSchema,
     area: areaSchema,
-    name: z.string().min(1).max(60).describe('Название проекта'),
-    description: z.string().max(500).describe('Что относится к проекту'),
+    name: z
+      .string()
+      .min(1)
+      .max(LIMITS.projectName)
+      .describe('Название проекта'),
+    description: z
+      .string()
+      .max(LIMITS.projectDescription)
+      .describe('Что относится к проекту'),
     color: z
       .string()
       .regex(/^#[a-fA-F0-9]{6}$/)
@@ -32,17 +55,18 @@ export const projectSchema = z
     createdAt: stamp,
     updatedAt: stamp,
   })
-  .strict();
+  .strict()
+  .meta({ id: 'Project' });
 export const taskSchema = z
   .object({
     id: idSchema,
     area: areaSchema,
     projectId: idSchema.nullable().describe('Проект или null'),
-    title: z.string().min(1).max(240).describe('Название'),
+    title: z.string().min(1).max(LIMITS.taskTitle).describe('Название'),
     status: statusSchema,
-    note: z.string().max(16000).describe('Заметка'),
+    note: z.string().max(LIMITS.taskNote).describe('Заметка'),
     due: dateSchema,
-    waitingFor: z.string().max(240).describe('Чего ждём'),
+    waitingFor: z.string().max(LIMITS.waitingFor).describe('Чего ждём'),
     followUp: dateSchema,
     orderKey: z
       .string()
@@ -56,26 +80,22 @@ export const taskSchema = z
       .int()
       .nonnegative()
       .describe('Количество неудалённых комментариев'),
-    originSystem: z
-      .string()
-      .regex(/^[a-z0-9_-]{1,40}$/)
-      .nullable()
-      .describe('Система источника'),
+    originSystem: originSystemSchema.nullable().describe('Система источника'),
     originRef: z
       .string()
       .min(1)
-      .max(200)
+      .max(LIMITS.originRef)
       .nullable()
       .describe('Идентификатор в источнике'),
     originUrl: z
       .url()
-      .max(2000)
+      .max(LIMITS.originUrl)
       .refine((v) => /^https?:\/\//.test(v))
       .nullable()
       .describe('Ссылка на источник'),
     originVersion: z
       .string()
-      .max(120)
+      .max(LIMITS.originVersion)
       .nullable()
       .describe('Наибольшая обработанная версия источника'),
     createdBy: z.string().describe('Актор создания'),
@@ -88,30 +108,34 @@ export const taskSchema = z
     createdAt: stamp,
     updatedAt: stamp,
   })
-  .strict();
+  .strict()
+  .meta({ id: 'Task' });
 export const commentSchema = z
   .object({
     id: idSchema,
     taskId: idSchema.describe('Задача'),
     actorId: z.string().describe('Автор'),
     actorLabel: z.string().describe('Метка автора'),
-    text: z.string().min(1).max(4000).describe('Комментарий'),
+    text: z.string().min(1).max(LIMITS.commentText).describe('Комментарий'),
     revision,
     createdAt: stamp,
     deletedAt: nullableStamp.describe('Мягкое удаление'),
   })
-  .strict();
+  .strict()
+  .meta({ id: 'Comment' });
 export const agentSchema = z
   .object({
     id: idSchema,
-    label: z.string().min(1).max(100).describe('Имя агента'),
+    label: z.string().min(1).max(LIMITS.agentLabel).describe('Имя агента'),
     createdAt: stamp,
     disabledAt: nullableStamp.describe('Когда отключён'),
   })
-  .strict();
+  .strict()
+  .meta({ id: 'Agent' });
 export const entitySchema = z
   .union([taskSchema, projectSchema, commentSchema])
-  .describe('Задача, проект или комментарий');
+  .describe('Задача, проект или комментарий')
+  .meta({ id: 'Entity' });
 export const changesSchema = z
   .record(
     z.string(),
@@ -122,7 +146,8 @@ export const changesSchema = z
       })
       .strict(),
   )
-  .describe('Изменённые предметные поля и технические метаданные');
+  .describe('Изменённые предметные поля и технические метаданные')
+  .meta({ id: 'Changes' });
 export const eventSchema = z
   .object({
     seq: z.number().int().positive().describe('Номер события'),
@@ -134,17 +159,27 @@ export const eventSchema = z
     entityKind: z.enum(['task', 'project', 'comment']).describe('Вид записи'),
     entityId: idSchema,
     taskId: idSchema.optional().describe('Задача события комментария'),
-    command: z.string().describe('Команда'),
+    command: commandNameSchema.describe('Команда'),
     changes: changesSchema,
     recordRevision: revision,
     firstSeq: z.number().int().positive().describe('Первое событие операции'),
     lastSeq: z.number().int().positive().describe('Последнее событие операции'),
   })
-  .strict();
+  .strict()
+  .meta({ id: 'Event' });
 export const snapshotSchema = z
   .object({
     generation: idSchema,
-    seq: z.number().int().nonnegative().describe('Последнее событие снимка'),
+    seq: seq.describe('Последнее событие снимка'),
+    // Optional in the schema until the web tests (owner C) add the field to
+    // their Snapshot literals; the server always sends it (2026-09-10).
+    schemaVersion: z
+      .number()
+      .int()
+      .optional()
+      .describe(
+        'Версия схемы сервера; другое значение у следующего снимка означает обновление сервера',
+      ),
     today: dateSchema
       .nonoptional()
       .refine((v) => v !== null)
@@ -153,7 +188,8 @@ export const snapshotSchema = z
     projects: z.array(projectSchema).describe('Проекты'),
     tasks: z.array(taskSchema).describe('Все задачи, включая архив'),
   })
-  .strict();
+  .strict()
+  .meta({ id: 'Snapshot' });
 export const commandResultSchema = z
   .object({
     record: entitySchema.nullable().describe('Результат команды'),
@@ -187,7 +223,8 @@ export const commandResultSchema = z
         'Поля из ownerFields, изменённые агентом с confirmOwnerFields: true (след поручения)',
       ),
   })
-  .strict();
+  .strict()
+  .meta({ id: 'CommandResult' });
 export const operationSuccessSchema = z
   .object({
     ok: z.literal(true),
@@ -201,25 +238,43 @@ export const operationSuccessSchema = z
     events: z.array(eventSchema).describe('Все события атомарной операции'),
     dryRun: z.boolean().optional(),
   })
-  .strict();
-export const errorCodeSchema = z.enum([
-  'invalid',
-  'unauthorized',
-  'forbidden',
-  'not_found',
-  'conflict',
-  'operation_mismatch',
-  'generation_changed',
-  'not_undoable',
-  'unavailable',
-  'internal',
-]);
+  .strict()
+  .meta({ id: 'OperationSuccess' });
+export const errorCodeSchema = z
+  .enum([
+    'invalid',
+    'unauthorized',
+    'forbidden',
+    'not_found',
+    'conflict',
+    'operation_mismatch',
+    'generation_changed',
+    'not_undoable',
+    'unavailable',
+    'internal',
+  ])
+  .meta({ id: 'ErrorCode' });
+export const operationIssueSchema = z
+  .object({
+    path: z
+      .string()
+      .describe(
+        'Путь к полю: payload.title, commands[1].payload.area, query.limit',
+      ),
+    message: z.string().describe('Сообщение на русском'),
+  })
+  .strict()
+  .meta({ id: 'OperationIssue' });
 export const operationErrorSchema = z
   .object({
     ok: z.literal(false),
     code: errorCodeSchema,
     message: z.string().describe('Сообщение на русском'),
     retryable: z.boolean().describe('Можно повторить тот же конверт'),
+    issues: z
+      .array(operationIssueSchema)
+      .optional()
+      .describe('Ошибки валидации по полям'),
     current: entitySchema.optional().describe('Актуальная запись'),
     conflicts: z
       .array(
@@ -234,69 +289,219 @@ export const operationErrorSchema = z
     operationId: idSchema.optional(),
     generation: idSchema.optional(),
   })
-  .strict();
-export const operationResponseSchema = z.union([
-  operationSuccessSchema,
-  operationErrorSchema,
-]);
+  .strict()
+  .meta({ id: 'OperationError' });
+export const operationResponseSchema = z
+  .union([operationSuccessSchema, operationErrorSchema])
+  .meta({ id: 'OperationResponse' });
+export const operationSeqSchema = z
+  .number()
+  .int()
+  .positive()
+  .describe(
+    'Позиция в журнале операций; растёт у каждой сохранённой операции, в том числе без событий',
+  );
 export const operationSummarySchema = z
   .object({
     id: idSchema,
+    // The server always sends it (tests/api/operations-journal.test.ts);
+    // optional in the schema until the CLI test doubles (owner B) carry it
+    // (2026-09-10). Exports require it, see exportSchema.
+    operationSeq: operationSeqSchema.optional(),
     status: z.number().int(),
     ok: z.boolean(),
     errorCode: errorCodeSchema.optional(),
     errorMessage: z.string().optional(),
     actorId: z.string(),
     actorLabel: z.string(),
-    command: z.string(),
+    command: z.enum([...commandNames, 'batch']).describe('Команда или batch'),
     createdAt: stamp,
     taskCount: z.number().int().nonnegative(),
     titles: z.array(z.string()),
     firstSeq: z.number().int().positive().nullable(),
     lastSeq: z.number().int().positive().nullable(),
   })
-  .strict();
-export const storedOperationSchema = operationSummarySchema.extend({
-  status: z.number().int(),
-  result: operationResponseSchema,
-});
-export const eventsPageSchema = z.object({
-  generation: idSchema,
-  latestSeq: z.number().int().nonnegative(),
-  more: z.boolean(),
-  events: z.array(eventSchema),
-});
+  .strict()
+  .meta({ id: 'OperationSummary' });
+export const storedOperationSchema = operationSummarySchema
+  .extend({
+    status: z.number().int(),
+    result: operationResponseSchema,
+  })
+  .meta({ id: 'StoredOperation' });
+export const eventsPageSchema = z
+  .object({
+    generation: idSchema,
+    latestSeq: seq,
+    more: z.boolean(),
+    events: z.array(eventSchema),
+  })
+  .meta({ id: 'EventsPage' });
 export const pageSchema = <T extends z.ZodType>(item: T) =>
   z.object({
     generation: idSchema,
-    seq: z.number().int().nonnegative(),
+    seq,
     items: z.array(item),
     more: z.boolean(),
     nextCursor: z.string().nullable(),
   });
+const exportedOperationSchema = storedOperationSchema.extend({
+  operationSeq: operationSeqSchema,
+  commandHash: z.string(),
+});
+const exportFields = {
+  exportedAt: stamp,
+  generation: idSchema,
+  seq,
+  settings: z.record(z.string(), z.string()),
+  projects: z.array(projectSchema),
+  tasks: z.array(taskSchema),
+  checklistItems: z.array(
+    z.object({
+      id: idSchema,
+      taskId: idSchema,
+      text: z.string().min(1).max(LIMITS.checklistText),
+      done: z.boolean(),
+      position: z.number().int().nonnegative(),
+    }),
+  ),
+  comments: z.array(commentSchema),
+  agents: z.array(agentSchema),
+  events: z.array(eventSchema),
+};
 export const exportSchema = z
   .object({
+    formatVersion: z.literal(2),
+    ...exportFields,
+    operations: z.array(exportedOperationSchema),
+  })
+  .strict()
+  .meta({ id: 'Export' });
+// Format 1 (schema versions 1-2): operations without operationSeq. Import
+// assigns positions in (createdAt, id) order, the same rule the migration
+// 0002_operation_seq.sql applies to an existing database.
+export const exportSchemaV1 = z
+  .object({
     formatVersion: z.literal(1),
-    exportedAt: stamp,
-    generation: idSchema,
-    seq: z.number().int().nonnegative(),
-    settings: z.record(z.string(), z.string()),
-    projects: z.array(projectSchema),
-    tasks: z.array(taskSchema),
-    checklistItems: z.array(
-      z.object({
-        id: idSchema,
-        taskId: idSchema,
-        text: z.string().min(1).max(500),
-        done: z.boolean(),
-        position: z.number().int().nonnegative(),
-      }),
-    ),
-    comments: z.array(commentSchema),
-    agents: z.array(agentSchema),
-    events: z.array(eventSchema),
-    operations: z.array(
-      storedOperationSchema.extend({ commandHash: z.string() }),
-    ),
+    ...exportFields,
+    operations: z.array(exportedOperationSchema.omit({ operationSeq: true })),
   })
   .strict();
+export const focusGroupSchema = z
+  .object({
+    id: z.enum(['selected', 'new', 'due', 'follow-ups']),
+    title: z.string(),
+    tasks: z.array(taskSchema),
+  })
+  .meta({ id: 'FocusGroup' });
+export const focusResponseSchema = z
+  .union([
+    pageSchema(taskSchema).meta({ id: 'TaskPage' }),
+    z.object({
+      generation: idSchema,
+      seq,
+      groups: z.array(focusGroupSchema),
+    }),
+  ])
+  .meta({ id: 'FocusResponse' });
+export const projectsResponseSchema = z
+  .object({ projects: z.array(projectSchema) })
+  .meta({ id: 'ProjectsResponse' });
+export const healthSchema = z
+  .object({
+    ok: z.boolean(),
+    generation: idSchema,
+    seq,
+    dbWritable: z.boolean(),
+    schemaVersion: z.number().int(),
+    build: z.string(),
+    writes: z.enum(['held', 'open']),
+  })
+  .meta({ id: 'Health' });
+const jsonSchema = z.record(z.string(), z.unknown());
+export const contextSchema = z
+  .object({
+    formatVersion: z.number().describe('Версия формата экспорта'),
+    generation: idSchema,
+    seq,
+    today: z.string(),
+    timezone: z.string(),
+    me: actorSchema,
+    agents: z.array(agentSchema).describe('Известные агенты'),
+    areas: z.array(
+      z.object({
+        id: areaSchema,
+        name: z.string(),
+        color: z.string(),
+        description: z.string(),
+      }),
+    ),
+    statuses: z.array(
+      z.object({
+        id: statusSchema,
+        name: z.string(),
+        hint: z.string(),
+        color: z.string(),
+      }),
+    ),
+    projects: z.array(projectSchema),
+    originSystems: z.array(z.string()),
+    fields: jsonSchema.describe('JSON Schema полей задачи'),
+    commands: z.array(
+      z.object({
+        command: commandNameSchema,
+        payload: jsonSchema.describe('JSON Schema параметров команды'),
+      }),
+    ),
+    rules: z.array(z.string()),
+    counts: z.object({
+      tasks: z.number(),
+      archived: z.number(),
+      projects: z.number(),
+      areas: z.record(z.string(), z.number()),
+      statuses: z.record(z.string(), z.number()),
+      focus: z.array(z.object({ id: z.string(), count: z.number() })),
+    }),
+    links: z.object({
+      openapi: z.string(),
+      snapshot: z.string(),
+      events: z.string(),
+      export: z.string(),
+    }),
+  })
+  .meta({ id: 'Context' });
+export const digestCommentSchema = commentSchema
+  .extend({
+    taskTitle: z.string().describe('Название задачи'),
+    seq: z.number().int().positive().describe('Событие создания комментария'),
+  })
+  .meta({ id: 'DigestComment' });
+const href = z.string().describe('Полный список этого раздела');
+export const digestSchema = z
+  .object({
+    generation: idSchema,
+    seq: seq.describe('Последнее событие'),
+    operationSeq: seq.describe('Позиция последней сохранённой операции'),
+    today: z.string(),
+    timezone: z.string(),
+    focus: z.array(
+      focusGroupSchema.extend({
+        more: z.boolean(),
+        nextCursor: z.string().nullable(),
+        href,
+      }),
+    ),
+    waiting: pageSchema(taskSchema).extend({ href }),
+    counts: z.object({
+      tasks: z.number(),
+      archived: z.number(),
+      projects: z.number(),
+    }),
+    operations: pageSchema(operationSummarySchema).extend({ href }),
+    comments: pageSchema(digestCommentSchema)
+      .extend({ href })
+      .describe(
+        'Комментарии владельца после since (по событиям) по возрастанию seq, не больше страницы; продолжение — digest с since = seq последнего показанного',
+      ),
+  })
+  .meta({ id: 'Digest' });

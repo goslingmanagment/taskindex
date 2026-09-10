@@ -1,6 +1,7 @@
 import { createHash, randomUUID } from 'node:crypto';
 import { eq } from 'drizzle-orm';
 import { applyCommand } from '../shared/commands.js';
+import { canonicalJson } from '../shared/canonical-json.js';
 import { DomainError, fail } from '../shared/errors.js';
 import {
   commandEnvelopeSchema,
@@ -18,20 +19,13 @@ import type {
 import type { DatabaseHandle } from './db.js';
 import {
   generation,
+  latestOperationSeq,
   latestSeq,
   readEvents,
   readState,
   writeState,
 } from './db.js';
 import * as schema from './schema.js';
-const canonical = (value: unknown): string =>
-  JSON.stringify(value, (_key, v: unknown) =>
-    v && typeof v === 'object' && !Array.isArray(v)
-      ? Object.fromEntries(
-          Object.entries(v).sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0)),
-        )
-      : v,
-  );
 export function executeOperation(
   db: DatabaseHandle,
   input: OperationEnvelope,
@@ -47,7 +41,9 @@ export function executeOperation(
     'commands' in input
       ? batchEnvelopeSchema.parse(input)
       : commandEnvelopeSchema.parse(input);
-  const hash = createHash('sha256').update(canonical(envelope)).digest('hex');
+  const hash = createHash('sha256')
+    .update(canonicalJson(envelope))
+    .digest('hex');
   return db.sqlite
     .transaction(() => {
       const gen = generation(db);
@@ -96,6 +92,18 @@ export function executeOperation(
       const events: DomainEvent[] = [];
       const results: OperationSuccess['results'] = [];
       const start = latestSeq(db) + 1;
+      // The journal position is taken inside the same immediate transaction as
+      // the result, so it is dense and ordered even for operations without
+      // events (no-op, stored rejection).
+      const stored = {
+        id: envelope.operationId,
+        operationSeq: latestOperationSeq(db) + 1,
+        actorId: actor.id,
+        actorLabel: actor.label,
+        command: 'commands' in envelope ? ('batch' as const) : envelope.command,
+        commandHash: hash,
+        createdAt: now,
+      };
       let error: DomainError | undefined;
       for (const [index, command] of commands.entries())
         try {
@@ -137,16 +145,11 @@ export function executeOperation(
           db.orm
             .insert(schema.operations)
             .values({
-              id: envelope.operationId,
-              actorId: actor.id,
-              actorLabel: actor.label,
-              command: 'commands' in envelope ? 'batch' : envelope.command,
-              commandHash: hash,
+              ...stored,
               status: error.status,
               result: body,
               firstSeq: null,
               lastSeq: null,
-              createdAt: now,
             })
             .run();
         return {
@@ -175,18 +178,7 @@ export function executeOperation(
           db.orm.insert(schema.events).values(event).run();
         db.orm
           .insert(schema.operations)
-          .values({
-            id: envelope.operationId,
-            actorId: actor.id,
-            actorLabel: actor.label,
-            command: 'commands' in envelope ? 'batch' : envelope.command,
-            commandHash: hash,
-            status: 200,
-            result: body,
-            firstSeq,
-            lastSeq,
-            createdAt: now,
-          })
+          .values({ ...stored, status: 200, result: body, firstSeq, lastSeq })
           .run();
       }
       return {

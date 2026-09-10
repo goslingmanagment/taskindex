@@ -5,7 +5,7 @@ import { openDatabase } from './db.js';
 import { createAuth } from './auth.js';
 import { ConfigError, loadServerConfig, webDirectory } from './config.js';
 import { createLogger } from './log.js';
-import { DomainError } from '../shared/errors.js';
+import { errorBody } from '../shared/errors.js';
 let config;
 try {
   config = loadServerConfig();
@@ -33,7 +33,7 @@ const app = createApp({
   logger,
 });
 app.all('/api/*', (c) =>
-  c.json(new DomainError('not_found', 'Метод API не найден.').toJSON(), 404),
+  c.json(errorBody('not_found', 'Метод API не найден.'), 404),
 );
 serveWeb(app, webDirectory(config.webDir));
 const server = serve({ fetch: app.fetch, port, hostname: config.host });
