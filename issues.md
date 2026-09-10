@@ -76,7 +76,7 @@
 | [TI-005](#ti-005) | P2 | ОТКРЫТО | Типизированные и проверяемые ответы web-клиента |
 | [TI-006](#ti-006) | P2 | ИСПРАВЛЕНО | Обязательное сохранение web-операции до отправки |
 | [TI-007](#ti-007) | P2 | ИСПРАВЛЕНО | Редактор и зависимые операции используют подтверждённую revision |
-| [TI-008](#ti-008) | P2 | ОТКРЫТО | Курсор операций, включающий отказы и команды без изменений |
+| [TI-008](#ti-008) | P2 | ИСПРАВЛЕНО | Курсор операций, включающий отказы и команды без изменений |
 | [TI-009](#ti-009) | P2 | ИСПРАВЛЕНО | Сохранение окончательных доменных отказов |
 | [TI-010](#ti-010) | P2 | ИСПРАВЛЕНО | Разделение ID проекта и служебных фильтров |
 | [TI-011](#ti-011) | P2 | ИСПРАВЛЕНО | Устранение коллизии маршрута задачи by-origin |
@@ -116,7 +116,7 @@
 | [TI-045](#ti-045) | P2 | ИСПРАВЛЕНО | CLI help и parser не дают полный исполнимый контракт |
 | [TI-046](#ti-046) | P2 | ИСПРАВЛЕНО | Ошибки CLI/API не объясняют, какое поле и как исправить |
 | [TI-047](#ti-047) | P2 | ИСПРАВЛЕНО | У агента нет штатного сохранения cursor после полного чтения |
-| [TI-048](#ti-048) | P2 | ПРЕДЛОЖЕНО | Нет удобного входящего контекста для конкретного агента |
+| [TI-048](#ti-048) | P2 | ИСПРАВЛЕНО | Нет удобного входящего контекста для конкретного агента |
 | [TI-049](#ti-049) | P2 | ИСПРАВЛЕНО | OpenAPI громоздок и слабо описывает операции и авторизацию |
 | [TI-050](#ti-050) | P3 | ИСПРАВЛЕНО | Закрытый stdout вызывает EPIPE со stack trace |
 | [TI-051](#ti-051) | P3 | ИСПРАВЛЕНО | events --follow печатает пустые страницы каждую секунду |
@@ -129,7 +129,7 @@
 | [TI-058](#ti-058) | P2 | ИСПРАВЛЕНО | E2E по умолчанию перезаписывает reference-артефакты в docs |
 | [TI-059](#ti-059) | P2 | ПРЕДЛОЖЕНО | Большие server/CLI/UI модули смешивают независимые обязанности |
 | [TI-060](#ti-060) | P2 | ПРЕДЛОЖЕНО | Лимиты повторяются в схемах, командах и JSX |
-| [TI-061](#ti-061) | P2 | ПРЕДЛОЖЕНО | Несколько canonical() могут разойтись в хешировании |
+| [TI-061](#ti-061) | P2 | ИСПРАВЛЕНО | Несколько canonical() могут разойтись в хешировании |
 | [TI-062](#ti-062) | P2 | ИСПРАВЛЕНО | Конфигурация разбросана, часть переменных не отражает runtime |
 | [TI-063](#ti-063) | P3 | ПРЕДЛОЖЕНО | Комментарии дублируются в store и отдельной загрузке по любому seq |
 | [TI-064](#ti-064) | P3 | РЕШЕНИЕ | Выбор Drizzle/better-sqlite3 требует измерения, замена не обоснована |
@@ -409,7 +409,7 @@
 
 ### TI-008 — Курсор операций, включающий отказы и команды без изменений
 
-**Тип:** Баг. **Статус:** ОТКРЫТО. **Приоритет:** P2.
+**Тип:** Баг. **Статус:** ИСПРАВЛЕНО. **Приоритет:** P2.
 
 **Источники:** [Astra:B-04](/Users/dmitriy/code/taskindex/docs/audits/2026-09-08-multiside-review/03-bugs.md:96); [Сохранённое воспроизведение](/Users/dmitriy/code/taskindex/docs/audits/2026-09-08-multiside-review/03-probe-results.json); [FC:compare-bugs «Их B-04»](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/compare-bugs.md:77); [extra-probes.mts (b)](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/probes/compare/extra-probes.mts); [План 04, доп. шаг 11](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/04-api-contract-and-schemas.md:288); [План 01, доп. шаг 15](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/01-performance-history-and-pagination.md:237).
 
@@ -434,6 +434,8 @@
 - Это не локальная замена одного фильтра: меняются курсоры и формат истории. Не выпускать без стратегии старых клиентов и проверенного импорта. Оптимизацию SQL координировать с планом 12.
 - Сверка Fable: делать `operationSeq` (колонка `operations.operation_seq`, backfill по `(created_at, id)`, keyset `after=`, `sinceOp` в digest, поле в export) до переключения, потому что совместимость старых клиентов пока не нужна ([план 04, доп. шаг 11](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/04-api-contract-and-schemas.md:288)); страховка до этого — `since=0` и отсутствие `since` возвращают и операции с `lastSeq = null` ([план 01, доп. шаг 15](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/01-performance-history-and-pagination.md:237)). До курсора операций правило для агентов «отказы и no-op других акторов читайте `activity` без `since`» в `/api/context` и SKILL.md ([план 02, доп. шаг 17](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/02-agent-permissions-and-sync-semantics.md:303); [план 12, доп. шаг 13](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/12-ai-readiness-and-docs.md:440)).
 - **Решение** (принято 2026-09-10; решение делегировано владельцем Fable): курсор операций `operationSeq` по плану 04 принят (монотонная позиция журнала операций независимо от предметных событий); страховка `since=0` = всё до его появления; события не усекаются и не компактируются ради скорости ([план 04, решение владельца](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/04-api-contract-and-schemas.md:295); [план 01, решение владельца](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/01-performance-history-and-pagination.md:240); [README планов, строка «Пагинация»](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/README.md:156)).
+
+**Закрытие (2026-09-11).** Коммиты `95f33e9` (сервер), `54d1d23` (CLI). Колонка `operations.operation_seq` с уникальным индексом (миграция `0002_operation_seq.sql`, backfill детерминированным порядком, экспорт/импорт сохраняют поле); `/api/operations?after=<operationSeq>` отдаёт страницу по возрастанию включая отказы и no-op; `/api/digest?sinceOp=` — то же окно, `operationSeq` последней операции в ответе. CLI: `cursor.json` хранит две позиции одного поколения (`seq` событий и `operationSeq` журнала), `activity --since last` → `after=`, `digest --since-op`, `--commit` берёт `operationSeq` из ответа. Тесты: `tests/api/operations-journal.test.ts › TI-008 operation journal cursor` (4; чтение через успех/no-op/отказ/повтор с `limit=1`, запись между страницами не теряет и не дублирует), `tests/cli/cursor.test.ts › the operation log has its own position…` (падал до: URL `since=4` вместо `after=4`, курсор терял `operationSeq`). Probe Astra B-04 закрыт. Хвост для A: в `digest` при заданном `sinceOp` параметр `since` не должен дополнительно фильтровать операции (сейчас «И»).
 
 **Связанные планы:** [astra-08-operation-feed-cursor.md](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/astra-08-operation-feed-cursor.md); [04-api-contract-and-schemas.md](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/04-api-contract-and-schemas.md); [01-performance-history-and-pagination.md](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/01-performance-history-and-pagination.md).
 
@@ -1800,7 +1802,7 @@
 
 ### TI-048 — Нет удобного входящего контекста для конкретного агента
 
-**Тип:** Новая функция. **Статус:** ПРЕДЛОЖЕНО. **Приоритет:** P2.
+**Тип:** Новая функция. **Статус:** ИСПРАВЛЕНО. **Приоритет:** P2.
 
 **Источники:** [FI:A7](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/review-5-ai-ready.md:86); [FI:A14](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/review-5-ai-ready.md:111); [План 03, шаг 12](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/03-cli-outbox-and-ergonomics.md:194); [План 04, шаг 5](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/04-api-contract-and-schemas.md:186).
 
@@ -1817,6 +1819,8 @@
 - Одна документированная команда даёт новый комментарий владельца с текстом и taskId.
 - Нет пропусков между страницами/сессиями; redaction и права совпадают с обычным доступом.
 - Узнавание actor не требует тяжёлого полного context или вывода чужих ключей.
+
+**Закрытие (2026-09-11).** Коммиты `95f33e9` (сервер: `digest.comments` — до 50 комментариев владельца по возрастанию `seq`, `more`, `href`; `/api/context` с `me` и `agents`), `f9496f8` (CLI: команда `inbox` над `/api/digest`, одна строка `{generation, seq, operationSeq, comments[], more, href}`, `--since last`/`--commit` тем же курсором). Тесты: `tests/api/contract.test.ts › owner comments after since appear in digest.comments with task titles`, `tests/cli/cursor.test.ts › prints only the comments with generation and seq…`, `› does not move the cursor while the page of comments is incomplete`. SKILL.md и README: «входящие для агента — `taskindex inbox`».
 
 **Связанные планы:** [12-ai-readiness-and-docs.md](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/12-ai-readiness-and-docs.md); [04-api-contract-and-schemas.md](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/04-api-contract-and-schemas.md).
 
@@ -2201,7 +2205,7 @@
 
 ### TI-061 — Несколько canonical() могут разойтись в хешировании
 
-**Тип:** Качество контракта. **Статус:** ПРЕДЛОЖЕНО. **Приоритет:** P2.
+**Тип:** Качество контракта. **Статус:** ИСПРАВЛЕНО. **Приоритет:** P2.
 
 **Источники:** [FQ:§3](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/review-4-quality.md:75); [FQ:R10](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/review-4-quality.md:289).
 
@@ -2218,6 +2222,8 @@
 - Перестановка ключей, вложенные значения и допустимые Unicode payload имеют одинаковый результат там, где контракт общий.
 - Исторические command/export fixtures сохраняют digest и replay.
 - Различные форматы не сведены насильно к одному алгоритму без миграционного решения.
+
+**Закрытие (2026-09-11).** Коммиты `95f33e9` (A: `src/shared/canonical-json.ts`, сервер хеширует конверт ею; `admin.ts`, `operations.ts` переведены) и `e136d76` (B: `src/cli/outbox.ts` без локальной `canonical()`). Тесты: `tests/unit/canonical-json.test.ts › canonicalJson is the one canonical form (TI-061)` (эталонная строка и хеш, порядок ключей по кодовым единицам на любой глубине, `undefined` отбрасывается), `tests/cli/canonical-envelope.test.ts › hashes to the commandHash the server stored…` (CLI шлёт `task.create` через `fixture()`, `sha256(canonicalJson(конверт))` равен `commandHash` в базе) и структурный страж «одна реализация». Хеши существующих операций не изменились.
 
 **Связанные планы:** [10-code-quality-and-tests.md](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/10-code-quality-and-tests.md).
 
