@@ -7,7 +7,12 @@
       "exit": 0,
       "files": 14,
       "testsPassed": 75,
-      "includes": ["TypeScript", "oxlint", "oxfmt", "Vitest"]
+      "includes": [
+        "TypeScript",
+        "oxlint",
+        "oxfmt",
+        "Vitest"
+      ]
     },
     "npm run build": {
       "exit": 0,
@@ -27,7 +32,11 @@
       "project": "taskindex-drill-20260908174123-16695",
       "stopped": true,
       "retainedVolume": "taskindex-drill-20260908174123-16695_data",
-      "notChecked": ["production VPS", "production S3", "public domain TLS"]
+      "notChecked": [
+        "production VPS",
+        "production S3",
+        "public domain TLS"
+      ]
     },
     "git diff --check": {
       "exit": 0

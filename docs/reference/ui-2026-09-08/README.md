@@ -5,19 +5,19 @@
 worktree на момент съёмки совпадали с этой ревизией. Эксперименты
 `public/visions/` здесь не используются.
 
-| Состояние                       | Desktop, 1440 × 1000              | Mobile viewport, 390 × 844       |
-| ------------------------------- | --------------------------------- | -------------------------------- |
-| Доска агентства                 | [PNG](desktop-board.png)          | [PNG](mobile-board.png)          |
-| Список по статусам              | [PNG](desktop-list.png)           | [PNG](mobile-list.png)           |
-| Фокус: три группы               | [PNG](desktop-focus.png)          | [PNG](mobile-focus.png)          |
-| Глобальный поиск «сценарий»     | [PNG](desktop-search.png)         | [PNG](mobile-search.png)         |
-| Архив в виде списка             | [PNG](desktop-archive.png)        | [PNG](mobile-archive.png)        |
-| Редактор с заметкой и чеклистом | [PNG](desktop-editor.png)         | [PNG](mobile-editor.png)         |
-| Редактор с раскрытым сроком     | [PNG](desktop-editor-date.png)    | —                                |
-| Создание задачи с черновиком    | [PNG](desktop-quick-create.png)   | [PNG](mobile-quick-create.png)   |
-| Создание направления            | [PNG](desktop-project-dialog.png) | [PNG](mobile-project-dialog.png) |
-| Меню действий карточки          | [PNG](desktop-card-menu.png)      | —                                |
-| Мобильная навигация             | —                                 | [PNG](mobile-navigation.png)     |
+| Состояние | Desktop, 1440 × 1000 | Mobile viewport, 390 × 844 |
+|---|---|---|
+| Доска агентства | [PNG](desktop-board.png) | [PNG](mobile-board.png) |
+| Список по статусам | [PNG](desktop-list.png) | [PNG](mobile-list.png) |
+| Фокус: три группы | [PNG](desktop-focus.png) | [PNG](mobile-focus.png) |
+| Глобальный поиск «сценарий» | [PNG](desktop-search.png) | [PNG](mobile-search.png) |
+| Архив в виде списка | [PNG](desktop-archive.png) | [PNG](mobile-archive.png) |
+| Редактор с заметкой и чеклистом | [PNG](desktop-editor.png) | [PNG](mobile-editor.png) |
+| Редактор с раскрытым сроком | [PNG](desktop-editor-date.png) | — |
+| Создание задачи с черновиком | [PNG](desktop-quick-create.png) | [PNG](mobile-quick-create.png) |
+| Создание направления | [PNG](desktop-project-dialog.png) | [PNG](mobile-project-dialog.png) |
+| Меню действий карточки | [PNG](desktop-card-menu.png) | — |
+| Мобильная навигация | — | [PNG](mobile-navigation.png) |
 
 ## Условия съёмки
 

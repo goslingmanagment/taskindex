@@ -36,13 +36,18 @@
         "name": "",
         "testDir": "/Users/dmitriy/code/taskindex/tests/e2e",
         "testIgnore": [],
-        "testMatch": ["regressions.spec.ts"],
+        "testMatch": [
+          "regressions.spec.ts"
+        ],
         "timeout": 30000
       }
     ],
     "quiet": false,
     "reporter": [
-      ["list", null],
+      [
+        "list",
+        null
+      ],
       [
         "json",
         {

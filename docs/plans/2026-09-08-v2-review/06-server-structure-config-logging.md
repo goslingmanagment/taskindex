@@ -11,23 +11,23 @@
 
 `src/server/app.ts` 1072 строки, из них `createApp` `:175-1071` (897 строк). Внутри одного замыкания:
 
-| Строки     | Что                                                                                                      |
-| ---------- | -------------------------------------------------------------------------------------------------------- |
-| 75..174    | `json()`, `pageQuery`, `readErrors`, `cursorSchema`, `focusGroupSchema`, `contextSchema`, `digestSchema` |
-| 178..180   | пробная запись в `settings` при старте                                                                   |
-| 183..185   | хабы SSE: `subscribers`, `operationSubscribers`, `closers` (замыкания, тестируемые только через HTTP)    |
-| 196..244   | движок курсоров `page()`                                                                                 |
-| 245..258   | `defaultHook` (ошибка валидации Zod)                                                                     |
-| 259..295   | `onError`                                                                                                |
-| 296..339   | middleware: авторизация, Origin, gate `held`, лог запроса в одном `try/finally`                          |
-| 340..371   | `bodyLimit` для команд и пакетов                                                                         |
-| 372..387   | монтирование Better Auth                                                                                 |
-| 389..751   | 14 маршрутов чтения и команд                                                                             |
-| 752..866   | SSE-стрим                                                                                                |
-| 867..937   | сборка `context`                                                                                         |
-| 938..1011  | сборка `digest`                                                                                          |
-| 1012..1055 | `focus`                                                                                                  |
-| 1056..1070 | OpenAPI-документ, `Object.assign(completeApi, { closeStreams })`                                         |
+| Строки | Что |
+|---|---|
+| 75..174 | `json()`, `pageQuery`, `readErrors`, `cursorSchema`, `focusGroupSchema`, `contextSchema`, `digestSchema` |
+| 178..180 | пробная запись в `settings` при старте |
+| 183..185 | хабы SSE: `subscribers`, `operationSubscribers`, `closers` (замыкания, тестируемые только через HTTP) |
+| 196..244 | движок курсоров `page()` |
+| 245..258 | `defaultHook` (ошибка валидации Zod) |
+| 259..295 | `onError` |
+| 296..339 | middleware: авторизация, Origin, gate `held`, лог запроса в одном `try/finally` |
+| 340..371 | `bodyLimit` для команд и пакетов |
+| 372..387 | монтирование Better Auth |
+| 389..751 | 14 маршрутов чтения и команд |
+| 752..866 | SSE-стрим |
+| 867..937 | сборка `context` |
+| 938..1011 | сборка `digest` |
+| 1012..1055 | `focus` |
+| 1056..1070 | OpenAPI-документ, `Object.assign(completeApi, { closeStreams })` |
 
 Обработчики `POST /api/commands` (`:469-482`) и `POST /api/commands/batch` (`:496-509`) идентичны, кроме `commandName`. Тип `AppType = ReturnType<typeof createApp>` (`:1072`) используется CLI для `hc<AppType>` (`src/cli/client.ts:3, 49, 64`, вызовы `rpc.api.commands.$post` и `rpc.api.commands.batch.$post` `:94-102`), поэтому разрез должен сохранять цепочку типов.
 
@@ -100,32 +100,22 @@
 Шаги 1..5 самостоятельны и могут идти отдельными коммитами. Шаги 8..11 делать в одном worktree подряд, каждый шаг заканчивать `npm run check`.
 
 1. `src/server/config.ts`:
-
    ```ts
    const schema = z.object({
-     NODE_ENV: z
-       .enum(['production', 'development', 'test'])
-       .default('development'),
+     NODE_ENV: z.enum(['production', 'development', 'test']).default('development'),
      PORT: z.coerce.number().int().min(1).max(65535).optional(),
      HOST: z.string().min(1).optional(),
      BASE_URL: z.url().optional(),
-     BETTER_AUTH_SECRET: z
-       .string()
-       .min(32, 'BETTER_AUTH_SECRET: не меньше 32 символов'),
+     BETTER_AUTH_SECRET: z.string().min(32, 'BETTER_AUTH_SECRET: не меньше 32 символов'),
      DATABASE_PATH: z.string().min(1).default('./data/dev.db'),
      BUILD: z.string().min(1).default('development'),
      TASKINDEX_WRITES: z.enum(['held', 'open']).default('open'),
      TASKINDEX_DEPLOYMENT: z.string().min(1).optional(),
      LOG_LEVEL: z.enum(['debug', 'info', 'warn', 'error']).default('info'),
    });
-   export function loadServerConfig(env = process.env) {
-     /* parse → { production, port, host, baseURL, secret, databasePath, build, writes, deploymentId, logLevel } */
-   }
-   export function loadAdminConfig(env = process.env) {
-     /* DATABASE_PATH обязателен, TIMEZONE, TASKINDEX_MIGRATIONS_DIR, TASKINDEX_DEPLOYMENT, BASE_URL, BETTER_AUTH_SECRET по требованию команды */
-   }
+   export function loadServerConfig(env = process.env) { /* parse → { production, port, host, baseURL, secret, databasePath, build, writes, deploymentId, logLevel } */ }
+   export function loadAdminConfig(env = process.env) { /* DATABASE_PATH обязателен, TIMEZONE, TASKINDEX_MIGRATIONS_DIR, TASKINDEX_DEPLOYMENT, BASE_URL, BETTER_AUTH_SECRET по требованию команды */ }
    ```
-
    Производные: `port = PORT ?? (production ? 3000 : 3001)`, `host = HOST ?? (production ? '0.0.0.0' : '127.0.0.1')`, `baseURL = BASE_URL ?? http://localhost:${port}`. `BUILD_ID` убрать (производителя нет). Ошибка разбора печатает `issues` по-русски и завершает процесс кодом 1 до открытия базы. `src/server/index.ts:6-25` и `src/cli/admin-run.ts:85-97, 136-137, 204` переходят на эти функции. Проверка `min(32)` для секрета: `scripts/setup-dev.mjs:16` генерирует 64 hex-символа, тестовые секреты не короче 32 (`tests/api/auth.test.ts:31`, `tests/e2e/server.ts:22`). Проверка: `npm run dev`, `npm run admin -- migrate`, тесты `tests/cli/admin.test.ts`.
 
 2. `src/server/log.ts` и обработка ошибок:
@@ -133,25 +123,23 @@
    - `src/shared/errors.ts:15-25`: добавить `internal: 500`; `retryable` остаётся `code === 'unavailable'`. `src/shared/domain-schemas.ts` `errorCodeSchema`: добавить `'internal'` (согласовать с `04-…md`).
    - `onError` (`app.ts:259-295` → `http/errors.ts` на шаге 8): `DomainError` как сейчас; `ZodError` → `new DomainError('invalid', 'Проверьте поля запроса.')`; ошибки с `code`, начинающимся на `SQLITE_BUSY`, `SQLITE_READONLY`, `SQLITE_IOERR`, `SQLITE_FULL`, `SQLITE_CANTOPEN` → `unavailable`; всё остальное → `logger.error({ event: 'internal_error', requestId, method, path, actor, message, stack })` и `new DomainError('internal', 'Внутренняя ошибка сервера. Операция не выполнена.')`. Тело запроса и заголовки в лог не попадают.
    - `x-request-id`: в начале middleware `/api/*` (`app.ts:297`) `const requestId = c.req.header('x-request-id') ?? randomUUID(); c.set('requestId', requestId); c.header('x-request-id', requestId)`; лог команды (`:327-337`) использует `c.get('requestId')`. При `LOG_LEVEL=debug` строка `{ event: 'request', requestId, method, path, actor, code, durationMs }` пишется для каждого `/api/*`; при `info` только для `/api/commands*` (как сейчас); при `warn` только отказы (`code >= 400`).
-     Проверка: тесты раздела 5, п. 2..4.
+   Проверка: тесты раздела 5, п. 2..4.
 
 3. Версия схемы из набора миграций. `src/server/db.ts`:
    - `export function migrationsDirectory(override?: string)` → `override ?? fileURLToPath(new URL('../../drizzle/v2/', import.meta.url))` (из `src/server/` и из `dist/server/`, `dist/cli/` это `<корень>/drizzle/v2`; в образе `/app/drizzle/v2`, `Dockerfile:20`); `export function bundledMigrations(dir)` → отсортированные имена `*.sql`; `export function schemaVersion(dir?)` → `bundledMigrations(dir).length`.
    - `migrate` (`:46-96`): `SCHEMA_VERSION` → `schemaVersion(dir)`; проверка `:61-68` сравнивает `settings.schema_version` с этим числом.
    - `assertSchema` (`:98-104`): кроме числа, сверять множество имён `__taskindex_migrations` с `bundledMigrations(dir)`: любое расхождение → `fail('unavailable', 'Схема базы не соответствует образу. Запустите миграции подходящим образом.')`.
    - Убрать `SCHEMA_VERSION` из `src/shared/model.ts:86`; `app.ts:419` → `schemaVersion()`, `admin.ts:32`, `:371` → `schemaVersion()`. README `:66`: вместо «повышается `SCHEMA_VERSION`» написать «версия схемы равна числу миграций в `drizzle/v2`».
-     Проверка: `tests/api/migrations.test.ts` плюс новые проверки (раздел 5, п. 5); `/health.schemaVersion` в drill равен выводу `migrate`.
+   Проверка: `tests/api/migrations.test.ts` плюс новые проверки (раздел 5, п. 5); `/health.schemaVersion` в drill равен выводу `migrate`.
 
 4. Bind и пути. `index.ts:39` `hostname: config.host`; `index.ts:37-38` `serveStatic({ root: webRoot })` и `serveStatic({ path: join(webRoot, 'index.html') })`, где `webRoot = process.env.TASKINDEX_WEB_DIR ?? fileURLToPath(new URL('../../dist/web/', import.meta.url))` (из `src/server` и `dist/server` это `<корень>/dist/web`). `db.ts:52` → `migrationsDirectory(options.migrationsDir)`; `TASKINDEX_MIGRATIONS_DIR` (`admin-run.ts:95-96`) остаётся переопределением для тестов и drill. `deploy/README.md`: отметить, что `taskindex-admin` работает из любого каталога. Проверка: тест раздела 5, п. 6; `npm run build && npm start` из каталога вне корня.
 
 5. `/health` (`app.ts:389-426`): над пробной записью комментарий:
-
    ```ts
    // Write probe. UPDATE without changed pages produces no commit and no WAL
    // frames (measured 2026-09-08: WAL size and PRAGMA data_version unchanged
    // after 20 calls), but still raises SQLITE_READONLY on a read-only file.
    ```
-
    `dbWritable` вычислять: `try { probe(); dbWritable = true } catch (e) { if (SQLITE_READONLY) dbWritable = false; else throw e }` и отвечать 503 `unavailable` при `false` (сейчас исключение и так уходит в `onError`; явная ветка делает `dbWritable: false` достижимым и документированным). Тело без изменений; решение о доступе извне записать в `11-…md` (nginx allowlist). Проверка: `tests/api/auth.test.ts:188-192`, drill.
 
 6. `src/server/db.ts`: `export const withWrite = <T>(db, fn: () => T): T => db.sqlite.transaction(fn).immediate()` и `withRead = <T>(db, fn: () => T): T => db.sqlite.transaction(fn)()`. Заменить девять мест из §1.7. Проверка: тесты `durability`, `commands`, `recovery-and-history`.
@@ -170,20 +158,20 @@
 
 ## 5. Тесты
 
-| #   | Файл                                                                                                  | Сценарий                                                                                                                                                                                                          | Ожидание                                                                                                                                                                                                              |
-| --- | ----------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 1   | `tests/unit/config.test.ts` (новый)                                                                   | `loadServerConfig` с пустым env; без `BETTER_AUTH_SECRET`; с секретом короче 32; `LOG_LEVEL=verbose`; `NODE_ENV=production` без `PORT`/`HOST`; `BUILD_ID=x` без `BUILD`                                           | ошибка с русским сообщением и путём переменной; в production `port 3000`, `host '0.0.0.0'`; в development `3001`, `'127.0.0.1'`; `build === 'development'` (`BUILD_ID` игнорируется)                                  |
-| 2   | `tests/api/errors.test.ts` (новый)                                                                    | `createApp({ authorize: () => { throw new TypeError('boom') }, logger: collector })`, `GET /api/me`                                                                                                               | 500, тело `{ ok:false, code:'internal', retryable:false }`; в `collector` одна запись `level:'error'` с `message:'boom'`, `stack` содержит `TypeError`, `requestId` равен заголовку ответа `x-request-id`             |
-| 3   | `tests/api/errors.test.ts`                                                                            | `authorize` бросает `Object.assign(new Error('busy'), { code: 'SQLITE_BUSY' })`; затем `{ code: 'SQLITE_CONSTRAINT' }`                                                                                            | 503 `unavailable retryable:true`; 500 `internal`                                                                                                                                                                      |
-| 4   | `tests/api/errors.test.ts`                                                                            | запрос с заголовком `x-request-id: abc`; без заголовка; `LOG_LEVEL` `debug` / `info` / `warn` через `logger` с порогом                                                                                            | ответ несёт `x-request-id: abc`; без заголовка UUID; при `debug` строка `event:'request'` есть для `GET /api/snapshot`, при `info` нет, при `warn` нет строки для успешной команды и есть для 403                     |
-| 5   | `tests/api/migrations.test.ts` (дополнить)                                                            | `schemaVersion()` равен `journal.entries.length` и числу `*.sql`; `/health.schemaVersion` и `initialize(db).schemaVersion` равны ему; база с лишней записью в `__taskindex_migrations` и база с удалённой записью | `assertSchema` бросает `unavailable` в обоих случаях; `grep -r SCHEMA_VERSION src` пуст (проверка в тесте через чтение файлов не нужна: `tsc` упадёт при импорте удалённой константы)                                 |
-| 6   | `tests/api/paths.test.ts` (новый)                                                                     | `process.chdir(tmpdir)`; `migrationsDirectory()` и `migrate(openDatabase(':memory:'))`; `webRoot()`; вернуть cwd в `afterEach`                                                                                    | каталог содержит `0000_taskindex.sql`; миграция проходит; `webRoot()` заканчивается на `dist/web`                                                                                                                     |
-| 7   | `tests/api/auth.test.ts:188-192` (существующий)                                                       | `/health` при `held`                                                                                                                                                                                              | 200 с `writes:'held'`, `dbWritable:true`                                                                                                                                                                              |
-| 8   | `tests/api/durability.test.ts` (дополнить)                                                            | `withWrite` бросает исключение внутри                                                                                                                                                                             | изменений в базе нет (`readState` прежний); `withRead` не открывает `immediate` (при параллельном `withWrite` из второго соединения на файловой базе чтение не ждёт `busy_timeout`; проверка по времени менее 100 мс) |
-| 9   | `tests/unit/server-shape.test.ts` (новый)                                                             | прочитать `src/server/**/*.ts`                                                                                                                                                                                    | ни один файл не длиннее 400 строк; ни одна строка не содержит `ok: false` вне `src/shared/errors.ts` (литералы ошибок только через `DomainError`)                                                                     |
-| 10  | `tests/api/sse-hub.test.ts` (новый)                                                                   | `createEventHub()`: две подписки, `publish([e1])`, `notifyOperations()`, отписка одной, `closeAll()`                                                                                                              | обе получили события и уведомление; после отписки только одна; после `closeAll` подписок нет                                                                                                                          |
-| 11  | `tests/api/commands.test.ts`, `tests/cli/agent-cycle.test.ts`, `tests/cli/cli.test.ts` (существующие) | после разреза маршрутов и `runOperation`                                                                                                                                                                          | без изменений, зелёные; `tsc` подтверждает `hc<AppType>` в `client.ts:94-102`                                                                                                                                         |
-| 12  | `bash deploy/local-drill.sh` (вручную)                                                                | полный прогон                                                                                                                                                                                                     | `schemaVersion` из `/health` совпадает с выводом `migrate`; `build` совпадает; drill зелёный                                                                                                                          |
+| # | Файл | Сценарий | Ожидание |
+|---|---|---|---|
+| 1 | `tests/unit/config.test.ts` (новый) | `loadServerConfig` с пустым env; без `BETTER_AUTH_SECRET`; с секретом короче 32; `LOG_LEVEL=verbose`; `NODE_ENV=production` без `PORT`/`HOST`; `BUILD_ID=x` без `BUILD` | ошибка с русским сообщением и путём переменной; в production `port 3000`, `host '0.0.0.0'`; в development `3001`, `'127.0.0.1'`; `build === 'development'` (`BUILD_ID` игнорируется) |
+| 2 | `tests/api/errors.test.ts` (новый) | `createApp({ authorize: () => { throw new TypeError('boom') }, logger: collector })`, `GET /api/me` | 500, тело `{ ok:false, code:'internal', retryable:false }`; в `collector` одна запись `level:'error'` с `message:'boom'`, `stack` содержит `TypeError`, `requestId` равен заголовку ответа `x-request-id` |
+| 3 | `tests/api/errors.test.ts` | `authorize` бросает `Object.assign(new Error('busy'), { code: 'SQLITE_BUSY' })`; затем `{ code: 'SQLITE_CONSTRAINT' }` | 503 `unavailable retryable:true`; 500 `internal` |
+| 4 | `tests/api/errors.test.ts` | запрос с заголовком `x-request-id: abc`; без заголовка; `LOG_LEVEL` `debug` / `info` / `warn` через `logger` с порогом | ответ несёт `x-request-id: abc`; без заголовка UUID; при `debug` строка `event:'request'` есть для `GET /api/snapshot`, при `info` нет, при `warn` нет строки для успешной команды и есть для 403 |
+| 5 | `tests/api/migrations.test.ts` (дополнить) | `schemaVersion()` равен `journal.entries.length` и числу `*.sql`; `/health.schemaVersion` и `initialize(db).schemaVersion` равны ему; база с лишней записью в `__taskindex_migrations` и база с удалённой записью | `assertSchema` бросает `unavailable` в обоих случаях; `grep -r SCHEMA_VERSION src` пуст (проверка в тесте через чтение файлов не нужна: `tsc` упадёт при импорте удалённой константы) |
+| 6 | `tests/api/paths.test.ts` (новый) | `process.chdir(tmpdir)`; `migrationsDirectory()` и `migrate(openDatabase(':memory:'))`; `webRoot()`; вернуть cwd в `afterEach` | каталог содержит `0000_taskindex.sql`; миграция проходит; `webRoot()` заканчивается на `dist/web` |
+| 7 | `tests/api/auth.test.ts:188-192` (существующий) | `/health` при `held` | 200 с `writes:'held'`, `dbWritable:true` |
+| 8 | `tests/api/durability.test.ts` (дополнить) | `withWrite` бросает исключение внутри | изменений в базе нет (`readState` прежний); `withRead` не открывает `immediate` (при параллельном `withWrite` из второго соединения на файловой базе чтение не ждёт `busy_timeout`; проверка по времени менее 100 мс) |
+| 9 | `tests/unit/server-shape.test.ts` (новый) | прочитать `src/server/**/*.ts` | ни один файл не длиннее 400 строк; ни одна строка не содержит `ok: false` вне `src/shared/errors.ts` (литералы ошибок только через `DomainError`) |
+| 10 | `tests/api/sse-hub.test.ts` (новый) | `createEventHub()`: две подписки, `publish([e1])`, `notifyOperations()`, отписка одной, `closeAll()` | обе получили события и уведомление; после отписки только одна; после `closeAll` подписок нет |
+| 11 | `tests/api/commands.test.ts`, `tests/cli/agent-cycle.test.ts`, `tests/cli/cli.test.ts` (существующие) | после разреза маршрутов и `runOperation` | без изменений, зелёные; `tsc` подтверждает `hc<AppType>` в `client.ts:94-102` |
+| 12 | `bash deploy/local-drill.sh` (вручную) | полный прогон | `schemaVersion` из `/health` совпадает с выводом `migrate`; `build` совпадает; drill зелёный |
 
 ## 6. Риски и откат
 
@@ -206,54 +194,51 @@
 
 ## Покрытые находки
 
-| ID                                  | Отчёт             | Кратко                                                                                   | Где в плане                                                                                               |
-| ----------------------------------- | ----------------- | ---------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------- |
-| V2                                  | 2 (архитектура)   | `app.ts` god-module, SSE и пагинация непроверяемы без HTTP                               | §1.1, шаги 8..10, тест 10                                                                                 |
-| R3                                  | 4 (качество, §d)  | Разрезать `createApp`, `runOperation()` вместо двух копий, схемы `context/digest` наружу | шаги 8..10                                                                                                |
-| B5                                  | 5 (AI-готовность) | 1072 строки, `hc<AppType>` зависит от цепочки `.openapi()`                               | §1.1, §3 (обобщённые функции), шаг 10, тест 11                                                            |
-| quality §1 «`admin.ts` свалка»      | 4                 | Разрез на owner/agents/backup/deployment                                                 | шаг 11                                                                                                    |
-| quality §7 «конфиг без схемы»       | 4                 | `server/config.ts` на Zod, `BUILD ?? BUILD_ID`                                           | §1.2, шаг 1, тест 1                                                                                       |
-| Ж6                                  | 2                 | Мёртвые `TIMEZONE`/`LOG_LEVEL`                                                           | §1.2, §3 (решение: `LOG_LEVEL` реализовать, `TIMEZONE` документировать как параметр миграции), шаги 2, 12 |
-| B6 (часть про `LOG_LEVEL`)          | 5                 | Дрейф документации по `LOG_LEVEL`                                                        | шаги 2, 12                                                                                                |
-| V4                                  | 2                 | Лог без сообщения и стека, всё неизвестное `retryable: true`                             | §1.3, шаг 2, тесты 2..4                                                                                   |
-| quality §5 «логирование»            | 4                 | `x-request-id` не возвращается                                                           | шаг 2, тест 4                                                                                             |
-| V6                                  | 2                 | `SCHEMA_VERSION` не связана с миграциями                                                 | §1.4, шаг 3, тест 5                                                                                       |
-| B4                                  | 5                 | Миграция без bump не ловится                                                             | §1.4, шаг 3, тест 5                                                                                       |
-| B-10 (часть приложения)             | 3                 | Что отдаёт `/health`                                                                     | §1.5, §3, шаг 5; nginx в `11-…md`                                                                         |
-| V7                                  | 2                 | «`/health` пишет в базу»                                                                 | §1.5: замер показал отсутствие WAL-кадров; шаг 5 добавляет комментарий и вычисляемый `dbWritable`         |
-| B-12                                | 3                 | Dev слушает `0.0.0.0`                                                                    | §1.6, шаги 1, 4, тест 1                                                                                   |
-| S5                                  | 1 (стек)          | Пути от cwd                                                                              | §1.6, шаги 3, 4, тест 6                                                                                   |
-| quality §7 «транзакции»             | 4                 | `withWrite`/`withRead`                                                                   | §1.7, шаг 6, тест 8                                                                                       |
-| quality §3/§5 «13 литералов ошибок» | 4                 | 8 серверных → `DomainError.toJSON()`                                                     | §1.7, шаг 7, тест 9; web/CLI в планах 07/03                                                               |
-| Astra Q-02                          | astra / TI-020    | лог без `message`/`stack`, `LOG_LEVEL` мёртв, нет корреляции запроса и ошибки            | §1.3, шаг 2 (совпало с V4); шаг 14 уточняет `retryable`                                                   |
-| Astra B-01 (хаб)                    | astra / TI-001    | подписчик SSE не знает актора и не перепроверяет доступ                                  | шаг 13; содержимое проверки в плане 05                                                                    |
-| Astra S-03 (интерфейс)              | astra / TI-013    | версия схемы сверяется по именам без контрольных сумм                                    | шаг 15; колонка и backfill в плане 09                                                                     |
-| FA:V7 снят                          | сверка / TI-075   | «`/health` пишет в базу» не подтверждено замером                                         | §1.5, шаг 5 без изменений                                                                                 |
+| ID | Отчёт | Кратко | Где в плане |
+|---|---|---|---|
+| V2 | 2 (архитектура) | `app.ts` god-module, SSE и пагинация непроверяемы без HTTP | §1.1, шаги 8..10, тест 10 |
+| R3 | 4 (качество, §d) | Разрезать `createApp`, `runOperation()` вместо двух копий, схемы `context/digest` наружу | шаги 8..10 |
+| B5 | 5 (AI-готовность) | 1072 строки, `hc<AppType>` зависит от цепочки `.openapi()` | §1.1, §3 (обобщённые функции), шаг 10, тест 11 |
+| quality §1 «`admin.ts` свалка» | 4 | Разрез на owner/agents/backup/deployment | шаг 11 |
+| quality §7 «конфиг без схемы» | 4 | `server/config.ts` на Zod, `BUILD ?? BUILD_ID` | §1.2, шаг 1, тест 1 |
+| Ж6 | 2 | Мёртвые `TIMEZONE`/`LOG_LEVEL` | §1.2, §3 (решение: `LOG_LEVEL` реализовать, `TIMEZONE` документировать как параметр миграции), шаги 2, 12 |
+| B6 (часть про `LOG_LEVEL`) | 5 | Дрейф документации по `LOG_LEVEL` | шаги 2, 12 |
+| V4 | 2 | Лог без сообщения и стека, всё неизвестное `retryable: true` | §1.3, шаг 2, тесты 2..4 |
+| quality §5 «логирование» | 4 | `x-request-id` не возвращается | шаг 2, тест 4 |
+| V6 | 2 | `SCHEMA_VERSION` не связана с миграциями | §1.4, шаг 3, тест 5 |
+| B4 | 5 | Миграция без bump не ловится | §1.4, шаг 3, тест 5 |
+| B-10 (часть приложения) | 3 | Что отдаёт `/health` | §1.5, §3, шаг 5; nginx в `11-…md` |
+| V7 | 2 | «`/health` пишет в базу» | §1.5: замер показал отсутствие WAL-кадров; шаг 5 добавляет комментарий и вычисляемый `dbWritable` |
+| B-12 | 3 | Dev слушает `0.0.0.0` | §1.6, шаги 1, 4, тест 1 |
+| S5 | 1 (стек) | Пути от cwd | §1.6, шаги 3, 4, тест 6 |
+| quality §7 «транзакции» | 4 | `withWrite`/`withRead` | §1.7, шаг 6, тест 8 |
+| quality §3/§5 «13 литералов ошибок» | 4 | 8 серверных → `DomainError.toJSON()` | §1.7, шаг 7, тест 9; web/CLI в планах 07/03 |
+| Astra Q-02 | astra / TI-020 | лог без `message`/`stack`, `LOG_LEVEL` мёртв, нет корреляции запроса и ошибки | §1.3, шаг 2 (совпало с V4); шаг 14 уточняет `retryable` |
+| Astra B-01 (хаб) | astra / TI-001 | подписчик SSE не знает актора и не перепроверяет доступ | шаг 13; содержимое проверки в плане 05 |
+| Astra S-03 (интерфейс) | astra / TI-013 | версия схемы сверяется по именам без контрольных сумм | шаг 15; колонка и backfill в плане 09 |
+| FA:V7 снят | сверка / TI-075 | «`/health` пишет в базу» не подтверждено замером | §1.5, шаг 5 без изменений |
 
 ## Сверка с ревью Astra (2026-09-08)
 
 Кратко: Astra Q-02 (`astra-20-structured-error-diagnostics.md`, реестр TI-020) совпадает с V4 (§1.3): паритет по точности; Astra дополнительно отмечает, что GET-ошибки логируются без контекста, а строка лога POST не связана с ошибкой общим id, и что `LOG_LEVEL` мёртв. Всё это закрывает шаг 2 (`requestId` в контексте, заголовок `x-request-id`, общий `logger.error` с методом, путём, сообщением и стеком). Одно уточнение принимается из `ASTRA-VS-FABLE.md` §4.7: правило «любая не-SQLite ошибка это `retryable:false`» опасно по классу исключения, потому что исключение может возникнуть после коммита (рассылка SSE, `c.json`); сегодня executor возвращается до уведомления подписчиков (`src/server/app.ts:473-481`). Решение: окончательный отказ только при известном исходе (шаг 14). Для Astra B-01 хабу SSE нужно знать актора (шаг 13, проверка в плане 05). Astra S-03 (контрольные суммы миграций) касается шага 3: интерфейс здесь, реализация в плане 09. V7 (реестр TI-075, СНЯТО): утверждение ревью-2 о записи `/health` в базу не подтвердилось; §1.5 и шаг 5 уже фиксируют замер (20 холостых `UPDATE` дают 0 байт WAL, `data_version` не меняется), сверка это повторила; Astra стоимости `/health` не утверждала.
 
 ### Добавлено по итогам сверки
-
-| Пункт                                                                          | Источник Astra                  | Реестр | План Astra                                    | Что делаем здесь / где делается                                                                                                  |
-| ------------------------------------------------------------------------------ | ------------------------------- | ------ | --------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------- |
-| Подписчик SSE несёт актора и credential и перепроверяет доступ перед доставкой | B-01                            | TI-001 | `astra-01-sse-access-revocation.md`, шаги 2-5 | шаг 13 ниже; содержимое `check` в плане 05 (дополнительный шаг 10)                                                               |
-| `x-request-id` в ответе, ошибка и строка лога с одним `requestId`, лог для GET | Q-02                            | TI-020 | `astra-20`                                    | уже шаг 2; без изменений                                                                                                         |
-| `LOG_LEVEL` подключить или убрать                                              | Q-02                            | TI-020 | `astra-20`                                    | уже §3: реализовать; без изменений                                                                                               |
-| `retryable:false` только при известном исходе операции                         | Q-02 и `ASTRA-VS-FABLE.md` §4.7 | TI-020 | `astra-20`                                    | шаг 14 ниже                                                                                                                      |
-| Контрольные суммы применённых миграций в `assertSchema`                        | S-03                            | TI-013 | `astra-13-migration-checksums.md`             | шаг 15 ниже (интерфейс); колонка, backfill и тесты в плане 09 (дополнительный шаг 11)                                            |
-| Курсор операций как отдельная сущность пагинации                               | B-04                            | TI-008 | `astra-08-operation-feed-cursor.md`           | шаг 8: интерфейс `page()` принимает ключ `after` для SQL-списков, как уже предусмотрено планом 01 (шаг 7); сам курсор в плане 04 |
-| Стоимость `/health`                                                            | FA:V7                           | TI-075 | нет                                           | §1.5, шаг 5 без изменений; замер сверки подтверждает                                                                             |
+| Пункт | Источник Astra | Реестр | План Astra | Что делаем здесь / где делается |
+|---|---|---|---|---|
+| Подписчик SSE несёт актора и credential и перепроверяет доступ перед доставкой | B-01 | TI-001 | `astra-01-sse-access-revocation.md`, шаги 2-5 | шаг 13 ниже; содержимое `check` в плане 05 (дополнительный шаг 10) |
+| `x-request-id` в ответе, ошибка и строка лога с одним `requestId`, лог для GET | Q-02 | TI-020 | `astra-20` | уже шаг 2; без изменений |
+| `LOG_LEVEL` подключить или убрать | Q-02 | TI-020 | `astra-20` | уже §3: реализовать; без изменений |
+| `retryable:false` только при известном исходе операции | Q-02 и `ASTRA-VS-FABLE.md` §4.7 | TI-020 | `astra-20` | шаг 14 ниже |
+| Контрольные суммы применённых миграций в `assertSchema` | S-03 | TI-013 | `astra-13-migration-checksums.md` | шаг 15 ниже (интерфейс); колонка, backfill и тесты в плане 09 (дополнительный шаг 11) |
+| Курсор операций как отдельная сущность пагинации | B-04 | TI-008 | `astra-08-operation-feed-cursor.md` | шаг 8: интерфейс `page()` принимает ключ `after` для SQL-списков, как уже предусмотрено планом 01 (шаг 7); сам курсор в плане 04 |
+| Стоимость `/health` | FA:V7 | TI-075 | нет | §1.5, шаг 5 без изменений; замер сверки подтверждает |
 
 ### Расхождения и решение
-
 - Код `internal` и `retryable`. Здесь §3 выбирает `500 internal retryable:false`, чтобы клиенты не повторяли вечно; `ASTRA-VS-FABLE.md` §4.7: граница должна быть известностью результата, а не классом исключения. Решение: `internal` остаётся для исключений до и внутри `executeOperation` (транзакция откатывается `db.sqlite.transaction`), а ошибки после коммита не меняют ответ и только логируются (шаг 14). Критерий 2 дополняется этой оговоркой.
 - Q-02: разногласий нет; у Astra есть артефакт probe, у нас следствие про `retryable:true` и вечный конверт (§1.3). Оба учтены.
 - `/health`: разногласий нет; Astra ничего не утверждала, наше утверждение снято, проба записи сохраняется как проверка `SQLITE_READONLY`.
 
 ### Дополнительные шаги
-
 13. `createEventHub` (шаг 9): `subscribe({ onEvents, onOperations, actor, credential, check, close })` возвращает функцию отписки; `publish(events)` и `notifyOperations()` вызывают `check()` для каждого подписчика перед доставкой и закрывают провалившихся через их `close('revoked')`; `closeFor(predicate)`; в `createStreamResponse` тик heartbeat вызывает `check()` и перед закрытием ставит в очередь `event: revoked`. `Deps` получает фабрику `check` из плана 05 (дополнительный шаг 10). Тест 10 расширить: подписчик с `check: () => false` ничего не получает на `publish` и удаляется; `closeFor` по `agentId` закрывает только совпадающих.
 14. Граница известного исхода в `runOperation` (шаг 10): `executeOperation` коммитит внутри себя; последующие `hub.publish` и `hub.notifyOperations` обернуть в `try/catch`, который пишет `logger.error({ event: 'post_commit_error', requestId, operationId, message, stack })` и всё равно возвращает `c.json(result.body, result.status)`. Код `internal` (500, `retryable: false`) остаётся только для исключений, брошенных до или внутри `executeOperation`. В §3 и критерий 2 добавить фразу «`retryable:false` только при известном исходе». Тест `tests/api/errors.test.ts`: `createApp` с хабом, чей `publish` бросает → ответ 200 с сохранённым телом, одна запись `post_commit_error`; `GET /api/operations/{id}` возвращает операцию.
 15. Дельта шага 3 (Astra S-03): `bundledMigrations(dir)` возвращает `{ name, sha256 }[]` (хеш байтов файла с нормализацией `\r\n` в `\n`); `assertSchema` сравнивает множество `{ name, sha256 }` из `__taskindex_migrations` с набором образа; несовпадение содержимого → `unavailable` «Содержимое применённой миграции <name> изменено». Колонка `sha256`, backfill существующих строк и проверка при `migrate` описаны в плане 09 (дополнительный шаг 11). Тест 5 расширить: изменённый байт во временной копии применённого SQL → `assertSchema` бросает.

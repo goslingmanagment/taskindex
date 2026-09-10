@@ -20,16 +20,16 @@
 
 Замеры из отчётов (in-memory SQLite, реальные `migrate` и `executeOperation`, Apple M-серии):
 
-| Сценарий                                                     | Источник                              | Результат                                       |
-| ------------------------------------------------------------ | ------------------------------------- | ----------------------------------------------- |
+| Сценарий | Источник | Результат |
+|---|---|---|
 | `task.update` при 320 / 2 020 / 5 020 событиях, заметки 1 КБ | ревью 2, `scratchpad/bench-events.ts` | 14,0 / 32,4 / 65,3 мс на команду, рост линейный |
-| `readState` при 300 задачах, 3 000 шагов, 300 комментариев   | ревью 2, `bench-readstate.ts`         | 6,9 мс                                          |
-| `readEvents` при 620 событиях                                | там же                                | 4,3 мс                                          |
-| `task.create` при ~0 / 4 000 событий                         | ревью 3, `scratchpad/repro/perf.mts`  | 3,3 / 35,7 мс на операцию                       |
-| `GET /api/operations?limit=50` при 4 010 операциях           | там же                                | 95,2 мс                                         |
-| `GET /api/operations/{id}`                                   | там же                                | 88,0 мс                                         |
-| `GET /api/tasks/{id}/history`                                | там же                                | 14,5 мс                                         |
-| `GET /api/digest`                                            | там же                                | 108,1 мс                                        |
+| `readState` при 300 задачах, 3 000 шагов, 300 комментариев | ревью 2, `bench-readstate.ts` | 6,9 мс |
+| `readEvents` при 620 событиях | там же | 4,3 мс |
+| `task.create` при ~0 / 4 000 событий | ревью 3, `scratchpad/repro/perf.mts` | 3,3 / 35,7 мс на операцию |
+| `GET /api/operations?limit=50` при 4 010 операциях | там же | 95,2 мс |
+| `GET /api/operations/{id}` | там же | 88,0 мс |
+| `GET /api/tasks/{id}/history` | там же | 14,5 мс |
+| `GET /api/digest` | там же | 108,1 мс |
 
 Сервер синхронный (better-sqlite3, один event loop): пока исполняется 65-мс команда, не обслуживаются ни SSE, ни другие чтения. План (`docs/plans/2026-09-08-taskindex-v2.md:421`) фиксирует «Событий в первой версии не сжимают и не удаляют», поэтому потолок наступает сам собой через месяцы работы агентов.
 
@@ -69,10 +69,10 @@
 
 Два рассмотренных подхода к горячему пути и почему порядок именно такой:
 
-| Вариант                                                                                               | Плюсы                                                                                                                                                                     | Минусы                                                                                                                                                                                                                                  | Решение                                                                                                                                                                                                                                                               |
-| ----------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Индексированные SQL-чтения (история по записи/операции, точечные `SELECT`, keyset в SQL для операций) | Не меняет модель «таблицы это источник истины»; Drizzle и индексы начинают работать по назначению; каждый шаг проверяется существующими тестами; нет состояния в процессе | `readState` для команды остаётся O(T): при 300 задачах это ~7 мс, при 3 000 задачах десятки мс; `structuredClone` в `applyCommand` (`commands.ts:233`) тоже O(T)                                                                        | Делать первым (шаги 1..7)                                                                                                                                                                                                                                             |
-| Проекция состояния в памяти процесса, обновляемая после каждого коммита                               | `readState` уходит из горячего пути целиком (O(1)); естественно для одного писателя; заявленный «единый редьюсер» используется по назначению                              | Требует дисциплины «все записи через `executeOperation`»; admin-команды (`import`, `mark-restored`, `open-writes`) пишут в ту же базу из другого процесса; кэш нужно сбрасывать при внешней записи; скрытое состояние усложняет отладку | Делать после (шаг 10) с защитой `PRAGMA data_version`: у соединения better-sqlite3 это значение меняется только при коммите другого соединения, поэтому кэш сверяется одной дешёвой прагмой на запрос, а собственные записи обновляют кэш из уже вычисленного `state` |
+| Вариант | Плюсы | Минусы | Решение |
+|---|---|---|---|
+| Индексированные SQL-чтения (история по записи/операции, точечные `SELECT`, keyset в SQL для операций) | Не меняет модель «таблицы это источник истины»; Drizzle и индексы начинают работать по назначению; каждый шаг проверяется существующими тестами; нет состояния в процессе | `readState` для команды остаётся O(T): при 300 задачах это ~7 мс, при 3 000 задачах десятки мс; `structuredClone` в `applyCommand` (`commands.ts:233`) тоже O(T) | Делать первым (шаги 1..7) |
+| Проекция состояния в памяти процесса, обновляемая после каждого коммита | `readState` уходит из горячего пути целиком (O(1)); естественно для одного писателя; заявленный «единый редьюсер» используется по назначению | Требует дисциплины «все записи через `executeOperation`»; admin-команды (`import`, `mark-restored`, `open-writes`) пишут в ту же базу из другого процесса; кэш нужно сбрасывать при внешней записи; скрытое состояние усложняет отладку | Делать после (шаг 10) с защитой `PRAGMA data_version`: у соединения better-sqlite3 это значение меняется только при коммите другого соединения, поэтому кэш сверяется одной дешёвой прагмой на запрос, а собственные записи обновляют кэш из уже вычисленного `state` |
 
 Отвергнуто:
 
@@ -94,39 +94,23 @@
 ### Фаза 1. История и точечные чтения (без смены контрактов)
 
 1. `src/shared/commands.ts`: ввести интерфейс
-
    ```ts
    export type HistoryAccess = {
-     forRecord(
-       kind: EntityKind,
-       id: string,
-       afterRevision: number,
-     ): DomainEvent[];
+     forRecord(kind: EntityKind, id: string, afterRevision: number): DomainEvent[];
      forOperation(operationId: string): DomainEvent[];
      bySeq(seq: number): DomainEvent | undefined;
    };
    export function arrayHistory(events: DomainEvent[]): HistoryAccess;
    ```
-
    `CommandContext.history?: DomainEvent[] | HistoryAccess` (массив нормализуется через `arrayHistory` в начале `applyCommand`, чтобы `tests/property/undo.test.ts:31` и клиентский store не менялись). `assertMerge` (`:125-153`) принимает `HistoryAccess` и берёт `history.forRecord(kind, record.id, base)`. В `undo` (`:269-271`) цель: `p.seq !== undefined ? [history.bySeq(seq)].filter(Boolean) : history.forOperation(operationId)`; «поздние» события (`:339-345`): `history.forRecord(kind, record.id, last.recordRevision).filter(e => !targetSeqs.has(e.seq))`. Поведение и сообщения не меняются. Проверка: `npx vitest run tests/property tests/api/commands.test.ts`.
 
 2. `src/server/db.ts`: добавить
-
    ```ts
-   export function readEventsForRecord(
-     db,
-     kind: EntityKind,
-     id: string,
-     afterRevision: number,
-   ): DomainEvent[]; // WHERE entity_kind=? AND entity_id=? AND record_revision>? ORDER BY seq
-   export function readEventsForOperation(
-     db,
-     operationId: string,
-   ): DomainEvent[]; // WHERE operation_id=? ORDER BY seq
+   export function readEventsForRecord(db, kind: EntityKind, id: string, afterRevision: number): DomainEvent[]; // WHERE entity_kind=? AND entity_id=? AND record_revision>? ORDER BY seq
+   export function readEventsForOperation(db, operationId: string): DomainEvent[];                            // WHERE operation_id=? ORDER BY seq
    export function readEventBySeq(db, seq: number): DomainEvent | undefined;
    export function serverHistory(db, overlay: DomainEvent[]): HistoryAccess; // индексы + свежие события текущего пакета
    ```
-
    Выделить общий маппер строки в `DomainEvent` (сейчас дублируется в `readEvents:160-163`). `serverHistory` объединяет результат запроса с `overlay` (события, уже накопленные в `events` текущей операции, `operations.ts:96`), фильтруя overlay теми же условиями. В `src/server/operations.ts:95` убрать `readEvents(db)`, в `:106` передавать `history: serverHistory(db, events)`. Проверка: все тесты `tests/api`, бенчмарк должен показать исчезновение линейного роста (ожидание около 7..10 мс на команду независимо от журнала).
 
 3. `src/server/db.ts:118-147` `readState`: сгруппировать `items` и `comments` по `taskId` в `Map<string, ...>` одним проходом, задачи собирать из карт. Порядок шагов сохраняется сортировкой `ORDER BY position` (уже есть, `:128`). Проверка: `tests/api/durability.test.ts`, property-тесты; `readState` в бенчмарке не хуже 3 мс при 300 задачах.
@@ -137,12 +121,12 @@
    - `readProjects(db)`;
    - `readComments(db, taskId, after?: {createdAt, id}, limit)` (индекс `comments_task_created`, порядок `created_at, id`);
    - `taskExists(db, id)`.
-     Заменить в `src/server/app.ts`: `:599` (by-origin), `:614` (`/api/tasks/{id}`), `:630` (`/api/projects`), `:641-657` (comments: проверка существования и выборка), `:679` (history → `readEventsForRecord(db, 'task', id, 0)`). Ответы и статусы не меняются. Проверка: `tests/api/commands.test.ts`, `tests/api/recovery-and-history.test.ts`.
+   Заменить в `src/server/app.ts`: `:599` (by-origin), `:614` (`/api/tasks/{id}`), `:630` (`/api/projects`), `:641-657` (comments: проверка существования и выборка), `:679` (history → `readEventsForRecord(db, 'task', id, 0)`). Ответы и статусы не меняются. Проверка: `tests/api/commands.test.ts`, `tests/api/recovery-and-history.test.ts`.
 
 5. `src/server/db.ts:235-273` `readOperations` → два запроса:
    - `readOperation(db, id): StoredOperation | undefined` с заголовками задач одним `SELECT id, title FROM tasks WHERE id IN (...)` (до 3 id);
    - `readOperationsPage(db, { actor?, since?, until?, after?: {createdAt, id}, limit }): { rows, more }`: `SELECT ... FROM operations WHERE (актор) AND COALESCE(last_seq,0) > ? AND COALESCE(last_seq,0) <= ? AND (created_at < ? OR (created_at = ? AND id < ?)) ORDER BY created_at DESC, id DESC LIMIT ?+1` (индекс `operations_created`), `result` парсится только для строк страницы, заголовки одним `IN`-запросом по всем id страницы.
-     Семантику фильтров `since/until` сохранить точно как в `app.ts:716-718` (рассмотрите `(o.lastSeq ?? 0)`). Экспорт (`admin.ts:227`) продолжает читать все операции: оставить `readOperations(db)` как обёртку над постраничным чтением без лимита, но без N+1 (заголовки одним запросом на всё). Заменить `app.ts:713` и `:736`, `:962` (digest). Проверка: `recovery-and-history.test.ts:79-129` (пока с прежней семантикой курсора), бенчмарк `/api/operations` и `/api/operations/{id}`.
+   Семантику фильтров `since/until` сохранить точно как в `app.ts:716-718` (рассмотрите `(o.lastSeq ?? 0)`). Экспорт (`admin.ts:227`) продолжает читать все операции: оставить `readOperations(db)` как обёртку над постраничным чтением без лимита, но без N+1 (заголовки одним запросом на всё). Заменить `app.ts:713` и `:736`, `:962` (digest). Проверка: `recovery-and-history.test.ts:79-129` (пока с прежней семантикой курсора), бенчмарк `/api/operations` и `/api/operations/{id}`.
 
 6. `src/server/db.ts:165-234` `writeState(db, state, previous, touched?)`: третьим аргументом принимать множество изменённых сущностей `{ projects: Set<string>, tasks: Set<string>, comments: Set<string> }`, собранное в `operations.ts` из `applied.effects` (каждый эффект несёт `entityKind`/`entityId`). Ветка с JSON-диффом остаётся только для `previous === undefined` (импорт, `admin.ts:427`). Трюки с временными `nameKey`/`orderKey` (`:180`, `:202`) сохраняются для затронутых записей. Обоснование безопасности: `commentCount` не персистится (`:211`), а любое изменение предметного поля проходит через `emit` и порождает эффект (`commands.ts:255-265`). Проверка: новый property-тест (раздел 5, п. 4) сравнивает базу после «записи по эффектам» с базой после полного диффа.
 
@@ -153,8 +137,8 @@
    - `keysetPage<T>(items: T[], query, identity, keyOf: (item) => Key, compare: (a: Key, b: Key) => number)` для списков, вычисляемых в памяти (`/api/tasks`, `/api/focus?group=`): пропускает элементы с ключом не больше ключа курсора, возвращает `limit` элементов и `nextCursor` с ключом последнего; без `fingerprint`, без `JSON.stringify(items)`;
    - для SQL-списков (`/api/operations`, `/api/tasks/{id}/comments`, `/api/tasks/{id}/history`) курсор передаётся в `after` запросов из шагов 4 и 5;
    - `checkGeneration(cursor.generation)` и проверка `cursor.query === identity` сохраняются; `Page.seq` остаётся информативным `latestSeq(db)` на момент ответа.
-     Ключи: tasks `(orderKey, id)` (порядок `queryTasks` → `sort(byOrder)`, `src/shared/queries.ts:62`, `byOrder` сравнивает `orderKey`, затем `id`, `queries.ts:4-5`); focus `due`: `(due, orderKey, id)`, `follow-ups`: `(followUp, orderKey, id)`, остальные группы `(orderKey, id)` (`queries.ts:84-91`); comments `(createdAt, id)` (`app.ts:648-652`); history `seq`; operations `(createdAt, id)` по убыванию. Компромисс, который надо записать в `04-…md`: между страницами элемент может появиться дважды (перемещён вперёд) или пропасть (перемещён назад); для агента это безопаснее 409 посреди обхода, а полный согласованный список даёт `/api/snapshot`.
-     `digest` (`app.ts:938-1011`): `focus[].nextCursor` и `waiting.nextCursor` строятся тем же `keysetPage`; `operations` в digest берёт `readOperationsPage` с окном `since/until` и keyset-курсором внутри окна. Обновить тесты `recovery-and-history.test.ts:79-129` и `:130-163` (раздел 5).
+   Ключи: tasks `(orderKey, id)` (порядок `queryTasks` → `sort(byOrder)`, `src/shared/queries.ts:62`, `byOrder` сравнивает `orderKey`, затем `id`, `queries.ts:4-5`); focus `due`: `(due, orderKey, id)`, `follow-ups`: `(followUp, orderKey, id)`, остальные группы `(orderKey, id)` (`queries.ts:84-91`); comments `(createdAt, id)` (`app.ts:648-652`); history `seq`; operations `(createdAt, id)` по убыванию. Компромисс, который надо записать в `04-…md`: между страницами элемент может появиться дважды (перемещён вперёд) или пропасть (перемещён назад); для агента это безопаснее 409 посреди обхода, а полный согласованный список даёт `/api/snapshot`.
+   `digest` (`app.ts:938-1011`): `focus[].nextCursor` и `waiting.nextCursor` строятся тем же `keysetPage`; `operations` в digest берёт `readOperationsPage` с окном `since/until` и keyset-курсором внутри окна. Обновить тесты `recovery-and-history.test.ts:79-129` и `:130-163` (раздел 5).
 
 ### Фаза 3. Клиенты и SSE
 
@@ -170,21 +154,21 @@
 
 ## 5. Тесты
 
-| #   | Файл                                                                          | Сценарий                                                                                                                                                                                                                                        | Ожидание                                                                                                                                                                                              |
-| --- | ----------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 1   | `tests/api/history-access.test.ts` (новый)                                    | `db.sqlite.prepare('EXPLAIN QUERY PLAN ' + sql).all()` для запросов `readEventsForRecord`, `readEventsForOperation`                                                                                                                             | строка плана содержит `events_entity_revision` и `events_operation` соответственно; для `readTaskByOrigin` содержит `tasks_origin`, для `readComments` содержит `comments_task_created`               |
-| 2   | `tests/api/history-access.test.ts`                                            | `serverHistory(db, overlay)`: событие из overlay с `recordRevision > base` учитывается в `forRecord`, событие базы с меньшей ревизией не возвращается; `bySeq` находит и базу, и overlay                                                        | точные массивы                                                                                                                                                                                        |
-| 3   | `tests/api/commands.test.ts` (существующие)                                   | все сценарии слияния, undo, батчей после шагов 1..2                                                                                                                                                                                             | без изменений, зелёные                                                                                                                                                                                |
-| 4   | `tests/property/write-state.test.ts` (новый)                                  | случайные последовательности команд (генератор из `tests/property/commands.test.ts`) на двух `:memory:` базах: одна пишет через `writeState(db, state, previous)` (диффом), другая через `writeState(db, state, previous, touched)` по эффектам | `readState` обеих баз равны после каждой команды (`toEqual`)                                                                                                                                          |
-| 5   | `tests/api/recovery-and-history.test.ts:79-129` (переписать)                  | страница 1 `limit=1`, затем `task.update` без событий и `comment.add` с событием, затем страница 2                                                                                                                                              | статус 200; объединение страниц равно полному списку на момент страницы 2 без дублей; заголовки `titles: ['Task']` по-прежнему один раз                                                               |
-| 6   | `tests/api/pagination.test.ts` (новый)                                        | для `/api/tasks?limit=7` (20 задач), `/api/tasks/{id}/history?limit=3`, `/api/tasks/{id}/comments?limit=2`, `/api/focus?group=due&limit=3`: между страницами выполняется запись в другую сущность                                               | все страницы 200, объединение без дублей и пропусков; курсор чужого `generation` → 409 `generation_changed`; курсор другого `query` → 400 `invalid`; курсор старого формата (без `v`) → 400 `invalid` |
-| 7   | `tests/api/recovery-and-history.test.ts:130-163` (обновить)                   | digest `href` + `nextCursor` для `focus[0]` и `waiting`                                                                                                                                                                                         | по-прежнему 5 элементов на второй странице                                                                                                                                                            |
-| 8   | `tests/property/projection.test.ts` (новый)                                   | после каждой случайной команды `projection.read()` deep-равен `readState(db)`; затем внешняя запись вторым соединением (`new SQLite(path)` на файловой базе, `UPDATE tasks SET title=...`)                                                      | после внешней записи `projection.read()` возвращает новое значение (кэш сброшен по `data_version`)                                                                                                    |
-| 9   | `tests/api/commands.test.ts` «SSE replays backlog…» (`:729-749`) + новый тест | 1 200 событий, `since=0`, читать стрим                                                                                                                                                                                                          | события приходят в порядке `seq` 1..1200, три порции (проверять по границам `id:`); при `createApp({ sseBacklogLimit: 100 })` и 1 200 событий → тело содержит `event: reset` и стрим закрыт           |
-| 10  | `tests/cli/cli.test.ts` (новый кейс)                                          | заглушка fetch: первый запрос второй страницы отвечает 409 `{code:'conflict'}`, повтор с первой страницы отвечает 200                                                                                                                           | `tasks --all` возвращает 0, вывод содержит все страницы; после 3 подряд 409 код 3                                                                                                                     |
-| 11  | `tests/cli/cli.test.ts` (новый кейс)                                          | `task create` без `--generation`                                                                                                                                                                                                                | первый запрос `GET /api/generation`, `/api/context` не вызывается                                                                                                                                     |
-| 12  | `tests/web/store.test.ts` (новый кейс)                                        | селектор `relevantSeq(task.id)` над `lastEvents`                                                                                                                                                                                                | меняется только от событий этой задачи или её комментариев                                                                                                                                            |
-| 13  | `scripts/bench-journal.ts` (вручную, результат в `bench-baseline.json`)       | после фазы 1: рост ≤ 1,3×, ≤ 12 мс; после фазы 4: ≤ 4 мс; GET-цели из раздела 2                                                                                                                                                                 | числа записаны в файл с датой и коммитом                                                                                                                                                              |
+| # | Файл | Сценарий | Ожидание |
+|---|---|---|---|
+| 1 | `tests/api/history-access.test.ts` (новый) | `db.sqlite.prepare('EXPLAIN QUERY PLAN ' + sql).all()` для запросов `readEventsForRecord`, `readEventsForOperation` | строка плана содержит `events_entity_revision` и `events_operation` соответственно; для `readTaskByOrigin` содержит `tasks_origin`, для `readComments` содержит `comments_task_created` |
+| 2 | `tests/api/history-access.test.ts` | `serverHistory(db, overlay)`: событие из overlay с `recordRevision > base` учитывается в `forRecord`, событие базы с меньшей ревизией не возвращается; `bySeq` находит и базу, и overlay | точные массивы |
+| 3 | `tests/api/commands.test.ts` (существующие) | все сценарии слияния, undo, батчей после шагов 1..2 | без изменений, зелёные |
+| 4 | `tests/property/write-state.test.ts` (новый) | случайные последовательности команд (генератор из `tests/property/commands.test.ts`) на двух `:memory:` базах: одна пишет через `writeState(db, state, previous)` (диффом), другая через `writeState(db, state, previous, touched)` по эффектам | `readState` обеих баз равны после каждой команды (`toEqual`) |
+| 5 | `tests/api/recovery-and-history.test.ts:79-129` (переписать) | страница 1 `limit=1`, затем `task.update` без событий и `comment.add` с событием, затем страница 2 | статус 200; объединение страниц равно полному списку на момент страницы 2 без дублей; заголовки `titles: ['Task']` по-прежнему один раз |
+| 6 | `tests/api/pagination.test.ts` (новый) | для `/api/tasks?limit=7` (20 задач), `/api/tasks/{id}/history?limit=3`, `/api/tasks/{id}/comments?limit=2`, `/api/focus?group=due&limit=3`: между страницами выполняется запись в другую сущность | все страницы 200, объединение без дублей и пропусков; курсор чужого `generation` → 409 `generation_changed`; курсор другого `query` → 400 `invalid`; курсор старого формата (без `v`) → 400 `invalid` |
+| 7 | `tests/api/recovery-and-history.test.ts:130-163` (обновить) | digest `href` + `nextCursor` для `focus[0]` и `waiting` | по-прежнему 5 элементов на второй странице |
+| 8 | `tests/property/projection.test.ts` (новый) | после каждой случайной команды `projection.read()` deep-равен `readState(db)`; затем внешняя запись вторым соединением (`new SQLite(path)` на файловой базе, `UPDATE tasks SET title=...`) | после внешней записи `projection.read()` возвращает новое значение (кэш сброшен по `data_version`) |
+| 9 | `tests/api/commands.test.ts` «SSE replays backlog…» (`:729-749`) + новый тест | 1 200 событий, `since=0`, читать стрим | события приходят в порядке `seq` 1..1200, три порции (проверять по границам `id:`); при `createApp({ sseBacklogLimit: 100 })` и 1 200 событий → тело содержит `event: reset` и стрим закрыт |
+| 10 | `tests/cli/cli.test.ts` (новый кейс) | заглушка fetch: первый запрос второй страницы отвечает 409 `{code:'conflict'}`, повтор с первой страницы отвечает 200 | `tasks --all` возвращает 0, вывод содержит все страницы; после 3 подряд 409 код 3 |
+| 11 | `tests/cli/cli.test.ts` (новый кейс) | `task create` без `--generation` | первый запрос `GET /api/generation`, `/api/context` не вызывается |
+| 12 | `tests/web/store.test.ts` (новый кейс) | селектор `relevantSeq(task.id)` над `lastEvents` | меняется только от событий этой задачи или её комментариев |
+| 13 | `scripts/bench-journal.ts` (вручную, результат в `bench-baseline.json`) | после фазы 1: рост ≤ 1,3×, ≤ 12 мс; после фазы 4: ≤ 4 мс; GET-цели из раздела 2 | числа записаны в файл с датой и коммитом |
 
 ## 6. Риски и откат
 
@@ -208,40 +192,38 @@
 
 ## Покрытые находки
 
-| ID                                | Отчёт           | Кратко                                                                                                                                                         | Где в плане                                        |
-| --------------------------------- | --------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------- |
-| K1                                | 2 (архитектура) | Каждая команда читает весь журнал и состояние                                                                                                                  | §1.1, шаги 1..3, 6, 11                             |
-| D1                                | 1 (стек)        | Полная загрузка на команду и почти каждое чтение; Drizzle и индексы декоративны                                                                                | §1.1, шаги 2, 4, 5                                 |
-| B-03                              | 3 (баги)        | O(N) на команду и страницу ленты, ×11 при 4k событий                                                                                                           | §1.1, шаги 1..5, бенчмарк шаг 0                    |
-| V1                                | 2               | Курсор инвалидируется любой записью; `fingerprint` всего списка                                                                                                | §1.2, шаг 7                                        |
-| B-09                              | 3               | 409 на курсоре; `--all` и «Ещё» не повторяют                                                                                                                   | §1.2, шаги 7..9                                    |
-| Ж5                                | 2               | SSE-бэклог без ограничения                                                                                                                                     | §1.3, шаг 10                                       |
-| B-11                              | 3               | Хвост журнала одним синхронным пакетом                                                                                                                         | §1.3, шаг 10                                       |
-| Ж3                                | 2               | Комментарии: store vs перечитывание по любому `seq`                                                                                                            | §1.4, шаг 9(в)                                     |
-| Ж2                                | 2               | CLI ходит за `generation` в `/api/context`                                                                                                                     | §1.5, шаг 8                                        |
-| Ж11 (частично)                    | 2               | `readState`/`writeState` ветвятся по видам сущностей                                                                                                           | шаг 6 вводит `touched` по видам; реестр в `09-…md` |
-| Astra S-01 / A-02                 | astra / TI-012  | тот же корень: полные `readState`/`readEvents`, O(T²) в `writeState`, N+1 в `readOperations`, SSE-бэклог; второй бенчмарк (задачи без истории, 50 000 событий) | §1.1, шаги 3, 5, 6, 10; шаги 12-14                 |
-| Astra B-04 (стык)                 | astra / TI-008  | курсор операций для no-op и отказов; keyset `/api/operations` должен перейти на `operationSeq`                                                                 | шаг 15; реализация в плане 04                      |
-| Сверка §4.6 (`ASTRA-VS-FABLE.md`) | astra / TI-037  | keyset-обход изменяемого списка не снимок; изменение между страницами надо обозначать                                                                          | шаг 16                                             |
+| ID | Отчёт | Кратко | Где в плане |
+|---|---|---|---|
+| K1 | 2 (архитектура) | Каждая команда читает весь журнал и состояние | §1.1, шаги 1..3, 6, 11 |
+| D1 | 1 (стек) | Полная загрузка на команду и почти каждое чтение; Drizzle и индексы декоративны | §1.1, шаги 2, 4, 5 |
+| B-03 | 3 (баги) | O(N) на команду и страницу ленты, ×11 при 4k событий | §1.1, шаги 1..5, бенчмарк шаг 0 |
+| V1 | 2 | Курсор инвалидируется любой записью; `fingerprint` всего списка | §1.2, шаг 7 |
+| B-09 | 3 | 409 на курсоре; `--all` и «Ещё» не повторяют | §1.2, шаги 7..9 |
+| Ж5 | 2 | SSE-бэклог без ограничения | §1.3, шаг 10 |
+| B-11 | 3 | Хвост журнала одним синхронным пакетом | §1.3, шаг 10 |
+| Ж3 | 2 | Комментарии: store vs перечитывание по любому `seq` | §1.4, шаг 9(в) |
+| Ж2 | 2 | CLI ходит за `generation` в `/api/context` | §1.5, шаг 8 |
+| Ж11 (частично) | 2 | `readState`/`writeState` ветвятся по видам сущностей | шаг 6 вводит `touched` по видам; реестр в `09-…md` |
+| Astra S-01 / A-02 | astra / TI-012 | тот же корень: полные `readState`/`readEvents`, O(T²) в `writeState`, N+1 в `readOperations`, SSE-бэклог; второй бенчмарк (задачи без истории, 50 000 событий) | §1.1, шаги 3, 5, 6, 10; шаги 12-14 |
+| Astra B-04 (стык) | astra / TI-008 | курсор операций для no-op и отказов; keyset `/api/operations` должен перейти на `operationSeq` | шаг 15; реализация в плане 04 |
+| Сверка §4.6 (`ASTRA-VS-FABLE.md`) | astra / TI-037 | keyset-обход изменяемого списка не снимок; изменение между страницами надо обозначать | шаг 16 |
 
 ## Сверка с ревью Astra (2026-09-08)
 
 Кратко: Astra (S-01/A-02, план `astra-12-indexed-reads-and-write-cost.md`, реестр TI-012) подтвердила тот же корень, что и §1.1, и дала второй бенчмарк: 1,3 / 8,5 / 63 мс на `task.update` при 100 / 1 000 / 5 000 задач без истории (квадрат по задачам в `src/server/db.ts:191-196`), 4,8 / 45 / 250 мс при 1 000 / 10 000 / 50 000 событий и 21 / 229 / 1 039 мс на `readOperations(db).find(...)` (путь `GET /api/operations/{id}`); повтор при сверке дал 1,7 / 8,8 / 65,8, 5,4 / 48 / 253,7 и 24 / 238 / 1 106 мс, расхождение до 7 %. Astra не нашла инвалидацию курсора любой записью (V1/B-09, TI-037), тяжёлый `/api/context` ради `generation` (Ж2) и двойной источник комментариев (Ж3); эти пункты остаются только здесь. По решению разногласий нет: обе стороны сохраняют SQLite и единый executor и начинают с дешёвых индексных чтений; расходятся приоритет (Astra P2, здесь P0 для шагов 1-7) и форма курсора для операций без событий (Astra B-04, владелец шага план 04).
 
 ### Добавлено по итогам сверки
-
-| Пункт                                                                                                                          | Источник Astra                                                           | Реестр | План Astra                                        | Что делаем здесь / где делается                                                                          |
-| ------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------ | ------ | ------------------------------------------------- | -------------------------------------------------------------------------------------------------------- |
-| Второй бенчмарк как baseline: масштаб по числу задач без истории и по 50 000 событий одной задачи, lookup операции             | S-01 / A-02                                                              | TI-012 | `astra-12-indexed-reads-and-write-cost.md`, шаг 1 | шаг 12 ниже: сценарии Astra добавляются в `scripts/bench-journal.ts` и `bench-baseline.json`             |
-| Критерий приёмки по числу задач (O(T²) в `writeState`) и оговорка «пороги регрессии, не SLA»                                   | S-01 / A-02                                                              | TI-012 | `astra-12`, проверка 3                            | шаг 13 ниже дополняет раздел 2                                                                           |
-| Правило: журнал не усекается и не компактируется ради скорости; `undo`, `assertMerge`, `validateExport` требуют полной истории | S-01 (рекомендация `01-stack.md:72`), `astra-12` «Зависимости и границы» | TI-012 | `astra-12`                                        | уже в §3 «Отвергнуто: компакция»; шаг 14 закрепляет как правило раздела 6 и требование к `serverHistory` |
-| `Map` по id в `writeState`, группировка `items`/`comments` одним проходом в `readState`                                        | S-01 (рекомендация `01-stack.md:72`)                                     | TI-012 | `astra-12`, шаг 3                                 | уже шаги 3 и 6; без изменений                                                                            |
-| Ограниченный SSE-бэклог с backpressure                                                                                         | S-01 (пункт про `app.ts:851`)                                            | TI-012 | `astra-12`, шаг 6                                 | уже шаг 10; без изменений                                                                                |
-| Отдельный монотонный курсор операций (no-op и отказы без `lastSeq`)                                                            | B-04                                                                     | TI-008 | `astra-08-operation-feed-cursor.md`               | в плане 04; здесь шаг 15 делает keyset `/api/operations` совместимым с будущим `operationSeq`            |
-| Обход изменяемого списка не равен снимку: обозначать изменение между страницами                                                | `ASTRA-VS-FABLE.md` §4.6                                                 | TI-037 | нет                                               | шаг 16 ниже                                                                                              |
+| Пункт | Источник Astra | Реестр | План Astra | Что делаем здесь / где делается |
+|---|---|---|---|---|
+| Второй бенчмарк как baseline: масштаб по числу задач без истории и по 50 000 событий одной задачи, lookup операции | S-01 / A-02 | TI-012 | `astra-12-indexed-reads-and-write-cost.md`, шаг 1 | шаг 12 ниже: сценарии Astra добавляются в `scripts/bench-journal.ts` и `bench-baseline.json` |
+| Критерий приёмки по числу задач (O(T²) в `writeState`) и оговорка «пороги регрессии, не SLA» | S-01 / A-02 | TI-012 | `astra-12`, проверка 3 | шаг 13 ниже дополняет раздел 2 |
+| Правило: журнал не усекается и не компактируется ради скорости; `undo`, `assertMerge`, `validateExport` требуют полной истории | S-01 (рекомендация `01-stack.md:72`), `astra-12` «Зависимости и границы» | TI-012 | `astra-12` | уже в §3 «Отвергнуто: компакция»; шаг 14 закрепляет как правило раздела 6 и требование к `serverHistory` |
+| `Map` по id в `writeState`, группировка `items`/`comments` одним проходом в `readState` | S-01 (рекомендация `01-stack.md:72`) | TI-012 | `astra-12`, шаг 3 | уже шаги 3 и 6; без изменений |
+| Ограниченный SSE-бэклог с backpressure | S-01 (пункт про `app.ts:851`) | TI-012 | `astra-12`, шаг 6 | уже шаг 10; без изменений |
+| Отдельный монотонный курсор операций (no-op и отказы без `lastSeq`) | B-04 | TI-008 | `astra-08-operation-feed-cursor.md` | в плане 04; здесь шаг 15 делает keyset `/api/operations` совместимым с будущим `operationSeq` |
+| Обход изменяемого списка не равен снимку: обозначать изменение между страницами | `ASTRA-VS-FABLE.md` §4.6 | TI-037 | нет | шаг 16 ниже |
 
 ### Расхождения и решение
-
 - Приоритет. Astra: P2, «измеренная проблема масштабирования, не SLA». Здесь: P0 для шагов 1-7. Решение: оставить P0 не из-за задержек сегодня, а потому что формат курсора и форма точечных чтений меняются дёшево до появления живых агентов и сохранённых курсоров; обе стороны сходятся на порядке «дешёвые шаги до переключения, полное устранение сканов во второй волне» (сверка по стеку, раздел «Сравнение рекомендаций»).
 - Пропуски и дубли при keyset. `ASTRA-VS-FABLE.md` §4.6: заменять 409 молчаливыми пропусками нельзя; для append-only журнала нужна монотонная позиция, для изменяемого списка распознаваемое изменение с контролируемым повтором. Здесь шаг 7 уже даёт монотонные ключи для операций, истории и комментариев и документирует компромисс для `/api/tasks` и `/api/focus`. Решение: компромисс остаётся, но изменение между страницами становится видимым (шаг 16), а SKILL.md (план 12) называет `/api/snapshot` единственным согласованным полным списком.
 - Курсор для операций без событий. Astra B-04 требует отдельный `operationSeq`; здесь шаг 5 сохраняет семантику `since/until` по `lastSeq`, а шаг 7 берёт ключ `(createdAt, id)`. Решение: владелец шага план 04; здесь `readOperationsPage` проектируется так, чтобы смена ключа на `operationSeq` была локальной (шаг 15). Фиктивные события для no-op и отказов не вводятся: обе стороны согласны, что они исказили бы историю.
@@ -249,7 +231,6 @@
 - Посев Astra (все 50 000 событий одной задачи) максимально нагружает фильтр `assertMerge` (`src/shared/commands.ts:134-141`); в реальном пространстве события распределены по задачам. Вывод не меняется: доминирует `readEvents` с разбором `changes`.
 
 ### Дополнительные шаги
-
 12. `scripts/bench-journal.ts` (шаг 0): добавить два сценария Astra из `docs/audits/2026-09-08-multiside-review/01-stack-bench.ts`: (а) N задач через `writeState` без истории и одна `task.update`, N из {100, 1 000, 5 000}; (б) одна задача, история засеяна копиями seed-события и seed-операции через `INSERT`, N из {1 000, 10 000, 50 000}, плюс `readOperations(db).find(...)` как замер пути `GET /api/operations/{id}` (`src/server/app.ts:713`, `readOperations` `src/server/db.ts:235-273`). В `bench-baseline.json` записать обе точки: Astra 1,3 / 8,5 / 63 мс, 4,8 / 45 / 250 мс, 21 / 229 / 1 039 мс и повтор сверки 1,7 / 8,8 / 65,8, 5,4 / 48 / 253,7, 24 / 238 / 1 106 мс с полем `source`. Проверка: до правок скрипт воспроизводит порядок величин.
 13. Раздел 2, критерий 2: дополнить строкой «`task.update` при 5 000 задач без истории: отношение к времени при 1 000 задач не больше 5,5 после фазы 1 (сейчас 63 / 8,5 = 7,4 за счёт квадрата в `db.ts:191-196`) и не больше 2 после фазы 4; `GET /api/operations/{id}` при 50 000 операций не больше 5 мс после шага 5 (сейчас 1 039 мс)». Перед списком критериев добавить фразу «Значения это пороги регрессии бенчмарка на машине разработчика, не SLA продукта». Проверка: тест 13 (ручной прогон) фиксирует новые строки в `bench-baseline.json`.
 14. Раздел 6: добавить правило «События не усекаются, не компактируются и не удаляются ради производительности: `undo` (`src/shared/commands.ts:300-308`, `:336-340`), `assertMerge` (`:134-141`) и `validateExport` (`src/server/admin.ts:354-360`) опираются на полный журнал; `serverHistory(db, overlay)` обязан возвращать все события, удовлетворяющие условию выборки, включая overlay текущего пакета (тест 2)». Ту же фразу передать в план 04 (описание контракта истории) и в SKILL.md (план 12).

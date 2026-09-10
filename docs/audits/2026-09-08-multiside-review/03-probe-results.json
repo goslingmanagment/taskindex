@@ -13,7 +13,9 @@
           "tasks": 0,
           "connected": true
         },
-        "requests": ["/api/snapshot"]
+        "requests": [
+          "/api/snapshot"
+        ]
       }
     },
     {
@@ -101,9 +103,17 @@
             "generation": "131fb3a6-9b6b-4278-a47f-d60bcc0b9621"
           }
         },
-        "activityIds": ["rejected", "no-effect", "initial"],
-        "filteredIds": ["initial"],
-        "digestIds": ["initial"]
+        "activityIds": [
+          "rejected",
+          "no-effect",
+          "initial"
+        ],
+        "filteredIds": [
+          "initial"
+        ],
+        "digestIds": [
+          "initial"
+        ]
       }
     },
     {

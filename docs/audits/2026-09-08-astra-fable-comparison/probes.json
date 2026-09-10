@@ -88,6 +88,8 @@
   "duplicateProjectCurrent": {
     "status": 409,
     "currentId": "rejected-project",
-    "existingIds": ["existing-project"]
+    "existingIds": [
+      "existing-project"
+    ]
   }
 }

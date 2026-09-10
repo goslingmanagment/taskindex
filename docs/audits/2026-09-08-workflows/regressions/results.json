@@ -34,13 +34,18 @@
         "name": "",
         "testDir": "/Users/dmitriy/code/taskindex/docs/audits/2026-09-08-workflows/regressions",
         "testIgnore": [],
-        "testMatch": ["regressions.spec.ts"],
+        "testMatch": [
+          "regressions.spec.ts"
+        ],
         "timeout": 20000
       }
     ],
     "quiet": false,
     "reporter": [
-      ["list", null],
+      [
+        "list",
+        null
+      ],
       [
         "json",
         {

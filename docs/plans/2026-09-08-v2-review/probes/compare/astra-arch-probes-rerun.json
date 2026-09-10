@@ -4,7 +4,9 @@
     "before": {
       "confirmedRevision": 1,
       "editorBaseRevision": 2,
-      "pendingIds": ["delayed-move"]
+      "pendingIds": [
+        "delayed-move"
+      ]
     },
     "rejected": {
       "status": 400,

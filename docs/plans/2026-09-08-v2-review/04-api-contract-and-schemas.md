@@ -19,7 +19,6 @@
 Замер живого `/api/openapi.json` (`scratchpad/openapi.json`, снят ревью готовности, перепроверен 2026-09-08 скриптом): 970 600 байт, 19 операций, `operationId` 0, `summary` 0, `tags` 0, `components.schemas` пустой объект, `components.parameters` пустой, `securitySchemes` нет, `security` нет.
 
 Причины по коду:
-
 - Ни одна схема не зарегистрирована как компонент, поэтому каждая вложенная `taskSchema` инлайнится; `readErrors` (`app.ts:84-91`) вкладывает `operationErrorSchema` шесть раз в каждый из 19 маршрутов.
 - `createRoute` без `operationId`, `summary`, `tags`, `description` на всех маршрутах (`app.ts:390-1055`); `doc()` (`:1056-1065`) задаёт только `info` и `servers`.
 - `pageQuery` (`app.ts:79-83`) и фильтры `/api/tasks` (`:544-553`) без `.describe()`.
@@ -27,7 +26,6 @@
 - `contextSchema`, `digestSchema`, `focusGroupSchema` (`app.ts:99-174`) объявлены внутри серверного файла, поэтому CLI держит `context` как `Record<string, unknown>` (`run.ts:472-476`), а веб не может проверить ответ.
 
 Проверено экспериментом (`scratchpad/probe/openapi-probe.mts`, `@asteasolutions/zod-to-openapi@9.1.0`, `@hono/zod-openapi@1.6.3`):
-
 - `.meta({ id: 'Inner' })` на схеме, созданной обычным `import { z } from 'zod'`, даёт `components.schemas.Inner` и `$ref` во всех местах использования.
 - `app.openAPIRegistry.register('Inner2', schema)` возвращает **клон** (`new this.constructor(this._def)` в `zod-extensions`), поэтому вложенные использования исходного экземпляра остаются инлайн. Регистрация через registry не решает задачу без переписывания всех вложенных схем; `.meta({id})` в shared решает.
 - `z` из `zod` и `z` из `@hono/zod-openapi` это один и тот же объект (`index.mjs:6` `import { z } from "zod"`, `:265` `extendZodWithOpenApi(z)`).
@@ -83,7 +81,6 @@
 ### 3.1 S3: оставить `@hono/zod-openapi` и сделать контракт полезным (решение владельца, рекомендация)
 
 Варианты:
-
 - **A. Оставить `@hono/zod-openapi`, перевести shared на `import { z } from 'zod'`, регистрировать компоненты через `.meta({ id })`, наполнить маршруты метаданными, отдавать документ публично.** Рекомендуется: агенты получают машиночитаемый контракт всех чтений и ответов (сегодня `/api/context` описывает только payload команд), `taskindex openapi` (план 03) становится справочником, зависимость shared от сервера исчезает без потери типов (`z` тот же объект, `.meta()` нативный). Цена: метаданные на 19 маршрутах и `.meta({id})` на ~18 схемах.
 - **B. Убрать `@hono/zod-openapi`, поставить `@hono/zod-validator`, удалить `/api/openapi.json`.** Минус зависимость и ~80 строк `readErrors`/`createRoute`; агенты остаются с `/api/context` и справкой CLI. Отвергнуто: A9 показывает, что агентам нужен контракт чтений, а после плана 03 (`hc` удалён) RPC-типизация уже не аргумент ни за, ни против.
 - **C. Статус-кво.** Платить за B, пользоваться как за A. Отвергнуто.
@@ -93,7 +90,6 @@
 ### 3.2 Компоненты через `.meta({ id })`
 
 В `src/shared/domain-schemas.ts` каждая сущностная и ответная схема получает `.meta({ id: 'Task' })` и т. д. Правила:
-
 - `.extend()` сбрасывает `id` (проверено), поэтому производные схемы (`storedOperationSchema = operationSummarySchema.extend(...)`) получают собственный `.meta({ id: 'StoredOperation' })` после `extend`.
 - Обёртки `.nullable()`, `.optional()`, `z.array(...)` сохраняют `$ref` на вложенную схему.
 - Фабрика `pageSchema(item)` не получает id (каждый вызов создаёт новую схему); при желании конкретные страницы именуются в месте вызова: `pageSchema(taskSchema).meta({ id: 'TaskPage' })`.
@@ -118,29 +114,13 @@ completeApi.doc('/api/openapi.json', { openapi: '3.1.0', info: {…}, servers: [
 // src/shared/schemas.ts
 export const commandPayloadSchemas = schemas;
 export type CommandName = keyof typeof schemas;
-export const commandNames = Object.keys(schemas) as [
-  CommandName,
-  ...CommandName[],
-];
+export const commandNames = Object.keys(schemas) as [CommandName, ...CommandName[]];
 export const commandNameSchema = z.enum(commandNames).describe('Имя команды');
-type Member<K extends CommandName, E extends z.ZodRawShape> = z.ZodObject<
-  E & { command: z.ZodLiteral<K>; payload: (typeof schemas)[K] }
->;
+type Member<K extends CommandName, E extends z.ZodRawShape> = z.ZodObject<E & { command: z.ZodLiteral<K>; payload: (typeof schemas)[K] }>;
 const members = <E extends z.ZodRawShape>(extra: E) =>
-  commandNames.map((name) =>
-    z
-      .object({
-        ...extra,
-        command: z.literal(name).describe('Имя команды'),
-        payload: schemas[name].describe('Параметры команды'),
-      })
-      .strict(),
-  ) as unknown as [Member<CommandName, E>, ...Member<CommandName, E>[]];
+  commandNames.map((name) => z.object({ ...extra, command: z.literal(name).describe('Имя команды'), payload: schemas[name].describe('Параметры команды') }).strict()) as unknown as [Member<CommandName, E>, ...Member<CommandName, E>[]];
 export const commandSchema = z.discriminatedUnion('command', members({}));
-export const commandEnvelopeSchema = z.discriminatedUnion(
-  'command',
-  members(envelopeFields),
-);
+export const commandEnvelopeSchema = z.discriminatedUnion('command', members(envelopeFields));
 ```
 
 Единственный каст `as unknown as [...]` документируется комментарием; тип `Command` остаётся дискриминированным union (`{ [K in CommandName]: {command: K; payload: z.infer<(typeof schemas)[K]>} }[CommandName]` объявляется явно и проверяется `satisfies` против `z.infer<typeof commandSchema>` в тесте типов). `z.discriminatedUnion` в Zod 4 принимает массив (проверено пробой). `CommandName` в `model.ts:72` (`Command['command']`) заменяется реэкспортом из `schemas.ts`.
@@ -152,25 +132,13 @@ export const commandEnvelopeSchema = z.discriminatedUnion(
 ```ts
 // src/shared/limits.ts
 export const LIMITS = {
-  id: 80,
-  taskTitle: 240,
-  taskNote: 16000,
-  waitingFor: 240,
-  checklistText: 500,
-  checklistItems: 100,
-  originSystem: 40,
-  originRef: 200,
-  originUrl: 2000,
-  originVersion: 120,
-  projectName: 60,
-  projectDescription: 500,
-  commentText: 4000,
-  batchCommands: 100,
-  pageSize: 500,
-  digestPage: 50,
+  id: 80, taskTitle: 240, taskNote: 16000, waitingFor: 240,
+  checklistText: 500, checklistItems: 100,
+  originSystem: 40, originRef: 200, originUrl: 2000, originVersion: 120,
+  projectName: 60, projectDescription: 500, commentText: 4000,
+  batchCommands: 100, pageSize: 500, digestPage: 50,
 } as const;
 ```
-
 Используется в `schemas.ts`, `domain-schemas.ts`, `app.ts` (`pageQuery`, `/api/events`, digest) и в JSX (`maxLength={LIMITS.taskTitle}`, `draft.checklist.length >= LIMITS.checklistItems`). Тест `tests/unit/limits.test.ts`: (а) `taskSchema` принимает `title` длиной `LIMITS.taskTitle` и отклоняет `+1`; то же для note, комментария, имени проекта, шагов; (б) сканирование исходников: `src/web/app/*.tsx` не содержит `maxLength={<цифры>}` и `>= 100`; `src/shared/schemas.ts` и `domain-schemas.ts` не содержат `.max(<цифры>)` кроме `.max(Number.MAX_SAFE_INTEGER)` и `.max(100)` для `position` (заменяется на `LIMITS.checklistItems`).
 
 ### 3.6 Валидация на границах (API-форма)
@@ -229,22 +197,22 @@ export const LIMITS = {
 
 ## 5. Тесты
 
-| Критерий | Файл                                      | Сценарий                                                                                                              | Ожидание                                                                                                                                                                                              |
-| -------- | ----------------------------------------- | --------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 1        | `tests/api/commands.test.ts`              | `POST /api/commands` с `payload.titel`                                                                                | 400, `code: 'invalid'`, `issues` содержит `path: 'payload.title'` и элемент с «titel»; сообщения на русском                                                                                           |
-| 1        | там же                                    | `GET /api/tasks?limit=abc`, `GET /api/tasks/%20`                                                                      | 400, `issues[0].path` начинается с `query.` / `param.`                                                                                                                                                |
-| 1        | там же                                    | `POST /api/commands/batch` с ошибкой во второй команде на уровне схемы                                                | `issues[0].path` начинается с `commands[1].payload`                                                                                                                                                   |
-| 2        | `tests/api/openapi.test.ts`               | `GET /api/openapi.json` без заголовков                                                                                | 200, размер < 150 000, 19 `operationId` без повторов, `summary`/`tags` у всех, `securitySchemes.bearer` и `apiKey`, `security` задан, компоненты из критерия 2, у всех query-параметров `description` |
-| 3        | `tests/api/commands.test.ts`              | `GET /api/context` ролью `agent` после `createAgent`                                                                  | `me.id === 'agent:test-agent'`, `agents[].id` содержит агента, `fields.type === 'object'`, в `fields` нет `$ref`                                                                                      |
-| 4        | `tests/unit/shared.test.ts` (source-scan) | чтение `src/shared/*.ts`, `src/web/**/*.ts(x)`, `src/cli/*.ts`                                                        | нет строки `@hono/zod-openapi`                                                                                                                                                                        |
-| 5        | `tests/unit/shared.test.ts`               | `commandSchema.options`, `commandEnvelopeSchema.safeParse({command:'task.nope'})`, `labels`                           | длина равна `commandNames.length`; отказ; ключи `labels` равны `[...commandNames,'batch']`                                                                                                            |
-| 5        | `tsc`                                     | временно добавить ключ `'task.nope'` в `schemas` без подписи в `labels` (ручная проверка исполнителем, не коммитится) | `tsc` падает на `labels`                                                                                                                                                                              |
-| 6        | `tests/unit/limits.test.ts`               | граничные длины; сканирование исходников                                                                              | принимает `LIMITS.x`, отклоняет `+1`; литералов нет                                                                                                                                                   |
-| 7        | `tests/web/api.test.ts`                   | ответ `{}` при схеме `taskSchema`                                                                                     | `ApiError` с русским сообщением, `retryable: false`                                                                                                                                                   |
-| 7        | `tests/web/store.test.ts`                 | `taskindex/ops/x` = `{"operationId":"x"}` без `command`                                                               | запись пропущена, `pending` пуст                                                                                                                                                                      |
-| 7        | `tests/web/sync.test.ts`                  | сообщение SSE с невалидным JSON-событием                                                                              | `ingest` не вызван, `catchUp` вызван                                                                                                                                                                  |
-| 8        | `tests/api/commands.test.ts`              | искусственная не-`DomainError` ошибка в `authorize`                                                                   | тело проходит `operationErrorSchema.strict()`, `code` из `errorCodeSchema`                                                                                                                            |
-| 10       | `npm run check`, `npm run e2e`            |                                                                                                                       | зелёные                                                                                                                                                                                               |
+| Критерий | Файл | Сценарий | Ожидание |
+|---|---|---|---|
+| 1 | `tests/api/commands.test.ts` | `POST /api/commands` с `payload.titel` | 400, `code: 'invalid'`, `issues` содержит `path: 'payload.title'` и элемент с «titel»; сообщения на русском |
+| 1 | там же | `GET /api/tasks?limit=abc`, `GET /api/tasks/%20` | 400, `issues[0].path` начинается с `query.` / `param.` |
+| 1 | там же | `POST /api/commands/batch` с ошибкой во второй команде на уровне схемы | `issues[0].path` начинается с `commands[1].payload` |
+| 2 | `tests/api/openapi.test.ts` | `GET /api/openapi.json` без заголовков | 200, размер < 150 000, 19 `operationId` без повторов, `summary`/`tags` у всех, `securitySchemes.bearer` и `apiKey`, `security` задан, компоненты из критерия 2, у всех query-параметров `description` |
+| 3 | `tests/api/commands.test.ts` | `GET /api/context` ролью `agent` после `createAgent` | `me.id === 'agent:test-agent'`, `agents[].id` содержит агента, `fields.type === 'object'`, в `fields` нет `$ref` |
+| 4 | `tests/unit/shared.test.ts` (source-scan) | чтение `src/shared/*.ts`, `src/web/**/*.ts(x)`, `src/cli/*.ts` | нет строки `@hono/zod-openapi` |
+| 5 | `tests/unit/shared.test.ts` | `commandSchema.options`, `commandEnvelopeSchema.safeParse({command:'task.nope'})`, `labels` | длина равна `commandNames.length`; отказ; ключи `labels` равны `[...commandNames,'batch']` |
+| 5 | `tsc` | временно добавить ключ `'task.nope'` в `schemas` без подписи в `labels` (ручная проверка исполнителем, не коммитится) | `tsc` падает на `labels` |
+| 6 | `tests/unit/limits.test.ts` | граничные длины; сканирование исходников | принимает `LIMITS.x`, отклоняет `+1`; литералов нет |
+| 7 | `tests/web/api.test.ts` | ответ `{}` при схеме `taskSchema` | `ApiError` с русским сообщением, `retryable: false` |
+| 7 | `tests/web/store.test.ts` | `taskindex/ops/x` = `{"operationId":"x"}` без `command` | запись пропущена, `pending` пуст |
+| 7 | `tests/web/sync.test.ts` | сообщение SSE с невалидным JSON-событием | `ingest` не вызван, `catchUp` вызван |
+| 8 | `tests/api/commands.test.ts` | искусственная не-`DomainError` ошибка в `authorize` | тело проходит `operationErrorSchema.strict()`, `code` из `errorCodeSchema` |
+| 10 | `npm run check`, `npm run e2e` | | зелёные |
 
 ## 6. Риски и откат
 
@@ -269,48 +237,46 @@ export const LIMITS = {
 
 ## Покрытые находки
 
-| ID                     | Отчёт                  | Кратко                                                                                                     | Где в плане                                  |
-| ---------------------- | ---------------------- | ---------------------------------------------------------------------------------------------------------- | -------------------------------------------- |
-| A8                     | AI-готовность          | ошибки валидации без `issues`                                                                              | 1.1, 3.7, шаг 6                              |
-| A9                     | AI-готовность          | OpenAPI 970 КБ, без `operationId`/`security`, только по ключу                                              | 1.2, 3.2, 3.3, шаги 4, 7                     |
-| A14                    | AI-готовность          | `/api/context` без `agents` и `me`                                                                         | 1.3, шаг 5                                   |
-| A7 (API-часть)         | AI-готовность          | комментарии владельца недоступны первым классом                                                            | раздел 7 (`digest.comments`)                 |
-| S3                     | стек                   | `z` из `@hono/zod-openapi` в shared; контракт не потребляется                                              | 1.4, 3.1, шаг 1                              |
-| S4                     | стек                   | 16 членов union набраны руками                                                                             | 1.5, 3.4, шаг 3                              |
-| R2                     | качество §3, (d)       | генерировать union, `z.enum(commandNames)`                                                                 | 1.5, 3.4, шаг 3                              |
-| B3                     | AI-готовность          | новая команда требует 6+ правок без проверки исчерпывающести                                               | 1.5, 3.4, 3.8, шаг 3                         |
-| R7                     | качество §2, (d)       | лимиты Zod переписаны литералами в JSX                                                                     | 1.6, 3.5, шаг 2                              |
-| R8                     | качество §4, (d)       | клиент не проверяет ответы, `JSON.parse` без схем                                                          | 1.7, 3.6, шаг 8                              |
-| §1 качества (частично) | качество               | `contextSchema`/`digestSchema` в `app.ts`, CLI держит `context` как `Record<string, unknown>`              | 3.6, шаг 4                                   |
-| §3, §5 качества        | качество               | 13 инлайн-литералов ошибок мимо `DomainError.toJSON()`                                                     | 1.8, 3.7, шаг 6                              |
-| §5 качества            | качество               | коды CLI неизвестны `errorCodeSchema` и SKILL                                                              | 1.8, 3.7 (документирование через план 03/12) |
-| B9                     | AI-готовность          | смешение языков в ошибках                                                                                  | 3.7 (`z.locales.ru()` на сервере)            |
-| A2 (часть)             | AI-готовность          | тест «каждый GET-параметр в справке» опирается на OpenAPI                                                  | 3.3 (описания параметров), план 03 шаг 7     |
-| Astra B-04             | astra / TI-008         | `since` и `digest` по `lastSeq` теряют no-op и отказы; `since=0` не равно «всё»                            | шаг 11                                       |
-| Astra B-05             | astra / TI-009         | инвариант чеклиста через `checklistSchema.parse` даёт ZodError: 400 без записи операции, id переиспользуем | шаг 12                                       |
-| Astra B-06, B-07       | astra / TI-010, TI-011 | id `none`/`all` пересекаются с фильтром; `by-origin` перекрыт статическим маршрутом                        | шаг 13                                       |
-| Astra S-04             | astra / TI-005         | ответы web без runtime-проверки; корреляция `generation`/`operationId`                                     | 3.6, шаг 8; шаг 14                           |
-| Astra A-03 (клиент)    | astra / TI-014         | несовпадение версии схемы между сервером и открытым клиентом                                               | шаг 15; правило миграций данных в плане 09   |
-| Astra Q-04             | astra / TI-022         | сохранённые черновики и конверты без схемы; сырые данные не терять                                         | 3.6, шаг 8; шаг 16                           |
+| ID | Отчёт | Кратко | Где в плане |
+|---|---|---|---|
+| A8 | AI-готовность | ошибки валидации без `issues` | 1.1, 3.7, шаг 6 |
+| A9 | AI-готовность | OpenAPI 970 КБ, без `operationId`/`security`, только по ключу | 1.2, 3.2, 3.3, шаги 4, 7 |
+| A14 | AI-готовность | `/api/context` без `agents` и `me` | 1.3, шаг 5 |
+| A7 (API-часть) | AI-готовность | комментарии владельца недоступны первым классом | раздел 7 (`digest.comments`) |
+| S3 | стек | `z` из `@hono/zod-openapi` в shared; контракт не потребляется | 1.4, 3.1, шаг 1 |
+| S4 | стек | 16 членов union набраны руками | 1.5, 3.4, шаг 3 |
+| R2 | качество §3, (d) | генерировать union, `z.enum(commandNames)` | 1.5, 3.4, шаг 3 |
+| B3 | AI-готовность | новая команда требует 6+ правок без проверки исчерпывающести | 1.5, 3.4, 3.8, шаг 3 |
+| R7 | качество §2, (d) | лимиты Zod переписаны литералами в JSX | 1.6, 3.5, шаг 2 |
+| R8 | качество §4, (d) | клиент не проверяет ответы, `JSON.parse` без схем | 1.7, 3.6, шаг 8 |
+| §1 качества (частично) | качество | `contextSchema`/`digestSchema` в `app.ts`, CLI держит `context` как `Record<string, unknown>` | 3.6, шаг 4 |
+| §3, §5 качества | качество | 13 инлайн-литералов ошибок мимо `DomainError.toJSON()` | 1.8, 3.7, шаг 6 |
+| §5 качества | качество | коды CLI неизвестны `errorCodeSchema` и SKILL | 1.8, 3.7 (документирование через план 03/12) |
+| B9 | AI-готовность | смешение языков в ошибках | 3.7 (`z.locales.ru()` на сервере) |
+| A2 (часть) | AI-готовность | тест «каждый GET-параметр в справке» опирается на OpenAPI | 3.3 (описания параметров), план 03 шаг 7 |
+| Astra B-04 | astra / TI-008 | `since` и `digest` по `lastSeq` теряют no-op и отказы; `since=0` не равно «всё» | шаг 11 |
+| Astra B-05 | astra / TI-009 | инвариант чеклиста через `checklistSchema.parse` даёт ZodError: 400 без записи операции, id переиспользуем | шаг 12 |
+| Astra B-06, B-07 | astra / TI-010, TI-011 | id `none`/`all` пересекаются с фильтром; `by-origin` перекрыт статическим маршрутом | шаг 13 |
+| Astra S-04 | astra / TI-005 | ответы web без runtime-проверки; корреляция `generation`/`operationId` | 3.6, шаг 8; шаг 14 |
+| Astra A-03 (клиент) | astra / TI-014 | несовпадение версии схемы между сервером и открытым клиентом | шаг 15; правило миграций данных в плане 09 |
+| Astra Q-04 | astra / TI-022 | сохранённые черновики и конверты без схемы; сырые данные не терять | 3.6, шаг 8; шаг 16 |
 
 ## Сверка с ревью Astra (2026-09-08)
 
 Кратко: Astra добавила четыре подтверждённых дефекта контракта в зонах, которые наше ревью пометило проверенными («Снимок и курсоры», «Auth/скоупы»): B-04 (`operations?since` и `digest` фильтруют по `lastSeq`, `src/server/app.ts:717`, `:963`, поэтому no-op и сохранённые отказы не видны даже при `since=0`, а `until=1` их показывает), B-05 (`assertInvariants` вызывает `checklistSchema.parse`, `src/shared/commands.ts:217`; ZodError минует `DomainError`-ветку executor `src/server/operations.ts:124`, ответ 400 без записи операции, `operation get` 404, тот же `operationId` принимает другую команду; при сверке найден более реалистичный путь: `checklist.add` с id, уже занятым в этой задаче), B-06/B-07 (проект `none`/`all` создаётся и ломает фильтр `src/shared/queries.ts:118-122`; задача `by-origin` создаётся, но `GET /api/tasks/by-origin` уходит в статический маршрут `app.ts:593`, объявленный раньше `/api/tasks/{id}` `:609`; у нас это было только запахом кода). S-04 совпадает с R8 (§1.7), A-03 добавляет требование к клиенту при смене версии схемы. Astra утверждает, что OpenAPI потребляется внешними агентами (`docs/audits/2026-09-08-multiside-review/01-stack.md:30`); код показывает потребителей только в тестах (§1.4), решение 3.1 «оставить и сделать полезным» с обеими позициями совместимо. Треков A8, A9, A14, S3, R7 у Astra нет.
 
 ### Добавлено по итогам сверки
-
-| Пункт                                                                                           | Источник Astra | Реестр         | План Astra                                                                             | Что делаем здесь / где делается                                                                                                              |
-| ----------------------------------------------------------------------------------------------- | -------------- | -------------- | -------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
-| Монотонный курсор операций `operationSeq`, не зависящий от событий; `since=0` означает «всё»    | B-04           | TI-008         | `astra-08-operation-feed-cursor.md`, шаги 1-6                                          | шаг 11 ниже по шагам `astra-08` с дельтами: без слоя совместимости старых клиентов до переключения; стык с планами 01 (шаг 15) и 03 (шаг 17) |
-| Нарушение инварианта после принятия конверта это `DomainError`, отказ сохраняется, id сжигается | B-05           | TI-009         | `astra-09-persist-domain-rejections.md`                                                | шаг 12 ниже                                                                                                                                  |
-| Служебные слова не могут быть идентификаторами; поиск по источнику на отдельном пути            | B-06, B-07     | TI-010, TI-011 | `astra-10-project-id-filter-separation.md`, `astra-11-task-lookup-route-separation.md` | шаг 13 ниже; выбран резерв слов, а не смена семантики фильтра (см. расхождения)                                                              |
-| Проверка связности `generation`/`operationId` в ответах, не только формы                        | S-04           | TI-005         | `astra-05-web-response-contracts.md`, проверка 2                                       | шаг 14 ниже                                                                                                                                  |
-| `schemaVersion` в снимке и понятный режим несовместимого клиента с сохранением черновиков       | A-03           | TI-014         | `astra-14-domain-contract-evolution.md`, шаг 4                                         | шаг 15 ниже                                                                                                                                  |
-| Три теста формы сохранённых данных; сырое значение сохранять для ручного восстановления         | Q-04           | TI-022         | `astra-22-persisted-drafts-and-outbox-schemas.md`                                      | шаг 16 ниже; CLI-часть в плане 03 (шаг 18)                                                                                                   |
-| Клиентская валидация остаётся; вес снимается `zod/mini`, а не отказом от проверок               | S-04 и FS:F3   | TI-005, TI-024 | `astra-05`, `astra-24`                                                                 | решение записано в плане 07 (3.10, вариант C снят); здесь `request(path, schema)` без изменений                                              |
+| Пункт | Источник Astra | Реестр | План Astra | Что делаем здесь / где делается |
+|---|---|---|---|---|
+| Монотонный курсор операций `operationSeq`, не зависящий от событий; `since=0` означает «всё» | B-04 | TI-008 | `astra-08-operation-feed-cursor.md`, шаги 1-6 | шаг 11 ниже по шагам `astra-08` с дельтами: без слоя совместимости старых клиентов до переключения; стык с планами 01 (шаг 15) и 03 (шаг 17) |
+| Нарушение инварианта после принятия конверта это `DomainError`, отказ сохраняется, id сжигается | B-05 | TI-009 | `astra-09-persist-domain-rejections.md` | шаг 12 ниже |
+| Служебные слова не могут быть идентификаторами; поиск по источнику на отдельном пути | B-06, B-07 | TI-010, TI-011 | `astra-10-project-id-filter-separation.md`, `astra-11-task-lookup-route-separation.md` | шаг 13 ниже; выбран резерв слов, а не смена семантики фильтра (см. расхождения) |
+| Проверка связности `generation`/`operationId` в ответах, не только формы | S-04 | TI-005 | `astra-05-web-response-contracts.md`, проверка 2 | шаг 14 ниже |
+| `schemaVersion` в снимке и понятный режим несовместимого клиента с сохранением черновиков | A-03 | TI-014 | `astra-14-domain-contract-evolution.md`, шаг 4 | шаг 15 ниже |
+| Три теста формы сохранённых данных; сырое значение сохранять для ручного восстановления | Q-04 | TI-022 | `astra-22-persisted-drafts-and-outbox-schemas.md` | шаг 16 ниже; CLI-часть в плане 03 (шаг 18) |
+| Клиентская валидация остаётся; вес снимается `zod/mini`, а не отказом от проверок | S-04 и FS:F3 | TI-005, TI-024 | `astra-05`, `astra-24` | решение записано в плане 07 (3.10, вариант C снят); здесь `request(path, schema)` без изменений |
 
 ### Расхождения и решение
-
 - Потребители OpenAPI. Astra: «REST/OpenAPI нужен внешним агентам», «RPC используется в CLI» (`01-stack.md:30`, `:114`); код: потребители только тесты, `hc` для двух POST (§1.4). `ASTRA-VS-FABLE.md` §4.4 поддерживает направление «сделать полезным». Решение 3.1 (вариант A) не меняется; утверждение Astra записано как верное по направлению и неточное по текущему состоянию.
 - Объём исправления B-04. `astra-08`: полный `operationSeq` с миграцией, export/import и стратегией старых клиентов, зависимость от `astra-13`/`astra-14`; сверка по багам: минимум «`since=0` возвращает всё и документировать». Решение: до переключения делать `operationSeq` (шаг 11), потому что колонка и backfill сейчас дёшевы, а совместимость старых клиентов не нужна; минимум из плана 01 (шаг 15) остаётся страховкой, если план 04 отстанет.
 - Способ для B-06/B-07. `astra-10` предпочитает сменить контракт фильтра (отдельный режим `unassigned`, закодированные значения в выпадающих списках) и называет резерв слов «явно менее совместимой альтернативой»; `astra-11` предпочитает новый маршрут с совместимостью старого. Решение: до переключения нет пользовательских id, которые нужно защищать, поэтому резерв слов при создании и импорте (один `refine`) плюс перенос поиска на `/api/tasks/lookup/by-origin` без legacy-алиаса дешевле и закрывает оба дефекта; константы `ProjectFilter` (план 10, шаг 7) остаются защитой на уровне типов. Если владелец позже захочет буквальные id `none`/`all`, путь описан в `astra-10`.
@@ -319,7 +285,6 @@ export const LIMITS = {
 - `zod/mini` против валидации на клиенте. Вариант C из плана 07 (убрать Zod из браузера) противоречит S-04 и R8; снят там (3.10). Здесь `request(path, schema)` остаётся, вес решается замером (план 07, шаг 20).
 
 ### Дополнительные шаги
-
 11. Курсор операций (Astra B-04; основа шаги 1-6 `astra-08`, здесь дельты). Схема: колонка `operations.operation_seq INTEGER NOT NULL` и уникальный индекс `operations_seq` новой миграцией `drizzle/v2/000N_operation_seq.sql` (DDL через kit, backfill руками детерминированным порядком `(created_at, id)`, например `ROW_NUMBER() OVER (ORDER BY created_at, id)` через временную таблицу; правило оформления в плане 09). Назначение в транзакции `executeOperation` (`src/server/operations.ts:51`): `COALESCE(MAX(operation_seq), 0) + 1`; поколение в курсоре уже есть, поэтому сброс при `mark-restored` не нужен. `operationSummarySchema` и `storedOperationSchema` получают `operationSeq: z.number().int().positive()`. `/api/operations`: keyset `after=<operationSeq>` (ключ из плана 01, шаг 7 и 15); `since`/`until` остаются окном по событиям с `.describe()` «окно по событиям; операции без событий в него не входят»; отсутствие `since` возвращает все операции. `/api/digest`: новый параметр `sinceOp`, окно `operations` по `operationSeq`, в ответе `operationSeq` последней операции рядом с `seq`. Export/import: поле входит в экспорт, `validateExport` проверяет уникальность и согласованность порядка с `(createdAt, id)`. SSE `event: operations` несёт `operationSeq`. OpenAPI описывает оба курсора (`astra-08` шаг 4: потребитель должен понимать, какой курсор передаёт). Тесты: последовательность успех / no-op / отказ / повтор / успех читается целиком `after` с `limit=1`; `operations` без `since` и с `since=0` содержат no-op и отказ; запись между страницами не даёт пропуска; export → import сохраняет `operationSeq`; повтор конверта не создаёт новый номер. Приёмка: probe Astra `digest-and-since-exclude-no-event-operations` показывает все три id. Зависимости: план 09 (правило миграций данных, дополнительный шаг 12), план 01 (шаги 5, 7, 15), план 03 (шаг 17).
 12. B-05, `src/shared/commands.ts` `assertInvariants` (`:178-222`): заменить `checklistSchema.parse(t.checklist)` (`:217`) на явные проверки `if (t.checklist.length > LIMITS.checklistItems) fail('invalid', 'В задаче не больше 100 шагов.')` и `if (new Set(t.checklist.map((i) => i.id)).size !== t.checklist.length) fail('invalid', 'Идентификаторы шагов в задаче повторяются.')`; межзадачная проверка `:218-222` остаётся. После правки `grep -n '\.parse(' src/shared/commands.ts` не должен показывать Zod-`parse`, достижимый после принятия конверта (сегодня `:217`; `Date.parse` на `:81` не Zod). Executor (`src/server/operations.ts:124`) не меняется: `DomainError` сохраняется. Тесты `tests/api/commands.test.ts`: `checklist.add` 101-го шага → 400 `invalid`, `GET /api/operations/{id}` → 200 с сохранённым отказом, повтор того же конверта → то же тело, тот же id с другим payload → 409 `operation_mismatch`; `checklist.add` с id, уже существующим в этой задаче → тот же путь; пакет с нарушением во второй команде → `commandIndex: 1`, состояние не изменилось. Приёмка: probe Astra `invariant-rejection-is-not-idempotently-recorded` проходит.
 13. B-06/B-07. `src/shared/schemas.ts`: `RESERVED_IDS = new Set(['all', 'none', 'by-origin', 'lookup'])`, `newIdSchema = idSchema.refine((id) => !RESERVED_IDS.has(id), 'Служебное слово нельзя использовать как идентификатор')` для `id` в `task.create`, `task.sync` (id новой задачи), `project.create`; в `importWorkspace` (`src/server/admin.ts:374-375`) та же проверка перед `assertInvariants`. Маршрут `GET /api/tasks/by-origin` (`src/server/app.ts:593`) переносится на `/api/tasks/lookup/by-origin`; `GET /api/tasks/{id}` (`:609`) не меняется; `find-origin` в `READS` CLI (план 03) берёт новый путь; legacy-алиас до переключения не нужен (решение; `astra-11` шаг 2 не применяется). Тест в `tests/api/openapi.test.ts`: каждый статический сегмент пути после `/api/tasks/` и `/api/projects/` входит в `RESERVED_IDS`. Семантика `queries.ts:118-122` и `shell.tsx:124-125` не меняется; константы `ALL_PROJECTS`/`NO_PROJECT` из плана 10 остаются защитой типов. Тесты: `project.create {id:'none'}` и `{id:'all'}` → 400 `invalid`, `issues[0].path === 'payload.id'`; `task.create {id:'by-origin'}` → 400; `GET /api/tasks/lookup/by-origin?system=x&ref=y` → 200; `GET /api/tasks/lookup` → 404 `not_found`; импорт с зарезервированным id отклоняется. Приёмка: probe Astra `03-id-probes` даёт 400 на создании.

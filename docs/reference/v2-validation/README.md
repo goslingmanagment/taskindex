@@ -6,15 +6,15 @@
 добавлены согласованные Activity, комментарии, история и счётчик новых
 задач агентов. Эксперименты `public/visions` не использованы.
 
-| Состояние                                         | Снимок                                                   |
-| ------------------------------------------------- | -------------------------------------------------------- |
-| Доска с исходными карточками и направлениями      | [Desktop](desktop-board.png), [mobile](mobile-board.png) |
-| Список                                            | [Desktop](desktop-list.png)                              |
-| Редактор с чеклистом и заметкой                   | [Desktop](desktop-editor.png)                            |
-| Комментарий и раскрытая история                   | [Desktop](desktop-discussion.png)                        |
-| Лента, включая одну пакетную операцию на 20 задач | [Desktop](desktop-activity.png)                          |
-| Явно отклонённая операция без возможности Undo    | [Desktop](desktop-activity-rejected.png)                 |
-| Focus                                             | [Mobile](mobile-focus.png)                               |
+| Состояние | Снимок |
+|---|---|
+| Доска с исходными карточками и направлениями | [Desktop](desktop-board.png), [mobile](mobile-board.png) |
+| Список | [Desktop](desktop-list.png) |
+| Редактор с чеклистом и заметкой | [Desktop](desktop-editor.png) |
+| Комментарий и раскрытая история | [Desktop](desktop-discussion.png) |
+| Лента, включая одну пакетную операцию на 20 задач | [Desktop](desktop-activity.png) |
+| Явно отклонённая операция без возможности Undo | [Desktop](desktop-activity-rejected.png) |
+| Focus | [Mobile](mobile-focus.png) |
 
 Desktop — 1440 × 1000, mobile — 390 × 844. Перед съёмкой доски завершено
 сохранение и подтверждено открытое SSE-соединение. Полные сведения о Node,

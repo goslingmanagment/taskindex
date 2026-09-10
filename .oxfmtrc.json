@@ -8,6 +8,20 @@
     "pnpm-lock.yaml",
     "yarn.lock",
     "bun.lock",
-    "bun.lockb"
+    "bun.lockb",
+    "docs/**",
+    "issues.md",
+    "BACKLOG.md",
+    "README.md",
+    "CLAUDE.md",
+    "AGENTS.md",
+    "deploy/README.md",
+    "skills/**",
+    "drizzle/**",
+    "dist/**",
+    "test-results/**",
+    "public/**",
+    "**/*.md",
+    "**/*.html"
   ]
 }

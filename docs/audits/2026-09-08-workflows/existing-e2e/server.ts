@@ -3,10 +3,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { serve } from '@hono/node-server';
 import { createServer } from 'vite';
-import {
-  openDatabase,
-  migrate,
-} from '/Users/dmitriy/code/taskindex/src/server/db';
+import { openDatabase, migrate } from '/Users/dmitriy/code/taskindex/src/server/db';
 import { createAuth } from '/Users/dmitriy/code/taskindex/src/server/auth';
 import { createOwner } from '/Users/dmitriy/code/taskindex/src/server/admin';
 import { createApp } from '/Users/dmitriy/code/taskindex/src/server/app';

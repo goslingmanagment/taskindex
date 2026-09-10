@@ -33,7 +33,7 @@
 ### 1.4 A3, A4, A5, A10, A11: ошибки и пробелы
 
 - A3 `run.ts:450-459`: `issues` печатаются как есть: `Invalid input: expected number, received undefined` для `baseRevision`, `Invalid option: expected one of…` для `area` (транскрипт 14, 17). Сервер отвечает по-русски, CLI по-английски; подсказки («возьмите `revision` из `task get`») нет. Локаль `ru` в Zod 4 есть: `node_modules/zod/v4/locales/ru.js`.
-- A4 `run.ts:430`: `command = \`${group}.${action}\``; `:448-449`: `taskindex task`→ «Неизвестная команда: task.undefined»,`taskindex me`→ «me.undefined».`GET /api/me` (`app.ts:427-434`) в CLI недоступен.
+- A4 `run.ts:430`: `command = \`${group}.${action}\``; `:448-449`: `taskindex task` → «Неизвестная команда: task.undefined», `taskindex me` → «me.undefined». `GET /api/me` (`app.ts:427-434`) в CLI недоступен.
 - A5 `run.ts:256-266`: allow-list `tasks` без `today` и `hasFollowUp`; API принимает оба (`app.ts:551-552`, обработка `:570-574`). Владелец в UI пользуется «На сегодня» (`src/web/app/shell.tsx:134-136`), агент этот список воспроизвести не может.
 - A10 `run.ts:190-191`: `process.stdout.write` без обработчика `error`; `taskindex tasks --all --limit 1 | head -c 50` даёт трассу `Unhandled 'error' event … EPIPE` (`scratchpad/epipe.txt`: путь через `run.ts:191`, `:194`, `:375`).
 - A11 `run.ts:377-393`: `--follow` печатает страницу каждую секунду, включая пустые `{"events":[]}`.
@@ -97,35 +97,13 @@ $XDG_STATE_HOME/taskindex/
 `src/cli/spec.ts` описывает всё декларативно:
 
 ```ts
-export type FlagSpec = {
-  name: string;
-  kind: 'string' | 'boolean' | 'json' | 'number';
-  description: string;
-  required?: boolean;
-  values?: readonly string[];
-};
-export type ReadSpec = {
-  group: string;
-  action?: string;
-  path: string | ((id: string) => string);
-  positional?: string[];
-  query: FlagSpec[];
-  pageable?: boolean;
-  summary: string;
-  example: string;
-};
-export type WriteSpec = {
-  group: string;
-  action: string;
-  command: CommandName;
-  positional: { name: string; payloadKey: string }[];
-  summary: string;
-  example: string;
-};
-export const GLOBAL_FLAGS: FlagSpec[]; // dry-run, operation-id, base-revision, generation, payload, file, all, limit, cursor, help, interval, out, operation
+export type FlagSpec = { name: string; kind: 'string' | 'boolean' | 'json' | 'number'; description: string; required?: boolean; values?: readonly string[] };
+export type ReadSpec = { group: string; action?: string; path: string | ((id: string) => string); positional?: string[]; query: FlagSpec[]; pageable?: boolean; summary: string; example: string };
+export type WriteSpec = { group: string; action: string; command: CommandName; positional: { name: string; payloadKey: string }[]; summary: string; example: string };
+export const GLOBAL_FLAGS: FlagSpec[];       // dry-run, operation-id, base-revision, generation, payload, file, all, limit, cursor, help, interval, out, operation
 export const READS: ReadSpec[];
-export const WRITES: WriteSpec[]; // ключи проверяются типом: Record<CommandName, …> без 'undo' и с явной записью для undo
-export const HINTS: Record<string, string>; // подсказки по path[0] или полному пути
+export const WRITES: WriteSpec[];            // ключи проверяются типом: Record<CommandName, …> без 'undo' и с явной записью для undo
+export const HINTS: Record<string, string>;  // подсказки по path[0] или полному пути
 ```
 
 Из спецификации выводятся: `switches` (`kind: 'boolean'`), `jsonFlags`, allow-list каждого чтения, `HELP`. Флаги команд записи не перечисляются руками: они выводятся из `z.toJSONSchema(commandPayloadSchemas[command])` (свойства верхнего уровня, `required`, `description`, `enum`), как уже делает `/api/context` (`app.ts:893-896`). Тест сверяет `READS[*].query` с параметрами `/api/openapi.json`, чтобы CLI не отставал от API (как случилось с `today`).
@@ -199,14 +177,12 @@ src/shared/canonical-json.ts   canonicalJson(value)
 6. **Адаптация существующих тестов.** `tests/cli/cli.test.ts:108-118` читает `join(directory, 'taskindex', 'ops', 'op1.json')`: заменить на путь через `CliState` (экспортировать хелпер `statePaths(env, baseUrl, agentId)`); хендлеры `fetch` в тестах должны отвечать на `/api/me` (`{id:'agent:test', agentId:'test', label:'Тест', kind:'agent', scope:'write', generation:'g_first', seq:0}`) вместо `/api/context`. `tests/cli/agent-cycle.test.ts:60-66` уже даёт каждому агенту свой `XDG_STATE_HOME`; добавить утверждение, что при общем каталоге `reviewer` не видит конверт `source`. Прогнать `npm run check`; зафиксировать P0-часть отдельным коммитом.
 
 7. **`src/cli/spec.ts` и `src/cli/help.ts`.** Перенести `HELP`, `controls`, `jsonFlags`, `booleanFlags` (`run.ts:34-111`) и `switches` (`arguments.ts:8-18`) в спецификацию; `parseArguments(argv, switches)` получает множество булевых флагов параметром. `renderHelp` строит JSON:
-
    ```json
    {"command":"task create","usage":"taskindex task create [ID] --area A --title T [--project-id P] [--note ...] | --payload JSON | --file F",
     "flags":[{"flag":"--area","type":"agency|development|personal","required":true,"description":"Область задачи или проекта"}, …],
     "globalFlags":[…],"example":"taskindex task create --area agency --title 'Проверить отчёт' --due 2026-09-10",
     "exitCodes":{…},"errorCodes":["invalid",…,"invalid_arguments",…]}
    ```
-
    Флаги записи из `z.toJSONSchema(commandPayloadSchemas[command]).properties` (имя → kebab-case, `type`/`enum`/`description`, `required`). Тест `tests/cli/help.test.ts`: (а) для каждого `CommandName` есть запись `WRITES` и её справка содержит все свойства схемы; (б) поднять приложение через `fixture()` из `tests/api/helpers.ts`, получить `/api/openapi.json`, для каждого `paths[p].get.parameters[in=query]` найти соответствующий флаг в `READS` (camelCase → kebab-case), исключение только для `/api/events/stream`; (в) `taskindex help tasks` содержит `--today` и `--has-follow-up`.
 
 8. **A4, A5, `me`, `openapi`, `--json`, `task focus`.** В `spec.ts`: `tasks.query` += `today`, `has-follow-up` (в URL `hasFollowUp`); `READS` += `me`, `openapi`; диспетчер при отсутствии `action` или неизвестной паре печатает список действий группы (раздел 3.3). Удалить `json` из всех наборов; `--json` теперь неизвестный флаг → `invalid_arguments` с `hint: "вывод всегда JSON, флаг удалён"`. `task focus`: удалить из `WRITES` после мерджа плана 02 (до этого оставить с предупреждением).
@@ -228,30 +204,30 @@ src/shared/canonical-json.ts   canonicalJson(value)
 
 ## 5. Тесты
 
-| Критерий | Файл                                  | Сценарий                                                                                                                                  | Ожидание                                                                                                                    |
-| -------- | ------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------- |
-| 1        | `tests/cli/state.test.ts`             | токен A: `comment add` с обрывом сети до отправки (конверт остаётся); токен B (`/api/me` → `agent:b`), тот же `XDG_STATE_HOME`: `context` | stderr B без `pendingOperations`; каталог `agents/b/ops` пуст; файл A лежит в `agents/a/ops/` с `actorId: "agent:a"`        |
-| 1        | там же                                | B: `operation resume`                                                                                                                     | `{"ok":true,"resumed":0}`, ни одного POST                                                                                   |
-| 1        | там же                                | B: `operation resume <id A>`                                                                                                              | код 2, «Сохранённый конверт не найден»                                                                                      |
-| 1        | там же                                | A с новым токеном (другой `tokenHash`, тот же `agentId`)                                                                                  | видит и досылает свой конверт                                                                                               |
-| 1        | там же                                | старый каталог `taskindex/ops/x.json` формата 1                                                                                           | stderr `legacy_outbox`, файл не отправлен, команда выполнена                                                                |
-| 2        | там же                                | в `agents/a/ops/`: `bad name.json`, `zzz.json` = `{not json`, `.pending-old`                                                              | `context` код 0; stderr две строки `outbox_skipped`; `zzz.json` переименован в `zzz.json.corrupt`                           |
-| 10       | `tests/unit/canonical-json.test.ts`   | эталонный конверт                                                                                                                         | строка и sha256 из 1.5; порядок ключей `B`, `_x`, `a`                                                                       |
-| 12       | `tests/api/*.test.ts`                 | `GET /api/me`                                                                                                                             | соответствует `meSchema`, `generation` совпадает с базой                                                                    |
-| 12       | `tests/cli/cli.test.ts`               | любая запись без `--generation`                                                                                                           | ровно один запрос `/api/me`, ни одного `/api/context`                                                                       |
-| 8        | `tests/cli/process.test.ts`           | реальный процесс CLI, stdout закрыт после первого чанка                                                                                   | код 0, stderr пустой                                                                                                        |
-| 3        | `tests/cli/help.test.ts`              | `help`, `help task create`, `task create --help`                                                                                          | все свойства схемы `task.create` присутствуют; пример есть                                                                  |
-| 3        | там же                                | параметры GET из `/api/openapi.json`                                                                                                      | каждый есть в `READS`                                                                                                       |
-| 4        | `tests/cli/cli.test.ts`               | `task move t1 --status doing`                                                                                                             | код 2, `issues[0].path === 'baseRevision'`, русское `message`, `hint`                                                       |
-| 4        | там же                                | `taskindex task`, `taskindex foo`                                                                                                         | код 2, список действий / `hint: taskindex help`                                                                             |
-| 4        | там же                                | `taskindex me`                                                                                                                            | GET `/api/me`, вывод тела                                                                                                   |
-| 5        | там же и `tests/api/commands.test.ts` | `tasks --today true`, `tasks --has-follow-up false`                                                                                       | URL `today=true`, `hasFollowUp=false`; набор совпадает с `queryTasks`                                                       |
-| 6        | `tests/cli/cursor.test.ts`            | `cursor commit 7 --generation g1`; `digest --since last`; `events --since last --commit` при `more:false`                                 | URL `since=7&generation=g1`; `cursor.json` обновлён до последнего `seq`; при 409 `generation_changed` вывод содержит `hint` |
-| 7        | `tests/cli/cli.test.ts`               | `inbox --since last` с мок-`digest`                                                                                                       | вывод `comments`                                                                                                            |
-| 8        | там же                                | `events --follow`, мок-`sleep`, пустые страницы                                                                                           | одна строка stdout на страницу с событиями                                                                                  |
-| 9        | там же                                | `--all` с 409 на второй странице, затем успех                                                                                             | две строки stdout, stderr `restart: 1`; после 4 неудач код 3                                                                |
-| 9        | там же                                | `--json`                                                                                                                                  | код 2, `hint` про удалённый флаг                                                                                            |
-| 11, 13   | `npm run check`                       |                                                                                                                                           | зелёный; `src/cli/run.ts` <= 120 строк                                                                                      |
+| Критерий | Файл | Сценарий | Ожидание |
+|---|---|---|---|
+| 1 | `tests/cli/state.test.ts` | токен A: `comment add` с обрывом сети до отправки (конверт остаётся); токен B (`/api/me` → `agent:b`), тот же `XDG_STATE_HOME`: `context` | stderr B без `pendingOperations`; каталог `agents/b/ops` пуст; файл A лежит в `agents/a/ops/` с `actorId: "agent:a"` |
+| 1 | там же | B: `operation resume` | `{"ok":true,"resumed":0}`, ни одного POST |
+| 1 | там же | B: `operation resume <id A>` | код 2, «Сохранённый конверт не найден» |
+| 1 | там же | A с новым токеном (другой `tokenHash`, тот же `agentId`) | видит и досылает свой конверт |
+| 1 | там же | старый каталог `taskindex/ops/x.json` формата 1 | stderr `legacy_outbox`, файл не отправлен, команда выполнена |
+| 2 | там же | в `agents/a/ops/`: `bad name.json`, `zzz.json` = `{not json`, `.pending-old` | `context` код 0; stderr две строки `outbox_skipped`; `zzz.json` переименован в `zzz.json.corrupt` |
+| 10 | `tests/unit/canonical-json.test.ts` | эталонный конверт | строка и sha256 из 1.5; порядок ключей `B`, `_x`, `a` |
+| 12 | `tests/api/*.test.ts` | `GET /api/me` | соответствует `meSchema`, `generation` совпадает с базой |
+| 12 | `tests/cli/cli.test.ts` | любая запись без `--generation` | ровно один запрос `/api/me`, ни одного `/api/context` |
+| 8 | `tests/cli/process.test.ts` | реальный процесс CLI, stdout закрыт после первого чанка | код 0, stderr пустой |
+| 3 | `tests/cli/help.test.ts` | `help`, `help task create`, `task create --help` | все свойства схемы `task.create` присутствуют; пример есть |
+| 3 | там же | параметры GET из `/api/openapi.json` | каждый есть в `READS` |
+| 4 | `tests/cli/cli.test.ts` | `task move t1 --status doing` | код 2, `issues[0].path === 'baseRevision'`, русское `message`, `hint` |
+| 4 | там же | `taskindex task`, `taskindex foo` | код 2, список действий / `hint: taskindex help` |
+| 4 | там же | `taskindex me` | GET `/api/me`, вывод тела |
+| 5 | там же и `tests/api/commands.test.ts` | `tasks --today true`, `tasks --has-follow-up false` | URL `today=true`, `hasFollowUp=false`; набор совпадает с `queryTasks` |
+| 6 | `tests/cli/cursor.test.ts` | `cursor commit 7 --generation g1`; `digest --since last`; `events --since last --commit` при `more:false` | URL `since=7&generation=g1`; `cursor.json` обновлён до последнего `seq`; при 409 `generation_changed` вывод содержит `hint` |
+| 7 | `tests/cli/cli.test.ts` | `inbox --since last` с мок-`digest` | вывод `comments` |
+| 8 | там же | `events --follow`, мок-`sleep`, пустые страницы | одна строка stdout на страницу с событиями |
+| 9 | там же | `--all` с 409 на второй странице, затем успех | две строки stdout, stderr `restart: 1`; после 4 неудач код 3 |
+| 9 | там же | `--json` | код 2, `hint` про удалённый флаг |
+| 11, 13 | `npm run check` | | зелёный; `src/cli/run.ts` <= 120 строк |
 
 ## 6. Риски и откат
 
@@ -273,27 +249,27 @@ src/shared/canonical-json.ts   canonicalJson(value)
 
 ## Покрытые находки
 
-| ID                      | Отчёт                          | Кратко                                                                   | Где в плане                          |
-| ----------------------- | ------------------------------ | ------------------------------------------------------------------------ | ------------------------------------ |
-| A1                      | AI-готовность                  | общий outbox, `operation resume` шлёт чужой конверт                      | 1.1, 3.1, шаги 1, 3, 6               |
-| B-05                    | баги                           | битый или посторонний файл ломает все команды                            | 1.2, шаги 1, 3                       |
-| A2                      | AI-готовность                  | справка без флагов и примеров, `--since` требует `--generation` молча    | 1.3, 3.2, шаги 7, 10                 |
-| A3                      | AI-готовность                  | английские Zod-сообщения без подсказок                                   | 1.4, 3.3, шаги 5, 9                  |
-| A4                      | AI-готовность                  | `task.undefined`, нет `me`                                               | 1.4, 3.3, 3.5, шаг 8                 |
-| A5                      | AI-готовность                  | CLI отвергает `today`, `hasFollowUp`                                     | 1.4, шаг 8                           |
-| A6                      | AI-готовность                  | нет сохранённого курсора                                                 | 1.4, 3.4, шаг 10                     |
-| A7                      | AI-готовность                  | ответы владельца нечем прочитать                                         | 1.4, 3.4, шаг 12 (API в плане 04)    |
-| A10                     | AI-готовность                  | EPIPE при `\| head`                                                      | 1.4, 3.3, шаг 5                      |
-| A11                     | AI-готовность                  | `--follow` печатает пустые страницы                                      | 1.4, 3.5, шаг 11                     |
-| §8 качества             | качество                       | четыре набора флагов, `--json` no-op, `runCli` 329 строк, два транспорта | 1.3, 3.2, 3.7, 3.8, шаги 7, 8, 13    |
-| три `canonical()`       | качество §3                    | разные алгоритмы канонизации                                             | 1.5, шаг 2                           |
-| Ж2                      | архитектура                    | `/api/context` ради `generation`, `hc` тянет тип сервера                 | 1.6, 3.6, 3.7, шаги 4, 13            |
-| B-09 (CLI)              | баги, архитектура V1           | 409 на курсоре прерывает `--all`                                         | 1.7, 3.5, шаг 11                     |
-| B7 (часть)              | AI-готовность                  | неиспользуемый `serverId`                                                | 3.1, шаг 3 (начинает использоваться) |
-| план §10 `--json`       | AI-готовность B6, качество §10 | документация обещает `--json` по TTY                                     | шаги 8, 14                           |
-| Astra B-03              | astra / TI-004                 | CLI считает любой 2xx JSON без `ok:false` успехом и удаляет конверт      | шаг 16                               |
-| Astra Q-04 (CLI-часть)  | astra / TI-022                 | конверт outbox читается без схемы; сырые байты надо сохранять            | шаги 3, 18                           |
-| Astra B-04 (курсор CLI) | astra / TI-008                 | `--since last` для `activity`/`digest` не видит операций без событий     | шаг 17; курсор операций в плане 04   |
+| ID | Отчёт | Кратко | Где в плане |
+|---|---|---|---|
+| A1 | AI-готовность | общий outbox, `operation resume` шлёт чужой конверт | 1.1, 3.1, шаги 1, 3, 6 |
+| B-05 | баги | битый или посторонний файл ломает все команды | 1.2, шаги 1, 3 |
+| A2 | AI-готовность | справка без флагов и примеров, `--since` требует `--generation` молча | 1.3, 3.2, шаги 7, 10 |
+| A3 | AI-готовность | английские Zod-сообщения без подсказок | 1.4, 3.3, шаги 5, 9 |
+| A4 | AI-готовность | `task.undefined`, нет `me` | 1.4, 3.3, 3.5, шаг 8 |
+| A5 | AI-готовность | CLI отвергает `today`, `hasFollowUp` | 1.4, шаг 8 |
+| A6 | AI-готовность | нет сохранённого курсора | 1.4, 3.4, шаг 10 |
+| A7 | AI-готовность | ответы владельца нечем прочитать | 1.4, 3.4, шаг 12 (API в плане 04) |
+| A10 | AI-готовность | EPIPE при `\| head` | 1.4, 3.3, шаг 5 |
+| A11 | AI-готовность | `--follow` печатает пустые страницы | 1.4, 3.5, шаг 11 |
+| §8 качества | качество | четыре набора флагов, `--json` no-op, `runCli` 329 строк, два транспорта | 1.3, 3.2, 3.7, 3.8, шаги 7, 8, 13 |
+| три `canonical()` | качество §3 | разные алгоритмы канонизации | 1.5, шаг 2 |
+| Ж2 | архитектура | `/api/context` ради `generation`, `hc` тянет тип сервера | 1.6, 3.6, 3.7, шаги 4, 13 |
+| B-09 (CLI) | баги, архитектура V1 | 409 на курсоре прерывает `--all` | 1.7, 3.5, шаг 11 |
+| B7 (часть) | AI-готовность | неиспользуемый `serverId` | 3.1, шаг 3 (начинает использоваться) |
+| план §10 `--json` | AI-готовность B6, качество §10 | документация обещает `--json` по TTY | шаги 8, 14 |
+| Astra B-03 | astra / TI-004 | CLI считает любой 2xx JSON без `ok:false` успехом и удаляет конверт | шаг 16 |
+| Astra Q-04 (CLI-часть) | astra / TI-022 | конверт outbox читается без схемы; сырые байты надо сохранять | шаги 3, 18 |
+| Astra B-04 (курсор CLI) | astra / TI-008 | `--since last` для `activity`/`digest` не видит операций без событий | шаг 17; курсор операций в плане 04 |
 
 ## Сверка с ревью Astra (2026-09-08)
 
@@ -301,13 +277,13 @@ src/shared/canonical-json.ts   canonicalJson(value)
 
 ### Добавлено по итогам сверки
 
-| Пункт                                                                                                                                  | Источник Astra                       | Реестр         | План Astra                                        | Что делаем здесь / где делается                                                                        |
-| -------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------ | -------------- | ------------------------------------------------- | ------------------------------------------------------------------------------------------------------ |
-| Перед удалением конверта проверять тело ответа схемой и совпадение `operationId`/`generation`; неизвестный ответ хранить как `unknown` | B-03                                 | TI-004         | `astra-04`, шаги 1-5                              | шаг 16 ниже; таблица исходов из `astra-04` шаг 2 ложится на коды выхода 0/1/2/3/4 этого плана          |
-| `GET /api/operations/{id}` с сохранённым отказом не считать успехом                                                                    | B-03                                 | TI-004         | `astra-04`, шаг 3                                 | `client.resume` (`src/cli/client.ts:207-225`) уже различает `result.ok`; закрепляется тестом в шаге 16 |
-| Схема сохранённого конверта; тесты malformed / верная версия неверная форма / старая версия; сырые байты не удалять                    | Q-04                                 | TI-022         | `astra-22-persisted-drafts-and-outbox-schemas.md` | шаг 3 уже вводит `formatVersion: 2` и `.corrupt`; шаг 18 ниже даёт Zod-схему и три теста               |
-| Сохранённый курсор должен учитывать B-04                                                                                               | B-04, `ASTRA-VS-FABLE.md` §5 (FI:A6) | TI-008, TI-047 | `astra-08-operation-feed-cursor.md`               | шаг 17 ниже; курсор операций в плане 04                                                                |
-| Идентичность агента при ротации ключа не должна теряться                                                                               | `ASTRA-VS-FABLE.md` §2 (FI:A1)       | TI-035         | нет                                               | 3.1 уже: каталог по `agentId`, кэш идентичности по хешу токена; без изменений                          |
+| Пункт | Источник Astra | Реестр | План Astra | Что делаем здесь / где делается |
+|---|---|---|---|---|
+| Перед удалением конверта проверять тело ответа схемой и совпадение `operationId`/`generation`; неизвестный ответ хранить как `unknown` | B-03 | TI-004 | `astra-04`, шаги 1-5 | шаг 16 ниже; таблица исходов из `astra-04` шаг 2 ложится на коды выхода 0/1/2/3/4 этого плана |
+| `GET /api/operations/{id}` с сохранённым отказом не считать успехом | B-03 | TI-004 | `astra-04`, шаг 3 | `client.resume` (`src/cli/client.ts:207-225`) уже различает `result.ok`; закрепляется тестом в шаге 16 |
+| Схема сохранённого конверта; тесты malformed / верная версия неверная форма / старая версия; сырые байты не удалять | Q-04 | TI-022 | `astra-22-persisted-drafts-and-outbox-schemas.md` | шаг 3 уже вводит `formatVersion: 2` и `.corrupt`; шаг 18 ниже даёт Zod-схему и три теста |
+| Сохранённый курсор должен учитывать B-04 | B-04, `ASTRA-VS-FABLE.md` §5 (FI:A6) | TI-008, TI-047 | `astra-08-operation-feed-cursor.md` | шаг 17 ниже; курсор операций в плане 04 |
+| Идентичность агента при ротации ключа не должна теряться | `ASTRA-VS-FABLE.md` §2 (FI:A1) | TI-035 | нет | 3.1 уже: каталог по `agentId`, кэш идентичности по хешу токена; без изменений |
 
 ### Расхождения и решение
 
