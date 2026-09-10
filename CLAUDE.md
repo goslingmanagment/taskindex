@@ -1,0 +1,194 @@
+# TaskIndex v2: инструкция для агентов-разработчиков
+
+Личная доска задач одного владельца. Основные операторы продукта: ИИ-агенты
+(Claude Code, Codex) через CLI `taskindex` и HTTP API с ключами агентов
+(scope `read` | `tasks` | `write`). Владелец работает в браузере и проверяет
+работу агентов. Этот файл для агентов, которые меняют код; правила для
+агентов-операторов лежат в `skills/taskindex/SKILL.md`. `AGENTS.md` это
+символическая ссылка на этот файл.
+
+Истина по объёму и решениям: `docs/plans/2026-09-08-taskindex-v2.md`.
+Отложенное: `BACKLOG.md`. Деплой и восстановление: `deploy/README.md`.
+
+## Реестр находок и планы
+
+- `issues.md` в корне репозитория это единственный реестр статусов и
+  приоритетов: карточки `TI-NNN` со статусом, критерием закрытия и решением
+  владельца. Шкала приоритетов везде одна, шкала реестра: P1 до рабочего
+  запуска, P2 функциональные дефекты и существенные риски, P3 улучшения.
+- Планы работ после ревью: `docs/plans/2026-09-08-v2-review/README.md`
+  (планы Fable `01`…`13`) и `docs/plans/2026-09-08-v2-review/ASTRA-INDEX.md`
+  (планы Astra `astra-01`…`astra-34`). Перед реализацией подсистемы
+  выбирается один план из двух наборов; второй служит чек-листом
+  «Проверки при реализации». Два плана не разрешают переделать подсистему
+  дважды.
+- Перед исправлением прочитать карточку целиком; после исправления статус
+  карточки обновляется с revision и названием теста. Namespace обязателен:
+  `Astra:B-01` и `FB:B-01` это разные находки. Новая находка сначала
+  становится карточкой, потом работой.
+- Если план расходится с кодом, верить коду и дописать в план одну
+  датированную строку-примечание.
+
+## Окружение
+
+- Node строго 24.20.0 (`.node-version`, `.nvmrc`); `engines` в `package.json`
+  задаёт границу `>=24.11.0 <25` (нижняя из-за tsdown). Сначала
+  `node --version`: имя каталога менеджера версий само по себе не
+  подтверждает версию. На Mac владельца системный `node` и Homebrew
+  `node@24` фактически запускают 26.x, с ним `better-sqlite3` не
+  загружается. Переключение: `fnm use` или `nvm use` в корне репозитория
+  (читают `.node-version`). До того как владелец закрепит постоянный Node 24
+  на машине (TI-028), рабочая копия лежит в
+  `/private/tmp/taskindex-v2-tools/node-v24.20.0-darwin-arm64/bin`
+  (`export PATH=<этот путь>:$PATH`); это временно. `npm run check`,
+  `npm test`, `npm run dev`, `npm run e2e` и `npm run sandbox` сами проверяют
+  версию (`scripts/preflight.mjs`) и под другой мажорной версией
+  останавливаются с русским сообщением и кодом 1.
+- `npm ci`, не `npm install`. `.npmrc` включает `engine-strict`, поэтому
+  `npm ci` под Node 26 останавливается с `EBADENGINE`.
+- Одноразовое окружение для любых проверок CLI и API:
+  `eval "$(npm run -s sandbox)"` поднимает сервер на свободном порту с
+  временной базой в `$TMPDIR` и экспортирует `TASKINDEX_URL`,
+  `TASKINDEX_TOKEN` (агент `claude`, scope `write`), `XDG_STATE_HOME`,
+  `TASKINDEX_SANDBOX`. Второй ключ: `npm run -s sandbox -- --token codex`
+  (scope `tasks`). Пароль владельца для входа в браузере: `owner.json` в
+  каталоге sandbox. Остановка и удаление: `npm run sandbox -- --stop`
+  (`--keep` оставляет каталог для разбора). Ключи sandbox не секрет, но
+  годятся только для этой базы. Никогда не направлять CLI на рабочий сервер
+  во время разработки.
+- `npm run setup:dev` создаёт `.env` и `data/dev.db` в текущем чекауте. Это
+  долгоживущее окружение владельца для ручной разработки в браузере, не для
+  проверок. В основном чекауте `.env` и `data/dev.db` уже существуют: не
+  запускать `setup:dev` там.
+
+## Правило worktree
+
+Любые правки кода только в отдельном `git worktree` на своей ветке
+(`git worktree add ../.worktrees/taskindex-<тема> -b <тема>`). Основной
+чекаут `~/code/taskindex` только для чтения, ops и релизных операций
+(deploy-скрипты требуют main-чекаут). Поверх `main` без ветки не работать.
+После мерджа или отказа: `git worktree remove` и удаление ветки. В конце
+сессии с worktree: `git worktree list`. Коммит и push только по слову
+владельца.
+
+## Не трогать
+
+- `data/` (личная база `dev.db` владельца), `.env`, `deploy/.runtime/`
+  (состояние деплоя на VPS), `dist/`, `tsconfig.tsbuildinfo`, `test-results/`,
+  `playwright-report/`.
+- Применённые миграции `drizzle/v2/*.sql` не редактируются (сервер сверяет
+  контрольные суммы применённого SQL; новая схема это новая миграция).
+  `drizzle/v2/meta/*` генерируется `npm run db:generate`, руками не правится.
+- `docs/reference/**` (визуальный эталон и артефакты проверки с sha256) и
+  `docs/audits/**` (артефакты аудитов): только чтение. `npm run e2e` пишет
+  артефакты в `test-results/e2e-artifacts/`; в `docs/reference/v2-validation/`
+  только явно, `TASKINDEX_E2E_ARTIFACT_DIR=docs/reference/v2-validation`.
+- `issues.md` правит только тот, кто закрывает карточку, и только статусы.
+- Архив прежних данных `~/Backups/taskindex/…` (см. README). Секреты только
+  через `op`; никаких вызовов `op` из тестов и скриптов проверки.
+
+## Проверки
+
+- `npm run check` = `tsc --noEmit`, `oxlint`, `oxfmt --check`, `vitest run`
+  (несколько секунд). Запускать перед каждым сообщением о готовности; вывод
+  ошибок и тестов приводить целиком. `npm run format` чинит форматирование.
+- `npm run e2e` (Playwright, нужен `npx playwright install chromium`;
+  поднимает `tests/e2e/server.ts` на портах 4173 и 4001, изолированная
+  SQLite в `/tmp`). Порты фиксированы: два прогона одновременно не работают.
+- `bash deploy/local-drill.sh` (нужен Docker) репетирует деплой, откат и
+  восстановление локально; к VPS и S3 не подключается.
+- `npm run build` проверяет сборку `dist/web`, `dist/server`, `dist/cli`.
+- Каждый баг сначала получает регрессионный тест, который падает на текущем
+  коде; потом исправление.
+
+## Карта кода
+
+- `src/shared`: `schemas.ts` (payload команд, `commandPayloadSchemas`,
+  union конвертов), `domain-schemas.ts` (сущности, события, ответы
+  `operationSuccessSchema`/`operationErrorSchema`/`storedOperationSchema`),
+  `commands.ts` (`applyCommand`, `applyEvent`, undo, sync, инварианты),
+  `queries.ts` (Focus, поиск, фильтры), `model.ts` (типы из `z.infer`),
+  `errors.ts` (`DomainError`, `fail`). Не импортирует ни `node:`, ни DOM.
+- `src/server`: `app.ts` (маршруты, OpenAPI, `context`, `digest`, health),
+  `operations.ts` (одна транзакция на операцию: состояние, события,
+  сохранённый ответ), `db.ts` (миграции с контрольными суммами, чтение,
+  запись), `auth.ts` (Better Auth: пароль и passkey владельца),
+  `agent-keys.ts` (своя таблица ключей агентов), `admin.ts` (владелец,
+  агенты, export/import, `mark-restored`, `open-writes`), `schema.ts`
+  (Drizzle), `sse.ts`, `index.ts` (env, `serve`, статика, SIGTERM;
+  `src/server/config.ts` появится после плана 06 / TI-036).
+- `src/cli`: `run.ts` (диспетчер и справка `HELP`), `client.ts` (запросы,
+  повторы, коды выхода), `acknowledge.ts` (одно правило «исход → код выхода
+  → конверт»), `outbox.ts` (конверты, карантин `*.corrupt`), `state.ts`
+  (каталог по серверу и агенту, кэш идентичности по хешу ключа),
+  `arguments.ts`, `admin-run.ts` (`taskindex-admin`, прямой доступ к базе).
+  Спецификация команд `spec.ts` и курсор появятся после плана 03 (шаги 7-10).
+- `src/web/app`: `store.ts` (единый store, очередь операций), `sync.ts`
+  (SSE), `drafts.ts`, `api.ts`, `url.ts`, компоненты `shell`, `board`,
+  `card`, `editor`, `dialogs`, `activity`, `sidebar`, `overview`;
+  `src/web/ui`: примитивы shadcn/Base UI; `src/web/lib`, `src/web/hooks`.
+- `tests/{unit,api,property,web,cli}` (vitest), `tests/e2e` (Playwright),
+  `scripts/` (`dev`, `setup-dev`, `preflight`, `sandbox`), `deploy/`
+  (Dockerfile, compose, nginx, litestream, deploy/rollback/drill),
+  `skills/taskindex/SKILL.md` (правила агента-оператора).
+
+## Как добавить команду
+
+Полный чек-лист: `docs/plans/2026-09-08-v2-review/04-api-contract-and-schemas.md`,
+раздел 3.8. Кратко: payload в `src/shared/schemas.ts` (union и имена команд
+собираются сами) → ветка в `applyCommand` с правами и правилами undo/sync →
+подписи и описания (`tsc` не пройдёт без них) → `HELP` в `src/cli/run.ts`
+(после плана 03: запись в `src/cli/spec.ts`) → SKILL.md → тесты
+`tests/api/commands.test.ts`, `tests/property`, `tests/cli` → строка в плане v2
+§5 → `npm run check`.
+
+## Как добавить миграцию
+
+Правка `src/server/schema.ts` → `npm run db:generate` → прочитать SQL в
+`drizzle/v2/<n>_<имя>.sql` → версия схемы выводится из цепочки миграций
+(`schemaVersion()` в `src/server/db.ts`), тест `tests/api/migrations.test.ts`
+→ прогнать миграцию на копии старой базы (`cp data/dev.db /tmp/x.db`,
+`DATABASE_PATH=/tmp/x.db npm run db:migrate`) → `npm run check`. Уже
+применённые миграции не редактируются: сервер сверяет их контрольные суммы.
+Приложение миграции при старте не выполняет: образ требует точного
+совпадения версии схемы с базой.
+
+## Как добавить GET-маршрут
+
+`createRoute` в `src/server/app.ts` (после плана 06: `src/server/routes/*`) с
+`.describe()` на каждом query-параметре; схема ответа в
+`src/shared/domain-schemas.ts`; пагинация через `page()`; путь и allow-list
+флагов в `src/cli/run.ts` (после плана 03: `READS` в `src/cli/spec.ts`);
+SKILL.md при необходимости.
+
+## Соглашения
+
+- Идентификаторы, комментарии и названия тестов на английском; UI, ошибки,
+  `.describe()`, документация и сообщения коммитов на русском.
+- Ошибки только через `fail()`/`DomainError`; конверт ответа
+  `{ok:false, code, message, retryable}`.
+- CLI всегда печатает JSON (флаг `--json` удаляется по TI-033); коды выхода
+  0/1/2/3/4; `operationId` обязателен и повторяется без изменений; конверт
+  не переписывается; конверт удаляется только после подтверждённого исхода
+  своей операции (`src/cli/acknowledge.ts`).
+- Все записи домена только через `executeOperation`; admin пишет в базу
+  только при остановленном приложении.
+- Тесты не мокают модули: реальные SQLite `:memory:`, Hono `app.request`,
+  Better Auth; DI через `AppOptions`, `CliOptions`, `WorkspaceStore`.
+- Переменная сборки `BUILD` (`BUILD_ID` остаётся псевдонимом до плана 06).
+- Один коммит на карточку; в первой строке `TI-NNN`.
+
+## Деплой
+
+Только с VPS из чистого основного чекаута:
+`op run --env-file=/protected/taskindex.env -- bash deploy/deploy.sh COMMIT`.
+Секреты только через `op`. После `open-writes` автоматический откат запрещён;
+восстановление по `deploy/README.md`. Агент деплой не запускает без явного
+поручения владельца.
+
+## Стиль ответов владельцу
+
+Лаконично, результат первой фразой, без вводных и итоговых резюме; не
+пересказывать то, что владелец видит сам. Просит подробно: подробно. Ошибки и
+вывод тестов приводить целиком. Сабагенты наследуют модель сессии (Fable);
+масштаб и цену большого фан-аута озвучивать до запуска.
