@@ -16,7 +16,8 @@ import type {
   Comment,
   Appearance,
 } from './model.js';
-import { byOrder } from './queries.js';
+import { byFocusKey, byOrder } from './queries.js';
+import type { FocusPosition } from './schemas.js';
 import { assertNever, fail } from './errors.js';
 import { LIMITS } from './limits.js';
 import { DEFAULT_APPEARANCE_ID } from './appearance.js';
@@ -205,6 +206,52 @@ function order(state: WorkspaceState, task: Task, position?: Position) {
     ? generateKeyBetween(column[n - 1]?.orderKey ?? null, column[n]!.orderKey)
     : generateKeyBetween(column[n]!.orderKey, column[n + 1]?.orderKey ?? null);
 }
+// The desk order (plan 13): a fractional key among the tasks in focus, at the
+// end without a position, first, or next to a neighbour that is on the desk.
+function focusOrder(
+  state: WorkspaceState,
+  task: Task,
+  position?: FocusPosition,
+): string {
+  const desk = state.tasks
+    .filter((t) => t.id !== task.id && t.focusKey !== null)
+    .sort(byFocusKey);
+  if (!position) return generateKeyBetween(desk.at(-1)?.focusKey ?? null, null);
+  if ('first' in position)
+    return generateKeyBetween(null, desk[0]?.focusKey ?? null);
+  const id = 'after' in position ? position.after : position.before;
+  const n = desk.findIndex((t) => t.id === id);
+  if (n < 0) fail('invalid', 'Сосед должен быть другой задачей в фокусе.');
+  return 'before' in position
+    ? generateKeyBetween(desk[n - 1]?.focusKey ?? null, desk[n]!.focusKey)
+    : generateKeyBetween(desk[n]!.focusKey, desk[n + 1]?.focusKey ?? null);
+}
+// The desk part of a task write: `focus` and `focusPosition` decide whether
+// the task is on the desk and where; leaving it (by choice, by finishing or
+// by archiving) stamps focusLeftAt, returning clears it.
+function settleFocus(
+  s: Session,
+  record: Task,
+  focus: boolean | undefined,
+  position: FocusPosition | undefined,
+) {
+  if (position !== undefined && focus === false)
+    fail('invalid', 'focusPosition требует focus: true.');
+  const wants = position !== undefined ? true : focus;
+  const off = record.status === 'done' || record.archived;
+  if (wants === true && off)
+    fail('invalid', 'Готовую или архивную задачу нельзя взять в фокус.');
+  if (wants === true) {
+    if (record.focusKey === null || position !== undefined)
+      record.focusKey = focusOrder(s.state, record, position);
+    record.focus = true;
+    record.focusLeftAt = null;
+  } else if ((wants === false || off) && record.focusKey !== null) {
+    record.focus = false;
+    record.focusKey = null;
+    record.focusLeftAt = s.ctx.now;
+  }
+}
 // `changedIds` are the records the command touched: on a conflict, `current`
 // is the other member of the pair, the record that was not changed, so a
 // client can show or merge into what really exists (TI-040). Every check
@@ -216,6 +263,7 @@ export function assertInvariants(
 ) {
   const names = new Map<string, Project>(),
     keys = new Map<string, Task>(),
+    focusKeys = new Map<string, Task>(),
     origins = new Map<string, Task>(),
     itemIds = new Set<string>();
   const unchanged = <T extends { id: string }>(previous: T, record: T): T =>
@@ -249,6 +297,25 @@ export function assertInvariants(
       });
     }
     keys.set(key, t);
+    // The desk (plan 13): focus mirrors the key, keys are unique, finished
+    // and archived tasks are never on it.
+    if (t.focus !== (t.focusKey !== null))
+      fail('invalid', 'Признак фокуса и ключ стола расходятся.');
+    if (t.focus && (t.status === 'done' || t.archived))
+      fail('invalid', 'Готовая или архивная задача не может быть в фокусе.');
+    if (t.focusKey !== null) {
+      const holder = focusKeys.get(t.focusKey);
+      if (holder) {
+        const current = unchanged(holder, t);
+        fail('conflict', 'Место на столе уже занято.', {
+          current,
+          conflicts: [
+            { entityKind: 'task', entityId: current.id, fields: ['focusKey'] },
+          ],
+        });
+      }
+      focusKeys.set(t.focusKey, t);
+    }
     if (
       Boolean(t.originSystem) !== Boolean(t.originRef) ||
       (!t.originSystem && t.originUrl)
@@ -546,7 +613,9 @@ function createTask(
     waitingFor: fields.waitingFor ?? '',
     followUp: fields.followUp ?? null,
     orderKey: '',
-    focus: fields.focus ?? false,
+    focus: false,
+    focusKey: null,
+    focusLeftAt: null,
     archived: false,
     checklist: fields.checklist ?? [],
     commentCount: 0,
@@ -564,6 +633,7 @@ function createTask(
   };
   record.orderKey = order(s.state, record, position);
   s.state.tasks.push(record);
+  if (fields.focus) settleFocus(s, record, true, undefined);
   return record;
 }
 function applyTaskCreate(
@@ -655,21 +725,31 @@ function commitTaskPatch(
   s: Session,
   record: Task,
   baseRevision: number,
-  patch: Record<string, unknown>,
+  input: Record<string, unknown>,
   position: Position | undefined,
   forceMove = false,
+  focusPosition?: FocusPosition,
 ): CommandResult {
   const before = structuredClone(record);
+  const { focus, ...patch } = input as { focus?: boolean } & Record<
+    string,
+    unknown
+  >;
   const moves =
     forceMove ||
     position !== undefined ||
     (patch.area !== undefined && patch.area !== record.area) ||
     (patch.status !== undefined && patch.status !== record.status);
+  const desk = focus !== undefined || focusPosition !== undefined;
   assertMerge(
     'task',
     record,
     baseRevision,
-    [...Object.keys(patch), ...(moves ? ['orderKey'] : [])],
+    [
+      ...Object.keys(input),
+      ...(moves ? ['orderKey'] : []),
+      ...(desk ? ['focus', 'focusKey'] : []),
+    ],
     s.history,
   );
   // A direct agent command that changes a field the owner decided on needs
@@ -697,6 +777,7 @@ function commitTaskPatch(
   }
   Object.assign(record, patch);
   if (moves) record.orderKey = order(s.state, record, position);
+  settleFocus(s, record, focus, focusPosition);
   return {
     record,
     changes: s.emit('task', before, record),
@@ -713,23 +794,39 @@ function applyTaskWrite(
   const record = get(s.state, 'task', p.id);
   switch (command.command) {
     case 'task.update': {
-      const { id: _id, baseRevision, ...fields } = command.payload;
-      refuseOwnerOnly(s, fields);
-      return commitTaskPatch(s, record, baseRevision, fields, undefined);
+      const {
+        id: _id,
+        baseRevision,
+        focusPosition,
+        ...fields
+      } = command.payload;
+      refuseOwnerOnly(s, command.payload);
+      return commitTaskPatch(
+        s,
+        record,
+        baseRevision,
+        fields,
+        undefined,
+        false,
+        focusPosition,
+      );
     }
     case 'task.save': {
       const { fields = {}, status, checklist, position } = command.payload;
       refuseOwnerOnly(s, fields);
+      const { focusPosition, ...rest } = fields;
       return commitTaskPatch(
         s,
         record,
         p.baseRevision,
         {
-          ...fields,
+          ...rest,
           ...(status !== undefined ? { status } : {}),
           ...(checklist !== undefined ? { checklist } : {}),
         },
         position,
+        false,
+        focusPosition,
       );
     }
     case 'task.move': {

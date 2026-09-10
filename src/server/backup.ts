@@ -17,7 +17,7 @@ import {
 } from './db.js';
 import * as schema from './schema.js';
 import { FORMAT_VERSION } from '../shared/model.js';
-import type { ExportData, WorkspaceState } from '../shared/model.js';
+import type { ExportData, Task, WorkspaceState } from '../shared/model.js';
 import { assertInvariants, applyEvent } from '../shared/commands.js';
 import { canonicalJson } from '../shared/canonical-json.js';
 import { fail } from '../shared/errors.js';
@@ -28,6 +28,7 @@ import {
   exportSchema,
   exportSchemaV1,
   exportSchemaV2,
+  exportSchemaV3,
 } from '../shared/domain-schemas.js';
 import { DEFAULT_APPEARANCE_ID } from '../shared/appearance.js';
 import { ENTITIES } from '../shared/entities.js';
@@ -68,28 +69,70 @@ export function upgradeExport(raw: unknown): ExportData {
     .object({ formatVersion: z.unknown() })
     .loose()
     .parse(raw).formatVersion;
-  if (version === 2)
+  if (version === FORMAT_VERSION) return exportSchema.parse(raw);
+  if (version === 3) {
+    const legacy = exportSchemaV3.parse(raw);
     return {
-      ...exportSchemaV2.parse(raw),
+      ...legacy,
       formatVersion: FORMAT_VERSION,
-      appearance: [defaultAppearance()],
+      tasks: withFocusKeys(legacy.tasks),
     };
-  if (version !== 1) return exportSchema.parse(raw);
-  const legacy = exportSchemaV1.parse(raw);
-  const ordered = [...legacy.operations].sort(
+  }
+  const legacy =
+    version === 2
+      ? exportSchemaV2.parse(raw)
+      : withPositions(exportSchemaV1.parse(raw));
+  return {
+    ...legacy,
+    formatVersion: FORMAT_VERSION,
+    appearance: [defaultAppearance()],
+    tasks: withFocusKeys(legacy.tasks),
+  };
+}
+// Format 1: positions in (createdAt, id) order (0002_operation_seq.sql).
+function withPositions(data: z.infer<typeof exportSchemaV1>) {
+  const ordered = [...data.operations].sort(
     (a, b) =>
       compareStrings(a.createdAt, b.createdAt) || compareStrings(a.id, b.id),
   );
   const positions = new Map(ordered.map((o, i) => [o.id, i + 1]));
   return {
-    ...legacy,
-    formatVersion: FORMAT_VERSION,
-    appearance: [defaultAppearance()],
-    operations: legacy.operations.map((o) => ({
+    ...data,
+    operations: data.operations.map((o) => ({
       ...o,
       operationSeq: positions.get(o.id)!,
     })),
   };
+}
+// Formats 1-3: focused tasks get desk keys in (area, status, orderKey, id)
+// order, the same keys 0004_focus_desk.sql assigns to an existing database.
+const BASE62 = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz';
+export const backfillFocusKey = (n: number) =>
+  `a0${BASE62[Math.floor(n / 3844) % 62]}${BASE62[Math.floor(n / 62) % 62]}${BASE62[n % 62]}V`;
+function withFocusKeys<
+  T extends {
+    id: string;
+    area: string;
+    status: string;
+    orderKey: string;
+    focus: boolean;
+  },
+>(tasks: T[]): (T & { focusKey: string | null; focusLeftAt: null })[] {
+  const focused = tasks
+    .filter((t) => t.focus)
+    .sort(
+      (a, b) =>
+        compareStrings(a.area, b.area) ||
+        compareStrings(a.status, b.status) ||
+        compareStrings(a.orderKey, b.orderKey) ||
+        compareStrings(a.id, b.id),
+    );
+  const keys = new Map(focused.map((t, n) => [t.id, backfillFocusKey(n)]));
+  return tasks.map((t) => ({
+    ...t,
+    focusKey: keys.get(t.id) ?? null,
+    focusLeftAt: null,
+  }));
 }
 export function validateExport(data: ExportData) {
   const invalid = (message: string): never =>
@@ -219,6 +262,21 @@ export function validateExport(data: ExportData) {
         invalid('события ответа не совпадают с журналом.');
     } else if (events.length || op.status < 400 || op.result.retryable)
       invalid('ошибка операции содержит события или повторяемый исход.');
+  }
+  // 0004_focus_desk (plan 13, data rule variant b): the tasks that were on
+  // the desk when the columns arrived carry a backfilled focusKey no event
+  // names. A replayed task the journal never gave a desk key takes the schema
+  // default (null) and, when the tables say it is focused, the backfilled
+  // key of the tables; a key or a focusLeftAt the journal did write must
+  // match exactly.
+  const stored = new Map(data.tasks.map((t) => [t.id, t]));
+  for (const t of replay.tasks as Partial<
+    Pick<Task, 'focusKey' | 'focusLeftAt'>
+  >[] &
+    Task[]) {
+    if (t.focusLeftAt === undefined) t.focusLeftAt = null;
+    if (t.focusKey === undefined)
+      t.focusKey = t.focus ? (stored.get(t.id)?.focusKey ?? null) : null;
   }
   const normalized = (state: WorkspaceState) => ({
     tasks: sorted(state.tasks),

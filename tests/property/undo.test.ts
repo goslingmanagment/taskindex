@@ -43,6 +43,8 @@ export const UNDO_SUBJECT_FIELDS = [
   'followUp',
   'orderKey',
   'focus',
+  'focusKey',
+  'focusLeftAt',
   'archived',
   'checklist',
   'originUrl',

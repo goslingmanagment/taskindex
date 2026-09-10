@@ -25,6 +25,8 @@ const task = (patch: Record<string, unknown>) => ({
   followUp: null,
   orderKey: 'a0',
   focus: false,
+  focusKey: null,
+  focusLeftAt: null,
   archived: false,
   checklist: [],
   commentCount: 0,

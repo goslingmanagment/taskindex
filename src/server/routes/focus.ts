@@ -3,7 +3,11 @@ import type { OpenAPIHono } from '@hono/zod-openapi';
 import { z } from 'zod';
 import { focusResponseSchema } from '../../shared/domain-schemas.js';
 import { fail } from '../../shared/errors.js';
-import { focusGroups, todayInTimezone } from '../../shared/queries.js';
+import {
+  focusDesk,
+  focusGroups,
+  todayInTimezone,
+} from '../../shared/queries.js';
 import { generation, latestSeq } from '../db.js';
 import { json, pageQuery, readErrors } from '../http/openapi.js';
 import type { Deps, Env } from '../http/deps.js';
@@ -19,9 +23,9 @@ export const registerFocusRoutes = <T extends OpenAPIHono<Env>>(
       method: 'get',
       path: '/api/focus',
       operationId: 'getFocus',
-      summary: 'Группы Focus',
+      summary: 'Стол Focus и группы',
       description:
-        'Без group — все группы целиком; с group — страница одной группы.',
+        'Без group — стол (current, next, waiting, recent, counts) и все группы целиком; с group — страница одной группы.',
       tags: ['tasks'],
       request: {
         query: pageQuery.extend({
@@ -36,10 +40,9 @@ export const registerFocusRoutes = <T extends OpenAPIHono<Env>>(
     (c) => {
       const q = c.req.valid('query');
       checkGeneration(q.generation);
-      const groups = focusGroups(
-        projection.read().tasks,
-        todayInTimezone(timezone(), now()),
-      );
+      const today = todayInTimezone(timezone(), now());
+      const tasks = projection.read().tasks;
+      const groups = focusGroups(tasks, today);
       if (q.group) {
         const selected = groups.find((g) => g.id === q.group);
         if (!selected) fail('invalid', 'Неизвестная группа Focus.');
@@ -54,7 +57,12 @@ export const registerFocusRoutes = <T extends OpenAPIHono<Env>>(
         );
       }
       return c.json(
-        { generation: generation(db), seq: latestSeq(db), groups },
+        {
+          generation: generation(db),
+          seq: latestSeq(db),
+          ...focusDesk(tasks, today),
+          groups,
+        },
         200,
       );
     },

@@ -63,6 +63,7 @@ export type StoredOperation = z.infer<typeof contracts.storedOperationSchema>;
 export type ExportData = z.infer<typeof contracts.exportSchema>;
 export type Context = z.infer<typeof contracts.contextSchema>;
 export type Digest = z.infer<typeof contracts.digestSchema>;
+export type FocusDesk = z.infer<typeof contracts.focusDeskSchema>;
 export type Health = z.infer<typeof contracts.healthSchema>;
 export type Scope = Actor['scope'];
 export type ChecklistItem = Task['checklist'][number];
@@ -95,6 +96,6 @@ export type FocusGroup = {
   tasks: Task[];
 };
 // Export format: 2 adds operationSeq to operations, 3 adds the appearance
-// preference (2026-09-10); formats 1 and 2 are still imported, see
-// exportSchemaV1 and exportSchemaV2.
-export const FORMAT_VERSION = 3;
+// preference, 4 adds focusKey and focusLeftAt to tasks (2026-09-10); formats
+// 1-3 are still imported, see exportSchemaV1..V3 and admin.upgradeExport.
+export const FORMAT_VERSION = 4;

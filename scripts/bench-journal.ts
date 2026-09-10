@@ -119,6 +119,8 @@ function task(n: number): Task {
     followUp: null,
     orderKey: key(n),
     focus: false,
+    focusKey: null,
+    focusLeftAt: null,
     archived: false,
     checklist: Array.from({ length: 10 }, (_, i) => ({
       id: `t${n}s${i}`,

@@ -1,6 +1,11 @@
 import type { Digest, Task } from '../shared/model.js';
 import { LIMITS } from '../shared/limits.js';
-import { focusGroups, queryTasks, todayInTimezone } from '../shared/queries.js';
+import {
+  focusDesk,
+  focusGroups,
+  queryTasks,
+  todayInTimezone,
+} from '../shared/queries.js';
 import {
   generation,
   latestOperationSeq,
@@ -56,6 +61,7 @@ export function buildDigest(
           : [];
       },
     );
+    const desk = focusDesk(state.tasks, today);
     const tasksPage = (
       items: Task[],
       identity: string,
@@ -77,6 +83,8 @@ export function buildDigest(
           href: `/api/focus?group=${g.id}&generation=${gen}`,
         };
       }),
+      current: desk.current,
+      next: desk.next,
       waiting: {
         ...tasksPage(
           queryTasks(state.tasks, state.projects, {

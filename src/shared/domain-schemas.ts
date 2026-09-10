@@ -80,6 +80,19 @@ export const taskSchema = z
       .min(1)
       .describe('Серверный бинарно сортируемый ключ порядка'),
     focus: z.boolean().describe('Выбрано в Focus'),
+    // Absent in records stored before 0004_focus_desk (operation results):
+    // read as null, the value the migration gives tasks outside the desk.
+    focusKey: z
+      .string()
+      .min(1)
+      .nullable()
+      .default(null)
+      .describe(
+        'Ключ порядка на столе Focus (наименьший — текущая задача); null вне фокуса',
+      ),
+    focusLeftAt: nullableStamp
+      .default(null)
+      .describe('Момент последнего выхода из фокуса'),
     archived: z.boolean().describe('В архиве'),
     checklist: checklistSchema,
     commentCount: z
@@ -402,9 +415,15 @@ const exportFields = {
   agents: z.array(agentSchema),
   events: z.array(eventSchema),
 };
+// Tasks as formats 1-3 wrote them: without the desk fields of plan 13.
+const legacyTaskSchema = taskSchema.omit({ focusKey: true, focusLeftAt: true });
+const legacyExportFields = {
+  ...exportFields,
+  tasks: z.array(legacyTaskSchema),
+};
 export const exportSchema = z
   .object({
-    formatVersion: z.literal(3),
+    formatVersion: z.literal(4),
     ...exportFields,
     operations: z.array(exportedOperationSchema),
     appearance: z
@@ -419,7 +438,7 @@ export const exportSchema = z
 export const exportSchemaV1 = z
   .object({
     formatVersion: z.literal(1),
-    ...exportFields,
+    ...legacyExportFields,
     operations: z.array(exportedOperationSchema.omit({ operationSeq: true })),
   })
   .strict();
@@ -428,8 +447,19 @@ export const exportSchemaV1 = z
 export const exportSchemaV2 = z
   .object({
     formatVersion: z.literal(2),
-    ...exportFields,
+    ...legacyExportFields,
     operations: z.array(exportedOperationSchema),
+  })
+  .strict();
+// Format 3 (schema version 4): tasks without focusKey and focusLeftAt. Import
+// assigns keys to focused tasks in board order, exactly what
+// 0004_focus_desk.sql does to an existing database.
+export const exportSchemaV3 = z
+  .object({
+    formatVersion: z.literal(3),
+    ...legacyExportFields,
+    operations: z.array(exportedOperationSchema),
+    appearance: z.array(appearanceSchema),
   })
   .strict();
 export const focusGroupSchema = z
@@ -439,10 +469,42 @@ export const focusGroupSchema = z
     tasks: z.array(taskSchema),
   })
   .meta({ id: 'FocusGroup' });
+// The desk (plan 13, §3.3): what the owner does now, what comes next, whom
+// they wait for and what is easy to return to.
+const count = z.number().int().nonnegative();
+export const focusDeskSchema = z
+  .object({
+    // A union with null, not `.nullable()`: the OpenAPI generator inlines a
+    // nullable component, a union keeps the $ref to Task.
+    current: z
+      .union([taskSchema, z.null()])
+      .describe('Текущая задача: в фокусе с наименьшим focusKey'),
+    next: z
+      .array(taskSchema)
+      .max(LIMITS.deskNext)
+      .describe(`Следующие ${LIMITS.deskNext} по focusKey`),
+    waiting: z
+      .array(taskSchema)
+      .describe(
+        'Задачи со статусом waiting: сначала с наступившей followUp, затем по followUp, без даты — последними',
+      ),
+    recent: z
+      .array(taskSchema)
+      .max(LIMITS.deskRecent)
+      .describe(
+        `Снятые с фокуса за ${LIMITS.deskRecentDays} дней, новые сверху, не больше ${LIMITS.deskRecent}`,
+      ),
+    counts: z.object({
+      focus: count.describe('Всего в фокусе (счётчик Focus)'),
+      parked: count.describe('В очереди и не в фокусе'),
+      waiting: count.describe('Со статусом waiting'),
+    }),
+  })
+  .meta({ id: 'FocusDesk' });
 export const focusResponseSchema = z
   .union([
     pageSchema(taskSchema).meta({ id: 'TaskPage' }),
-    z.object({
+    focusDeskSchema.extend({
       generation: idSchema,
       seq,
       groups: z.array(focusGroupSchema),
@@ -536,6 +598,13 @@ export const digestSchema = z
         href,
       }),
     ),
+    current: z
+      .union([taskSchema, z.null()])
+      .describe('Текущая задача стола Focus'),
+    next: z
+      .array(taskSchema)
+      .max(LIMITS.deskNext)
+      .describe('Следующие на столе'),
     waiting: pageSchema(taskSchema).extend({ href }),
     counts: z.object({
       tasks: z.number(),

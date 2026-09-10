@@ -20,6 +20,7 @@ import {
   migrationsDirectory,
   schemaVersion,
   readOperations,
+  readState,
   latestOperationSeq,
   writeState,
 } from '../../src/server/db.js';
@@ -27,6 +28,7 @@ import {
   exportWorkspace,
   importWorkspace,
   listAgents,
+  upgradeExport,
   validateExport,
 } from '../../src/server/admin.js';
 import { createApp } from '../../src/server/app.js';
@@ -57,14 +59,56 @@ function legacyMigrations() {
   return dir;
 }
 // What `taskindex-admin import` of that version wrote: the same tables minus
-// operations.operation_seq, so the rows go in through SQL of that shape.
+// operations.operation_seq and tasks.focus_key/focus_left_at, so the rows go
+// in through SQL of that shape.
 function loadLegacy(db: ReturnType<typeof openDatabase>, data: LegacyExport) {
   db.sqlite.transaction(() => {
     for (const [key, value] of Object.entries(data.settings))
       if (key !== 'approved_deployment') setSetting(db, key, value);
     writeState(db, {
       projects: data.projects,
-      tasks: data.tasks,
+      tasks: [],
+      comments: [],
+      appearance: [],
+    });
+    const task = db.sqlite.prepare(
+      'INSERT INTO tasks(id, area, project_id, title, status, note, due, waiting_for, follow_up, order_key, focus, archived, origin_system, origin_ref, origin_url, origin_version, created_by, created_by_label, owner_touched_at, owner_fields, revision, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+    );
+    const step = db.sqlite.prepare(
+      'INSERT INTO checklist_items(id, task_id, text, done, position) VALUES (?, ?, ?, ?, ?)',
+    );
+    for (const t of data.tasks) {
+      task.run(
+        t.id,
+        t.area,
+        t.projectId,
+        t.title,
+        t.status,
+        t.note,
+        t.due,
+        t.waitingFor,
+        t.followUp,
+        t.orderKey,
+        Number(t.focus),
+        Number(t.archived),
+        t.originSystem,
+        t.originRef,
+        t.originUrl,
+        t.originVersion,
+        t.createdBy,
+        t.createdByLabel,
+        t.ownerTouchedAt,
+        JSON.stringify(t.ownerFields),
+        t.revision,
+        t.createdAt,
+        t.updatedAt,
+      );
+      for (const [position, item] of t.checklist.entries())
+        step.run(item.id, t.id, item.text, Number(item.done), position);
+    }
+    writeState(db, {
+      projects: [],
+      tasks: [],
       comments: data.comments,
       appearance: [],
     });
@@ -244,7 +288,10 @@ describe('migration compatibility of the previous schema version (TI-014)', () =
     const exported = exportWorkspace(db);
     expect(exported.formatVersion).toBe(FORMAT_VERSION);
     expect(() => validateExport(exported)).not.toThrow();
-    expect(exported.tasks).toEqual(fixture.tasks);
+    // Format 4 adds the desk fields: none of the fixture tasks is focused.
+    expect(exported.tasks).toEqual(
+      fixture.tasks.map((t) => ({ ...t, focusKey: null, focusLeftAt: null })),
+    );
     expect(exported.events).toHaveLength(fixture.events.length);
   });
   it('refuses an export of a newer schema version and a broken journal', () => {
@@ -268,5 +315,107 @@ describe('migration compatibility of the previous schema version (TI-014)', () =
       })),
     };
     expect(() => validateExport(shifted)).toThrow(/позиции операций/);
+  });
+});
+// Plan 13, step 1: 0004_focus_desk adds focus_key and focus_left_at. Tasks
+// already in focus get keys in (area, status, order_key, id) order, so the
+// desk starts in board order; an export of the previous format gets the same
+// keys from upgradeExport (data migration rule, variant (b)).
+describe('0004_focus_desk backfill', () => {
+  const rows = [
+    ['b', 'personal', 'todo', 'a1', 1],
+    ['a', 'agency', 'todo', 'a2', 1],
+    ['c', 'agency', 'todo', 'a1', 1],
+    ['d', 'agency', 'doing', 'a0', 1],
+    ['e', 'agency', 'todo', 'a0', 0],
+  ] as const;
+  const expectedOrder = ['d', 'c', 'a', 'b'];
+  it('assigns unique focus keys to focused tasks in board order and none to the rest', () => {
+    const dir = mkdtempSync(join(tmpdir(), 'taskindex-v4-'));
+    cleanup.push(() => rmSync(dir, { recursive: true, force: true }));
+    for (const name of [
+      '0000_taskindex.sql',
+      '0001_agent_keys.sql',
+      '0002_operation_seq.sql',
+      '0003_appearance.sql',
+    ])
+      cpSync(join(migrationsDirectory(), name), join(dir, name));
+    const db = openDatabase(':memory:');
+    cleanup.push(() => db.close());
+    migrate(db, { migrationsDir: dir });
+    const insert = db.sqlite.prepare(
+      "INSERT INTO tasks(id, area, project_id, title, status, note, due, waiting_for, follow_up, order_key, focus, archived, origin_system, origin_ref, origin_url, origin_version, created_by, created_by_label, owner_touched_at, owner_fields, revision, created_at, updated_at) VALUES (?, ?, NULL, ?, ?, '', NULL, '', NULL, ?, ?, 0, NULL, NULL, NULL, NULL, 'owner', 'Владелец', NULL, '[]', 1, '2026-09-08T12:00:00.000Z', '2026-09-08T12:00:00.000Z')",
+    );
+    for (const [id, area, status, orderKey, focus] of rows)
+      insert.run(id, area, id, status, orderKey, focus);
+    migrate(db, { logger: { warn: () => {} } });
+    expect(() => assertSchema(db)).not.toThrow();
+    const focused = db.sqlite
+      .prepare(
+        'SELECT id, focus_key AS key, focus_left_at AS left FROM tasks WHERE focus_key IS NOT NULL ORDER BY focus_key',
+      )
+      .all() as { id: string; key: string; left: string | null }[];
+    expect(focused.map((t) => t.id)).toEqual(expectedOrder);
+    expect(new Set(focused.map((t) => t.key)).size).toBe(4);
+    expect(focused.every((t) => t.left === null)).toBe(true);
+    expect(
+      db.sqlite.prepare("SELECT focus_key FROM tasks WHERE id = 'e'").get(),
+    ).toEqual({ focus_key: null });
+    // Every key is a valid fractional-indexing key: a new task can be placed
+    // around any of them.
+    const state = readState(db);
+    for (const t of state.tasks) expect(t.focus).toBe(t.focusKey !== null);
+    expect(
+      () =>
+        db.sqlite
+          .prepare("UPDATE tasks SET focus_key = ? WHERE id = 'e'")
+          .run(focused[0]!.key),
+      'partial unique index',
+    ).toThrow(/UNIQUE/);
+  });
+  it('upgradeExport of a format 3 export assigns the same keys', () => {
+    const db = openDatabase(':memory:');
+    cleanup.push(() => db.close());
+    migrate(db);
+    const exported = exportWorkspace(db);
+    const legacyTasks = rows.map(([id, area, status, orderKey, focus]) => ({
+      id,
+      area,
+      projectId: null,
+      title: id,
+      status,
+      note: '',
+      due: null,
+      waitingFor: '',
+      followUp: null,
+      orderKey,
+      focus: focus === 1,
+      archived: false,
+      checklist: [],
+      commentCount: 0,
+      originSystem: null,
+      originRef: null,
+      originUrl: null,
+      originVersion: null,
+      createdBy: 'owner',
+      createdByLabel: 'Владелец',
+      ownerTouchedAt: null,
+      ownerFields: [],
+      revision: 1,
+      createdAt: '2026-09-08T12:00:00.000Z',
+      updatedAt: '2026-09-08T12:00:00.000Z',
+    }));
+    const upgraded = upgradeExport({
+      ...exported,
+      formatVersion: 3,
+      tasks: legacyTasks,
+    });
+    expect(upgraded.formatVersion).toBe(FORMAT_VERSION);
+    const keyed = upgraded.tasks
+      .filter((t) => t.focusKey !== null)
+      .sort((a, b) => (a.focusKey! < b.focusKey! ? -1 : 1));
+    expect(keyed.map((t) => t.id)).toEqual(expectedOrder);
+    expect(upgraded.tasks.every((t) => t.focusLeftAt === null)).toBe(true);
+    expect(upgraded.tasks.find((t) => t.id === 'e')!.focusKey).toBeNull();
   });
 });

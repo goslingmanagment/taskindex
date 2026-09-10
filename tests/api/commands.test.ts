@@ -64,7 +64,12 @@ describe('transactional commands', () => {
         })
       ).status,
     ).toBe(200);
-    expect(f.state().tasks[0]).toMatchObject({ focus: true, archived: true });
+    // Archiving leaves the desk (plan 13); restoring does not return to it.
+    expect(f.state().tasks[0]).toMatchObject({
+      focus: false,
+      focusKey: null,
+      archived: true,
+    });
     expect(
       (
         await f.post({
@@ -73,7 +78,7 @@ describe('transactional commands', () => {
         })
       ).status,
     ).toBe(200);
-    expect(f.state().tasks[0]).toMatchObject({ focus: true, archived: false });
+    expect(f.state().tasks[0]).toMatchObject({ focus: false, archived: false });
   });
   it('commits once, replays the exact result, and rejects changed envelopes', async () => {
     const f = setup();
@@ -857,5 +862,183 @@ describe('comments, snapshots, export and stream', () => {
     expect(JSON.stringify(document.paths['/api/snapshot'])).toContain(
       '#/components/schemas/Snapshot',
     );
+  });
+});
+describe('desk order (plan 13)', () => {
+  const focused = (f: ReturnType<typeof setup>) =>
+    f
+      .state()
+      .tasks.filter((t) => t.focus)
+      .sort((a, b) => (a.focusKey! < b.focusKey! ? -1 : 1))
+      .map((t) => t.id);
+  const revision = (f: ReturnType<typeof setup>, id: string) =>
+    f.state().tasks.find((t) => t.id === id)!.revision;
+  it('focus without a position goes last; first, after and before place a task on the desk', async () => {
+    const f = setup();
+    for (const id of ['a', 'b', 'c', 'd'])
+      await f.post({
+        command: 'task.create',
+        payload: { id, area: 'agency', title: id },
+      });
+    for (const id of ['a', 'b'])
+      success(
+        await f.post({
+          command: 'task.update',
+          payload: { id, baseRevision: revision(f, id), focus: true },
+        }),
+      );
+    expect(focused(f)).toEqual(['a', 'b']);
+    success(
+      await f.post({
+        command: 'task.update',
+        payload: {
+          id: 'c',
+          baseRevision: revision(f, 'c'),
+          focusPosition: { first: true },
+        },
+      }),
+    );
+    expect(focused(f)).toEqual(['c', 'a', 'b']);
+    success(
+      await f.post({
+        command: 'task.save',
+        payload: {
+          id: 'd',
+          baseRevision: revision(f, 'd'),
+          fields: { focusPosition: { after: 'c' } },
+        },
+      }),
+    );
+    expect(focused(f)).toEqual(['c', 'd', 'a', 'b']);
+    // Moving a task already on the desk keeps focus and changes only the key.
+    success(
+      await f.post({
+        command: 'task.update',
+        payload: {
+          id: 'b',
+          baseRevision: revision(f, 'b'),
+          focusPosition: { before: 'c' },
+        },
+      }),
+    );
+    expect(focused(f)).toEqual(['b', 'c', 'd', 'a']);
+    const state = f.state();
+    for (const t of state.tasks) {
+      expect(t.focus).toBe(t.focusKey !== null);
+      expect(t.focusLeftAt).toBeNull();
+    }
+    // A neighbour outside the desk is invalid; a position with focus: false
+    // contradicts itself.
+    const outside = await f.post({
+      command: 'task.create',
+      payload: { id: 'e', area: 'agency', title: 'e' },
+    });
+    success(outside);
+    expect(
+      (
+        await f.post({
+          command: 'task.update',
+          payload: {
+            id: 'a',
+            baseRevision: revision(f, 'a'),
+            focusPosition: { after: 'e' },
+          },
+        })
+      ).body,
+    ).toMatchObject({ ok: false, code: 'invalid' });
+    expect(
+      (
+        await f.post({
+          command: 'task.update',
+          payload: {
+            id: 'a',
+            baseRevision: revision(f, 'a'),
+            focus: false,
+            focusPosition: { first: true },
+          },
+        })
+      ).body,
+    ).toMatchObject({ ok: false, code: 'invalid' });
+    // Leaving the desk records the moment; returning clears it.
+    success(
+      await f.post({
+        command: 'task.update',
+        payload: { id: 'a', baseRevision: revision(f, 'a'), focus: false },
+      }),
+    );
+    const a = f.state().tasks.find((t) => t.id === 'a')!;
+    expect(a).toMatchObject({
+      focus: false,
+      focusKey: null,
+      focusLeftAt: '2026-09-08T12:00:00.000Z',
+    });
+    expect(focused(f)).toEqual(['b', 'c', 'd']);
+    success(
+      await f.post({
+        command: 'task.create',
+        payload: { id: 'f', area: 'agency', title: 'f', focus: true },
+      }),
+    );
+    expect(focused(f)).toEqual(['b', 'c', 'd', 'f']);
+  });
+  it('done and archive leave the desk with focusLeftAt; undo restores focus and the key', async () => {
+    const f = setup();
+    for (const id of ['a', 'b'])
+      await f.post({
+        command: 'task.create',
+        payload: { id, area: 'agency', title: id, focus: true },
+      });
+    const key = f.state().tasks.find((t) => t.id === 'a')!.focusKey;
+    expect(key).not.toBeNull();
+    success(
+      await f.post(
+        {
+          command: 'task.move',
+          payload: { id: 'a', baseRevision: revision(f, 'a'), status: 'done' },
+        },
+        { id: 'done' },
+      ),
+    );
+    expect(f.state().tasks.find((t) => t.id === 'a')).toMatchObject({
+      status: 'done',
+      focus: false,
+      focusKey: null,
+      focusLeftAt: '2026-09-08T12:00:00.000Z',
+    });
+    const undone = success(
+      await f.post({ command: 'undo', payload: { operationId: 'done' } }),
+    );
+    expect(undone.results[0]!.changes).toMatchObject({
+      focus: { from: false, to: true },
+      focusKey: { from: null, to: key },
+      focusLeftAt: { from: '2026-09-08T12:00:00.000Z', to: null },
+    });
+    expect(f.state().tasks.find((t) => t.id === 'a')).toMatchObject({
+      status: 'todo',
+      focus: true,
+      focusKey: key,
+      focusLeftAt: null,
+    });
+    expect(focused(f)).toEqual(['a', 'b']);
+    success(
+      await f.post({
+        command: 'task.archive',
+        payload: { id: 'b', baseRevision: revision(f, 'b') },
+      }),
+    );
+    expect(f.state().tasks.find((t) => t.id === 'b')).toMatchObject({
+      archived: true,
+      focus: false,
+      focusKey: null,
+    });
+    // task.save with status done leaves the desk the same way.
+    success(
+      await f.post({
+        command: 'task.save',
+        payload: { id: 'a', baseRevision: revision(f, 'a'), status: 'done' },
+      }),
+    );
+    expect(f.state().tasks.find((t) => t.id === 'a')!.focus).toBe(false);
+    expect(focused(f)).toEqual([]);
   });
 });

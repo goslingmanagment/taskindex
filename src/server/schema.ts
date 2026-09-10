@@ -1,3 +1,4 @@
+import { sql } from 'drizzle-orm';
 import {
   sqliteTable,
   text,
@@ -64,6 +65,11 @@ export const tasks = sqliteTable(
     followUp: text('follow_up'),
     orderKey: text('order_key').notNull(),
     focus: integer('focus', { mode: 'boolean' }).notNull(),
+    // The desk (plan 13): the order among focused tasks (a fractional key,
+    // null outside the desk; focus === focus_key IS NOT NULL) and the moment
+    // the task last left it.
+    focusKey: text('focus_key'),
+    focusLeftAt: text('focus_left_at'),
     archived: integer('archived', { mode: 'boolean' }).notNull(),
     originSystem: text('origin_system'),
     originRef: text('origin_ref'),
@@ -82,6 +88,9 @@ export const tasks = sqliteTable(
   (t) => [
     uniqueIndex('tasks_order').on(t.area, t.status, t.orderKey),
     uniqueIndex('tasks_origin').on(t.originSystem, t.originRef),
+    uniqueIndex('tasks_focus_key')
+      .on(t.focusKey)
+      .where(sql`${t.focusKey} IS NOT NULL`),
     index('tasks_area_archive_status').on(t.area, t.archived, t.status),
     index('tasks_project').on(t.projectId),
   ],

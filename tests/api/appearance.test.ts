@@ -3,6 +3,7 @@
 // the web (snapshot) and by the CLI (GET /api/appearance).
 import { describe, it, expect, afterEach } from 'vitest';
 import { fixture, success } from './helpers.js';
+import { FORMAT_VERSION } from '../../src/shared/model.js';
 import {
   exportWorkspace,
   importWorkspace,
@@ -181,7 +182,7 @@ describe('appearance preference of the owner', () => {
     const f = api();
     const { appearance: _appearance, ...legacy } = exportWorkspace(f.db);
     const upgraded = upgradeExport({ ...legacy, formatVersion: 2 });
-    expect(upgraded.formatVersion).toBe(3);
+    expect(upgraded.formatVersion).toBe(FORMAT_VERSION);
     expect(upgraded.appearance).toEqual([
       {
         id: DEFAULT_APPEARANCE_ID,

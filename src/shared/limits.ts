@@ -19,5 +19,10 @@ export const LIMITS = {
   batchCommands: 100,
   pageSize: 500,
   digestPage: 50,
+  // The Focus desk (plan 13): tasks shown after the current one and tasks
+  // that recently left the desk.
+  deskNext: 2,
+  deskRecent: 3,
+  deskRecentDays: 14,
 } as const;
 export type LimitName = keyof typeof LIMITS;

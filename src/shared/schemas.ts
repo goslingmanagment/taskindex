@@ -93,6 +93,15 @@ export const positionSchema = z
     z.object({ after: idSchema }).strict(),
   ])
   .describe('Положение относительно соседней задачи');
+// A place on the Focus desk (plan 13): first, or next to a task in focus.
+export const focusPositionSchema = z
+  .union([
+    z.object({ first: z.literal(true) }).strict(),
+    z.object({ after: idSchema }).strict(),
+    z.object({ before: idSchema }).strict(),
+  ])
+  .describe('Место на столе Focus: первым, после или перед задачей в фокусе');
+export type FocusPosition = z.infer<typeof focusPositionSchema>;
 export const taskFieldsSchema = z
   .object({
     area: areaSchema.optional(),
@@ -106,11 +115,17 @@ export const taskFieldsSchema = z
       .boolean()
       .optional()
       .describe(
-        'Выбрано владельцем в Focus; агентам недоступно, в sync пропускается',
+        'Выбрано владельцем в Focus; без focusPosition — в конец стола; агентам недоступно, в sync пропускается',
+      ),
+    focusPosition: focusPositionSchema
+      .optional()
+      .describe(
+        'Место на столе Focus; подразумевает focus: true; только владелец',
       ),
   })
   .strict();
-const createFields = taskFieldsSchema.extend({
+// A position is a direct-write field: a new task takes the end of the desk.
+const createFields = taskFieldsSchema.omit({ focusPosition: true }).extend({
   area: areaSchema,
   title: text(LIMITS.taskTitle, true).describe('Название задачи'),
   status: statusSchema.optional(),

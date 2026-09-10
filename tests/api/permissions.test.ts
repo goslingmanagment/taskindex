@@ -173,6 +173,47 @@ describe('permission matrix: direct commands', () => {
       }),
     },
     {
+      title: 'write agent cannot set a focus position (plan 13, step 4)',
+      role: 'agent',
+      status: 403,
+      message: FOCUS_ONLY_OWNER,
+      command: (f) => ({
+        command: 'task.update',
+        payload: {
+          id: 'ta',
+          baseRevision: task(f, 'ta').revision,
+          focusPosition: { first: true },
+        },
+      }),
+    },
+    {
+      title: 'tasks agent cannot save a focus position inside fields',
+      role: 'tasks',
+      status: 403,
+      message: FOCUS_ONLY_OWNER,
+      command: (f) => ({
+        command: 'task.save',
+        payload: {
+          id: 'ta',
+          baseRevision: task(f, 'ta').revision,
+          fields: { focusPosition: { after: 't' } },
+        },
+      }),
+    },
+    {
+      title: 'owner puts a task first on the desk',
+      role: 'owner',
+      status: 200,
+      command: (f) => ({
+        command: 'task.update',
+        payload: {
+          id: 'ta',
+          baseRevision: task(f, 'ta').revision,
+          focusPosition: { first: true },
+        },
+      }),
+    },
+    {
       title: 'write agent cannot save focus inside fields',
       role: 'agent',
       status: 403,

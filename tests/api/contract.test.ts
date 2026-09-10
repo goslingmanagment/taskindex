@@ -292,6 +292,8 @@ describe('TI-010 TI-011 reserved identifiers and the origin lookup route', () =>
             followUp: null,
             orderKey: 'a0',
             focus: false,
+            focusKey: null,
+            focusLeftAt: null,
             archived: false,
             checklist: [],
             commentCount: 0,

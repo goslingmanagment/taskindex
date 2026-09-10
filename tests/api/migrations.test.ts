@@ -92,20 +92,28 @@ it('tracks the full runtime schema in Drizzle metadata without generating duplic
         notnull: number;
         pk: number;
       }[];
+      // Compared by name: a column added with ALTER TABLE sits last in the
+      // table while the snapshot lists it where the schema declares it.
+      const byName = <T extends { name: string }>(columns: T[]) =>
+        columns.toSorted((a, b) => a.name.localeCompare(b.name));
       expect(
-        actual.map((c) => ({
-          name: c.name,
-          type: c.type.toLowerCase(),
-          notNull: Boolean(c.notnull),
-          primaryKey: Boolean(c.pk),
-        })),
+        byName(
+          actual.map((c) => ({
+            name: c.name,
+            type: c.type.toLowerCase(),
+            notNull: Boolean(c.notnull),
+            primaryKey: Boolean(c.pk),
+          })),
+        ),
       ).toEqual(
-        Object.values(table.columns).map((c) => ({
-          name: c.name,
-          type: c.type,
-          notNull: c.notNull,
-          primaryKey: c.primaryKey,
-        })),
+        byName(
+          Object.values(table.columns).map((c) => ({
+            name: c.name,
+            type: c.type,
+            notNull: c.notNull,
+            primaryKey: c.primaryKey,
+          })),
+        ),
       );
       const indexes = db.sqlite.pragma(`index_list(${table.name})`) as {
         name: string;

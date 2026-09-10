@@ -451,3 +451,82 @@ it('sync protects an owner-restored source URL while still advancing the source 
     originVersion: '3',
   });
 });
+// Plan 13, test 2: the desk answered by /api/focus and mirrored in digest.
+it('serves the desk: current, next, waiting by follow-up, recent leavers, counts and the groups', async () => {
+  const f = setup();
+  await f.batch([
+    ...['first', 'second', 'third'].map((id) => ({
+      command: 'task.create' as const,
+      payload: { id, area: 'agency' as const, title: id, focus: true },
+    })),
+    {
+      command: 'task.create',
+      payload: {
+        id: 'waiting',
+        area: 'agency',
+        title: 'W',
+        status: 'waiting',
+        followUp: '2026-09-07',
+      },
+    },
+    {
+      command: 'task.create',
+      payload: { id: 'left', area: 'agency', title: 'L', focus: true },
+    },
+    {
+      command: 'task.create',
+      payload: { id: 'parked', area: 'agency', title: 'P' },
+    },
+  ]);
+  success(
+    await f.post({
+      command: 'task.update',
+      payload: { id: 'left', baseRevision: 1, focus: false },
+    }),
+  );
+  f.db.sqlite
+    .prepare(
+      "UPDATE tasks SET focus_left_at = '2026-09-05T12:00:00.000Z' WHERE id = 'left'",
+    )
+    .run();
+  const desk = await (await f.app.request('/api/focus')).json();
+  expect(desk.current.id).toBe('first');
+  expect(desk.next.map((t: { id: string }) => t.id)).toEqual([
+    'second',
+    'third',
+  ]);
+  expect(desk.waiting.map((t: { id: string }) => t.id)).toEqual(['waiting']);
+  expect(desk.recent.map((t: { id: string }) => t.id)).toEqual(['left']);
+  expect(desk.counts).toEqual({ focus: 3, parked: 2, waiting: 1 });
+  expect(
+    desk.groups.map((g: { id: string; tasks: { id: string }[] }) => [
+      g.id,
+      g.tasks.length,
+    ]),
+  ).toEqual([
+    ['selected', 3],
+    ['new', 0],
+    ['due', 0],
+    ['follow-ups', 1],
+  ]);
+  const digest = await (await f.app.request('/api/digest')).json();
+  expect(digest.current.id).toBe('first');
+  expect(digest.next.map((t: { id: string }) => t.id)).toEqual([
+    'second',
+    'third',
+  ]);
+  // The desk reads tasks only: no query scans the event journal (the page
+  // seq is one MAX over the primary key).
+  const statements: string[] = [];
+  const original = f.db.sqlite.prepare.bind(f.db.sqlite);
+  f.db.sqlite.prepare = ((sql: string) => {
+    statements.push(sql);
+    return original(sql);
+  }) as typeof f.db.sqlite.prepare;
+  await f.app.request('/api/focus');
+  expect(
+    statements.filter(
+      (s) => /from\s+"?events"?/i.test(s) && !/MAX\(seq\)/.test(s),
+    ),
+  ).toEqual([]);
+});

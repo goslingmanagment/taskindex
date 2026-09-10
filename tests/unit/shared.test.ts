@@ -6,6 +6,7 @@ import {
 } from '../../src/shared/commands.js';
 import { ENTITIES, ENTITY_KINDS } from '../../src/shared/entities.js';
 import {
+  focusDesk,
   focusGroups,
   searchTasks,
   todayInTimezone,
@@ -149,6 +150,10 @@ describe('command unions are generated from the payload registry (TI-019)', () =
       expect(ENTITIES[kind].subjectFields.size, kind).toBeGreaterThan(0);
     }
     expect([...ENTITIES.task.subjectFields]).toContain('orderKey');
+    // Plan 13, step 3: the desk order and the moment of leaving it are
+    // subject fields, so undo restores them and merges detect them.
+    expect([...ENTITIES.task.subjectFields]).toContain('focusKey');
+    expect([...ENTITIES.task.subjectFields]).toContain('focusLeftAt');
     expect([...ENTITIES.project.subjectFields].sort()).toEqual([
       'color',
       'description',
@@ -216,6 +221,71 @@ describe('shared queries and validation', () => {
     expect(
       focusGroups(tasks, '2026-09-08').map((g) => g.tasks.map((t) => t.id)),
     ).toEqual([['selected'], ['new'], ['due'], ['follow']]);
+  });
+  // Plan 13, §3.3 and step 5: the desk is a pure selector over the tasks.
+  it('lays out the desk: current by the smallest focusKey, two next, waiting by due date, recent within 14 days', () => {
+    const focus = (id: string, focusKey: string, patch: Partial<Task> = {}) =>
+      create(id, { focus: true, focusKey, ...patch });
+    const left = (id: string, daysAgo: number, patch: Partial<Task> = {}) => {
+      const at = new Date('2026-09-08T10:00:00.000Z');
+      at.setUTCDate(at.getUTCDate() - daysAgo);
+      return create(id, { focusLeftAt: at.toISOString(), ...patch });
+    };
+    const today = '2026-09-08';
+    expect(focusDesk([], today)).toEqual({
+      current: null,
+      next: [],
+      waiting: [],
+      recent: [],
+      counts: { focus: 0, parked: 0, waiting: 0 },
+    });
+    const single = focusDesk([focus('only', 'a1')], today);
+    expect(single.current?.id).toBe('only');
+    expect(single.next).toEqual([]);
+    expect(single.counts).toEqual({ focus: 1, parked: 0, waiting: 0 });
+    const tasks = [
+      focus('third', 'a3'),
+      focus('first', 'a1'),
+      focus('second', 'a2'),
+      focus('fourth', 'a4'),
+      focus('done', 'a0', { status: 'done' }),
+      focus('archived', 'Zz', { archived: true }),
+      create('wait-later', { status: 'waiting', followUp: '2026-09-09' }),
+      create('wait-due', { status: 'waiting', followUp: '2026-09-08' }),
+      create('wait-past', { status: 'waiting', followUp: '2026-09-07' }),
+      create('wait-none', { status: 'waiting' }),
+      left('left-13', 13),
+      left('left-1', 1),
+      left('left-3', 3),
+      left('left-14', 14),
+      left('left-15', 15),
+      left('left-done', 2, { status: 'done' }),
+      create('parked', { status: 'todo' }),
+      create('doing', { status: 'doing' }),
+    ];
+    const desk = focusDesk(tasks, today);
+    expect(desk.current?.id).toBe('first');
+    expect(desk.next.map((t) => t.id)).toEqual(['second', 'third']);
+    expect(desk.waiting.map((t) => t.id)).toEqual([
+      'wait-past',
+      'wait-due',
+      'wait-later',
+      'wait-none',
+    ]);
+    expect(desk.recent.map((t) => t.id)).toEqual([
+      'left-1',
+      'left-3',
+      'left-13',
+    ]);
+    expect(desk.counts).toEqual({ focus: 4, parked: 6, waiting: 4 });
+    // 14 days ago is still recent, 15 is not; the cap is three newest.
+    expect(
+      focusDesk([left('a', 14), left('b', 15)], today).recent.map((t) => t.id),
+    ).toEqual(['a']);
+    // The desk never mutates its input.
+    const before = structuredClone(tasks);
+    focusDesk(tasks, today);
+    expect(tasks).toEqual(before);
   });
   it('updates Focus with the day without mutating or dropping source records', () => {
     const tasks = [

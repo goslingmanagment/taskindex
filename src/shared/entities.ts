@@ -28,6 +28,8 @@ const taskFields = new Set<keyof Task>([
   'followUp',
   'orderKey',
   'focus',
+  'focusKey',
+  'focusLeftAt',
   'archived',
   'checklist',
   'originUrl',

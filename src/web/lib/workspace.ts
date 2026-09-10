@@ -20,6 +20,8 @@ export function makeTask(
     followUp: null,
     orderKey: '',
     focus: false,
+    focusKey: null,
+    focusLeftAt: null,
     archived: false,
     checklist: [],
     commentCount: 0,

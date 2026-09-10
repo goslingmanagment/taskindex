@@ -1,8 +1,20 @@
-import type { Project, Task, FocusGroup, AreaId, Status } from './model.js';
+import type {
+  Project,
+  Task,
+  FocusGroup,
+  FocusDesk,
+  AreaId,
+  Status,
+} from './model.js';
+import { LIMITS } from './limits.js';
 export const compareStrings = (a: string, b: string) =>
   a < b ? -1 : a > b ? 1 : 0;
 export const byOrder = (a: Task, b: Task) =>
   compareStrings(a.orderKey, b.orderKey) || compareStrings(a.id, b.id);
+// The desk order: only tasks in focus carry a key, so '' never competes.
+export const byFocusKey = (a: Task, b: Task) =>
+  compareStrings(a.focusKey ?? '', b.focusKey ?? '') ||
+  compareStrings(a.id, b.id);
 export function todayInTimezone(
   timezone: string,
   now: Date | string = new Date(),
@@ -90,6 +102,52 @@ export function focusGroups(tasks: Task[], today: string): FocusGroup[] {
           : byOrder(a, b),
     );
   return groups;
+}
+// The desk (plan 13, §3.3): a pure selector over the tasks. `current` is
+// the focused task with the smallest key, `next` the two after it; `waiting`
+// every waiting task, due follow-ups first; `recent` up to three tasks that
+// left the desk in the last 14 days, newest first.
+export function focusDesk(tasks: Task[], today: string): FocusDesk {
+  const active = tasks.filter((t) => !t.archived && t.status !== 'done');
+  const desk = active.filter((t) => t.focusKey !== null).sort(byFocusKey);
+  const rank = (t: Task) => {
+    if (!t.followUp) return 2;
+    return t.followUp <= today ? 0 : 1;
+  };
+  const waiting = active
+    .filter((t) => t.status === 'waiting')
+    .sort(
+      (a, b) =>
+        rank(a) - rank(b) ||
+        compareStrings(a.followUp ?? '', b.followUp ?? '') ||
+        byOrder(a, b),
+    );
+  const cutoff = new Date(`${today}T00:00:00Z`);
+  cutoff.setUTCDate(cutoff.getUTCDate() - LIMITS.deskRecentDays);
+  const since = cutoff.toISOString().slice(0, 10);
+  const recent = active
+    .filter(
+      (t) =>
+        t.focusKey === null &&
+        t.focusLeftAt !== null &&
+        t.focusLeftAt.slice(0, 10) >= since,
+    )
+    .sort(
+      (a, b) => compareStrings(b.focusLeftAt!, a.focusLeftAt!) || byOrder(a, b),
+    )
+    .slice(0, LIMITS.deskRecent);
+  return {
+    current: desk[0] ?? null,
+    next: desk.slice(1, 1 + LIMITS.deskNext),
+    waiting,
+    recent,
+    counts: {
+      focus: desk.length,
+      parked: active.filter((t) => t.status === 'todo' && t.focusKey === null)
+        .length,
+      waiting: waiting.length,
+    },
+  };
 }
 export type TaskFilter = {
   q?: string;

@@ -21,7 +21,7 @@ it('random command sequences by owner and agents preserve invariants, the event 
       fc.array(
         fc.record({
           task: fc.integer({ min: 0, max: 2 }),
-          action: fc.integer({ min: 0, max: 6 }),
+          action: fc.integer({ min: 0, max: 7 }),
           actor: fc.integer({ min: 0, max: 2 }),
           confirm: fc.boolean(),
           value: fc.integer({ min: 0, max: 99 }),
@@ -168,7 +168,30 @@ it('random command sequences by owner and agents preserve invariants, the event 
               actor,
               action.confirm,
             );
-          else {
+          else if (action.action === 7) {
+            // Plan 13: a desk position by the owner; agents are refused.
+            const other = state.tasks[(action.task + 1) % 3]!;
+            const position =
+              action.value % 3 === 0
+                ? { first: true as const }
+                : action.value % 3 === 1
+                  ? { after: other.id }
+                  : { before: other.id };
+            code = apply(
+              {
+                command: 'task.update',
+                payload: { ...base, focusPosition: position },
+              },
+              actor,
+              action.confirm,
+            );
+            if (actor.kind !== 'owner') expect(code).toBe('forbidden');
+            else if (code === undefined) {
+              const updated = state.tasks.find((x) => x.id === t.id)!;
+              expect(updated.focus).toBe(true);
+              expect(updated.focusKey).not.toBeNull();
+            }
+          } else {
             const lastOperation = history.at(-1)?.operationId;
             if (!lastOperation) continue;
             const ownerEvents = history.some(
@@ -195,12 +218,29 @@ it('random command sequences by owner and agents preserve invariants, the event 
                   if (key !== 'orderKey')
                     expect(protectedBefore.has(key)).toBe(false);
         }
-        // focus only ever changes by owner events; agent events never carry it.
+        // Plan 13, criterion 1: focus keys are unique and focus mirrors the key;
+        // a task that is done or archived is never on the desk.
+        const keys = state.tasks.filter((x) => x.focusKey !== null);
+        expect(new Set(keys.map((x) => x.focusKey)).size).toBe(keys.length);
+        for (const x of state.tasks) {
+          expect(x.focus).toBe(x.focusKey !== null);
+          if (x.status === 'done' || x.archived) expect(x.focus).toBe(false);
+          if (x.focus) expect(x.focusLeftAt).toBeNull();
+        }
+        // focus is set only by owner events; an agent's event carries focus
+        // only as leaving the desk, when the task is finished or archived
+        // (plan 13, §3.2) under confirmOwnerFields.
         for (const event of history)
-          if (event.changes.focus) expect(event.actorId).toBe('owner');
+          if (event.changes.focus?.to === true)
+            expect(event.actorId).toBe('owner');
         for (const event of history)
-          if (event.actorId !== 'owner')
-            expect(event.changes.focus).toBeUndefined();
+          if (event.actorId !== 'owner' && event.changes.focus) {
+            expect(event.changes.focus.to).toBe(false);
+            expect(
+              event.changes.status?.to === 'done' ||
+                event.changes.archived?.to === true,
+            ).toBe(true);
+          }
       },
     ),
     { numRuns: 75 },
