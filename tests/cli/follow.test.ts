@@ -131,12 +131,14 @@ describe('events --follow', () => {
       () => json({ generation: 'g2', latestSeq: 0, more: false, events: [] }),
     ]);
     expect(result.code).toBe(3);
+    // The server body is printed as it is; the CLI only adds what to do next.
     expect(result.output).toEqual([
       {
         ok: false,
         code: 'generation_changed',
         message: 'База восстановлена',
         retryable: false,
+        hint: expect.stringContaining('cursor reset') as string,
       },
     ]);
   });

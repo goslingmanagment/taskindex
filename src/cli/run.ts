@@ -29,8 +29,10 @@ import {
 } from './outbox.js';
 import { readPath } from './reads.js';
 import {
+  GLOBAL_FLAGS,
   UnknownCommand,
   booleanFlagNames,
+  commandName,
   resolveCommand,
   type ReadSpec,
   type Resolved,
@@ -136,34 +138,87 @@ async function currentGeneration(session: Session): Promise<ApiReply> {
   return session.client.request('/api/context');
 }
 
+// `--commit`: the cursor moves only when the read was complete — every page
+// walked (`more: false`) — to the position the server reported for it.
+async function commitRead(
+  session: Session,
+  spec: ReadSpec,
+  body: Record<string, unknown>,
+): Promise<void> {
+  const { state, identity, warn } = session;
+  const operations = body.operations as { more?: unknown } | undefined;
+  const incomplete =
+    spec.group === 'digest' ? operations?.more === true : body.more === true;
+  if (incomplete) {
+    warn({
+      warning: 'cursor_not_committed',
+      reason: 'more',
+      message: 'Прочитаны не все страницы; курсор не сдвинут',
+      next: `taskindex ${spec.group === 'digest' ? 'activity' : spec.group} --since last --all --commit`,
+    });
+    return;
+  }
+  const seq = typeof body.latestSeq === 'number' ? body.latestSeq : body.seq;
+  if (typeof body.generation !== 'string' || typeof seq !== 'number') {
+    warn({
+      warning: 'cursor_not_committed',
+      reason: 'response',
+      message: 'В ответе нет generation или seq; курсор не сдвинут',
+    });
+    return;
+  }
+  const cursor = await state.commitCursor(identity, {
+    generation: body.generation,
+    seq,
+    ...(typeof body.operationSeq === 'number'
+      ? { operationSeq: body.operationSeq }
+      : {}),
+  });
+  warn({ cursorCommitted: cursor, file: state.cursorFile(identity) });
+}
+
 async function runRead(
   session: Session,
   spec: ReadSpec,
   rest: string[],
 ): Promise<number> {
   const { args, client, options, emit, outbox, pending } = session;
-  if (
-    args.flags.since !== undefined &&
-    Number(args.flags.since) > 0 &&
-    !args.flags.generation
-  )
+  const flags = { ...args.flags };
+  const isEvents = spec.group === 'events';
+  // `--since last` reads the committed cursor; without one the read starts at
+  // 0 under the server's current generation, which loses nothing.
+  if (flags.since === 'last') {
+    const cursor = await session.state.readCursor(session.identity);
+    flags.since = String(cursor?.seq ?? 0);
+    if (cursor) flags.generation ??= cursor.generation;
+  } else if (flags.since !== undefined && !/^\d+$/.test(String(flags.since)))
+    throw new ArgumentError(
+      '--since: ожидается число или last',
+      `taskindex help ${spec.group}`,
+    );
+  else if (Number(flags.since ?? 0) > 0 && !flags.generation)
     throw new ArgumentError(
       'Для --since после первого события нужен --generation исходного курсора',
+      'используйте --since last или передайте --generation',
     );
-  let path = readPath(spec, rest, args.flags);
-  const isEvents = spec.group === 'events';
+  if ((isEvents || args.flags.since === 'last') && !flags.generation) {
+    const source = await currentGeneration(session);
+    if (exitCode(source)) {
+      emit(withHints(source.body));
+      return exitCode(source);
+    }
+    flags.generation = required(
+      typeof source.body.generation === 'string'
+        ? source.body.generation
+        : undefined,
+      'generation в ответе сервера',
+    );
+  }
+  let path = readPath(spec, rest, flags);
   const intervalFlag = flagString(args.flags, 'interval');
   if (intervalFlag !== undefined && !/^\d+$/.test(intervalFlag))
     throw new ArgumentError('--interval: ожидается число миллисекунд');
   const interval = Math.max(250, Number(intervalFlag ?? 1000));
-  if (isEvents && !args.flags.generation) {
-    const source = await currentGeneration(session);
-    if (exitCode(source)) {
-      emit(source.body);
-      return exitCode(source);
-    }
-    path += `${path.includes('?') ? '&' : '?'}generation=${encodeURIComponent(String(source.body.generation))}`;
-  }
   const id = rest[0];
   const isOperationGet = spec.group === 'operation' && spec.action === 'get';
   let result: ApiReply;
@@ -218,7 +273,7 @@ async function runRead(
     ) {
       // Polling: an empty page is noise for an agent; only pages with
       // events (and every error) are printed.
-    } else emit(result.body);
+    } else emit(exitCode(result) ? withHints(result.body) : result.body);
     if (exitCode(result)) return exitCode(result);
     if (isEvents && (args.flags.follow || args.flags.all)) {
       const events = result.body.events as { seq: number }[] | undefined;
@@ -229,6 +284,8 @@ async function runRead(
         path = `${next.pathname}${next.search}`;
       }
       if (result.body.more === true) continue;
+      // Every event up to latestSeq has been printed: a complete read.
+      if (args.flags.commit) await commitRead(session, spec, result.body);
       if (!args.flags.follow || options.signal?.aborted) break;
       await (
         options.sleep ??
@@ -246,6 +303,8 @@ async function runRead(
       next.searchParams.set('generation', result.body.generation);
     path = `${next.pathname}${next.search}`;
   } while (!options.signal?.aborted);
+  if (args.flags.commit && !(isEvents && (args.flags.follow || args.flags.all)))
+    await commitRead(session, spec, result.body);
   return 0;
 }
 
@@ -397,21 +456,82 @@ async function openSession(
   };
 }
 
+async function runCursor(
+  session: Session,
+  action: string | undefined,
+  rest: string[],
+): Promise<number> {
+  const { state, identity, args, emit } = session;
+  const file = state.cursorFile(identity);
+  if (action === 'show') {
+    emit({
+      ok: true,
+      cursor: (await state.readCursor(identity)) ?? null,
+      file,
+    });
+    return 0;
+  }
+  if (action === 'reset') {
+    await state.resetCursor(identity);
+    emit({ ok: true, cursor: null, file });
+    return 0;
+  }
+  const help = 'taskindex help cursor commit';
+  const seq = required(rest[0], 'SEQ');
+  if (!/^\d+$/.test(seq)) throw new ArgumentError('SEQ: ожидается число', help);
+  const operationSeq = flagString(args.flags, 'operation-seq');
+  if (operationSeq !== undefined && !/^\d+$/.test(operationSeq))
+    throw new ArgumentError('--operation-seq: ожидается число', help);
+  let generation = flagString(args.flags, 'generation');
+  if (!generation) {
+    const source = await currentGeneration(session);
+    if (exitCode(source)) {
+      emit(withHints(source.body));
+      return exitCode(source);
+    }
+    generation = required(
+      typeof source.body.generation === 'string'
+        ? source.body.generation
+        : undefined,
+      'generation в ответе сервера',
+    );
+  }
+  const cursor = await state.commitCursor(identity, {
+    generation,
+    seq: Number(seq),
+    ...(operationSeq !== undefined
+      ? { operationSeq: Number(operationSeq) }
+      : {}),
+  });
+  emit({ ok: true, cursor, file });
+  return 0;
+}
+
 async function dispatch(target: Resolved, session: Session): Promise<number> {
   switch (target.kind) {
     case 'read':
       return runRead(session, target.spec, target.rest);
     case 'write':
       return runWrite(session, target.spec, target.rest);
-    case 'service':
-      if (target.spec.group === 'operation' && target.spec.action === 'list')
+    case 'service': {
+      const { group, action } = target.spec;
+      const known = [...(target.spec.flags ?? []), ...GLOBAL_FLAGS];
+      for (const name of Object.keys(session.args.flags))
+        if (!known.some((entry) => entry.name === name))
+          throw new ArgumentError(
+            `Флаг --${name} не поддерживается командой ${commandName(target.spec)}`,
+            `taskindex help ${commandName(target.spec)}`,
+          );
+      if (group === 'operation' && action === 'list')
         return runOperationList(session);
-      if (target.spec.group === 'operation' && target.spec.action === 'resume')
+      if (group === 'operation' && action === 'resume')
         return runResume(session, target.rest[0]);
+      if (group === 'cursor') return runCursor(session, action, target.rest);
       throw new ArgumentError(
-        `Команда ${target.spec.group} не реализована`,
+        `Команда ${group} не реализована`,
         'taskindex help',
       );
+    }
   }
 }
 

@@ -242,7 +242,12 @@ describe('CLI removes an envelope only after a verified outcome of that operatio
     await test.run(create('op8'));
     expect(await test.outbox.get('op8')).toBeDefined();
     expect(await test.run(['operation', 'resume', 'op8'])).toBe(3);
-    expect(test.output.at(-1)).toEqual(rejection);
+    // The stored rejection is printed as it is, plus the CLI's hint on a
+    // changed generation.
+    expect(test.output.at(-1)).toEqual({
+      ...rejection,
+      hint: expect.stringContaining('cursor reset') as string,
+    });
     expect(await test.outbox.get('op8')).toBeUndefined();
 
     await test.run(create('op8'));

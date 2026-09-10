@@ -1,7 +1,7 @@
 import { createHash } from 'node:crypto';
 import { homedir } from 'node:os';
-import { join } from 'node:path';
-import { mkdir, readFile, readdir, writeFile } from 'node:fs/promises';
+import { dirname, join } from 'node:path';
+import { mkdir, readFile, readdir, unlink, writeFile } from 'node:fs/promises';
 import { actorSchema } from '../shared/domain-schemas.js';
 import { z } from '../shared/schemas.js';
 import type { ApiReply } from './client.js';
@@ -34,6 +34,20 @@ export const identitySchema = z
   .strict();
 export type Identity = z.infer<typeof identitySchema>;
 
+// The last position an agent has fully processed: events by `seq`, and, once
+// the server numbers operations, the operation feed by `operationSeq`. Written
+// only by an explicit commit, never by a read on its own.
+export const cursorSchema = z
+  .object({
+    formatVersion: z.literal(1),
+    generation: z.string().min(1),
+    seq: z.number().int().nonnegative(),
+    operationSeq: z.number().int().nonnegative().optional(),
+    committedAt: z.iso.datetime({ offset: true }),
+  })
+  .strict();
+export type Cursor = z.infer<typeof cursorSchema>;
+
 export interface StatePaths {
   root: string;
   server: string;
@@ -41,11 +55,13 @@ export interface StatePaths {
   agents: string;
   legacyOps: string;
   ops: (agentKey: string) => string;
+  cursor: (agentKey: string) => string;
 }
 
 // $XDG_STATE_HOME/taskindex/
 //   servers/<serverId>/identities/<tokenHash>.json   cached GET /api/me
 //   servers/<serverId>/agents/<agentId>/ops/          envelopes of this agent
+//   servers/<serverId>/agents/<agentId>/cursor.json   committed read position
 //   ops/                                              layout of formatVersion 1
 export function statePaths(
   env: NodeJS.ProcessEnv,
@@ -64,6 +80,7 @@ export function statePaths(
     agents,
     legacyOps: join(root, 'ops'),
     ops: (agentKey) => join(agents, agentKey, 'ops'),
+    cursor: (agentKey) => join(agents, agentKey, 'cursor.json'),
   };
 }
 
@@ -174,6 +191,54 @@ export class CliState {
 
   outbox(identity?: Identity): Outbox {
     return new Outbox(this.paths.ops(this.agentKey(identity)));
+  }
+
+  cursorFile(identity?: Identity): string {
+    return this.paths.cursor(this.agentKey(identity));
+  }
+
+  // A cursor that cannot be read is treated as absent: the next `--since last`
+  // starts from 0, which loses nothing.
+  async readCursor(identity?: Identity): Promise<Cursor | undefined> {
+    let text: string;
+    try {
+      text = await readFile(this.cursorFile(identity), 'utf8');
+    } catch {
+      return undefined;
+    }
+    try {
+      const parsed = cursorSchema.safeParse(JSON.parse(text));
+      return parsed.success ? parsed.data : undefined;
+    } catch {
+      return undefined;
+    }
+  }
+
+  async commitCursor(
+    identity: Identity | undefined,
+    position: { generation: string; seq: number; operationSeq?: number },
+  ): Promise<Cursor> {
+    const cursor: Cursor = {
+      formatVersion: 1,
+      generation: position.generation,
+      seq: position.seq,
+      ...(position.operationSeq !== undefined
+        ? { operationSeq: position.operationSeq }
+        : {}),
+      committedAt: new Date().toISOString(),
+    };
+    const file = this.cursorFile(identity);
+    await mkdir(dirname(file), { recursive: true, mode: 0o700 });
+    await writeFile(file, `${JSON.stringify(cursor)}\n`, { mode: 0o600 });
+    return cursor;
+  }
+
+  async resetCursor(identity?: Identity): Promise<void> {
+    try {
+      await unlink(this.cursorFile(identity));
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error;
+    }
   }
 
   // Own pending envelopes. A file whose actor does not match the current one

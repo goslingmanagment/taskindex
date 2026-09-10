@@ -112,7 +112,13 @@ export const WRITE_FLAGS: FlagSpec[] = [
 const sinceFlag = flag(
   'since',
   'string',
-  'Читать после события с этим seq; 0 — с начала (для since > 0 нужен --generation исходного курсора)',
+  'Читать после события с этим seq: число (для since > 0 нужен --generation исходного курсора) или `last` — seq и generation из сохранённого курсора (без курсора: 0 и текущее поколение)',
+);
+
+const commitFlag = flag(
+  'commit',
+  'boolean',
+  'После дочитывания всех страниц (more: false) записать seq и generation ответа в курсор; неполный обход курсор не двигает',
 );
 
 const id = (
@@ -224,15 +230,19 @@ export const READS: ReadSpec[] = [
       sinceFlag,
       flag('until', 'string', 'Не позже события с этим seq'),
     ],
-    summary: 'Лента операций всех акторов, постранично',
-    example: 'taskindex activity --since 120 --generation G --all',
+    flags: [commitFlag],
+    summary:
+      'Лента операций всех акторов, постранично; --since показывает только операции с событиями (отказы и no-op — полная лента без --since)',
+    example: 'taskindex activity --since last --all --commit',
   },
   {
     group: 'digest',
     route: '/api/digest',
     query: [sinceFlag, generationFlag],
-    summary: 'Сводка: Focus, ожидание, счётчики и операции после since',
-    example: 'taskindex digest --since 120 --generation G',
+    flags: [commitFlag],
+    summary:
+      'Сводка: Focus, ожидание, счётчики и операции после since (только операции с событиями)',
+    example: 'taskindex digest --since last',
   },
   {
     group: 'focus',
@@ -270,9 +280,10 @@ export const READS: ReadSpec[] = [
         'number',
         'Пауза между опросами в --follow, мс (по умолчанию 1000, минимум 250)',
       ),
+      commitFlag,
     ],
     summary: 'События после seq; --follow читает их опросом',
-    example: 'taskindex events --since 120 --generation G --follow',
+    example: 'taskindex events --since last --all --commit',
   },
   {
     group: 'operation',
@@ -496,6 +507,40 @@ export const SERVICE: ServiceSpec[] = [
     summary:
       'Локальная очередь этого агента: ожидающие конверты и файлы *.corrupt',
     example: 'taskindex operation list',
+  },
+  {
+    group: 'cursor',
+    action: 'show',
+    summary:
+      'Сохранённый курсор этого агента и сервера: {generation, seq, operationSeq?, committedAt} или null',
+    example: 'taskindex cursor show',
+  },
+  {
+    group: 'cursor',
+    action: 'commit',
+    positional: [id('SEQ', 'seq', 'Последний полностью обработанный seq')],
+    flags: [
+      flag(
+        'generation',
+        'string',
+        'Поколение курсора; без флага берётся текущее поколение сервера',
+      ),
+      flag(
+        'operation-seq',
+        'number',
+        'Последний обработанный operationSeq ленты операций, если сервер его отдаёт',
+      ),
+    ],
+    summary:
+      'Записать курсор после того, как все страницы обработаны; digest/activity/events --commit делают это сами',
+    example: 'taskindex cursor commit 120 --generation G',
+  },
+  {
+    group: 'cursor',
+    action: 'reset',
+    summary:
+      'Удалить курсор; нужно после generation_changed, затем digest заново',
+    example: 'taskindex cursor reset',
   },
   {
     group: 'help',

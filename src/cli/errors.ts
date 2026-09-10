@@ -102,10 +102,16 @@ export function formatIssues(issues: readonly RawIssue[]): Issue[] {
 }
 
 // A server reply is printed as it is; only a hint is added where the CLI
-// knows what to do next (validation issues by field).
+// knows what to do next (validation issues by field, a changed generation).
 export function withHints(
   body: Record<string, unknown>,
 ): Record<string, unknown> {
-  if (body.ok !== false || !Array.isArray(body.issues)) return body;
-  return { ...body, issues: formatIssues(body.issues as RawIssue[]) };
+  if (body.ok !== false) return body;
+  const result = { ...body };
+  if (Array.isArray(body.issues))
+    result.issues = formatIssues(body.issues as RawIssue[]);
+  if (body.code === 'generation_changed' && result.hint === undefined)
+    result.hint =
+      'Поколение базы сменилось: taskindex cursor reset, затем taskindex digest и новая оценка действия';
+  return result;
 }
