@@ -23,6 +23,7 @@ import { Button } from '../ui/button';
 import { AREAS, type AreaId, type Project, type Task } from '../lib/workspace';
 import type { LocationState } from './url';
 import { AccountMenu } from './auth';
+import { taskCount } from './labels';
 const icons = {
   agency: BriefcaseBusiness,
   development: Code2,
@@ -52,7 +53,8 @@ export function WorkspaceSidebar({
   disabled: boolean;
 }) {
   const { area, project: projectId, archive, focus, activity, q } = location,
-    globalView = !!q.trim() || focus || activity;
+    globalView = !!q.trim() || focus || activity,
+    archivedCount = tasks.filter((t) => t.area === area && t.archived).length;
   return (
     <Sidebar className="workspace-sidebar">
       <SidebarHeader className="brand">
@@ -73,7 +75,12 @@ export function WorkspaceSidebar({
                 <Star size={18} />
               </span>
               <span>Фокус</span>
-              <span className="focus-count">{focusCount || ''}</span>
+              <span className="focus-count" aria-hidden="true">
+                {focusCount || ''}
+              </span>
+              {focusCount > 0 && (
+                <span className="sr-only">{taskCount(focusCount)}</span>
+              )}
             </SidebarMenuButton>
           </SidebarMenuItem>
           <SidebarMenuItem>
@@ -167,9 +174,10 @@ export function WorkspaceSidebar({
         >
           <Archive size={15} />
           Архив
-          <span>
-            {tasks.filter((t) => t.area === area && t.archived).length || ''}
-          </span>
+          <span aria-hidden="true">{archivedCount || ''}</span>
+          {archivedCount > 0 && (
+            <span className="sr-only">{taskCount(archivedCount)}</span>
+          )}
         </Button>
         <div className="private-note">
           <AccountMenu />

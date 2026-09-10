@@ -20,3 +20,12 @@ export const commandLabels: Record<string, string> = {
 };
 export const commandLabel = (command: string) =>
   commandLabels[command] || command;
+
+// TI-031: the single Russian form for a number of tasks («1 задача», «3 задачи»,
+// «5 задач»). Input is a non-negative integer (a list length); sources must not
+// hand over fractions or NaN — this is not a general-purpose declension helper.
+const taskForms = new Intl.PluralRules('ru-RU');
+export function taskCount(count: number): string {
+  const form = taskForms.select(count);
+  return `${count} ${form === 'one' ? 'задача' : form === 'few' ? 'задачи' : 'задач'}`;
+}

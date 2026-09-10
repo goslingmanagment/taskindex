@@ -17,7 +17,7 @@ import {
 import { toast } from '../ui/toast';
 import { request } from './api';
 import { workspaceStore } from './store';
-import { commandLabels } from './labels';
+import { commandLabels, taskCount } from './labels';
 import { readDraft, writeDraft, clearDraft } from './drafts';
 const labels = commandLabels;
 const fields: Record<string, string> = {
@@ -57,10 +57,6 @@ function time(value: string) {
     hour: '2-digit',
     minute: '2-digit',
   });
-}
-function taskCountLabel(count: number) {
-  const form = new Intl.PluralRules('ru-RU').select(count);
-  return `${count} ${form === 'one' ? 'задача' : form === 'few' ? 'задачи' : 'задач'}`;
 }
 async function undo(payload: { seq: number } | { operationId: string }) {
   try {
@@ -246,8 +242,7 @@ function OperationRow({ operation }: { operation: OperationSummary }) {
             {operation.ok
               ? labels[operation.command] || operation.command
               : 'Операция отклонена'}
-            {operation.taskCount > 0 &&
-              ` · ${taskCountLabel(operation.taskCount)}`}
+            {operation.taskCount > 0 && ` · ${taskCount(operation.taskCount)}`}
           </span>
           <small>{time(operation.createdAt)}</small>
         </CollapsibleTrigger>

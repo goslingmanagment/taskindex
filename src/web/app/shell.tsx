@@ -53,6 +53,7 @@ import { TaskEditor } from './editor';
 import { Activity } from './activity';
 import { PendingNotice } from './pending-notice';
 import { pendingTaskLabel } from './editor-base';
+import { taskCount } from './labels';
 export function Workspace() {
   return (
     <Toaster>
@@ -431,7 +432,7 @@ function WorkspaceBody() {
               <output className="overview-scope">
                 {activity && !searching
                   ? 'Изменения пространства'
-                  : `Все области · ${tasks.length} задач${searching && searchArchive ? ' в архиве' : ''}`}
+                  : `Все области · ${taskCount(tasks.length)}${searching && searchArchive ? ' в архиве' : ''}`}
               </output>
             ) : (
               <Tabs

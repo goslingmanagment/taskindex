@@ -260,6 +260,10 @@ test('mobile navigation, focus/search/archive and keyboard task movement', async
   await expect(
     page.getByRole('heading', { name: title, exact: true }),
   ).toBeVisible();
+  // TI-031: the search scope declines the count («1 задача», not «1 задач»).
+  await expect(page.locator('.overview-scope')).toHaveText(
+    'Все области · 1 задача',
+  );
   await page
     .getByRole('textbox', { name: 'Найти во всех областях', exact: true })
     .press('Escape');

@@ -3,6 +3,7 @@ import { Star, Search } from 'lucide-react';
 import type { Task } from '../lib/workspace';
 import { Button } from '../ui/button';
 import { Empty, EmptyTitle, EmptyDescription } from '../ui/empty';
+import { taskCount } from './labels';
 import './workspace-overview.css';
 
 export function WorkspaceOverview({
@@ -51,9 +52,11 @@ export function WorkspaceOverview({
             key={group.id}
             aria-label={group.title}
           >
-            <h2>
+            <h2
+              aria-label={`${group.title} · ${taskCount(group.tasks.length)}`}
+            >
               {group.title}
-              <span>{group.tasks.length}</span>
+              <span aria-hidden="true">{group.tasks.length}</span>
             </h2>
             <div className="overview-cards">{group.tasks.map(renderTask)}</div>
           </section>
