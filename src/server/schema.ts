@@ -5,7 +5,18 @@ import {
   index,
   uniqueIndex,
 } from 'drizzle-orm/sqlite-core';
-import type { Changes, OperationResponse } from '../shared/model.js';
+import type {
+  Changes,
+  DomainEvent,
+  OperationError,
+  OperationSuccess,
+} from '../shared/model.js';
+// Ж1 (plan 09, step 6): a stored success carries no `events` — the journal is
+// the only copy, and reads rebuild them from it. Rows written before that
+// still carry the array, so the field is optional, not absent.
+export type StoredResult =
+  | (Omit<OperationSuccess, 'events'> & { events?: DomainEvent[] })
+  | OperationError;
 import { commandNames } from '../shared/schemas.js';
 import { APPEARANCE_MODES } from '../shared/appearance.js';
 const commandColumn = [...commandNames, 'batch'] as const;
@@ -122,9 +133,7 @@ export const operations = sqliteTable(
     command: text('command', { enum: commandColumn }).notNull(),
     commandHash: text('command_hash').notNull(),
     status: integer('status').notNull(),
-    result: text('result', { mode: 'json' })
-      .$type<OperationResponse>()
-      .notNull(),
+    result: text('result', { mode: 'json' }).$type<StoredResult>().notNull(),
     firstSeq: integer('first_seq'),
     lastSeq: integer('last_seq'),
     createdAt: text('created_at').notNull(),

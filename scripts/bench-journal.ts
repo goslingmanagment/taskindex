@@ -23,12 +23,18 @@ import {
   generation,
   latestSeq,
   readOperations,
+  withoutEvents,
   writeState,
 } from '../src/server/db.js';
 import { executeOperation } from '../src/server/operations.js';
 import { createApp } from '../src/server/app.js';
 import { defaultAppearance } from '../src/shared/domain-schemas.js';
-import type { Actor, Task, WorkspaceState } from '../src/shared/model.js';
+import type {
+  Actor,
+  OperationResponse,
+  Task,
+  WorkspaceState,
+} from '../src/shared/model.js';
 
 const owner: Actor = {
   id: 'owner',
@@ -146,7 +152,9 @@ function seedTasks(db: ReturnType<typeof openDatabase>, count: number) {
 
 // Journal padding: copies of one event and one operation, the shape a
 // task.update of a 1 KB note leaves behind. The rows belong to a task that no
-// measured command touches, so they only make the journal longer.
+// measured command touches, so they only make the journal longer. Results are
+// stored the way the current code stores them (`withoutEvents`), so the
+// numbers describe the live format, not a historic one.
 function padJournal(
   db: ReturnType<typeof openDatabase>,
   count: number,
@@ -220,7 +228,7 @@ function padJournal(
         'task.update',
         `hash-${id}`,
         200,
-        JSON.stringify(result),
+        JSON.stringify(withoutEvents(result as OperationResponse)),
         seq,
         seq,
         '2026-09-08T12:00:00.000Z',

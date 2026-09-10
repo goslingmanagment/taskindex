@@ -1,221 +1,58 @@
-import SQLite from 'better-sqlite3';
-import { drizzle } from 'drizzle-orm/better-sqlite3';
 import { eq, asc, gt } from 'drizzle-orm';
-import { mkdirSync, readFileSync, readdirSync } from 'node:fs';
-import { dirname, resolve } from 'node:path';
-import { fileURLToPath } from 'node:url';
-import { createHash, randomUUID } from 'node:crypto';
 import * as schema from './schema.js';
+import type { DatabaseHandle } from './sqlite.js';
+import { generation } from './sqlite.js';
+// One module path for the data layer: the connection and settings live in
+// sqlite.ts, the migration chain in migrations.ts, the workspace itself here.
+export * from './sqlite.js';
+export * from './migrations.js';
 import type {
   DomainEvent,
+  OperationResponse,
+  OperationSuccess,
   WorkspaceState,
   Task,
   Project,
   Appearance,
   StoredOperation,
 } from '../shared/model.js';
-import { fail } from '../shared/errors.js';
+import type { StoredResult } from './schema.js';
 import { defaultAppearance } from '../shared/domain-schemas.js';
 import { DEFAULT_APPEARANCE_ID } from '../shared/appearance.js';
-export function openDatabase(path: string) {
-  if (path !== ':memory:')
-    mkdirSync(dirname(resolve(path)), { recursive: true });
-  const sqlite = new SQLite(path);
-  sqlite.pragma('foreign_keys = ON');
-  sqlite.pragma('journal_mode = WAL');
-  sqlite.pragma('synchronous = FULL');
-  sqlite.pragma('busy_timeout = 5000');
-  const orm = drizzle(sqlite, { schema });
-  return { sqlite, orm, close: () => sqlite.close() };
-}
-export type DatabaseHandle = ReturnType<typeof openDatabase>;
-// The two transaction shapes of the server (plan 06, step 6). A write takes
-// the write lock at once (`immediate`), so two writers never collide halfway
-// through; a read stays deferred and does not wait for a writer.
-export const withWrite = <T>(db: DatabaseHandle, fn: () => T): T =>
-  db.sqlite.transaction(fn).immediate();
-export const withRead = <T>(db: DatabaseHandle, fn: () => T): T =>
-  db.sqlite.transaction(fn)();
-export function getSetting(
+// Events of one operation straight from the journal (index events_operation).
+export function readEventsForOperation(
   db: DatabaseHandle,
-  key: string,
-): string | undefined {
+  operationId: string,
+): DomainEvent[] {
+  const gen = generation(db);
   return db.orm
     .select()
-    .from(schema.settings)
-    .where(eq(schema.settings.key, key))
-    .get()?.value;
-}
-export function setSetting(db: DatabaseHandle, key: string, value: string) {
-  db.orm
-    .insert(schema.settings)
-    .values({ key, value })
-    .onConflictDoUpdate({ target: schema.settings.key, set: { value } })
-    .run();
-}
-export type MigrationLogger = {
-  warn: (fields: Record<string, unknown>) => void;
-};
-const defaultMigrationLogger: MigrationLogger = {
-  warn: (fields) =>
-    console.warn(
-      JSON.stringify({
-        level: 'warn',
-        time: new Date().toISOString(),
-        ...fields,
-      }),
-    ),
-};
-// Migrations ship next to the code: <root>/drizzle/v2 both from src/server and
-// from dist/server or dist/cli, so the working directory does not matter.
-export function migrationsDirectory(override?: string): string {
-  return resolve(
-    override ?? fileURLToPath(new URL('../../drizzle/v2', import.meta.url)),
-  );
-}
-export type BundledMigration = { name: string; sha256: string };
-// Hash of the file bytes with CRLF normalised to LF, so a checkout with
-// different line endings still describes the same migration.
-export function bundledMigrations(dir: string): BundledMigration[] {
-  return readdirSync(dir)
-    .filter((n) => n.endsWith('.sql'))
-    .sort()
-    .map((name) => ({
-      name,
-      sha256: createHash('sha256')
-        .update(readFileSync(resolve(dir, name), 'utf8').replace(/\r\n/g, '\n'))
-        .digest('hex'),
-    }));
-}
-export function schemaVersion(migrationsDir?: string): number {
-  return bundledMigrations(migrationsDirectory(migrationsDir)).length;
-}
-type JournalRow = { name: string; sha256: string | null };
-function readJournal(db: DatabaseHandle): JournalRow[] | undefined {
-  const columns = db.sqlite.pragma('table_info(__taskindex_migrations)') as {
-    name: string;
-  }[];
-  if (!columns.some((c) => c.name === 'sha256')) return undefined;
-  return db.sqlite
-    .prepare('SELECT name, sha256 FROM __taskindex_migrations ORDER BY name')
-    .all() as JournalRow[];
-}
-const changedMigration = (name: string) =>
-  fail(
-    'unavailable',
-    `Содержимое применённой миграции ${name} изменено. Применённые SQL-файлы редактировать нельзя: восстановите файл или добавьте новую миграцию.`,
-  );
-export function migrate(
-  db: DatabaseHandle,
-  options: {
-    timezone?: string;
-    migrationsDir?: string;
-    logger?: MigrationLogger;
-  } = {},
-) {
-  const dir = migrationsDirectory(options.migrationsDir);
-  const bundled = bundledMigrations(dir);
-  const version = bundled.length;
-  const logger = options.logger ?? defaultMigrationLogger;
-  withWrite(db, () => {
-    const hasSettings = db.sqlite
-      .prepare(
-        "SELECT 1 FROM sqlite_master WHERE type='table' AND name='settings'",
-      )
-      .get();
-    if (hasSettings && Number(getSetting(db, 'schema_version') ?? 0) > version)
-      fail(
-        'unavailable',
-        'Нельзя применить старый migrator к более новой схеме.',
-      );
-    db.sqlite.exec(
-      'CREATE TABLE IF NOT EXISTS __taskindex_migrations(name TEXT PRIMARY KEY NOT NULL, sha256 TEXT)',
+    .from(schema.events)
+    .where(eq(schema.events.operationId, operationId))
+    .orderBy(asc(schema.events.seq))
+    .all()
+    .map(
+      ({ taskId, ...e }) =>
+        ({
+          ...e,
+          generation: gen,
+          ...(taskId ? { taskId } : {}),
+        }) as DomainEvent,
     );
-    if (!readJournal(db))
-      db.sqlite.exec(
-        'ALTER TABLE __taskindex_migrations ADD COLUMN sha256 TEXT',
-      );
-    const applied = readJournal(db)!;
-    // Verify the whole applied chain before touching anything.
-    const backfill: JournalRow[] = [];
-    for (const row of applied) {
-      const file = bundled.find((m) => m.name === row.name);
-      if (!file)
-        fail(
-          'unavailable',
-          `В базе есть неизвестная этому образу миграция ${row.name}.`,
-        );
-      if (row.sha256 === null) backfill.push(row);
-      else if (row.sha256 !== file.sha256) changedMigration(row.name);
-    }
-    // Baseline for journals written before checksums existed: trust the
-    // bundled file once and say so in the log.
-    for (const row of backfill) {
-      db.sqlite
-        .prepare('UPDATE __taskindex_migrations SET sha256=? WHERE name=?')
-        .run(bundled.find((m) => m.name === row.name)!.sha256, row.name);
-      logger.warn({ event: 'migration_checksum_backfilled', name: row.name });
-    }
-    for (const file of bundled) {
-      if (applied.some((row) => row.name === file.name)) continue;
-      db.sqlite.exec(readFileSync(resolve(dir, file.name), 'utf8'));
-      db.sqlite
-        .prepare(
-          'INSERT INTO __taskindex_migrations(name, sha256) VALUES(?, ?)',
-        )
-        .run(file.name, file.sha256);
-    }
-    if (!getSetting(db, 'generation'))
-      setSetting(db, 'generation', randomUUID());
-    if (!getSetting(db, 'timezone'))
-      setSetting(db, 'timezone', options.timezone ?? 'Europe/Moscow');
-    if (getSetting(db, 'schema_version') !== String(version))
-      setSetting(db, 'schema_version', String(version));
-  });
 }
-export const initializeDatabase = migrate;
-// The schema matches the image only when the applied chain has exactly the
-// bundled names with the bundled checksums; a journal without checksums must
-// go through `migrate` first (baseline backfill).
-export function assertSchema(db: DatabaseHandle, migrationsDir?: string) {
-  const bundled = bundledMigrations(migrationsDirectory(migrationsDir));
-  const mismatch = () =>
-    fail(
-      'unavailable',
-      'Схема базы не соответствует образу. Запустите миграции подходящим образом.',
-    );
-  const applied = readJournal(db) ?? mismatch();
-  for (const row of applied) {
-    const file = bundled.find((m) => m.name === row.name);
-    if (!file || row.sha256 === null) mismatch();
-    if (row.sha256 !== file!.sha256) changedMigration(row.name);
-  }
-  if (
-    applied.length !== bundled.length ||
-    getSetting(db, 'schema_version') !== String(bundled.length)
-  )
-    mismatch();
+// The result as clients see it: a success stored without its events gets them
+// back from the journal, a row of the older format keeps its own copy.
+export function withEvents(
+  result: StoredResult,
+  events: DomainEvent[],
+): OperationResponse {
+  if (!result.ok) return result;
+  return result.events ? (result as OperationSuccess) : { ...result, events };
 }
-export function generation(db: DatabaseHandle) {
-  return (
-    getSetting(db, 'generation') ??
-    fail('unavailable', 'База не инициализирована.')
-  );
-}
-export function latestSeq(db: DatabaseHandle): number {
-  return (
-    db.sqlite.prepare('SELECT COALESCE(MAX(seq),0) AS n FROM events').get() as {
-      n: number;
-    }
-  ).n;
-}
-// Position of the last stored operation in the journal (0 when empty).
-export function latestOperationSeq(db: DatabaseHandle): number {
-  return (
-    db.sqlite
-      .prepare('SELECT COALESCE(MAX(operation_seq),0) AS n FROM operations')
-      .get() as { n: number }
-  ).n;
+export function withoutEvents(result: OperationResponse): StoredResult {
+  if (!result.ok) return result;
+  const { events: _events, ...rest } = result;
+  return rest;
 }
 export function readState(db: DatabaseHandle): WorkspaceState {
   const projects = db.orm
@@ -354,39 +191,45 @@ export function writeState(
 export function readOperations(
   db: DatabaseHandle,
 ): (StoredOperation & { operationSeq: number; commandHash: string })[] {
-  return db.orm
+  const rows = db.orm
     .select()
     .from(schema.operations)
     .orderBy(asc(schema.operations.operationSeq))
-    .all()
-    .map((o) => {
-      const result = o.result;
-      const ev = result.ok ? result.events : [];
-      const ids = [
-        ...new Set(
-          ev.flatMap((e) =>
-            e.entityKind === 'task' ? [e.entityId] : e.taskId ? [e.taskId] : [],
-          ),
+    .all();
+  // One scan of the journal, grouped by operation, instead of parsing the
+  // events out of every stored result.
+  const journal = rows.some((o) => o.result.ok && !o.result.events)
+    ? Map.groupBy(readEvents(db), (e) => e.operationId)
+    : new Map<string, DomainEvent[]>();
+  return rows.map((o) => {
+    const result = withEvents(o.result, journal.get(o.id) ?? []);
+    const ev = result.ok ? result.events : [];
+    const ids = [
+      ...new Set(
+        ev.flatMap((e) =>
+          e.entityKind === 'task' ? [e.entityId] : e.taskId ? [e.taskId] : [],
         ),
-      ];
-      const titles = ids
-        .slice(0, 3)
-        .map(
-          (id) =>
-            db.orm
-              .select({ title: schema.tasks.title })
-              .from(schema.tasks)
-              .where(eq(schema.tasks.id, id))
-              .get()?.title ?? id,
-        );
-      return {
-        ...o,
-        ok: result.ok,
-        ...(!result.ok
-          ? { errorCode: result.code, errorMessage: result.message }
-          : {}),
-        taskCount: ids.length,
-        titles,
-      };
-    });
+      ),
+    ];
+    const titles = ids
+      .slice(0, 3)
+      .map(
+        (id) =>
+          db.orm
+            .select({ title: schema.tasks.title })
+            .from(schema.tasks)
+            .where(eq(schema.tasks.id, id))
+            .get()?.title ?? id,
+      );
+    return {
+      ...o,
+      result,
+      ok: result.ok,
+      ...(!result.ok
+        ? { errorCode: result.code, errorMessage: result.message }
+        : {}),
+      taskCount: ids.length,
+      titles,
+    };
+  });
 }

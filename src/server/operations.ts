@@ -19,6 +19,9 @@ import type {
 import type { DatabaseHandle } from './db.js';
 import {
   withWrite,
+  withEvents,
+  withoutEvents,
+  readEventsForOperation,
   generation,
   latestOperationSeq,
   latestSeq,
@@ -66,7 +69,9 @@ export function executeOperation(
         );
       return {
         status: old.status,
-        body: old.result,
+        // A success stored without its events (Ж1) gets them back from the
+        // journal, so the repeat answers exactly the first envelope.
+        body: withEvents(old.result, readEventsForOperation(db, old.id)),
         freshEvents: [],
         freshOperation: false,
       };
@@ -173,7 +178,13 @@ export function executeOperation(
         db.orm.insert(schema.events).values(event).run();
       db.orm
         .insert(schema.operations)
-        .values({ ...stored, status: 200, result: body, firstSeq, lastSeq })
+        .values({
+          ...stored,
+          status: 200,
+          result: withoutEvents(body),
+          firstSeq,
+          lastSeq,
+        })
         .run();
     }
     return {

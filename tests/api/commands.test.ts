@@ -17,7 +17,11 @@ import {
 import { applyEvent } from '../../src/shared/commands.js';
 import { snapshotSchema } from '../../src/shared/domain-schemas.js';
 import { defaultAppearance } from '../../src/shared/domain-schemas.js';
-import type { Task, WorkspaceState } from '../../src/shared/model.js';
+import type {
+  OperationSuccess,
+  Task,
+  WorkspaceState,
+} from '../../src/shared/model.js';
 const cleanups: (() => void)[] = [];
 function setup(mode: 'held' | 'open' = 'open') {
   const f = fixture(mode);
@@ -717,6 +721,72 @@ describe('comments, snapshots, export and stream', () => {
     expect(projection).toEqual(f.state());
     const response = await f.app.request('/api/snapshot');
     expect(snapshotSchema.safeParse(await response.json()).success).toBe(true);
+  });
+  // Ж1 (plan 09, step 6): the journal is the only copy of the events. The
+  // stored result keeps everything else, so reads and repeats look the same.
+  it('stores an operation result without its events and rebuilds them on read', async () => {
+    const f = setup();
+    const note = 'з'.repeat(1000);
+    const created = success(
+      await f.post(
+        {
+          command: 'task.create',
+          payload: { id: 'big', area: 'agency', title: 'Заметка', note },
+        },
+        { id: 'op-big' },
+      ),
+    );
+    const row = f.db.sqlite
+      .prepare(
+        "SELECT json_extract(result, '$.events') AS e, LENGTH(result) AS n FROM operations WHERE id=?",
+      )
+      .get('op-big') as { e: string | null; n: number };
+    expect(row.e).toBe(null);
+    // The plan expected under 500 bytes; a task.create result also carries the
+    // record and the changes, so the note stays there twice out of three
+    // copies. What the step removes is the third one, the journal copy.
+    expect(row.n).toBeLessThan(JSON.stringify(created).length * 0.75);
+    expect(row.n).toBeLessThan(4000);
+    const stored = (await (
+      await f.app.request('/api/operations/op-big')
+    ).json()) as { result: OperationSuccess };
+    expect(stored.result.events).toHaveLength(1);
+    expect(stored.result.events[0]!.changes.note!.to).toBe(note);
+    expect(stored.result).toEqual(created);
+    const repeat = await f.post(
+      {
+        command: 'task.create',
+        payload: { id: 'big', area: 'agency', title: 'Заметка', note },
+      },
+      { id: 'op-big' },
+    );
+    expect(repeat.body).toEqual(created);
+  });
+  it('reads an operation written before the events left the result', async () => {
+    const f = setup();
+    const created = success(
+      await f.post(
+        {
+          command: 'task.create',
+          payload: { id: 'old', area: 'agency', title: 'Старая' },
+        },
+        { id: 'op-old' },
+      ),
+    );
+    // The row a previous version wrote: the events inside the result.
+    f.db.sqlite
+      .prepare('UPDATE operations SET result=? WHERE id=?')
+      .run(JSON.stringify(created), 'op-old');
+    const stored = (await (
+      await f.app.request('/api/operations/op-old')
+    ).json()) as {
+      result: OperationSuccess;
+      taskCount: number;
+      titles: string[];
+    };
+    expect(stored.result).toEqual(created);
+    expect(stored.taskCount).toBe(1);
+    expect(stored.titles).toEqual(['Старая']);
   });
   it('roundtrips complete data and changes generation without author credentials', async () => {
     const f = setup();

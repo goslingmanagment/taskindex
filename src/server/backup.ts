@@ -316,6 +316,9 @@ export function importWorkspace(
       errorMessage: _errorMessage,
       ...o
     } of data.operations)
+      // Imported rows keep the result the export carried, events and all:
+      // rebuilding them here would stamp the new generation of the restore on
+      // history that was written under the old one (Ж1: old rows read as is).
       db.orm.insert(schema.operations).values(o).run();
     db.sqlite.prepare("DELETE FROM sqlite_sequence WHERE name='events'").run();
     db.sqlite
