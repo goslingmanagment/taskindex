@@ -24,15 +24,55 @@ TASKINDEX_IMAGE=taskindex:v2-drill bash deploy/local-drill.sh --skip-build
 Drill создаёт отдельный проект и named volume с уникальными именами. Host-порты
 не публикуются. Тестовые пароль и API-ключ не используются вне этого окружения;
 ключ создаётся в файле volume с mode 0600 и не печатается. Последовательность:
-миграции → владелец/агент/ключ → held/open → команда настоящего CLI → restart
-того же deployment → подтверждённая реплика → backup → восстановление Litestream
-по точному TXID → полное сравнение экспортов → физическое восстановление с новым
-generation и отдельным prefix → команда → чтение новой реплики. В кандидат намеренно
-вносится несовместимая схема; тот же `rollback.sh`, который вызывает deploy.sh,
-восстанавливает прежний образ и финальную копию. Повтор rollback после открытия
-записи должен отказать до любых изменений. Копии и volume
-не удаляются; сервисы останавливаются. В конце печатаются имена сохранённых
+миграции → владелец/агент/ключ → снимок релиза и `current.json` → held/open →
+команда настоящего CLI → restart того же deployment → подтверждённая реплика →
+backup → восстановление Litestream по точному TXID → полное сравнение экспортов →
+физическое восстановление с новым generation и отдельным prefix → команда → чтение
+новой реплики. В кандидат намеренно вносится несовместимая схема; тот же
+`rollback.sh`, который вызывает deploy.sh, запускается из снимка релиза и
+восстанавливает прежний образ, конфигурацию и финальную копию. Повтор rollback
+после открытия записи должен отказать до любых изменений. Копии и volume не
+удаляются; сервисы останавливаются. В конце печатаются имена сохранённых
 артефактов. Это проверка локального file backend Litestream, не доступности S3.
+
+Все пробы `/health` идут через `deploy/health.mjs` внутри образа (та же проба —
+healthcheck compose, `wait_health` в `common.sh`, `deploy.sh`, `rollback.sh`);
+программы drill лежат в `deploy/drill/*.mjs` и монтируются в контейнер
+read-only, образ ради них не пересобирается. Статический слой — `npm run
+lint:shell` (`bash -n`, shellcheck при наличии, предел 120 символов в строке,
+`tsc -p tsconfig.deploy.json` и oxlint для `deploy/**/*.mjs`); он входит в
+`npm run check`.
+
+### Испытание настоящего `deploy.sh`
+
+```sh
+bash deploy/drill/deploy-drill.sh            # ~6–8 минут; на macOS сам заворачивается в Linux-контейнер
+bash deploy/drill/deploy-drill.sh --only plan,before-stop
+```
+
+Harness (TI-017) собирает из текущего чекаута одноразовый git-репозиторий с тремя
+релизами (A; B = `compose.yml` с `TASKINDEX_RELEASE_MARKER: B`; C = маркер C),
+строит образы как CI (метка `org.opencontainers.image.revision` = commit),
+ставит релиз A через `deploy/bootstrap.sh`, создаёт задачу через CLI и прогоняет
+настоящий `deploy/deploy.sh` по матрице: `guard` (`TASKINDEX_FAIL_AT` вне
+изолированного проекта отвергается до любых действий), `image-missing` и
+`image-label` (отказ до `dc stop`), `lock-held`, `plan` (с Docker и без),
+`before-stop`, `after-migrate`, `health` (после каждого снова работает A со своей
+конфигурацией и образом, `current.json` указывает на снимок A, чекаут возвращён
+на ветку), `deploy` (A→B без инъекции: B с маркером, снимок `releases/<B>/` из
+пяти файлов с верными sha256), `after-open` (B→C: stderr содержит `Automatic
+database rollback is forbidden`, работает C, запись открыта, `current.json`
+в `opening`, задачи на месте, чекаут остаётся на C, новая задача принимается).
+Алгоритм деплоя в harness не дублируется: он только наблюдает контейнеры,
+`current.json`, чекаут и данные. Стенд и volume не удаляются; команда удаления
+по точным именам печатается в итоговом JSON.
+
+`deploy.sh` требует Linux, поэтому на macOS harness запускает себя внутри
+контейнера `deploy/drill/Dockerfile.tools` (`docker:cli` + bash/jq/curl; первая
+сборка ставит пакеты Alpine) с `docker.sock` хоста; чекаут и стенд
+(`/tmp/taskindex-deploy-drill/run-<id>/`) монтируются по тем же абсолютным путям,
+что и на хосте, иначе bind-mount compose и build context не совпали бы. Реальная
+проверка `uname` в `deploy.sh` при этом не подменяется.
 
 ## Первая установка на VPS
 
@@ -45,35 +85,51 @@ Better Auth использует `X-Real-IP`, который Nginx переза�
 и локальный порт хоста; клиентский `X-Forwarded-For` не определяет его IP.
 
 1. Создать защищённый env-файл по `.env.example`. `BETTER_AUTH_SECRET` — постоянный
-   секрет установки; ротация не является частью обычного деплоя. Указать
-   `TASKINDEX_IMAGE=taskindex:<commit>`, `TASKINDEX_BUILD=<commit>` и уникальный
-   `TASKINDEX_DEPLOYMENT=<attempt-id>`.
-2. Выполнить `docker compose -f deploy/compose.yml build app`, затем
-   `docker compose -f deploy/compose.yml run --rm --no-deps app taskindex-admin migrate`
-   под этим окружением. Миграции лежат только в `drizzle/v2`.
-3. Передать пароль владельца через stdin, например вывод `op read` в
-   `docker compose -f deploy/compose.yml run --rm --no-deps -T app taskindex-admin create-owner --email ADDRESS`.
-   Пароль никогда не передаётся флагом. Через admin создать агента и ключ:
-   `agent create --id claude-mac --label 'Клод на маке'`, затем
-   `agent-key create --agent claude-mac --scope write --out /data/claude-key.json`.
-   Новый ключ сохраняется в файл 0600; в stdout только id и путь. Перенести его
-   в 1Password доверенным локальным способом; файлы с секретами не коммитить.
-   Подробнее — раздел «Ключи агентов» ниже.
-4. `docker compose -f deploy/compose.yml up -d app litestream`. Проверить
-   `curl --fail http://127.0.0.1:3100/health`: `ok`, нужные build/schemaVersion,
-   `dbWritable:true`, `writes:held`. Проверить реплику командой
-   `docker compose -f deploy/compose.yml exec -T litestream litestream sync -wait -json -socket /data/litestream.sock /data/taskindex.db`:
-   `replica_txid` должен присутствовать и совпадать с `txid`.
-5. Получить TLS-сертификат через certbot. В `nginx/taskindex.conf` заменить
+   секрет установки; ротация не является частью обычного деплоя. `TASKINDEX_IMAGE`,
+   `TASKINDEX_BUILD`, `TASKINDEX_DEPLOYMENT` нужны compose только до первого
+   `current.json`; `bootstrap.sh` выставляет их сам.
+2. Получить образ релиза из CI (раздел «Гейт релиза и образ из CI»): на VPS
+   `git fetch && git checkout <commit>` (чекаут должен быть на том же коммите,
+   что собран), перенести артефакт `taskindex-<commit>.tar.gz` и выполнить
+   `docker load -i taskindex-<commit>.tar.gz`. `bootstrap.sh` отказывает, если
+   метка `org.opencontainers.image.revision` образа не равна коммиту чекаута.
+3. Установить одной командой; пароль владельца — через stdin (например, вывод
+   `op read`), никогда флагом:
+
+   ```sh
+   op read 'op://VAULT/ITEM/owner-password' | op run --env-file=/protected/taskindex.env -- \
+     bash deploy/bootstrap.sh --image taskindex:<commit> --owner-email ADDRESS \
+       --agent claude-mac --label 'Клод на маке' --scope write --out /data/claude-key.json
+   ```
+
+   Скрипт повторяет прежние ручные шаги с guard'ами `deploy.sh`: проверка
+   инструментов и env (`dc config --quiet`), отказ при работающем `app`, при уже
+   существующем `current.json` и при базе в volume (`--existing-database` снимает
+   последний запрет), проверка метки образа, `migrate` (миграции только в
+   `drizzle/v2`; `TIMEZONE` читается только здесь), `create-owner`, агент и ключ
+   по флагам (ключ — файл 0600 в volume, в stdout только id и путь; перенести в
+   1Password доверенным локальным способом, файлы с секретами не коммитить, см.
+   «Ключи агентов»), снимок релиза `deploy/.runtime/releases/<deployment>/` и
+   `current.json`, `up -d app litestream`, `wait_health held`, подтверждённая
+   реплика (`replica_txid == txid`). Запись остаётся закрытой (`writes:held`) до
+   шага 5, если не передан `--open-writes`. В конце печатается JSON с `next`.
+   Проверить `curl --fail http://127.0.0.1:3100/health`: `ok`, build = commit,
+   `schemaVersion`, `dbWritable:true`, `writes:held`.
+4. Получить TLS-сертификат через certbot. В `nginx/taskindex.conf` заменить
    `TASKINDEX_DOMAIN`, установить конфигурацию на хост, проверить `nginx -t` и
    применить её. Для первого certbot HTTP challenge сначала доступен только
    HTTP server block; TLS block включать после появления сертификата. Проверить
    обновление сертификата через настроенный timer certbot. Что делает блок 443
    и как это проверить, — в разделе «Nginx: публичная поверхность» ниже.
-6. Открыть запись командой `docker compose -f deploy/compose.yml exec -T app taskindex-admin open-writes`.
-   Проверить `/health` с `writes:open`, вход по паролю, регистрацию passkey и вход
-   по нему на телефоне. Выполнить тестовый агентский цикл в отдельном окружении
-   из `docs/acceptance/agent-cycle.md`; тестовые задачи в рабочую базу не писать.
+5. Открыть запись: `op run --env-file=... -- bash deploy/compose.sh exec -T app taskindex-admin open-writes`
+   (или сразу `bootstrap.sh --open-writes`). Проверить `/health` с `writes:open`,
+   вход по паролю, регистрацию passkey и вход по нему на телефоне. Выполнить
+   тестовый агентский цикл в отдельном окружении из
+   `docs/acceptance/agent-cycle.md`; тестовые задачи в рабочую базу не писать.
+
+Дальше состояние установки живёт в `deploy/.runtime` (`current.json`, снимки
+релизов); все следующие релизы — только через `deploy.sh`, ручной
+`docker compose` с env-файлом больше не нужен.
 
 `TASKINDEX_DEPLOYMENT` относится к попытке деплоя, не только к git commit.
 `open-writes` сохраняет разрешённый id в базе. Перезапуск того же контейнера
@@ -163,43 +219,113 @@ curl -sI -H 'Accept-Encoding: gzip' https://D/assets/<js> | grep -i content-enco
 сертификатом: `nginx -t` успешен; снаружи `/health` → 403, `/` → HTTP/2 с HSTS и
 `server: nginx`; изнутри контейнера `/health` проходит к upstream.
 
+## Гейт релиза и образ из CI
+
+Релиз проходит через `.github/workflows/ci.yml` (решение владельца 2026-09-10,
+TI-016/TI-068): job `check` на Node из `.node-version` выполняет `npm ci`,
+`npm run check` (typecheck, oxlint, oxfmt, `lint:shell`, vitest), `npm run build`,
+`npx playwright install --with-deps chromium`, `npm run e2e`; артефакты тестов
+уходят в `test-results-<sha>`. Job `image` запускается только после зелёного
+`check` и только на `push` в `main` или тег `v*`: собирает `linux/amd64` образ
+из того же `GITHUB_SHA` с `--build-arg BUILD=<sha>` и меткой
+`org.opencontainers.image.revision=<sha>`, проверяет метку и публикует
+`docker save | gzip` как артефакт workflow `taskindex-image-<sha>`
+(`taskindex-<sha>.tar.gz` + `image-id.txt`). Реестра (GHCR) нет, автодеплоя нет:
+образ переносится на VPS вручную.
+
+Локально те же команды в том же порядке выполняет `node scripts/gate.mjs`
+(`--image` дополнительно собирает образ с меткой, `--strict` отказывает на
+незакоммиченном дереве, чтобы чужой зелёный check не засчитывался); отчёт с
+commit, версиями инструментов и id образа пишется в `test-results/gate.json`.
+Аварийный путь без CI — `deploy.sh --build-here` (сборка на VPS с
+предупреждением; гейт при этом пропущен, использовать только когда CI недоступен).
+
 ## Следующий релиз
 
-Запускать на VPS из чистого checkout. Скрипт не делает push, merge или SSH:
+Порядок: CI зелёный на коммите → артефакт образа перенесён на VPS → чекаут на
+том же коммите → `deploy.sh --image`. Скрипт не делает push, merge или SSH:
 
 ```sh
-op run --env-file=/protected/taskindex.env -- bash deploy/deploy.sh COMMIT
+# на рабочей машине: скачать артефакт taskindex-image-<sha> из Actions и перенести
+scp taskindex-<sha>.tar.gz vps:/var/tmp/
+# на VPS, из чистого checkout
+git fetch && git checkout <sha>
+op run --env-file=/protected/taskindex.env -- bash deploy/deploy.sh --plan --image /var/tmp/taskindex-<sha>.tar.gz <sha>
+op run --env-file=/protected/taskindex.env -- bash deploy/deploy.sh --image /var/tmp/taskindex-<sha>.tar.gz <sha>
 ```
 
-Он закрепляет commit и образ, блокирует второй деплой через flock, собирает до
-остановки сервиса, завершает app, подтверждает финальную точку реплики, останавливает
-Litestream, снимает автономную SQLite backup API копию и manifest предыдущего
-образа/схемы/generation/seq/TXID, мигрирует и стартует held. После правильного health
-и подтверждения реплики вызывает open-writes. Перед вызовом открывающей команды
-считается пересечённой граница: потерянный ответ не позволяет считать запись
-закрытой и автоматически возвращать старую базу.
+`--image` принимает архив `docker save` (загружается `docker load`), ссылку на
+реестр или локальный тег; без `--image` должен существовать `taskindex:<sha>`.
+До остановки чего-либо `deploy.sh` проверяет, что метка
+`org.opencontainers.image.revision` образа равна целевому коммиту, и отказывает
+при несовпадении или отсутствии образа. `--plan` печатает JSON плана (repo,
+`previousRef`, `target`, образ и его метка, будущий `deployment`, `runtimeDir`,
+состояние lock, текущий `current.json`, снимок работающего релиза, путь копии,
+фазы, `willChangeCheckout: true`, состояние Docker и работающего контейнера,
+preflight: Linux, чистота чекаута, недостающие инструменты) и выходит, ничего не
+создавая: ни `deploy/.runtime`, ни lock-файла, ни смены чекаута; работает и на
+Mac без Docker (`docker: "unavailable"`).
+
+Сам релиз: flock против второго деплоя, проверка образа, снимок конфигурации
+кандидата, проба работающего релиза (`writes:open`) из образа кандидата по сети
+compose, `git checkout --detach <sha>` (**побочный эффект**: чекаут VPS
+переходит на коммит релиза; при отказе до открытия записи `deploy.sh` возвращает
+его на прежнюю ветку или коммит, при отказе после открытия — оставляет на
+кандидате), остановка app с проверкой кода выхода, подтверждённая точка реплики,
+остановка Litestream, автономная SQLite backup API копия и manifest предыдущего
+образа/конфигурации/схемы/generation/seq/TXID (`deploy/.runtime/last-backup.json`
+и копия рядом с backup в volume), миграция, старт held, `wait_health`,
+подтверждение реплики, open-writes, `wait_health open`. Перед вызовом
+открывающей команды считается пересечённой граница: потерянный ответ не
+позволяет считать запись закрытой и автоматически возвращать старую базу.
+
+### Снимки релизов и `current.json`
+
+Каждый релиз (bootstrap, deploy, откат) записывает снимок своей конфигурации в
+`deploy/.runtime/releases/<deployment>/`: `compose.yml`, `litestream.yml`,
+`common.sh`, `rollback.sh` и `release.json` (`deployment`, `commit`, `image`,
+`imageId`, `createdAt`, `source`, sha256 каждого файла). Секретов в снимке нет —
+значения приходят из `op run`. `current.json` содержит `image`, `imageId`,
+`build`, `deployment`, `replicaUrl`, `status` (`candidate` → `opening` → `open`,
+`recovering` при откате) и `release` — путь к снимку; `dc()` в `common.sh`
+использует compose-файл из этого снимка (`TASKINDEX_COMPOSE_FILE`), поэтому
+`bash deploy/compose.sh ...` и `deploy.sh` всегда работают с конфигурацией именно
+работающего релиза, а не с тем, что сейчас в чекауте. Сборка (`build:`) вынесена в
+`deploy/compose.build.yml` и в снимок не входит.
+
+Откат берёт конфигурацию из снимка предыдущего релиза (`previousRelease` в
+`last-backup.json`): `on_failure` вызывает `rollback.sh` из этого каталога, а тот
+проверяет sha256 файлов по `release.json`, экспортирует `TASKINDEX_COMPOSE_FILE`
+снимка и в конце записывает `current.json` с `release` предыдущего релиза. Если
+снимок отсутствует, откат отказывает до опасных действий, а `compose.sh`
+отказывается подставлять чекаут вместо него. Первый релиз после появления
+снимков (в `current.json` нет `release`): `deploy.sh` снимает копию
+`deploy/` чекаута **до** `git checkout` как конфигурацию работающего релиза с
+`source: "checkout-before-deploy"` и печатает предупреждение; сделать такой релиз
+без изменений `compose.yml`/`litestream.yml`. Установка через `bootstrap.sh` этот
+режим не использует.
 
 Состояние и manifests находятся в `deploy/.runtime`, копии — `/data/backups`.
-Скрипты не удаляют их. Пару «старый образ + копия» хранить минимум неделю.
-Для дальнейшего управления использовать `bash deploy/compose.sh ...`: обёртка
-загружает image/build/deployment/replicaUrl из `deploy/.runtime/current.json` поверх
-статических параметров env-файла. `deploy.sh` использует то же состояние, поэтому
-следующий релиз сохраняет новый prefix репликации после отката. Секретов в этом
-JSON нет. Прямой вызов Compose с устаревшим env-файлом может вернуть прежний образ
-или prefix; его следует использовать только при первоначальной установке.
+Скрипты не удаляют их. Пару «старый образ + копия + снимок» хранить минимум
+неделю. Прямой вызов Compose с устаревшим env-файлом может вернуть прежний образ
+или prefix; использовать `deploy/compose.sh`.
 
 Если миграция или проверка кандидата не удалась до открытия записи, deploy.sh
-вызывает `rollback.sh`: остановка app и Litestream, проверка остальных контейнеров
-на volume, карантин старых файлов, финальная копия + совместимый образ, новый
-generation, новый соседний prefix репликации, held health и восстановление новой
-подтверждённой точки реплики. Только после всех проверок открывается запись.
-Неподдержанный backend, неоднозначный URL или провал проверки оставляет сервисы
-остановленными и возвращает ошибку; старые копии остаются. После open-writes
-автоматический rollback запрещён; граница записывается перед вызовом команды,
-так что потерянный ответ не разрешает возврат базы. Для репетиции предусмотрены
-`TASKINDEX_FAIL_AT=after-migrate` и `TASKINDEX_FAIL_AT=health`; применять только в
-выделенном тестовом окружении. Перед рабочим переключением остаётся обязательный
-drill на выбранном S3 backend: успех локального file backend его не заменяет.
+вызывает `rollback.sh` из снимка: остановка app и Litestream, проверка остальных
+контейнеров на volume, карантин старых файлов, финальная копия + совместимый
+образ + его конфигурация, новый generation, новый соседний prefix репликации,
+held health и восстановление новой подтверждённой точки реплики. Только после
+всех проверок открывается запись. Неподдержанный backend, неоднозначный URL или
+провал проверки оставляет сервисы остановленными и возвращает ошибку; старые
+копии остаются. Отказ до остановки (`before-stop`) ничего не трогает; отказ
+между остановкой и миграцией перезапускает прежний релиз без отката базы. После
+open-writes автоматический rollback запрещён; граница записывается перед вызовом
+команды, так что потерянный ответ не разрешает возврат базы. Для репетиции
+предусмотрены точки `TASKINDEX_FAIL_AT=before-stop|after-migrate|health|after-open`;
+`deploy.sh` принимает переменную только внутри изолированного
+`TASKINDEX_COMPOSE_PROJECT` (harness `deploy/drill/deploy-drill.sh`). Перед
+рабочим переключением остаётся обязательный drill на выбранном S3 backend: успех
+локального file backend его не заменяет.
 
 ## Мониторинг репликации и RPO
 
@@ -251,7 +377,9 @@ Litestream 0.5.12: все три проверки прошли, `idle:true`; ф�
 
 Для физической замены прекратить admin-записи, остановить **app и Litestream**,
 проверить `docker compose ps -a` и отсутствие оставшихся контейнеров/admin-процессов
-с подключениями к тому же volume. Использовать образ из manifest копии.
+с подключениями к тому же volume. Использовать образ из manifest копии и
+конфигурацию из снимка `previousRelease` (`deploy/.runtime/releases/<deployment>/`),
+а не из текущего чекаута.
 
 1. Восстановить нужный TXID в отдельный путь, например средствами Litestream
    `restore -txid HEX -o /data/backups/recovered.db /data/taskindex.db`. Не использовать
