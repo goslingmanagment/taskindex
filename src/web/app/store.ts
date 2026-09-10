@@ -64,6 +64,8 @@ export class WorkspaceStore {
   private catchingUp = false;
   private epoch = 0;
   private refreshFlight: Promise<void> | null = null;
+  // TI-003: a refresh started before the server reported another generation is superseded.
+  private refreshEpoch = 0;
   constructor(
     private transport: Transport = request,
     private storage: StorageLike | undefined = browserStorage(),
@@ -158,6 +160,17 @@ export class WorkspaceStore {
     if (today !== this.state.today) this.publish({ today });
   }
   loadSnapshot(snapshot: Snapshot) {
+    // TI-003: within one generation the confirmed position never moves backwards.
+    // A snapshot older than what live events already delivered is ignored and the
+    // journal is caught up from the current position instead.
+    if (
+      snapshot.generation === this.state.generation &&
+      snapshot.seq < this.state.seq
+    ) {
+      this.publish({ loading: false, error: '' });
+      void this.catchUp();
+      return;
+    }
     this.epoch++;
     this.buffer.clear();
     this.publish({
@@ -172,14 +185,23 @@ export class WorkspaceStore {
       lastEvents: [],
     });
   }
-  refresh = (): Promise<void> => {
-    if (this.refreshFlight) return this.refreshFlight;
-    this.refreshFlight = (async () => {
+  refresh = (): Promise<void> => this.startRefresh(false);
+  /** The server reported another generation: a refresh already in flight belongs to the old one. */
+  resync = (): Promise<void> => this.startRefresh(true);
+  private startRefresh(generationChanged: boolean): Promise<void> {
+    if (generationChanged) this.refreshEpoch++;
+    else if (this.refreshFlight) return this.refreshFlight;
+    const epoch = this.refreshEpoch;
+    const flight = (async () => {
       this.publish({ loading: true, error: '' });
       try {
-        this.loadSnapshot(await this.transport<Snapshot>('/api/snapshot'));
+        const snapshot = await this.transport<Snapshot>('/api/snapshot');
+        if (epoch !== this.refreshEpoch) return;
+        this.loadSnapshot(snapshot);
+        await this.catchUp();
         await this.recover();
       } catch (error) {
+        if (epoch !== this.refreshEpoch) return;
         this.publish({
           loading: false,
           error:
@@ -189,14 +211,16 @@ export class WorkspaceStore {
         });
         throw error;
       } finally {
-        this.refreshFlight = null;
+        // One flight per epoch: a superseded flight leaves the slot to the newer one.
+        if (epoch === this.refreshEpoch) this.refreshFlight = null;
       }
     })();
-    return this.refreshFlight;
-  };
+    this.refreshFlight = flight;
+    return flight;
+  }
   ingest = (events: DomainEvent[]) => {
     if (events.some((e) => e.generation !== this.state.generation)) {
-      void this.refresh().catch(() => {});
+      void this.resync().catch(() => {});
       return;
     }
     for (const event of events)
@@ -262,7 +286,7 @@ export class WorkspaceStore {
         error instanceof ApiError &&
         error.detail.code === 'generation_changed'
       )
-        void this.refresh().catch(() => {});
+        void this.resync().catch(() => {});
       else this.setConnected(false);
     } finally {
       this.catchingUp = false;
@@ -270,7 +294,7 @@ export class WorkspaceStore {
   }
   acknowledge(result: OperationSuccess) {
     if (result.generation !== this.state.generation) {
-      void this.refresh().catch(() => {});
+      void this.resync().catch(() => {});
       return;
     }
     if (
@@ -362,7 +386,7 @@ export class WorkspaceStore {
           if (error instanceof ApiError && !error.detail.retryable) {
             this.finish(id);
             if (error.detail.code === 'generation_changed')
-              void this.refresh().catch(() => {});
+              void this.resync().catch(() => {});
             throw error;
           }
           this.status(id, 'unknown', 'Изменение не подтверждено');

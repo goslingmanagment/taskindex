@@ -31,7 +31,7 @@ export function startSync(store: WorkspaceStore = workspaceStore) {
       stream?.close();
       stream = null;
       identity = '';
-      void store.refresh().catch(() => {});
+      void store.resync().catch(() => {});
     });
     stream.addEventListener('operations', () => store.invalidateOperations());
   };

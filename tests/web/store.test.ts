@@ -315,6 +315,59 @@ describe('ordered operation store', () => {
     expect(store.getSnapshot().pending).toHaveLength(0);
     expect(store.getSnapshot().data.tasks).toHaveLength(1);
   });
+  it('TI-003 a snapshot that arrives after a newer live event never rolls the state back', async () => {
+    // Astra probe refresh-rolls-back-live-event: afterEvent {seq:1} must not become {seq:0}.
+    let release!: (value: Snapshot) => void;
+    const requests: string[] = [];
+    const store = new WorkspaceStore(async <T>(path: string): Promise<T> => {
+      requests.push(path);
+      if (path === '/api/snapshot')
+        return (await new Promise<Snapshot>((r) => {
+          release = r;
+        })) as T;
+      return { ...noopPage, latestSeq: 1 } as T;
+    }, new MemoryStorage());
+    store.loadSnapshot(snapshot());
+    store.setConnected(true);
+    const refreshing = store.refresh();
+    await spin();
+    store.ingest([event(1)]);
+    expect(store.getSnapshot().seq).toBe(1);
+    expect(store.getSnapshot().confirmed.tasks[0].title).toBe('Название 1');
+    release(snapshot());
+    await refreshing;
+    expect(store.getSnapshot().seq).toBe(1);
+    expect(store.getSnapshot().confirmed.tasks[0].title).toBe('Название 1');
+    expect(store.getSnapshot().loading).toBe(false);
+    expect(requests.some((path) => path.includes('since=1'))).toBe(true);
+  });
+  it('TI-003 a refresh answered by the previous generation is discarded after a resync', async () => {
+    const snapshots: ((value: Snapshot) => void)[] = [];
+    const store = new WorkspaceStore(async <T>(path: string): Promise<T> => {
+      if (path === '/api/snapshot')
+        return (await new Promise<Snapshot>((r) => snapshots.push(r))) as T;
+      return { ...noopPage, generation: 'gen2', latestSeq: 5 } as T;
+    }, new MemoryStorage());
+    store.loadSnapshot(snapshot());
+    const stale = store.refresh();
+    await spin();
+    const fresh = store.resync();
+    await spin();
+    expect(snapshots).toHaveLength(2);
+    snapshots[1]({
+      ...snapshot(),
+      generation: 'gen2',
+      seq: 5,
+      tasks: [{ ...task(), title: 'Из новой базы', revision: 3 }],
+    });
+    await fresh;
+    snapshots[0](snapshot());
+    await stale;
+    expect(store.getSnapshot().generation).toBe('gen2');
+    expect(store.getSnapshot().seq).toBe(5);
+    expect(store.getSnapshot().confirmed.tasks[0].title).toBe('Из новой базы');
+    expect(store.getSnapshot().loading).toBe(false);
+  });
   it('keeps optimistic entity identity and timestamps stable on unrelated store publishes', () => {
     const store = new WorkspaceStore(
       <T>() => new Promise<T>(() => {}),
