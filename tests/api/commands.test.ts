@@ -422,6 +422,20 @@ describe('source synchronization and undo', () => {
       ),
     );
     expect(stale.results[0]!.reason).toBe('stale');
+    // An explicit correction of an owner field is available to the agent only
+    // with the confirmation flag in the envelope (TI-027).
+    const unconfirmed = await f.post(
+      {
+        command: 'task.update',
+        payload: { id: t.id, baseRevision: t.revision, note: 'Осознанно' },
+      },
+      { role: 'agent' },
+    );
+    expect(unconfirmed.status).toBe(403);
+    expect(unconfirmed.body).toMatchObject({
+      code: 'forbidden',
+      conflicts: [{ entityKind: 'task', entityId: t.id, fields: ['note'] }],
+    });
     expect(
       (
         await f.post(
@@ -429,7 +443,7 @@ describe('source synchronization and undo', () => {
             command: 'task.update',
             payload: { id: t.id, baseRevision: t.revision, note: 'Осознанно' },
           },
-          { role: 'agent' },
+          { role: 'agent', confirmOwnerFields: true },
         )
       ).status,
     ).toBe(200);

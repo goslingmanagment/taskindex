@@ -180,6 +180,12 @@ export const commandResultSchema = z
       .optional()
       .describe('Пропущенные поля'),
     reason: z.string().optional().describe('Причина полного пропуска'),
+    confirmedOwnerFields: z
+      .array(z.string())
+      .optional()
+      .describe(
+        'Поля из ownerFields, изменённые агентом с confirmOwnerFields: true (след поручения)',
+      ),
   })
   .strict();
 export const operationSuccessSchema = z

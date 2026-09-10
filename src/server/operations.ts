@@ -105,6 +105,7 @@ export function executeOperation(
             actor,
             history: [...history, ...events],
             operationId: envelope.operationId,
+            confirmOwnerFields: envelope.confirmOwnerFields === true,
           });
           state = applied.state;
           results.push(applied.result);

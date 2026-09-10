@@ -25,6 +25,13 @@ export const agent: Actor = {
   kind: 'agent',
   scope: 'write',
 };
+export const otherAgent: Actor = {
+  id: 'agent:other',
+  agentId: 'other',
+  label: 'Другой агент',
+  kind: 'agent',
+  scope: 'write',
+};
 export function fixture(mode: 'held' | 'open' = 'open') {
   const db = openDatabase(':memory:');
   migrate(db);
@@ -44,7 +51,9 @@ export function fixture(mode: 'held' | 'open' = 'open') {
             ? { ...agent, scope: 'tasks' }
             : r.headers.get('x-test-role') === 'read'
               ? { ...agent, scope: 'read' }
-              : owner,
+              : r.headers.get('x-test-role') === 'agent2'
+                ? otherAgent
+                : owner,
   });
   async function post(
     command: Command,
@@ -53,6 +62,7 @@ export function fixture(mode: 'held' | 'open' = 'open') {
       gen?: string;
       role?: string;
       dryRun?: boolean;
+      confirmOwnerFields?: boolean;
     } = {},
   ) {
     const response = await app.request('/api/commands', {
@@ -67,6 +77,9 @@ export function fixture(mode: 'held' | 'open' = 'open') {
         operationId: options.id ?? randomUUID(),
         generation: options.gen ?? generation(db),
         dryRun: options.dryRun ?? false,
+        ...(options.confirmOwnerFields === undefined
+          ? {}
+          : { confirmOwnerFields: options.confirmOwnerFields }),
       }),
     });
     return {
@@ -81,6 +94,7 @@ export function fixture(mode: 'held' | 'open' = 'open') {
       role?: string;
       gen?: string;
       dryRun?: boolean;
+      confirmOwnerFields?: boolean;
     } = {},
   ) {
     const response = await app.request('/api/commands/batch', {
@@ -95,6 +109,9 @@ export function fixture(mode: 'held' | 'open' = 'open') {
         operationId: options.id ?? randomUUID(),
         generation: options.gen ?? generation(db),
         dryRun: options.dryRun ?? false,
+        ...(options.confirmOwnerFields === undefined
+          ? {}
+          : { confirmOwnerFields: options.confirmOwnerFields }),
       }),
     });
     return {

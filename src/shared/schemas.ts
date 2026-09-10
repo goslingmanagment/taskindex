@@ -79,7 +79,12 @@ export const taskFieldsSchema = z
     due: dateSchema.optional(),
     waitingFor: text(240).optional().describe('Чего ждём'),
     followUp: dateSchema.optional(),
-    focus: z.boolean().optional().describe('Выбрано владельцем в Focus'),
+    focus: z
+      .boolean()
+      .optional()
+      .describe(
+        'Выбрано владельцем в Focus; агентам недоступно, в sync пропускается',
+      ),
   })
   .strict();
 const createFields = taskFieldsSchema.extend({
@@ -215,6 +220,12 @@ const envelopeFields = {
   operationId: idSchema,
   generation: idSchema,
   dryRun: z.boolean().optional().describe('Проверить без записи'),
+  confirmOwnerFields: z
+    .boolean()
+    .optional()
+    .describe(
+      'Агент подтверждает поручение владельца: команда меняет поля из ownerFields. Без true такая команда получает 403. Флаг остаётся в результате операции как след, поручение он не доказывает.',
+    ),
 };
 export const commandSchema = z.discriminatedUnion('command', [
   z

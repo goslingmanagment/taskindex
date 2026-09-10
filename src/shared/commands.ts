@@ -30,7 +30,11 @@ export type CommandContext = {
   actor: Actor;
   history?: DomainEvent[];
   operationId?: string;
+  // Envelope flag: the agent acknowledges it is changing owner decisions.
+  confirmOwnerFields?: boolean;
 };
+// Owner-only fields: agents cannot set them directly; task.sync skips them.
+const ownerOnlyFields = ['focus', 'focusPosition'];
 export type CommandApplication = {
   state: WorkspaceState;
   result: CommandResult;
@@ -271,6 +275,15 @@ export function applyCommand(
     );
     if (!target.length)
       fail('not_undoable', 'У операции нет отменяемых событий.');
+    // Authority before semantics: an agent learns nothing about an operation
+    // it may not undo. Owner decisions are never undone by agents; other
+    // agents' operations are, within the key's scope.
+    if (ctx.actor.kind !== 'owner') {
+      if (target.some((e) => e.actorId === 'owner'))
+        fail('forbidden', 'Агент не отменяет операции с событиями владельца.');
+      for (const kind of new Set(target.map((e) => e.entityKind)))
+        requireScope(ctx.actor, kind);
+    }
     if (target.some((e) => e.command === 'project.create'))
       fail('not_undoable', 'Создание проекта не отменяется.');
     const groups = new Map<string, DomainEvent[]>();
@@ -454,6 +467,12 @@ export function applyCommand(
     requireScope(ctx.actor, 'task');
     let payload = p;
     const syncing = name === 'task.sync';
+    const agent = ctx.actor.kind !== 'owner';
+    if (agent && !syncing) {
+      const direct = name === 'task.save' ? object(p.fields ?? {}) : p;
+      if (ownerOnlyFields.some((key) => Object.hasOwn(direct, key)))
+        fail('forbidden', 'Поле focus меняет только владелец.');
+    }
     const origin = (p.origin ?? {}) as {
       system?: string;
       ref?: string;
@@ -474,6 +493,16 @@ export function applyCommand(
         effects,
       };
     if (syncing) payload = p.fields as Record<string, unknown>;
+    // In sync the owner-only fields never reject the call: they are reported
+    // as skipped (reason owner) whatever the owner has or has not touched.
+    const syncSkipped: { field: string; reason: string }[] = [];
+    if (syncing && agent)
+      for (const key of ownerOnlyFields)
+        if (Object.hasOwn(payload, key)) {
+          syncSkipped.push({ field: key, reason: 'owner' });
+          const { [key]: _dropped, ...rest } = payload;
+          payload = rest;
+        }
     if (name === 'task.create' || (syncing && !existing)) {
       if (
         origin.version &&
@@ -522,7 +551,9 @@ export function applyCommand(
       result = {
         record,
         changes: emit('task', undefined, record),
-        ...(syncing ? { applied: Object.keys(payload), skipped: [] } : {}),
+        ...(syncing
+          ? { applied: Object.keys(payload), skipped: syncSkipped }
+          : {}),
       };
     } else {
       const record =
@@ -557,7 +588,7 @@ export function applyCommand(
             result: { record, changes: {}, skipped: 'all', reason },
             effects,
           };
-        const skipped: { field: string; reason: string }[] = [];
+        const skipped = [...syncSkipped];
         for (const [key, value] of Object.entries(payload)) {
           if (
             record.ownerTouchedAt &&
@@ -647,9 +678,37 @@ export function applyCommand(
           [...Object.keys(patch), ...(moves ? ['orderKey'] : [])],
           history,
         );
+      // A direct agent command that changes a field the owner decided on
+      // needs an explicit confirmation in the envelope; the confirmed fields
+      // stay in the result as the trace of that delegation.
+      const confirmed: string[] = [];
+      if (agent && !syncing && record.ownerTouchedAt) {
+        const overridden = Object.keys(patch).filter(
+          (key) =>
+            record.ownerFields.includes(key) &&
+            !equal(patch[key], object(record)[key]),
+        );
+        if (overridden.length && !ctx.confirmOwnerFields)
+          fail(
+            'forbidden',
+            'Поле защищено владельцем: подтвердите поручение флагом confirmOwnerFields: true.',
+            {
+              current: record,
+              conflicts: [
+                { entityKind: 'task', entityId: record.id, fields: overridden },
+              ],
+            },
+          );
+        confirmed.push(...overridden);
+      }
       Object.assign(record, patch);
       if (moves) record.orderKey = order(state, record, position);
-      result = { ...result, record, changes: emit('task', before, record) };
+      result = {
+        ...result,
+        record,
+        changes: emit('task', before, record),
+        ...(confirmed.length ? { confirmedOwnerFields: confirmed } : {}),
+      };
     }
   }
   assertInvariants(state);
