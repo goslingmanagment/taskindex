@@ -143,6 +143,34 @@ describe('--all walks every page and restarts after a cursor conflict (TI-037)',
     });
   });
 
+  it('forwards a keyset cursor of the server (v: 2) verbatim, without re-encoding it', async () => {
+    // The CLI never parses a cursor: the server's base64url of
+    // {v:2,generation,query,key} has to reach the next request unchanged.
+    const cursor = Buffer.from(
+      JSON.stringify({
+        v: 2,
+        generation: 'g1',
+        query: 'tasks:',
+        key: { orderKey: 'm', id: 'a' },
+      }),
+    ).toString('base64url');
+    const result = await walk([
+      () => page(10, ['a'], cursor),
+      () => page(10, ['b'], null),
+    ]);
+    expect(result.code).toBe(0);
+    expect(result.urls[1]).toBe(
+      `/api/tasks?limit=1&cursor=${cursor}&generation=g1`,
+    );
+    expect(result.output.map((line) => line.items)).toEqual([
+      [{ id: 'a' }],
+      [{ id: 'b' }],
+    ]);
+    expect(
+      result.errors.find((line) => line.warning === 'list_changed_during_walk'),
+    ).toBeUndefined();
+  });
+
   it('does not restart on generation_changed or without --all', async () => {
     const changed = await walk([
       () => page(10, ['a'], 'c1'),

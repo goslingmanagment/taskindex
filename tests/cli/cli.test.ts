@@ -49,6 +49,7 @@ function json(body: unknown, status = 200): Response {
 
 async function setup(
   handler: (url: URL, init?: RequestInit) => Promise<Response> | Response,
+  me: Record<string, unknown> = actor,
 ) {
   const directory = await mkdtemp(join(tmpdir(), 'taskindex-cli-'));
   const env = {
@@ -64,7 +65,7 @@ async function setup(
   ) => {
     const target = requestUrl(url);
     // Identity is fetched once per key and cached in the state directory.
-    return target.pathname === '/api/me' ? json(actor) : handler(target, init);
+    return target.pathname === '/api/me' ? json(me) : handler(target, init);
   }) as typeof fetch;
   return {
     directory,
@@ -647,6 +648,41 @@ describe('CLI durable operations', () => {
     expect(test.output).toHaveLength(2);
     expect(urls[1]?.searchParams.get('cursor')).toBe('opaque');
     expect(urls[1]?.searchParams.get('generation')).toBe('g_first');
+  });
+});
+
+// TI-037, plan 01 step 8(a): the light request before a write is `GET /api/me`
+// — it carries `generation` and `seq`, so no separate /api/generation route was
+// added and the heavy /api/context is only the fallback for an older server.
+describe('поколение конверта берётся из лёгкого запроса (TI-037)', () => {
+  it('запись без --generation спрашивает /api/me, а /api/context не трогает', async () => {
+    const seen: string[] = [];
+    const test = await setup(
+      (url, init) => {
+        seen.push(url.pathname);
+        return json(success(init, 'g_me'));
+      },
+      { ...actor, generation: 'g_me', seq: 12 },
+    );
+    expect(
+      await test.run(['task', 'create', '--area', 'agency', '--title', 'Т']),
+    ).toBe(0);
+    expect(seen).toEqual(['/api/commands']);
+    expect(test.output.at(-1)).toMatchObject({ ok: true, generation: 'g_me' });
+  });
+
+  it('сервер без generation в /api/me: CLI дочитывает /api/context', async () => {
+    const seen: string[] = [];
+    const test = await setup((url, init) => {
+      seen.push(url.pathname);
+      return url.pathname === '/api/context'
+        ? json({ generation: 'g_first' })
+        : json(success(init));
+    });
+    expect(
+      await test.run(['task', 'create', '--area', 'agency', '--title', 'Т']),
+    ).toBe(0);
+    expect(seen).toEqual(['/api/context', '/api/commands']);
   });
 });
 
