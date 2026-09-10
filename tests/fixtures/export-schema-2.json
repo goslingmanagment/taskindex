@@ -1,0 +1,2390 @@
+{
+  "formatVersion": 1,
+  "exportedAt": "2026-09-10T17:53:43.487Z",
+  "generation": "6c816fa5-f0b3-48b5-bc23-09a1a6686e2d",
+  "seq": 10,
+  "settings": {
+    "generation": "6c816fa5-f0b3-48b5-bc23-09a1a6686e2d",
+    "timezone": "Europe/Moscow",
+    "schema_version": "2"
+  },
+  "projects": [
+    {
+      "id": "p1",
+      "area": "agency",
+      "name": "Маркетинг",
+      "description": "",
+      "color": "#112233",
+      "revision": 1,
+      "createdAt": "2026-09-08T12:00:00.000Z",
+      "updatedAt": "2026-09-08T12:00:00.000Z"
+    }
+  ],
+  "tasks": [
+    {
+      "id": "t1",
+      "area": "agency",
+      "projectId": "p1",
+      "title": "Задача (правка)",
+      "status": "todo",
+      "note": "Заметка",
+      "due": null,
+      "waitingFor": "",
+      "followUp": null,
+      "orderKey": "a0",
+      "focus": false,
+      "archived": false,
+      "originSystem": null,
+      "originRef": null,
+      "originUrl": null,
+      "originVersion": null,
+      "createdBy": "owner",
+      "createdByLabel": "Владелец",
+      "ownerTouchedAt": "2026-09-08T12:00:00.000Z",
+      "ownerFields": [
+        "archived",
+        "area",
+        "checklist",
+        "due",
+        "focus",
+        "followUp",
+        "note",
+        "orderKey",
+        "originUrl",
+        "projectId",
+        "status",
+        "title",
+        "waitingFor"
+      ],
+      "revision": 6,
+      "createdAt": "2026-09-08T12:00:00.000Z",
+      "updatedAt": "2026-09-08T12:00:00.000Z",
+      "checklist": [
+        {
+          "id": "s1",
+          "text": "Первый шаг",
+          "done": false
+        },
+        {
+          "id": "s2",
+          "text": "Второй шаг",
+          "done": false
+        }
+      ],
+      "commentCount": 2
+    },
+    {
+      "id": "fb17e4eb-a31b-477f-8ee6-3a9d2d0dc4ec",
+      "area": "development",
+      "projectId": null,
+      "title": "Из источника",
+      "status": "todo",
+      "note": "Версия 1",
+      "due": null,
+      "waitingFor": "",
+      "followUp": null,
+      "orderKey": "a0",
+      "focus": false,
+      "archived": false,
+      "originSystem": "tg",
+      "originRef": "42",
+      "originUrl": "https://t.me/c/42",
+      "originVersion": "1",
+      "createdBy": "agent:test-agent",
+      "createdByLabel": "Тестовый агент",
+      "ownerTouchedAt": null,
+      "ownerFields": [],
+      "revision": 1,
+      "createdAt": "2026-09-08T12:00:00.000Z",
+      "updatedAt": "2026-09-08T12:00:00.000Z",
+      "checklist": [],
+      "commentCount": 0
+    }
+  ],
+  "comments": [
+    {
+      "id": "c1",
+      "taskId": "t1",
+      "actorId": "agent:test-agent",
+      "actorLabel": "Тестовый агент",
+      "text": "Отчёт агента",
+      "revision": 1,
+      "createdAt": "2026-09-08T12:00:00.000Z",
+      "deletedAt": null
+    },
+    {
+      "id": "c2",
+      "taskId": "t1",
+      "actorId": "owner",
+      "actorLabel": "Владелец",
+      "text": "Ответ владельца агенту",
+      "revision": 1,
+      "createdAt": "2026-09-08T12:00:00.000Z",
+      "deletedAt": null
+    }
+  ],
+  "checklistItems": [
+    {
+      "id": "s1",
+      "taskId": "t1",
+      "text": "Первый шаг",
+      "done": false,
+      "position": 0
+    },
+    {
+      "id": "s2",
+      "taskId": "t1",
+      "text": "Второй шаг",
+      "done": false,
+      "position": 1
+    }
+  ],
+  "agents": [
+    {
+      "id": "test-agent",
+      "label": "Тестовый агент",
+      "createdAt": "2026-09-10T17:53:43.460Z",
+      "disabledAt": null
+    }
+  ],
+  "events": [
+    {
+      "seq": 1,
+      "at": "2026-09-08T12:00:00.000Z",
+      "actorId": "owner",
+      "actorLabel": "Владелец",
+      "operationId": "op-01-create",
+      "entityKind": "task",
+      "entityId": "t1",
+      "command": "task.create",
+      "changes": {
+        "id": {
+          "from": null,
+          "to": "t1"
+        },
+        "area": {
+          "from": null,
+          "to": "agency"
+        },
+        "projectId": {
+          "from": null,
+          "to": null
+        },
+        "title": {
+          "from": null,
+          "to": "Задача"
+        },
+        "status": {
+          "from": null,
+          "to": "todo"
+        },
+        "note": {
+          "from": null,
+          "to": ""
+        },
+        "due": {
+          "from": null,
+          "to": null
+        },
+        "waitingFor": {
+          "from": null,
+          "to": ""
+        },
+        "followUp": {
+          "from": null,
+          "to": null
+        },
+        "orderKey": {
+          "from": null,
+          "to": "a0"
+        },
+        "focus": {
+          "from": null,
+          "to": false
+        },
+        "archived": {
+          "from": null,
+          "to": false
+        },
+        "checklist": {
+          "from": null,
+          "to": [
+            {
+              "id": "s1",
+              "text": "Первый шаг",
+              "done": false
+            }
+          ]
+        },
+        "originSystem": {
+          "from": null,
+          "to": null
+        },
+        "originRef": {
+          "from": null,
+          "to": null
+        },
+        "originUrl": {
+          "from": null,
+          "to": null
+        },
+        "originVersion": {
+          "from": null,
+          "to": null
+        },
+        "createdBy": {
+          "from": null,
+          "to": "owner"
+        },
+        "createdByLabel": {
+          "from": null,
+          "to": "Владелец"
+        },
+        "ownerTouchedAt": {
+          "from": null,
+          "to": "2026-09-08T12:00:00.000Z"
+        },
+        "ownerFields": {
+          "from": null,
+          "to": [
+            "archived",
+            "area",
+            "checklist",
+            "due",
+            "focus",
+            "followUp",
+            "note",
+            "orderKey",
+            "originUrl",
+            "projectId",
+            "status",
+            "title",
+            "waitingFor"
+          ]
+        },
+        "createdAt": {
+          "from": null,
+          "to": "2026-09-08T12:00:00.000Z"
+        }
+      },
+      "recordRevision": 1,
+      "firstSeq": 1,
+      "lastSeq": 1,
+      "generation": "6c816fa5-f0b3-48b5-bc23-09a1a6686e2d"
+    },
+    {
+      "seq": 2,
+      "at": "2026-09-08T12:00:00.000Z",
+      "actorId": "owner",
+      "actorLabel": "Владелец",
+      "operationId": "op-02-project",
+      "entityKind": "project",
+      "entityId": "p1",
+      "command": "project.create",
+      "changes": {
+        "id": {
+          "from": null,
+          "to": "p1"
+        },
+        "area": {
+          "from": null,
+          "to": "agency"
+        },
+        "name": {
+          "from": null,
+          "to": "Маркетинг"
+        },
+        "color": {
+          "from": null,
+          "to": "#112233"
+        },
+        "description": {
+          "from": null,
+          "to": ""
+        },
+        "createdAt": {
+          "from": null,
+          "to": "2026-09-08T12:00:00.000Z"
+        }
+      },
+      "recordRevision": 1,
+      "firstSeq": 2,
+      "lastSeq": 2,
+      "generation": "6c816fa5-f0b3-48b5-bc23-09a1a6686e2d"
+    },
+    {
+      "seq": 3,
+      "at": "2026-09-08T12:00:00.000Z",
+      "actorId": "owner",
+      "actorLabel": "Владелец",
+      "operationId": "op-03-edit",
+      "entityKind": "task",
+      "entityId": "t1",
+      "command": "task.update",
+      "changes": {
+        "projectId": {
+          "from": null,
+          "to": "p1"
+        },
+        "title": {
+          "from": "Задача",
+          "to": "Задача (правка)"
+        },
+        "note": {
+          "from": "",
+          "to": "Заметка"
+        }
+      },
+      "recordRevision": 2,
+      "firstSeq": 3,
+      "lastSeq": 3,
+      "generation": "6c816fa5-f0b3-48b5-bc23-09a1a6686e2d"
+    },
+    {
+      "seq": 4,
+      "at": "2026-09-08T12:00:00.000Z",
+      "actorId": "agent:test-agent",
+      "actorLabel": "Тестовый агент",
+      "operationId": "op-04-comment",
+      "entityKind": "comment",
+      "entityId": "c1",
+      "command": "comment.add",
+      "changes": {
+        "id": {
+          "from": null,
+          "to": "c1"
+        },
+        "taskId": {
+          "from": null,
+          "to": "t1"
+        },
+        "actorId": {
+          "from": null,
+          "to": "agent:test-agent"
+        },
+        "actorLabel": {
+          "from": null,
+          "to": "Тестовый агент"
+        },
+        "text": {
+          "from": null,
+          "to": "Отчёт агента"
+        },
+        "createdAt": {
+          "from": null,
+          "to": "2026-09-08T12:00:00.000Z"
+        },
+        "deletedAt": {
+          "from": null,
+          "to": null
+        }
+      },
+      "recordRevision": 1,
+      "firstSeq": 4,
+      "lastSeq": 4,
+      "generation": "6c816fa5-f0b3-48b5-bc23-09a1a6686e2d",
+      "taskId": "t1"
+    },
+    {
+      "seq": 5,
+      "at": "2026-09-08T12:00:00.000Z",
+      "actorId": "owner",
+      "actorLabel": "Владелец",
+      "operationId": "op-05-checklist",
+      "entityKind": "task",
+      "entityId": "t1",
+      "command": "checklist.add",
+      "changes": {
+        "checklist": {
+          "from": [
+            {
+              "id": "s1",
+              "text": "Первый шаг",
+              "done": false
+            }
+          ],
+          "to": [
+            {
+              "id": "s1",
+              "text": "Первый шаг",
+              "done": false
+            },
+            {
+              "id": "s2",
+              "text": "Второй шаг",
+              "done": false
+            }
+          ]
+        }
+      },
+      "recordRevision": 3,
+      "firstSeq": 5,
+      "lastSeq": 5,
+      "generation": "6c816fa5-f0b3-48b5-bc23-09a1a6686e2d"
+    },
+    {
+      "seq": 6,
+      "at": "2026-09-08T12:00:00.000Z",
+      "actorId": "agent:test-agent",
+      "actorLabel": "Тестовый агент",
+      "operationId": "op-06-sync",
+      "entityKind": "task",
+      "entityId": "fb17e4eb-a31b-477f-8ee6-3a9d2d0dc4ec",
+      "command": "task.sync",
+      "changes": {
+        "id": {
+          "from": null,
+          "to": "fb17e4eb-a31b-477f-8ee6-3a9d2d0dc4ec"
+        },
+        "area": {
+          "from": null,
+          "to": "development"
+        },
+        "projectId": {
+          "from": null,
+          "to": null
+        },
+        "title": {
+          "from": null,
+          "to": "Из источника"
+        },
+        "status": {
+          "from": null,
+          "to": "todo"
+        },
+        "note": {
+          "from": null,
+          "to": "Версия 1"
+        },
+        "due": {
+          "from": null,
+          "to": null
+        },
+        "waitingFor": {
+          "from": null,
+          "to": ""
+        },
+        "followUp": {
+          "from": null,
+          "to": null
+        },
+        "orderKey": {
+          "from": null,
+          "to": "a0"
+        },
+        "focus": {
+          "from": null,
+          "to": false
+        },
+        "archived": {
+          "from": null,
+          "to": false
+        },
+        "checklist": {
+          "from": null,
+          "to": []
+        },
+        "originSystem": {
+          "from": null,
+          "to": "tg"
+        },
+        "originRef": {
+          "from": null,
+          "to": "42"
+        },
+        "originUrl": {
+          "from": null,
+          "to": "https://t.me/c/42"
+        },
+        "originVersion": {
+          "from": null,
+          "to": "1"
+        },
+        "createdBy": {
+          "from": null,
+          "to": "agent:test-agent"
+        },
+        "createdByLabel": {
+          "from": null,
+          "to": "Тестовый агент"
+        },
+        "ownerTouchedAt": {
+          "from": null,
+          "to": null
+        },
+        "ownerFields": {
+          "from": null,
+          "to": []
+        },
+        "createdAt": {
+          "from": null,
+          "to": "2026-09-08T12:00:00.000Z"
+        }
+      },
+      "recordRevision": 1,
+      "firstSeq": 6,
+      "lastSeq": 6,
+      "generation": "6c816fa5-f0b3-48b5-bc23-09a1a6686e2d"
+    },
+    {
+      "seq": 7,
+      "at": "2026-09-08T12:00:00.000Z",
+      "actorId": "owner",
+      "actorLabel": "Владелец",
+      "operationId": "op-10-batch",
+      "entityKind": "task",
+      "entityId": "t1",
+      "command": "task.move",
+      "changes": {
+        "status": {
+          "from": "todo",
+          "to": "doing"
+        }
+      },
+      "recordRevision": 4,
+      "firstSeq": 7,
+      "lastSeq": 8,
+      "generation": "6c816fa5-f0b3-48b5-bc23-09a1a6686e2d"
+    },
+    {
+      "seq": 8,
+      "at": "2026-09-08T12:00:00.000Z",
+      "actorId": "owner",
+      "actorLabel": "Владелец",
+      "operationId": "op-10-batch",
+      "entityKind": "task",
+      "entityId": "t1",
+      "command": "checklist.update",
+      "changes": {
+        "checklist": {
+          "from": [
+            {
+              "id": "s1",
+              "text": "Первый шаг",
+              "done": false
+            },
+            {
+              "id": "s2",
+              "text": "Второй шаг",
+              "done": false
+            }
+          ],
+          "to": [
+            {
+              "id": "s1",
+              "text": "Первый шаг",
+              "done": true
+            },
+            {
+              "id": "s2",
+              "text": "Второй шаг",
+              "done": false
+            }
+          ]
+        }
+      },
+      "recordRevision": 5,
+      "firstSeq": 7,
+      "lastSeq": 8,
+      "generation": "6c816fa5-f0b3-48b5-bc23-09a1a6686e2d"
+    },
+    {
+      "seq": 9,
+      "at": "2026-09-08T12:00:00.000Z",
+      "actorId": "owner",
+      "actorLabel": "Владелец",
+      "operationId": "op-11-undo",
+      "entityKind": "task",
+      "entityId": "t1",
+      "command": "undo",
+      "changes": {
+        "status": {
+          "from": "doing",
+          "to": "todo"
+        },
+        "checklist": {
+          "from": [
+            {
+              "id": "s1",
+              "text": "Первый шаг",
+              "done": true
+            },
+            {
+              "id": "s2",
+              "text": "Второй шаг",
+              "done": false
+            }
+          ],
+          "to": [
+            {
+              "id": "s1",
+              "text": "Первый шаг",
+              "done": false
+            },
+            {
+              "id": "s2",
+              "text": "Второй шаг",
+              "done": false
+            }
+          ]
+        }
+      },
+      "recordRevision": 6,
+      "firstSeq": 9,
+      "lastSeq": 9,
+      "generation": "6c816fa5-f0b3-48b5-bc23-09a1a6686e2d"
+    },
+    {
+      "seq": 10,
+      "at": "2026-09-08T12:00:00.000Z",
+      "actorId": "owner",
+      "actorLabel": "Владелец",
+      "operationId": "op-12-owner-comment",
+      "entityKind": "comment",
+      "entityId": "c2",
+      "command": "comment.add",
+      "changes": {
+        "id": {
+          "from": null,
+          "to": "c2"
+        },
+        "taskId": {
+          "from": null,
+          "to": "t1"
+        },
+        "actorId": {
+          "from": null,
+          "to": "owner"
+        },
+        "actorLabel": {
+          "from": null,
+          "to": "Владелец"
+        },
+        "text": {
+          "from": null,
+          "to": "Ответ владельца агенту"
+        },
+        "createdAt": {
+          "from": null,
+          "to": "2026-09-08T12:00:00.000Z"
+        },
+        "deletedAt": {
+          "from": null,
+          "to": null
+        }
+      },
+      "recordRevision": 1,
+      "firstSeq": 10,
+      "lastSeq": 10,
+      "generation": "6c816fa5-f0b3-48b5-bc23-09a1a6686e2d",
+      "taskId": "t1"
+    }
+  ],
+  "operations": [
+    {
+      "id": "op-01-create",
+      "actorId": "owner",
+      "actorLabel": "Владелец",
+      "command": "task.create",
+      "commandHash": "3c09ff5e658177d4f1483ec47dba33aef1ac83b1ff014e5e0c8a364542d9ed2c",
+      "status": 200,
+      "result": {
+        "ok": true,
+        "operationId": "op-01-create",
+        "generation": "6c816fa5-f0b3-48b5-bc23-09a1a6686e2d",
+        "firstSeq": 1,
+        "lastSeq": 1,
+        "results": [
+          {
+            "record": {
+              "id": "t1",
+              "area": "agency",
+              "projectId": null,
+              "title": "Задача",
+              "status": "todo",
+              "note": "",
+              "due": null,
+              "waitingFor": "",
+              "followUp": null,
+              "orderKey": "a0",
+              "focus": false,
+              "archived": false,
+              "checklist": [
+                {
+                  "id": "s1",
+                  "text": "Первый шаг",
+                  "done": false
+                }
+              ],
+              "commentCount": 0,
+              "originSystem": null,
+              "originRef": null,
+              "originUrl": null,
+              "originVersion": null,
+              "createdBy": "owner",
+              "createdByLabel": "Владелец",
+              "ownerTouchedAt": "2026-09-08T12:00:00.000Z",
+              "ownerFields": [
+                "archived",
+                "area",
+                "checklist",
+                "due",
+                "focus",
+                "followUp",
+                "note",
+                "orderKey",
+                "originUrl",
+                "projectId",
+                "status",
+                "title",
+                "waitingFor"
+              ],
+              "revision": 1,
+              "createdAt": "2026-09-08T12:00:00.000Z",
+              "updatedAt": "2026-09-08T12:00:00.000Z"
+            },
+            "changes": {
+              "id": {
+                "from": null,
+                "to": "t1"
+              },
+              "area": {
+                "from": null,
+                "to": "agency"
+              },
+              "projectId": {
+                "from": null,
+                "to": null
+              },
+              "title": {
+                "from": null,
+                "to": "Задача"
+              },
+              "status": {
+                "from": null,
+                "to": "todo"
+              },
+              "note": {
+                "from": null,
+                "to": ""
+              },
+              "due": {
+                "from": null,
+                "to": null
+              },
+              "waitingFor": {
+                "from": null,
+                "to": ""
+              },
+              "followUp": {
+                "from": null,
+                "to": null
+              },
+              "orderKey": {
+                "from": null,
+                "to": "a0"
+              },
+              "focus": {
+                "from": null,
+                "to": false
+              },
+              "archived": {
+                "from": null,
+                "to": false
+              },
+              "checklist": {
+                "from": null,
+                "to": [
+                  {
+                    "id": "s1",
+                    "text": "Первый шаг",
+                    "done": false
+                  }
+                ]
+              },
+              "originSystem": {
+                "from": null,
+                "to": null
+              },
+              "originRef": {
+                "from": null,
+                "to": null
+              },
+              "originUrl": {
+                "from": null,
+                "to": null
+              },
+              "originVersion": {
+                "from": null,
+                "to": null
+              },
+              "createdBy": {
+                "from": null,
+                "to": "owner"
+              },
+              "createdByLabel": {
+                "from": null,
+                "to": "Владелец"
+              },
+              "ownerTouchedAt": {
+                "from": null,
+                "to": "2026-09-08T12:00:00.000Z"
+              },
+              "ownerFields": {
+                "from": null,
+                "to": [
+                  "archived",
+                  "area",
+                  "checklist",
+                  "due",
+                  "focus",
+                  "followUp",
+                  "note",
+                  "orderKey",
+                  "originUrl",
+                  "projectId",
+                  "status",
+                  "title",
+                  "waitingFor"
+                ]
+              },
+              "createdAt": {
+                "from": null,
+                "to": "2026-09-08T12:00:00.000Z"
+              }
+            }
+          }
+        ],
+        "events": [
+          {
+            "entityKind": "task",
+            "entityId": "t1",
+            "command": "task.create",
+            "changes": {
+              "id": {
+                "from": null,
+                "to": "t1"
+              },
+              "area": {
+                "from": null,
+                "to": "agency"
+              },
+              "projectId": {
+                "from": null,
+                "to": null
+              },
+              "title": {
+                "from": null,
+                "to": "Задача"
+              },
+              "status": {
+                "from": null,
+                "to": "todo"
+              },
+              "note": {
+                "from": null,
+                "to": ""
+              },
+              "due": {
+                "from": null,
+                "to": null
+              },
+              "waitingFor": {
+                "from": null,
+                "to": ""
+              },
+              "followUp": {
+                "from": null,
+                "to": null
+              },
+              "orderKey": {
+                "from": null,
+                "to": "a0"
+              },
+              "focus": {
+                "from": null,
+                "to": false
+              },
+              "archived": {
+                "from": null,
+                "to": false
+              },
+              "checklist": {
+                "from": null,
+                "to": [
+                  {
+                    "id": "s1",
+                    "text": "Первый шаг",
+                    "done": false
+                  }
+                ]
+              },
+              "originSystem": {
+                "from": null,
+                "to": null
+              },
+              "originRef": {
+                "from": null,
+                "to": null
+              },
+              "originUrl": {
+                "from": null,
+                "to": null
+              },
+              "originVersion": {
+                "from": null,
+                "to": null
+              },
+              "createdBy": {
+                "from": null,
+                "to": "owner"
+              },
+              "createdByLabel": {
+                "from": null,
+                "to": "Владелец"
+              },
+              "ownerTouchedAt": {
+                "from": null,
+                "to": "2026-09-08T12:00:00.000Z"
+              },
+              "ownerFields": {
+                "from": null,
+                "to": [
+                  "archived",
+                  "area",
+                  "checklist",
+                  "due",
+                  "focus",
+                  "followUp",
+                  "note",
+                  "orderKey",
+                  "originUrl",
+                  "projectId",
+                  "status",
+                  "title",
+                  "waitingFor"
+                ]
+              },
+              "createdAt": {
+                "from": null,
+                "to": "2026-09-08T12:00:00.000Z"
+              }
+            },
+            "recordRevision": 1,
+            "generation": "6c816fa5-f0b3-48b5-bc23-09a1a6686e2d",
+            "seq": 1,
+            "at": "2026-09-08T12:00:00.000Z",
+            "actorId": "owner",
+            "actorLabel": "Владелец",
+            "operationId": "op-01-create",
+            "firstSeq": 1,
+            "lastSeq": 1
+          }
+        ]
+      },
+      "firstSeq": 1,
+      "lastSeq": 1,
+      "createdAt": "2026-09-08T12:00:00.000Z",
+      "ok": true,
+      "taskCount": 1,
+      "titles": [
+        "Задача (правка)"
+      ]
+    },
+    {
+      "id": "op-02-project",
+      "actorId": "owner",
+      "actorLabel": "Владелец",
+      "command": "project.create",
+      "commandHash": "29be5f9e5a723d2a087e1bafc882b28076b09bdae414d4dec24f825e098f0fce",
+      "status": 200,
+      "result": {
+        "ok": true,
+        "operationId": "op-02-project",
+        "generation": "6c816fa5-f0b3-48b5-bc23-09a1a6686e2d",
+        "firstSeq": 2,
+        "lastSeq": 2,
+        "results": [
+          {
+            "record": {
+              "id": "p1",
+              "area": "agency",
+              "name": "Маркетинг",
+              "color": "#112233",
+              "description": "",
+              "revision": 1,
+              "createdAt": "2026-09-08T12:00:00.000Z",
+              "updatedAt": "2026-09-08T12:00:00.000Z"
+            },
+            "changes": {
+              "id": {
+                "from": null,
+                "to": "p1"
+              },
+              "area": {
+                "from": null,
+                "to": "agency"
+              },
+              "name": {
+                "from": null,
+                "to": "Маркетинг"
+              },
+              "color": {
+                "from": null,
+                "to": "#112233"
+              },
+              "description": {
+                "from": null,
+                "to": ""
+              },
+              "createdAt": {
+                "from": null,
+                "to": "2026-09-08T12:00:00.000Z"
+              }
+            }
+          }
+        ],
+        "events": [
+          {
+            "entityKind": "project",
+            "entityId": "p1",
+            "command": "project.create",
+            "changes": {
+              "id": {
+                "from": null,
+                "to": "p1"
+              },
+              "area": {
+                "from": null,
+                "to": "agency"
+              },
+              "name": {
+                "from": null,
+                "to": "Маркетинг"
+              },
+              "color": {
+                "from": null,
+                "to": "#112233"
+              },
+              "description": {
+                "from": null,
+                "to": ""
+              },
+              "createdAt": {
+                "from": null,
+                "to": "2026-09-08T12:00:00.000Z"
+              }
+            },
+            "recordRevision": 1,
+            "generation": "6c816fa5-f0b3-48b5-bc23-09a1a6686e2d",
+            "seq": 2,
+            "at": "2026-09-08T12:00:00.000Z",
+            "actorId": "owner",
+            "actorLabel": "Владелец",
+            "operationId": "op-02-project",
+            "firstSeq": 2,
+            "lastSeq": 2
+          }
+        ]
+      },
+      "firstSeq": 2,
+      "lastSeq": 2,
+      "createdAt": "2026-09-08T12:00:00.000Z",
+      "ok": true,
+      "taskCount": 0,
+      "titles": []
+    },
+    {
+      "id": "op-03-edit",
+      "actorId": "owner",
+      "actorLabel": "Владелец",
+      "command": "task.update",
+      "commandHash": "6e64abc8fc10add0e0f545773b9812c71207cdcdd17f2fa0cb5993249abd366e",
+      "status": 200,
+      "result": {
+        "ok": true,
+        "operationId": "op-03-edit",
+        "generation": "6c816fa5-f0b3-48b5-bc23-09a1a6686e2d",
+        "firstSeq": 3,
+        "lastSeq": 3,
+        "results": [
+          {
+            "record": {
+              "id": "t1",
+              "area": "agency",
+              "projectId": "p1",
+              "title": "Задача (правка)",
+              "status": "todo",
+              "note": "Заметка",
+              "due": null,
+              "waitingFor": "",
+              "followUp": null,
+              "orderKey": "a0",
+              "focus": false,
+              "archived": false,
+              "originSystem": null,
+              "originRef": null,
+              "originUrl": null,
+              "originVersion": null,
+              "createdBy": "owner",
+              "createdByLabel": "Владелец",
+              "ownerTouchedAt": "2026-09-08T12:00:00.000Z",
+              "ownerFields": [
+                "archived",
+                "area",
+                "checklist",
+                "due",
+                "focus",
+                "followUp",
+                "note",
+                "orderKey",
+                "originUrl",
+                "projectId",
+                "status",
+                "title",
+                "waitingFor"
+              ],
+              "revision": 2,
+              "createdAt": "2026-09-08T12:00:00.000Z",
+              "updatedAt": "2026-09-08T12:00:00.000Z",
+              "checklist": [
+                {
+                  "id": "s1",
+                  "text": "Первый шаг",
+                  "done": false
+                }
+              ],
+              "commentCount": 0
+            },
+            "changes": {
+              "projectId": {
+                "from": null,
+                "to": "p1"
+              },
+              "title": {
+                "from": "Задача",
+                "to": "Задача (правка)"
+              },
+              "note": {
+                "from": "",
+                "to": "Заметка"
+              }
+            }
+          }
+        ],
+        "events": [
+          {
+            "entityKind": "task",
+            "entityId": "t1",
+            "command": "task.update",
+            "changes": {
+              "projectId": {
+                "from": null,
+                "to": "p1"
+              },
+              "title": {
+                "from": "Задача",
+                "to": "Задача (правка)"
+              },
+              "note": {
+                "from": "",
+                "to": "Заметка"
+              }
+            },
+            "recordRevision": 2,
+            "generation": "6c816fa5-f0b3-48b5-bc23-09a1a6686e2d",
+            "seq": 3,
+            "at": "2026-09-08T12:00:00.000Z",
+            "actorId": "owner",
+            "actorLabel": "Владелец",
+            "operationId": "op-03-edit",
+            "firstSeq": 3,
+            "lastSeq": 3
+          }
+        ]
+      },
+      "firstSeq": 3,
+      "lastSeq": 3,
+      "createdAt": "2026-09-08T12:00:00.000Z",
+      "ok": true,
+      "taskCount": 1,
+      "titles": [
+        "Задача (правка)"
+      ]
+    },
+    {
+      "id": "op-04-comment",
+      "actorId": "agent:test-agent",
+      "actorLabel": "Тестовый агент",
+      "command": "comment.add",
+      "commandHash": "caa950e7e5f7056f7f8e22dd22e418d2c9ea3f0d5ee810b089d71ef555ee8c51",
+      "status": 200,
+      "result": {
+        "ok": true,
+        "operationId": "op-04-comment",
+        "generation": "6c816fa5-f0b3-48b5-bc23-09a1a6686e2d",
+        "firstSeq": 4,
+        "lastSeq": 4,
+        "results": [
+          {
+            "record": {
+              "id": "c1",
+              "taskId": "t1",
+              "actorId": "agent:test-agent",
+              "actorLabel": "Тестовый агент",
+              "text": "Отчёт агента",
+              "revision": 1,
+              "createdAt": "2026-09-08T12:00:00.000Z",
+              "deletedAt": null
+            },
+            "changes": {
+              "id": {
+                "from": null,
+                "to": "c1"
+              },
+              "taskId": {
+                "from": null,
+                "to": "t1"
+              },
+              "actorId": {
+                "from": null,
+                "to": "agent:test-agent"
+              },
+              "actorLabel": {
+                "from": null,
+                "to": "Тестовый агент"
+              },
+              "text": {
+                "from": null,
+                "to": "Отчёт агента"
+              },
+              "createdAt": {
+                "from": null,
+                "to": "2026-09-08T12:00:00.000Z"
+              },
+              "deletedAt": {
+                "from": null,
+                "to": null
+              }
+            }
+          }
+        ],
+        "events": [
+          {
+            "entityKind": "comment",
+            "entityId": "c1",
+            "taskId": "t1",
+            "command": "comment.add",
+            "changes": {
+              "id": {
+                "from": null,
+                "to": "c1"
+              },
+              "taskId": {
+                "from": null,
+                "to": "t1"
+              },
+              "actorId": {
+                "from": null,
+                "to": "agent:test-agent"
+              },
+              "actorLabel": {
+                "from": null,
+                "to": "Тестовый агент"
+              },
+              "text": {
+                "from": null,
+                "to": "Отчёт агента"
+              },
+              "createdAt": {
+                "from": null,
+                "to": "2026-09-08T12:00:00.000Z"
+              },
+              "deletedAt": {
+                "from": null,
+                "to": null
+              }
+            },
+            "recordRevision": 1,
+            "generation": "6c816fa5-f0b3-48b5-bc23-09a1a6686e2d",
+            "seq": 4,
+            "at": "2026-09-08T12:00:00.000Z",
+            "actorId": "agent:test-agent",
+            "actorLabel": "Тестовый агент",
+            "operationId": "op-04-comment",
+            "firstSeq": 4,
+            "lastSeq": 4
+          }
+        ]
+      },
+      "firstSeq": 4,
+      "lastSeq": 4,
+      "createdAt": "2026-09-08T12:00:00.000Z",
+      "ok": true,
+      "taskCount": 1,
+      "titles": [
+        "Задача (правка)"
+      ]
+    },
+    {
+      "id": "op-05-checklist",
+      "actorId": "owner",
+      "actorLabel": "Владелец",
+      "command": "checklist.add",
+      "commandHash": "e18a09ae23f16ac56e711cdd4ad19f6ea38afa7723672e4cbae90f7c96f99280",
+      "status": 200,
+      "result": {
+        "ok": true,
+        "operationId": "op-05-checklist",
+        "generation": "6c816fa5-f0b3-48b5-bc23-09a1a6686e2d",
+        "firstSeq": 5,
+        "lastSeq": 5,
+        "results": [
+          {
+            "record": {
+              "id": "t1",
+              "area": "agency",
+              "projectId": "p1",
+              "title": "Задача (правка)",
+              "status": "todo",
+              "note": "Заметка",
+              "due": null,
+              "waitingFor": "",
+              "followUp": null,
+              "orderKey": "a0",
+              "focus": false,
+              "archived": false,
+              "originSystem": null,
+              "originRef": null,
+              "originUrl": null,
+              "originVersion": null,
+              "createdBy": "owner",
+              "createdByLabel": "Владелец",
+              "ownerTouchedAt": "2026-09-08T12:00:00.000Z",
+              "ownerFields": [
+                "archived",
+                "area",
+                "checklist",
+                "due",
+                "focus",
+                "followUp",
+                "note",
+                "orderKey",
+                "originUrl",
+                "projectId",
+                "status",
+                "title",
+                "waitingFor"
+              ],
+              "revision": 3,
+              "createdAt": "2026-09-08T12:00:00.000Z",
+              "updatedAt": "2026-09-08T12:00:00.000Z",
+              "checklist": [
+                {
+                  "id": "s1",
+                  "text": "Первый шаг",
+                  "done": false
+                },
+                {
+                  "id": "s2",
+                  "text": "Второй шаг",
+                  "done": false
+                }
+              ],
+              "commentCount": 1
+            },
+            "changes": {
+              "checklist": {
+                "from": [
+                  {
+                    "id": "s1",
+                    "text": "Первый шаг",
+                    "done": false
+                  }
+                ],
+                "to": [
+                  {
+                    "id": "s1",
+                    "text": "Первый шаг",
+                    "done": false
+                  },
+                  {
+                    "id": "s2",
+                    "text": "Второй шаг",
+                    "done": false
+                  }
+                ]
+              }
+            }
+          }
+        ],
+        "events": [
+          {
+            "entityKind": "task",
+            "entityId": "t1",
+            "command": "checklist.add",
+            "changes": {
+              "checklist": {
+                "from": [
+                  {
+                    "id": "s1",
+                    "text": "Первый шаг",
+                    "done": false
+                  }
+                ],
+                "to": [
+                  {
+                    "id": "s1",
+                    "text": "Первый шаг",
+                    "done": false
+                  },
+                  {
+                    "id": "s2",
+                    "text": "Второй шаг",
+                    "done": false
+                  }
+                ]
+              }
+            },
+            "recordRevision": 3,
+            "generation": "6c816fa5-f0b3-48b5-bc23-09a1a6686e2d",
+            "seq": 5,
+            "at": "2026-09-08T12:00:00.000Z",
+            "actorId": "owner",
+            "actorLabel": "Владелец",
+            "operationId": "op-05-checklist",
+            "firstSeq": 5,
+            "lastSeq": 5
+          }
+        ]
+      },
+      "firstSeq": 5,
+      "lastSeq": 5,
+      "createdAt": "2026-09-08T12:00:00.000Z",
+      "ok": true,
+      "taskCount": 1,
+      "titles": [
+        "Задача (правка)"
+      ]
+    },
+    {
+      "id": "op-06-sync",
+      "actorId": "agent:test-agent",
+      "actorLabel": "Тестовый агент",
+      "command": "task.sync",
+      "commandHash": "1d8a29d2722bbecafbc785cd5533583d57d8dd19d44c9f2845c02023b0dc77cc",
+      "status": 200,
+      "result": {
+        "ok": true,
+        "operationId": "op-06-sync",
+        "generation": "6c816fa5-f0b3-48b5-bc23-09a1a6686e2d",
+        "firstSeq": 6,
+        "lastSeq": 6,
+        "results": [
+          {
+            "record": {
+              "id": "fb17e4eb-a31b-477f-8ee6-3a9d2d0dc4ec",
+              "area": "development",
+              "projectId": null,
+              "title": "Из источника",
+              "status": "todo",
+              "note": "Версия 1",
+              "due": null,
+              "waitingFor": "",
+              "followUp": null,
+              "orderKey": "a0",
+              "focus": false,
+              "archived": false,
+              "checklist": [],
+              "commentCount": 0,
+              "originSystem": "tg",
+              "originRef": "42",
+              "originUrl": "https://t.me/c/42",
+              "originVersion": "1",
+              "createdBy": "agent:test-agent",
+              "createdByLabel": "Тестовый агент",
+              "ownerTouchedAt": null,
+              "ownerFields": [],
+              "revision": 1,
+              "createdAt": "2026-09-08T12:00:00.000Z",
+              "updatedAt": "2026-09-08T12:00:00.000Z"
+            },
+            "changes": {
+              "id": {
+                "from": null,
+                "to": "fb17e4eb-a31b-477f-8ee6-3a9d2d0dc4ec"
+              },
+              "area": {
+                "from": null,
+                "to": "development"
+              },
+              "projectId": {
+                "from": null,
+                "to": null
+              },
+              "title": {
+                "from": null,
+                "to": "Из источника"
+              },
+              "status": {
+                "from": null,
+                "to": "todo"
+              },
+              "note": {
+                "from": null,
+                "to": "Версия 1"
+              },
+              "due": {
+                "from": null,
+                "to": null
+              },
+              "waitingFor": {
+                "from": null,
+                "to": ""
+              },
+              "followUp": {
+                "from": null,
+                "to": null
+              },
+              "orderKey": {
+                "from": null,
+                "to": "a0"
+              },
+              "focus": {
+                "from": null,
+                "to": false
+              },
+              "archived": {
+                "from": null,
+                "to": false
+              },
+              "checklist": {
+                "from": null,
+                "to": []
+              },
+              "originSystem": {
+                "from": null,
+                "to": "tg"
+              },
+              "originRef": {
+                "from": null,
+                "to": "42"
+              },
+              "originUrl": {
+                "from": null,
+                "to": "https://t.me/c/42"
+              },
+              "originVersion": {
+                "from": null,
+                "to": "1"
+              },
+              "createdBy": {
+                "from": null,
+                "to": "agent:test-agent"
+              },
+              "createdByLabel": {
+                "from": null,
+                "to": "Тестовый агент"
+              },
+              "ownerTouchedAt": {
+                "from": null,
+                "to": null
+              },
+              "ownerFields": {
+                "from": null,
+                "to": []
+              },
+              "createdAt": {
+                "from": null,
+                "to": "2026-09-08T12:00:00.000Z"
+              }
+            },
+            "applied": [
+              "area",
+              "title",
+              "note"
+            ],
+            "skipped": []
+          }
+        ],
+        "events": [
+          {
+            "entityKind": "task",
+            "entityId": "fb17e4eb-a31b-477f-8ee6-3a9d2d0dc4ec",
+            "command": "task.sync",
+            "changes": {
+              "id": {
+                "from": null,
+                "to": "fb17e4eb-a31b-477f-8ee6-3a9d2d0dc4ec"
+              },
+              "area": {
+                "from": null,
+                "to": "development"
+              },
+              "projectId": {
+                "from": null,
+                "to": null
+              },
+              "title": {
+                "from": null,
+                "to": "Из источника"
+              },
+              "status": {
+                "from": null,
+                "to": "todo"
+              },
+              "note": {
+                "from": null,
+                "to": "Версия 1"
+              },
+              "due": {
+                "from": null,
+                "to": null
+              },
+              "waitingFor": {
+                "from": null,
+                "to": ""
+              },
+              "followUp": {
+                "from": null,
+                "to": null
+              },
+              "orderKey": {
+                "from": null,
+                "to": "a0"
+              },
+              "focus": {
+                "from": null,
+                "to": false
+              },
+              "archived": {
+                "from": null,
+                "to": false
+              },
+              "checklist": {
+                "from": null,
+                "to": []
+              },
+              "originSystem": {
+                "from": null,
+                "to": "tg"
+              },
+              "originRef": {
+                "from": null,
+                "to": "42"
+              },
+              "originUrl": {
+                "from": null,
+                "to": "https://t.me/c/42"
+              },
+              "originVersion": {
+                "from": null,
+                "to": "1"
+              },
+              "createdBy": {
+                "from": null,
+                "to": "agent:test-agent"
+              },
+              "createdByLabel": {
+                "from": null,
+                "to": "Тестовый агент"
+              },
+              "ownerTouchedAt": {
+                "from": null,
+                "to": null
+              },
+              "ownerFields": {
+                "from": null,
+                "to": []
+              },
+              "createdAt": {
+                "from": null,
+                "to": "2026-09-08T12:00:00.000Z"
+              }
+            },
+            "recordRevision": 1,
+            "generation": "6c816fa5-f0b3-48b5-bc23-09a1a6686e2d",
+            "seq": 6,
+            "at": "2026-09-08T12:00:00.000Z",
+            "actorId": "agent:test-agent",
+            "actorLabel": "Тестовый агент",
+            "operationId": "op-06-sync",
+            "firstSeq": 6,
+            "lastSeq": 6
+          }
+        ]
+      },
+      "firstSeq": 6,
+      "lastSeq": 6,
+      "createdAt": "2026-09-08T12:00:00.000Z",
+      "ok": true,
+      "taskCount": 1,
+      "titles": [
+        "Из источника"
+      ]
+    },
+    {
+      "id": "op-07-sync-stale",
+      "actorId": "agent:test-agent",
+      "actorLabel": "Тестовый агент",
+      "command": "task.sync",
+      "commandHash": "c248afa7451548cfa15a989e3796dd20b5757c551c5f6da2b80f3374041d5e39",
+      "status": 200,
+      "result": {
+        "ok": true,
+        "operationId": "op-07-sync-stale",
+        "generation": "6c816fa5-f0b3-48b5-bc23-09a1a6686e2d",
+        "firstSeq": null,
+        "lastSeq": null,
+        "results": [
+          {
+            "record": {
+              "id": "fb17e4eb-a31b-477f-8ee6-3a9d2d0dc4ec",
+              "area": "development",
+              "projectId": null,
+              "title": "Из источника",
+              "status": "todo",
+              "note": "Версия 1",
+              "due": null,
+              "waitingFor": "",
+              "followUp": null,
+              "orderKey": "a0",
+              "focus": false,
+              "archived": false,
+              "originSystem": "tg",
+              "originRef": "42",
+              "originUrl": "https://t.me/c/42",
+              "originVersion": "1",
+              "createdBy": "agent:test-agent",
+              "createdByLabel": "Тестовый агент",
+              "ownerTouchedAt": null,
+              "ownerFields": [],
+              "revision": 1,
+              "createdAt": "2026-09-08T12:00:00.000Z",
+              "updatedAt": "2026-09-08T12:00:00.000Z",
+              "checklist": [],
+              "commentCount": 0
+            },
+            "changes": {},
+            "skipped": "all",
+            "reason": "stale"
+          }
+        ],
+        "events": []
+      },
+      "firstSeq": null,
+      "lastSeq": null,
+      "createdAt": "2026-09-08T12:00:00.000Z",
+      "ok": true,
+      "taskCount": 0,
+      "titles": []
+    },
+    {
+      "id": "op-08-noop",
+      "actorId": "owner",
+      "actorLabel": "Владелец",
+      "command": "task.update",
+      "commandHash": "fcbd5f154ecb455d0cb9313bbd47804d8c4329e936d93134d16e663c389d435e",
+      "status": 200,
+      "result": {
+        "ok": true,
+        "operationId": "op-08-noop",
+        "generation": "6c816fa5-f0b3-48b5-bc23-09a1a6686e2d",
+        "firstSeq": null,
+        "lastSeq": null,
+        "results": [
+          {
+            "record": {
+              "id": "t1",
+              "area": "agency",
+              "projectId": "p1",
+              "title": "Задача (правка)",
+              "status": "todo",
+              "note": "Заметка",
+              "due": null,
+              "waitingFor": "",
+              "followUp": null,
+              "orderKey": "a0",
+              "focus": false,
+              "archived": false,
+              "originSystem": null,
+              "originRef": null,
+              "originUrl": null,
+              "originVersion": null,
+              "createdBy": "owner",
+              "createdByLabel": "Владелец",
+              "ownerTouchedAt": "2026-09-08T12:00:00.000Z",
+              "ownerFields": [
+                "archived",
+                "area",
+                "checklist",
+                "due",
+                "focus",
+                "followUp",
+                "note",
+                "orderKey",
+                "originUrl",
+                "projectId",
+                "status",
+                "title",
+                "waitingFor"
+              ],
+              "revision": 3,
+              "createdAt": "2026-09-08T12:00:00.000Z",
+              "updatedAt": "2026-09-08T12:00:00.000Z",
+              "checklist": [
+                {
+                  "id": "s1",
+                  "text": "Первый шаг",
+                  "done": false
+                },
+                {
+                  "id": "s2",
+                  "text": "Второй шаг",
+                  "done": false
+                }
+              ],
+              "commentCount": 1
+            },
+            "changes": {}
+          }
+        ],
+        "events": []
+      },
+      "firstSeq": null,
+      "lastSeq": null,
+      "createdAt": "2026-09-08T12:00:00.000Z",
+      "ok": true,
+      "taskCount": 0,
+      "titles": []
+    },
+    {
+      "id": "op-09-rejected",
+      "actorId": "owner",
+      "actorLabel": "Владелец",
+      "command": "task.create",
+      "commandHash": "9d21d12d06891614cb3281ee0c922d971e1a5deba613ee3ed0e9fb55fb7a06ba",
+      "status": 409,
+      "result": {
+        "ok": false,
+        "code": "conflict",
+        "message": "Идентификатор задачи уже занят.",
+        "retryable": false,
+        "operationId": "op-09-rejected",
+        "generation": "6c816fa5-f0b3-48b5-bc23-09a1a6686e2d"
+      },
+      "firstSeq": null,
+      "lastSeq": null,
+      "createdAt": "2026-09-08T12:00:00.000Z",
+      "ok": false,
+      "errorCode": "conflict",
+      "errorMessage": "Идентификатор задачи уже занят.",
+      "taskCount": 0,
+      "titles": []
+    },
+    {
+      "id": "op-10-batch",
+      "actorId": "owner",
+      "actorLabel": "Владелец",
+      "command": "batch",
+      "commandHash": "a02af81e94942033784c87d0c7902734d2e69d0be0777dcf4c420f9a5d0cedbe",
+      "status": 200,
+      "result": {
+        "ok": true,
+        "operationId": "op-10-batch",
+        "generation": "6c816fa5-f0b3-48b5-bc23-09a1a6686e2d",
+        "firstSeq": 7,
+        "lastSeq": 8,
+        "results": [
+          {
+            "record": {
+              "id": "t1",
+              "area": "agency",
+              "projectId": "p1",
+              "title": "Задача (правка)",
+              "status": "doing",
+              "note": "Заметка",
+              "due": null,
+              "waitingFor": "",
+              "followUp": null,
+              "orderKey": "a0",
+              "focus": false,
+              "archived": false,
+              "originSystem": null,
+              "originRef": null,
+              "originUrl": null,
+              "originVersion": null,
+              "createdBy": "owner",
+              "createdByLabel": "Владелец",
+              "ownerTouchedAt": "2026-09-08T12:00:00.000Z",
+              "ownerFields": [
+                "archived",
+                "area",
+                "checklist",
+                "due",
+                "focus",
+                "followUp",
+                "note",
+                "orderKey",
+                "originUrl",
+                "projectId",
+                "status",
+                "title",
+                "waitingFor"
+              ],
+              "revision": 4,
+              "createdAt": "2026-09-08T12:00:00.000Z",
+              "updatedAt": "2026-09-08T12:00:00.000Z",
+              "checklist": [
+                {
+                  "id": "s1",
+                  "text": "Первый шаг",
+                  "done": false
+                },
+                {
+                  "id": "s2",
+                  "text": "Второй шаг",
+                  "done": false
+                }
+              ],
+              "commentCount": 1
+            },
+            "changes": {
+              "status": {
+                "from": "todo",
+                "to": "doing"
+              }
+            }
+          },
+          {
+            "record": {
+              "id": "t1",
+              "area": "agency",
+              "projectId": "p1",
+              "title": "Задача (правка)",
+              "status": "doing",
+              "note": "Заметка",
+              "due": null,
+              "waitingFor": "",
+              "followUp": null,
+              "orderKey": "a0",
+              "focus": false,
+              "archived": false,
+              "originSystem": null,
+              "originRef": null,
+              "originUrl": null,
+              "originVersion": null,
+              "createdBy": "owner",
+              "createdByLabel": "Владелец",
+              "ownerTouchedAt": "2026-09-08T12:00:00.000Z",
+              "ownerFields": [
+                "archived",
+                "area",
+                "checklist",
+                "due",
+                "focus",
+                "followUp",
+                "note",
+                "orderKey",
+                "originUrl",
+                "projectId",
+                "status",
+                "title",
+                "waitingFor"
+              ],
+              "revision": 5,
+              "createdAt": "2026-09-08T12:00:00.000Z",
+              "updatedAt": "2026-09-08T12:00:00.000Z",
+              "checklist": [
+                {
+                  "id": "s1",
+                  "text": "Первый шаг",
+                  "done": true
+                },
+                {
+                  "id": "s2",
+                  "text": "Второй шаг",
+                  "done": false
+                }
+              ],
+              "commentCount": 1
+            },
+            "changes": {
+              "checklist": {
+                "from": [
+                  {
+                    "id": "s1",
+                    "text": "Первый шаг",
+                    "done": false
+                  },
+                  {
+                    "id": "s2",
+                    "text": "Второй шаг",
+                    "done": false
+                  }
+                ],
+                "to": [
+                  {
+                    "id": "s1",
+                    "text": "Первый шаг",
+                    "done": true
+                  },
+                  {
+                    "id": "s2",
+                    "text": "Второй шаг",
+                    "done": false
+                  }
+                ]
+              }
+            }
+          }
+        ],
+        "events": [
+          {
+            "entityKind": "task",
+            "entityId": "t1",
+            "command": "task.move",
+            "changes": {
+              "status": {
+                "from": "todo",
+                "to": "doing"
+              }
+            },
+            "recordRevision": 4,
+            "generation": "6c816fa5-f0b3-48b5-bc23-09a1a6686e2d",
+            "seq": 7,
+            "at": "2026-09-08T12:00:00.000Z",
+            "actorId": "owner",
+            "actorLabel": "Владелец",
+            "operationId": "op-10-batch",
+            "firstSeq": 7,
+            "lastSeq": 8
+          },
+          {
+            "entityKind": "task",
+            "entityId": "t1",
+            "command": "checklist.update",
+            "changes": {
+              "checklist": {
+                "from": [
+                  {
+                    "id": "s1",
+                    "text": "Первый шаг",
+                    "done": false
+                  },
+                  {
+                    "id": "s2",
+                    "text": "Второй шаг",
+                    "done": false
+                  }
+                ],
+                "to": [
+                  {
+                    "id": "s1",
+                    "text": "Первый шаг",
+                    "done": true
+                  },
+                  {
+                    "id": "s2",
+                    "text": "Второй шаг",
+                    "done": false
+                  }
+                ]
+              }
+            },
+            "recordRevision": 5,
+            "generation": "6c816fa5-f0b3-48b5-bc23-09a1a6686e2d",
+            "seq": 8,
+            "at": "2026-09-08T12:00:00.000Z",
+            "actorId": "owner",
+            "actorLabel": "Владелец",
+            "operationId": "op-10-batch",
+            "firstSeq": 7,
+            "lastSeq": 8
+          }
+        ]
+      },
+      "firstSeq": 7,
+      "lastSeq": 8,
+      "createdAt": "2026-09-08T12:00:00.000Z",
+      "ok": true,
+      "taskCount": 1,
+      "titles": [
+        "Задача (правка)"
+      ]
+    },
+    {
+      "id": "op-11-undo",
+      "actorId": "owner",
+      "actorLabel": "Владелец",
+      "command": "undo",
+      "commandHash": "5b5abcbf5b2bd23eaa347daaffa0ab20cbce1c1e9fc6c744bd1f97b7fa5b18b1",
+      "status": 200,
+      "result": {
+        "ok": true,
+        "operationId": "op-11-undo",
+        "generation": "6c816fa5-f0b3-48b5-bc23-09a1a6686e2d",
+        "firstSeq": 9,
+        "lastSeq": 9,
+        "results": [
+          {
+            "record": {
+              "id": "t1",
+              "area": "agency",
+              "projectId": "p1",
+              "title": "Задача (правка)",
+              "status": "todo",
+              "note": "Заметка",
+              "due": null,
+              "waitingFor": "",
+              "followUp": null,
+              "orderKey": "a0",
+              "focus": false,
+              "archived": false,
+              "originSystem": null,
+              "originRef": null,
+              "originUrl": null,
+              "originVersion": null,
+              "createdBy": "owner",
+              "createdByLabel": "Владелец",
+              "ownerTouchedAt": "2026-09-08T12:00:00.000Z",
+              "ownerFields": [
+                "archived",
+                "area",
+                "checklist",
+                "due",
+                "focus",
+                "followUp",
+                "note",
+                "orderKey",
+                "originUrl",
+                "projectId",
+                "status",
+                "title",
+                "waitingFor"
+              ],
+              "revision": 6,
+              "createdAt": "2026-09-08T12:00:00.000Z",
+              "updatedAt": "2026-09-08T12:00:00.000Z",
+              "checklist": [
+                {
+                  "id": "s1",
+                  "text": "Первый шаг",
+                  "done": false
+                },
+                {
+                  "id": "s2",
+                  "text": "Второй шаг",
+                  "done": false
+                }
+              ],
+              "commentCount": 1
+            },
+            "changes": {
+              "status": {
+                "from": "doing",
+                "to": "todo"
+              },
+              "checklist": {
+                "from": [
+                  {
+                    "id": "s1",
+                    "text": "Первый шаг",
+                    "done": true
+                  },
+                  {
+                    "id": "s2",
+                    "text": "Второй шаг",
+                    "done": false
+                  }
+                ],
+                "to": [
+                  {
+                    "id": "s1",
+                    "text": "Первый шаг",
+                    "done": false
+                  },
+                  {
+                    "id": "s2",
+                    "text": "Второй шаг",
+                    "done": false
+                  }
+                ]
+              }
+            }
+          }
+        ],
+        "events": [
+          {
+            "entityKind": "task",
+            "entityId": "t1",
+            "command": "undo",
+            "changes": {
+              "status": {
+                "from": "doing",
+                "to": "todo"
+              },
+              "checklist": {
+                "from": [
+                  {
+                    "id": "s1",
+                    "text": "Первый шаг",
+                    "done": true
+                  },
+                  {
+                    "id": "s2",
+                    "text": "Второй шаг",
+                    "done": false
+                  }
+                ],
+                "to": [
+                  {
+                    "id": "s1",
+                    "text": "Первый шаг",
+                    "done": false
+                  },
+                  {
+                    "id": "s2",
+                    "text": "Второй шаг",
+                    "done": false
+                  }
+                ]
+              }
+            },
+            "recordRevision": 6,
+            "generation": "6c816fa5-f0b3-48b5-bc23-09a1a6686e2d",
+            "seq": 9,
+            "at": "2026-09-08T12:00:00.000Z",
+            "actorId": "owner",
+            "actorLabel": "Владелец",
+            "operationId": "op-11-undo",
+            "firstSeq": 9,
+            "lastSeq": 9
+          }
+        ]
+      },
+      "firstSeq": 9,
+      "lastSeq": 9,
+      "createdAt": "2026-09-08T12:00:00.000Z",
+      "ok": true,
+      "taskCount": 1,
+      "titles": [
+        "Задача (правка)"
+      ]
+    },
+    {
+      "id": "op-12-owner-comment",
+      "actorId": "owner",
+      "actorLabel": "Владелец",
+      "command": "comment.add",
+      "commandHash": "362ee14f872be728d87e887d24daa72cd1e2c25e54f049c30c240eae920528dc",
+      "status": 200,
+      "result": {
+        "ok": true,
+        "operationId": "op-12-owner-comment",
+        "generation": "6c816fa5-f0b3-48b5-bc23-09a1a6686e2d",
+        "firstSeq": 10,
+        "lastSeq": 10,
+        "results": [
+          {
+            "record": {
+              "id": "c2",
+              "taskId": "t1",
+              "actorId": "owner",
+              "actorLabel": "Владелец",
+              "text": "Ответ владельца агенту",
+              "revision": 1,
+              "createdAt": "2026-09-08T12:00:00.000Z",
+              "deletedAt": null
+            },
+            "changes": {
+              "id": {
+                "from": null,
+                "to": "c2"
+              },
+              "taskId": {
+                "from": null,
+                "to": "t1"
+              },
+              "actorId": {
+                "from": null,
+                "to": "owner"
+              },
+              "actorLabel": {
+                "from": null,
+                "to": "Владелец"
+              },
+              "text": {
+                "from": null,
+                "to": "Ответ владельца агенту"
+              },
+              "createdAt": {
+                "from": null,
+                "to": "2026-09-08T12:00:00.000Z"
+              },
+              "deletedAt": {
+                "from": null,
+                "to": null
+              }
+            }
+          }
+        ],
+        "events": [
+          {
+            "entityKind": "comment",
+            "entityId": "c2",
+            "taskId": "t1",
+            "command": "comment.add",
+            "changes": {
+              "id": {
+                "from": null,
+                "to": "c2"
+              },
+              "taskId": {
+                "from": null,
+                "to": "t1"
+              },
+              "actorId": {
+                "from": null,
+                "to": "owner"
+              },
+              "actorLabel": {
+                "from": null,
+                "to": "Владелец"
+              },
+              "text": {
+                "from": null,
+                "to": "Ответ владельца агенту"
+              },
+              "createdAt": {
+                "from": null,
+                "to": "2026-09-08T12:00:00.000Z"
+              },
+              "deletedAt": {
+                "from": null,
+                "to": null
+              }
+            },
+            "recordRevision": 1,
+            "generation": "6c816fa5-f0b3-48b5-bc23-09a1a6686e2d",
+            "seq": 10,
+            "at": "2026-09-08T12:00:00.000Z",
+            "actorId": "owner",
+            "actorLabel": "Владелец",
+            "operationId": "op-12-owner-comment",
+            "firstSeq": 10,
+            "lastSeq": 10
+          }
+        ]
+      },
+      "firstSeq": 10,
+      "lastSeq": 10,
+      "createdAt": "2026-09-08T12:00:00.000Z",
+      "ok": true,
+      "taskCount": 1,
+      "titles": [
+        "Задача (правка)"
+      ]
+    }
+  ]
+}
