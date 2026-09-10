@@ -4,7 +4,7 @@ import type { CommandName } from '../shared/model.js';
 // The one declarative description of the CLI: help, argument parsing, the
 // allow-list of every read and the flags of every write derive from it.
 
-export type FlagKind = 'string' | 'boolean' | 'number' | 'json';
+type FlagKind = 'string' | 'boolean' | 'number' | 'json';
 
 export interface FlagSpec {
   // kebab-case, without the leading dashes
@@ -61,7 +61,7 @@ export interface ServiceSpec {
   example: string;
 }
 
-export const flag = (
+const flag = (
   name: string,
   kind: FlagKind,
   description: string,

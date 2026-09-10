@@ -15,7 +15,7 @@ import {
 } from './arguments.js';
 import { readInput } from './input.js';
 
-export interface AdminOptions {
+interface AdminOptions {
   env?: NodeJS.ProcessEnv;
   stdout?: (line: string) => void;
   stderr?: (line: string) => void;

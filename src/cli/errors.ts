@@ -3,7 +3,7 @@ import { z } from '../shared/schemas.js';
 
 // Codes the CLI adds to the server's: they never come from the API and never
 // settle an envelope on their own.
-export const CLI_ONLY_CODES = [
+const CLI_ONLY_CODES = [
   'invalid_arguments',
   'client_error',
   'network_error',
@@ -16,9 +16,6 @@ export const CLI_ERROR_CODES = [
   ...CLI_ONLY_CODES,
 ] as const;
 
-export const cliErrorCodeSchema = z.enum(CLI_ERROR_CODES);
-export type CliErrorCode = z.infer<typeof cliErrorCodeSchema>;
-
 // Zod speaks Russian in the CLI process, like the server's own messages;
 // idempotent, so tests that import the CLI may call it any number of times.
 let localized = false;
@@ -28,14 +25,14 @@ export function configureLocale(): void {
   localized = true;
 }
 
-export interface Issue {
+interface Issue {
   path: string;
   message: string;
   hint?: string;
 }
 
 // What to do about a field, by its last path segment or the full path.
-export const HINTS: Record<string, string> = {
+const HINTS: Record<string, string> = {
   baseRevision:
     'Возьмите revision из `taskindex task get ID` и передайте `--base-revision N`',
   area: 'Допустимо: agency, development, personal',
@@ -57,9 +54,7 @@ export const HINTS: Record<string, string> = {
 };
 
 // `a.b[0].c` from a Zod path; a server issue already carries a string.
-export function formatPath(
-  path: (string | number | symbol)[] | string,
-): string {
+function formatPath(path: (string | number | symbol)[] | string): string {
   if (typeof path === 'string') return path;
   return path.reduce<string>(
     (text, segment) =>
@@ -72,7 +67,7 @@ export function formatPath(
   );
 }
 
-export function hintFor(path: string): string | undefined {
+function hintFor(path: string): string | undefined {
   const bare = path.replace(/^(payload|commands\[\d+\]\.payload|fields)\./, '');
   const segments = bare.replace(/\[\d+\]/g, '').split('.');
   return (

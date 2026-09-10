@@ -22,8 +22,6 @@ import {
 } from './spec.js';
 import { runWrite } from './writes.js';
 
-export type { CliOptions } from './session.js';
-
 let switches: Set<string> | undefined;
 
 // help | read | write | operation list/resume | cursor: every command is

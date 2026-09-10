@@ -18,7 +18,7 @@ export const OUTBOX_FORMAT_VERSION = 2;
 
 // The persisted intent of one CLI write: enough to resend exactly the same
 // envelope to the same server and to prove which actor saved it.
-export const savedOperationSchema = z
+const savedOperationSchema = z
   .object({
     formatVersion: z.literal(OUTBOX_FORMAT_VERSION),
     baseUrl: z.string().min(1),
@@ -55,6 +55,7 @@ const PENDING_MAX_AGE_MS = 60 * 60 * 1000;
 // server hashes into `commandHash`, so a resaved envelope and the stored
 // operation stay the same intent. A second local implementation could sort
 // keys differently and silently split one operation in two (TI-061).
+/** @internal for tests */
 export function sameOperation(
   left: SavedOperation,
   right: SavedOperation,

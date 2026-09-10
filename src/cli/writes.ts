@@ -56,7 +56,7 @@ function convert(entry: FlagSpec, value: string | boolean): unknown {
 // The payload of a write: --payload/--file first, then flags typed by the
 // command's schema, then positional arguments. Unknown flags are argument
 // errors, never silently forwarded.
-export async function buildPayload(
+async function buildPayload(
   spec: WriteSpec & { command: CommandName },
   rest: string[],
   args: Arguments,
@@ -105,13 +105,13 @@ export async function buildPayload(
   return payload;
 }
 
-export function dryRunOf(args: Arguments): boolean | undefined {
+function dryRunOf(args: Arguments): boolean | undefined {
   return flagBoolean(args.flags, 'dry-run');
 }
 
 // Envelope-level fields besides the payload: present only when given, so
 // the envelope of a plain command stays byte-for-byte what it was.
-export function envelopeFlags(args: Arguments): {
+function envelopeFlags(args: Arguments): {
   dryRun?: boolean;
   confirmOwnerFields?: boolean;
 } {

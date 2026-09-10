@@ -12,7 +12,7 @@ export interface ApiReply {
   status: number;
   body: Record<string, unknown>;
 }
-export interface ClientOptions {
+interface ClientOptions {
   baseUrl: string;
   token: string;
   fetch?: typeof fetch;

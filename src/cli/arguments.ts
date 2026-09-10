@@ -15,7 +15,7 @@ export interface Arguments {
 
 // Boolean flags of the administrative CLI; `taskindex` derives its own set
 // from the command specification (`booleanFlagNames` in spec.ts).
-export const ADMIN_SWITCHES: ReadonlySet<string> = new Set(['help', 'replace']);
+const ADMIN_SWITCHES: ReadonlySet<string> = new Set(['help', 'replace']);
 
 // `switches` may omit their value (`--all`) or take `true|false`; every other
 // flag requires a value.

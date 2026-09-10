@@ -10,7 +10,7 @@ import { z } from '../shared/schemas.js';
 // a task record must not turn a real success into an outcome the CLI cannot
 // confirm (that would leave the envelope in the outbox forever).
 const record = z.record(z.string(), z.unknown());
-export const acknowledgedSuccessSchema = operationSuccessSchema
+const acknowledgedSuccessSchema = operationSuccessSchema
   .pick({
     ok: true,
     operationId: true,
@@ -21,24 +21,24 @@ export const acknowledgedSuccessSchema = operationSuccessSchema
   })
   .extend({ results: z.array(record), events: z.array(record) })
   .loose();
-export const acknowledgedErrorSchema = operationErrorSchema
+const acknowledgedErrorSchema = operationErrorSchema
   .pick({ ok: true, code: true, message: true, retryable: true })
   .extend({
     operationId: operationErrorSchema.shape.operationId,
     generation: operationErrorSchema.shape.generation,
   })
   .loose();
-export const acknowledgedStoredSchema = storedOperationSchema
+const acknowledgedStoredSchema = storedOperationSchema
   .pick({ id: true, status: true, ok: true })
   .extend({ result: record })
   .loose();
 
-export interface Reply {
+interface Reply {
   status: number;
   body: Record<string, unknown>;
 }
 
-export type Acknowledgement =
+type Acknowledgement =
   | { kind: 'confirmed' }
   | { kind: 'rejected'; exit: 1 | 3 | 4 }
   | { kind: 'retryable' }

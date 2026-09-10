@@ -102,6 +102,9 @@
   `bash deploy/drill/deploy-drill.sh` (~6–8 минут, на macOS сам заворачивается
   в Linux-контейнер) прогоняет настоящий `deploy.sh` поверх релиза, поставленного
   `deploy/bootstrap.sh`; `--only plan,before-stop` — отдельные фазы.
+- `npm run unused-exports` — экспорты `src/**`, которые никто не импортирует
+  (`tsc` их не видит): «мёртвые» удалять, «только для тестов» помечать
+  `/** @internal for tests */`. В `check` не входит, пока список не пуст.
 - `node scripts/gate.mjs` — локальный гейт релиза: те же команды и в том же
   порядке, что job `check` в CI, плюс отчёт `test-results/gate.json`
   (`--image` собирает образ, `--strict` отказывает при грязном дереве).

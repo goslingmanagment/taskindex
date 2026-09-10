@@ -109,7 +109,7 @@ export function readFlags(spec: ReadSpec): FlagSpec[] {
   ];
 }
 
-export function readUsage(spec: ReadSpec): string {
+function readUsage(spec: ReadSpec): string {
   return join(
     `taskindex ${commandName(spec)}`,
     positionalUsage(spec.positional),
@@ -119,7 +119,7 @@ export function readUsage(spec: ReadSpec): string {
   );
 }
 
-export function writeUsage(spec: WriteSpec): string {
+function writeUsage(spec: WriteSpec): string {
   if (spec.command === 'batch')
     return 'taskindex batch --file PATH|- [--dry-run] [--operation-id ID] [--generation G]';
   const flags = payloadFlags(spec.command).filter(
@@ -137,7 +137,7 @@ export function writeUsage(spec: WriteSpec): string {
   );
 }
 
-export function serviceUsage(spec: ServiceSpec): string {
+function serviceUsage(spec: ServiceSpec): string {
   return join(
     `taskindex ${commandName(spec)}`,
     positionalUsage(spec.positional),
@@ -145,7 +145,7 @@ export function serviceUsage(spec: ServiceSpec): string {
   );
 }
 
-export function usageOf(spec: ReadSpec | WriteSpec | ServiceSpec): string {
+function usageOf(spec: ReadSpec | WriteSpec | ServiceSpec): string {
   return READS.includes(spec as ReadSpec)
     ? readUsage(spec as ReadSpec)
     : WRITES.includes(spec as WriteSpec)
@@ -159,7 +159,7 @@ const summaryLine = (spec: ReadSpec | WriteSpec | ServiceSpec) => ({
   summary: spec.summary,
 });
 
-export const ERROR_CODES = [...CLI_ERROR_CODES];
+const ERROR_CODES = [...CLI_ERROR_CODES];
 
 function writeFlagsOf(spec: WriteSpec): FlagSpec[] {
   const command = spec.command;

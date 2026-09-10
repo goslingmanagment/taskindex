@@ -23,7 +23,7 @@ const camel = (name: string) =>
 // The request path of a read: positional arguments fill the route, query
 // flags become parameters, anything the specification does not list is an
 // argument error that names the command's help page.
-export function readPath(
+function readPath(
   spec: ReadSpec,
   rest: string[],
   flags: Arguments['flags'],
@@ -65,9 +65,7 @@ export function readPath(
 // `operationSeq`, a page of `/api/operations` carries it on every item, and
 // the walk ends on the largest one it saw. Without it the cursor keeps the
 // operation position it already had (TI-008).
-export function operationSeqOf(
-  body: Record<string, unknown>,
-): number | undefined {
+function operationSeqOf(body: Record<string, unknown>): number | undefined {
   if (typeof body.operationSeq === 'number') return body.operationSeq;
   if (!Array.isArray(body.items)) return undefined;
   let largest: number | undefined;
@@ -241,9 +239,7 @@ function intervalOf(args: Arguments): number {
 // `inbox`: the agent reads /api/digest but is shown only what is addressed to
 // it — the owner's comments with their text, task and `seq` — plus the two
 // positions of the read, so the next `--since` is in the same line of output.
-export function inboxOf(
-  body: Record<string, unknown>,
-): Record<string, unknown> {
+function inboxOf(body: Record<string, unknown>): Record<string, unknown> {
   const comments = body.comments as
     | { items?: unknown; more?: unknown; href?: unknown }
     | undefined;

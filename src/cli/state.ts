@@ -9,6 +9,7 @@ import { Outbox, type SavedOperation, type SkippedFile } from './outbox.js';
 
 // A nonsecret server identifier: keeps envelopes of different servers apart
 // without writing the URL into a directory name.
+/** @internal for tests */
 export function serverId(baseUrl: string): string {
   return createHash('sha256')
     .update(baseUrl.replace(/\/$/, ''))
@@ -17,11 +18,12 @@ export function serverId(baseUrl: string): string {
 }
 
 // The token itself is never stored; its hash only names the identity cache.
+/** @internal for tests */
 export function tokenHash(token: string): string {
   return createHash('sha256').update(token).digest('hex').slice(0, 16);
 }
 
-export const identitySchema = z
+const identitySchema = z
   .object({
     formatVersion: z.literal(1),
     actorId: z.string().min(1),
@@ -37,7 +39,7 @@ export type Identity = z.infer<typeof identitySchema>;
 // The last position an agent has fully processed: events by `seq`, and, once
 // the server numbers operations, the operation feed by `operationSeq`. Written
 // only by an explicit commit, never by a read on its own.
-export const cursorSchema = z
+const cursorSchema = z
   .object({
     formatVersion: z.literal(1),
     generation: z.string().min(1),
@@ -46,9 +48,9 @@ export const cursorSchema = z
     committedAt: z.iso.datetime({ offset: true }),
   })
   .strict();
-export type Cursor = z.infer<typeof cursorSchema>;
+type Cursor = z.infer<typeof cursorSchema>;
 
-export interface StatePaths {
+interface StatePaths {
   root: string;
   server: string;
   identities: string;
@@ -63,6 +65,7 @@ export interface StatePaths {
 //   servers/<serverId>/agents/<agentId>/ops/          envelopes of this agent
 //   servers/<serverId>/agents/<agentId>/cursor.json   committed read position
 //   ops/                                              layout of formatVersion 1
+/** @internal for tests and scripts/agent-cycle.mts */
 export function statePaths(
   env: NodeJS.ProcessEnv,
   baseUrl: string,
@@ -84,7 +87,7 @@ export function statePaths(
   };
 }
 
-export interface IdentityResolution {
+interface IdentityResolution {
   identity?: Identity;
   warning?: Record<string, unknown>;
 }
