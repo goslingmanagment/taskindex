@@ -21,10 +21,10 @@ const cursorSchema = z.object({
   query: z.string(),
   key: keySchema,
 });
-export type Cursor = z.infer<typeof cursorSchema>;
+type Cursor = z.infer<typeof cursorSchema>;
 // Keys compare field by field in the order the list is sorted, which is the
 // order the fields appear in `keyOf(item)`.
-export function compareKeys(fields: string[], a: Key, b: Key): number {
+function compareKeys(fields: string[], a: Key, b: Key): number {
   for (const field of fields) {
     const x = a[field],
       y = b[field];

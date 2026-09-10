@@ -107,7 +107,7 @@ function withPositions(data: z.infer<typeof exportSchemaV1>) {
 // Formats 1-3: focused tasks get desk keys in (area, status, orderKey, id)
 // order, the same keys 0004_focus_desk.sql assigns to an existing database.
 const BASE62 = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz';
-export const backfillFocusKey = (n: number) =>
+const backfillFocusKey = (n: number) =>
   `a0${BASE62[Math.floor(n / 3844) % 62]}${BASE62[Math.floor(n / 62) % 62]}${BASE62[n % 62]}V`;
 function withFocusKeys<
   T extends {

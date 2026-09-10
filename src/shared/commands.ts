@@ -22,7 +22,7 @@ import { assertNever, fail } from './errors.js';
 import { LIMITS } from './limits.js';
 import { DEFAULT_APPEARANCE_ID } from './appearance.js';
 import { ENTITIES } from './entities.js';
-export type ChangeEffect = {
+type ChangeEffect = {
   entityKind: EntityKind;
   entityId: string;
   taskId?: string;
@@ -39,7 +39,7 @@ export type HistoryAccess = {
   forOperation(operationId: string): DomainEvent[];
   bySeq(seq: number): DomainEvent | undefined;
 };
-export function arrayHistory(events: DomainEvent[]): HistoryAccess {
+function arrayHistory(events: DomainEvent[]): HistoryAccess {
   return {
     forRecord: (kind, id, afterRevision) =>
       events.filter(
@@ -53,7 +53,7 @@ export function arrayHistory(events: DomainEvent[]): HistoryAccess {
     bySeq: (seq) => events.find((e) => e.seq === seq),
   };
 }
-export type CommandContext = {
+type CommandContext = {
   now: string;
   ids: () => string;
   actor: Actor;
@@ -66,17 +66,17 @@ export type CommandContext = {
 const ownerOnlyFields = ['focus', 'focusPosition'] as const;
 // Fields the source never overwrites once the owner touched the task.
 const ownerLockedFields = ['status', 'archived', 'focus', 'projectId', 'area'];
-export type CommandApplication = {
+type CommandApplication = {
   state: WorkspaceState;
   result: CommandResult;
   effects: ChangeEffect[];
 };
 // The record kinds, their collections and their subject fields come from the
-// shared registry (Ж11). `taskFields` and `projectFields` stay exported for
-// the independent oracle in tests/property/undo.test.ts.
+// shared registry (Ж11). `taskFields` stays exported for the independent
+// oracle in tests/property/undo.test.ts.
+/** @internal for tests */
 export const taskFields = ENTITIES.task.subjectFields;
-export const projectFields = ENTITIES.project.subjectFields;
-export const appearanceFields = ENTITIES.appearance.subjectFields;
+/** @internal for tests */
 export function isSubjectField(kind: EntityKind, key: string): boolean {
   return ENTITIES[kind].subjectFields.has(key);
 }
@@ -86,7 +86,7 @@ const equal = (a: unknown, b: unknown) =>
 // comments a taskId.
 const isTask = (record: Entity): record is Task => 'checklist' in record;
 const isComment = (record: Entity): record is Comment => 'taskId' in record;
-export function requireScope(actor: Actor, kind: EntityKind) {
+function requireScope(actor: Actor, kind: EntityKind) {
   // Appearance is the owner's own preference: no agent scope reaches it, and
   // task.sync never touches it (TI-025).
   if (kind === 'appearance') {
@@ -102,6 +102,7 @@ function sign<T extends bigint | string>(x: T, y: T): number {
   if (x < y) return -1;
   return x > y ? 1 : 0;
 }
+/** @internal for tests */
 export function compareOriginVersion(a: string, b: string): number | null {
   if (/^\d+$/.test(a) && /^\d+$/.test(b)) return sign(BigInt(a), BigInt(b));
   const instant = (value: string) => {

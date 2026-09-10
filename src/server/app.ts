@@ -28,6 +28,7 @@ import { registerDigestRoutes } from './routes/digest.js';
 import { registerFocusRoutes } from './routes/focus.js';
 import { describeApi } from './http/document.js';
 
+/** @internal for tests */
 export type { AppOptions };
 
 // Same headers in dev, e2e and production; HSTS belongs to the TLS terminator
@@ -132,4 +133,3 @@ export function createApp(options: AppOptions) {
   describeApi(api, baseURL);
   return Object.assign(api, { closeStreams: () => hub.closeAll() });
 }
-export type AppType = ReturnType<typeof createApp>;

@@ -10,7 +10,7 @@ import type { Deps } from './http/deps.js';
 
 // `.meta({ id })` makes z.toJSONSchema return `{ $ref, $defs }`; /api/context
 // promises an inline object for `fields`, so the root definition is unwrapped.
-export function inlineJsonSchema(schema: z.ZodType): Record<string, unknown> {
+function inlineJsonSchema(schema: z.ZodType): Record<string, unknown> {
   const { $ref, $defs, ...rest } = z.toJSONSchema(schema) as {
     $ref?: string;
     $defs?: Record<string, Record<string, unknown>>;
@@ -29,7 +29,7 @@ export function inlineJsonSchema(schema: z.ZodType): Record<string, unknown> {
 // What an agent must know before its first command: the model, the catalogues,
 // the JSON Schema of every payload and the rules that are not expressible in a
 // schema.
-export const RULES = [
+const RULES = [
   'Проект выбирается по описанию; при сомнении оставьте без проекта.',
   'Сначала поиск по origin, затем по тексту, затем создание.',
   'sync требует упорядоченную версию самого источника; время наблюдения и ETag её не заменяют.',

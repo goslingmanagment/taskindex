@@ -7,8 +7,8 @@ export const SSE_HEARTBEAT_MS = 25_000;
 // A cursor further behind than this gets `event: reset` (take a snapshot)
 // instead of a tail; a shorter tail streams in portions of one page.
 export const SSE_BACKLOG_LIMIT = 5_000;
-export const SSE_BACKLOG_CHUNK = LIMITS.pageSize;
-export type CloseReason = 'revoked' | 'shutdown';
+const SSE_BACKLOG_CHUNK = LIMITS.pageSize;
+type CloseReason = 'revoked' | 'shutdown';
 export type Subscriber = {
   actor: Actor;
   credential: Credential;

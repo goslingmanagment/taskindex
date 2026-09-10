@@ -25,4 +25,3 @@ export const LIMITS = {
   deskRecent: 3,
   deskRecentDays: 14,
 } as const;
-export type LimitName = keyof typeof LIMITS;

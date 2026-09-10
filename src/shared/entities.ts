@@ -12,7 +12,7 @@ export const ENTITY_KINDS = [
   'comment',
   'appearance',
 ] as const;
-export type EntityKindName = (typeof ENTITY_KINDS)[number];
+type EntityKindName = (typeof ENTITY_KINDS)[number];
 
 // Subject fields: what undo restores, what conflicts are detected on and what
 // the owner's touch protects. Declared over the record keys, so a renamed
@@ -38,7 +38,7 @@ const projectFields = new Set<keyof Project>(['name', 'color', 'description']);
 const commentFields = new Set<keyof Comment>(['deletedAt']);
 const appearanceFields = new Set(['mode', 'skinId']);
 
-export type EntityDefinition = {
+type EntityDefinition = {
   // Where the records of this kind live in the workspace state.
   collection: keyof WorkspaceState;
   subjectFields: ReadonlySet<string>;

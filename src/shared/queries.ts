@@ -149,7 +149,7 @@ export function focusDesk(tasks: Task[], today: string): FocusDesk {
     },
   };
 }
-export type TaskFilter = {
+type TaskFilter = {
   q?: string;
   area?: AreaId;
   project?: string;

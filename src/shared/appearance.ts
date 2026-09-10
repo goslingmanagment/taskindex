@@ -16,20 +16,21 @@ export const appearanceModeSchema = z
 
 // A few colour tokens per skin: enough for a preview card, not the palette
 // itself. The full palette lives in the web tokens file (plan 08, phase A).
-export type SkinPreview = {
+type SkinPreview = {
   background: string;
   surface: string;
   foreground: string;
   accent: string;
 };
 
-export type SkinDefinition = {
+type SkinDefinition = {
   id: string;
   label: string;
   description: string;
   preview: SkinPreview;
 };
 
+/** @internal for tests */
 export const SKINS = [
   {
     id: 'classic',
@@ -56,8 +57,9 @@ export const SKINS = [
   },
 ] as const satisfies readonly SkinDefinition[];
 
-export type SkinId = (typeof SKINS)[number]['id'];
+type SkinId = (typeof SKINS)[number]['id'];
 
+/** @internal for tests */
 export const skinIds = SKINS.map((skin) => skin.id) as [SkinId, ...SkinId[]];
 
 // Write validation is strict: only an id of the current catalogue is accepted.

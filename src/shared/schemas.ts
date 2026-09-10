@@ -16,7 +16,7 @@ export const RESERVED_IDS: ReadonlySet<string> = new Set([
   'by-origin',
   'lookup',
 ]);
-export const newIdSchema = idSchema
+const newIdSchema = idSchema
   .refine(
     (id) => !RESERVED_IDS.has(id),
     'Служебное слово нельзя использовать как идентификатор',
@@ -24,7 +24,7 @@ export const newIdSchema = idSchema
   .describe(
     'Идентификатор новой записи; служебные слова all, none, lookup, by-origin запрещены',
   );
-export const revisionSchema = z
+const revisionSchema = z
   .number()
   .int()
   .min(1)
@@ -55,7 +55,7 @@ export const originSystemSchema = z
   .string()
   .regex(new RegExp(`^[a-z0-9_-]{1,${LIMITS.originSystem}}$`))
   .describe('Слаг источника');
-export const checklistItemSchema = z
+const checklistItemSchema = z
   .object({
     id: idSchema,
     text: text(LIMITS.checklistText, true).describe('Текст шага'),
@@ -70,7 +70,7 @@ export const checklistSchema = z
     'Шаги должны иметь разные идентификаторы',
   )
   .describe(`До ${LIMITS.checklistItems} шагов задачи`);
-export const originSchema = z
+const originSchema = z
   .object({
     system: originSystemSchema,
     ref: text(LIMITS.originRef, true).describe(
@@ -87,14 +87,14 @@ export const originSchema = z
       .describe('Упорядоченная версия самого источника, не время наблюдения'),
   })
   .strict();
-export const positionSchema = z
+const positionSchema = z
   .union([
     z.object({ before: idSchema }).strict(),
     z.object({ after: idSchema }).strict(),
   ])
   .describe('Положение относительно соседней задачи');
 // A place on the Focus desk (plan 13): first, or next to a task in focus.
-export const focusPositionSchema = z
+const focusPositionSchema = z
   .union([
     z.object({ first: z.literal(true) }).strict(),
     z.object({ after: idSchema }).strict(),
@@ -102,7 +102,7 @@ export const focusPositionSchema = z
   ])
   .describe('Место на столе Focus: первым, после или перед задачей в фокусе');
 export type FocusPosition = z.infer<typeof focusPositionSchema>;
-export const taskFieldsSchema = z
+const taskFieldsSchema = z
   .object({
     area: areaSchema.optional(),
     projectId: idSchema.nullable().optional().describe('Проект или null'),

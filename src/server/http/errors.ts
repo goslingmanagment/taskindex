@@ -30,7 +30,7 @@ export const sqliteUnavailable = (error: unknown) => {
 // Zod issues as the API reports them: `payload.title`, `commands[1].payload`,
 // `query.limit`. The body of a command has no prefix (its fields are the
 // envelope), every other validation target is prefixed with its name.
-export const issuesOf = (error: z.ZodError, prefix = ''): OperationIssue[] =>
+const issuesOf = (error: z.ZodError, prefix = ''): OperationIssue[] =>
   error.issues.map((issue) => {
     const path = formatIssuePath(issue.path);
     return {

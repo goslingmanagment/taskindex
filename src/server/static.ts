@@ -3,6 +3,7 @@ import type { Context, Env, Hono } from 'hono';
 import { serveStatic } from '@hono/node-server/serve-static';
 // Vite hashes everything under /assets, so those files never change under the
 // same name; index.html and other unhashed files must be revalidated.
+/** @internal for tests */
 export const cacheControl = (path: string) =>
   /[/\\]assets[/\\]/.test(path)
     ? 'public, max-age=31536000, immutable'

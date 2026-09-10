@@ -1,5 +1,6 @@
 import type { z } from 'zod';
 import type * as contracts from './domain-schemas.js';
+import type { BatchEnvelope, CommandEnvelope } from './schemas.js';
 export const AREAS = [
   {
     id: 'agency',
@@ -39,7 +40,6 @@ export const STATUSES = [
 export type AreaId = (typeof AREAS)[number]['id'];
 export type Status = (typeof STATUSES)[number]['id'];
 export type Actor = z.infer<typeof contracts.actorSchema>;
-export type Me = z.infer<typeof contracts.meSchema>;
 export type Project = z.infer<typeof contracts.projectSchema>;
 export type Task = z.infer<typeof contracts.taskSchema>;
 export type Comment = z.infer<typeof contracts.commentSchema>;
@@ -57,16 +57,13 @@ export type OperationError = z.infer<typeof contracts.operationErrorSchema>;
 export type OperationResponse = z.infer<
   typeof contracts.operationResponseSchema
 >;
-export type EventsPage = z.infer<typeof contracts.eventsPageSchema>;
 export type OperationSummary = z.infer<typeof contracts.operationSummarySchema>;
 export type StoredOperation = z.infer<typeof contracts.storedOperationSchema>;
 export type ExportData = z.infer<typeof contracts.exportSchema>;
 export type Context = z.infer<typeof contracts.contextSchema>;
 export type Digest = z.infer<typeof contracts.digestSchema>;
 export type FocusDesk = z.infer<typeof contracts.focusDeskSchema>;
-export type Health = z.infer<typeof contracts.healthSchema>;
 export type Scope = Actor['scope'];
-export type ChecklistItem = Task['checklist'][number];
 export type EntityKind = DomainEvent['entityKind'];
 export type WorkspaceState = {
   projects: Project[];
@@ -76,12 +73,7 @@ export type WorkspaceState = {
   // paths as tasks and projects: `records`, `applyEvent`, export, replay.
   appearance: Appearance[];
 };
-export type Command = import('./schemas.js').Command;
-export type CommandEnvelope = import('./schemas.js').CommandEnvelope;
-export type BatchEnvelope = import('./schemas.js').BatchEnvelope;
-export type CommandName = import('./schemas.js').CommandName;
-export type CommandOf<K extends CommandName> =
-  import('./schemas.js').CommandOf<K>;
+export type { Command, CommandName, CommandOf } from './schemas.js';
 export type OperationEnvelope = CommandEnvelope | BatchEnvelope;
 export type Page<T> = {
   generation: string;

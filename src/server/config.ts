@@ -34,7 +34,7 @@ const adminSchema = z.object({
   TASKINDEX_DEPLOYMENT: path.optional(),
   LOG_LEVEL: level.default('info'),
 });
-export type Environment = Record<string, string | undefined>;
+type Environment = Record<string, string | undefined>;
 export class ConfigError extends Error {
   readonly issues: string[];
   constructor(issues: string[]) {
@@ -65,7 +65,7 @@ function parse<T extends z.ZodObject>(schema: T, env: Environment): z.infer<T> {
     }),
   );
 }
-export type ServerConfig = {
+type ServerConfig = {
   production: boolean;
   port: number;
   host: string;
@@ -100,7 +100,7 @@ export function loadServerConfig(env: Environment = process.env): ServerConfig {
     logLevel: c.LOG_LEVEL,
   };
 }
-export type AdminConfig = {
+type AdminConfig = {
   databasePath: string;
   timezone?: string;
   migrationsDir?: string;

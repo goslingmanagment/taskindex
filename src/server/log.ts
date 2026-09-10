@@ -1,6 +1,7 @@
 // One JSON line per event, `level` and `time` first. debug/info go to stdout,
 // warn/error to stderr; entries below the configured level are dropped.
 export type LogLevel = 'debug' | 'info' | 'warn' | 'error';
+/** @internal for tests */
 export type LogFields = Record<string, unknown>;
 export type Logger = {
   readonly level: LogLevel;
@@ -9,7 +10,7 @@ export type Logger = {
   warn: (fields: LogFields) => void;
   error: (fields: LogFields) => void;
 };
-export type LogSink = {
+type LogSink = {
   out: (line: string) => void;
   err: (line: string) => void;
 };
