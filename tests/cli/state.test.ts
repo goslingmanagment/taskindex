@@ -252,4 +252,91 @@ describe('CLI state layout per server and agent', () => {
       (again.last!.corrupt as { reason: string }[]).map((c) => c.reason).sort(),
     ).toEqual(['actor', 'corrupt', 'corrupt']);
   });
+
+  it('TI-022: every persisted envelope passes savedOperationSchema before use; unknown shapes are set aside with their bytes', async () => {
+    const directory = await mkdtemp(join(tmpdir(), 'taskindex-state-'));
+    const cli = harness(directory, BASE, 'secret-token');
+    cli.state.postAvailable = false;
+    await cli.run(write('good-1'));
+    const ops = cli.paths.ops('test');
+    const goodBytes = await readFile(join(ops, 'good-1.json'), 'utf8');
+    const good = JSON.parse(goodBytes) as {
+      envelope: Record<string, unknown>;
+    };
+    const variant = (id: string, patch: Record<string, unknown>) =>
+      JSON.stringify({
+        ...good,
+        ...patch,
+        envelope:
+          patch.envelope === undefined
+            ? { ...good.envelope, operationId: id }
+            : patch.envelope,
+      });
+    const files: Record<string, string> = {
+      'truncated-1.json': goodBytes.slice(0, goodBytes.length / 2),
+      'null-env-1.json': variant('null-env-1', { envelope: null }),
+      'no-payload-1.json': JSON.stringify({
+        ...good,
+        envelope: {
+          operationId: 'no-payload-1',
+          generation: 'g1',
+          command: 'comment.add',
+        },
+      }),
+      'old-version-1.json': variant('old-version-1', { formatVersion: 1 }),
+      'future-version-1.json': variant('future-version-1', {
+        formatVersion: 3,
+      }),
+      'bad-revision-1.json': JSON.stringify({
+        ...good,
+        envelope: {
+          operationId: 'bad-revision-1',
+          generation: 'g1',
+          command: 'task.archive',
+          payload: { id: 't1', baseRevision: 'latest' },
+        },
+      }),
+    };
+    for (const [name, text] of Object.entries(files))
+      await writeFile(join(ops, name), text);
+
+    cli.state.postAvailable = true;
+    const read = await cli.run(['tasks']);
+    expect(read.code).toBe(0);
+    expect(read.last).toMatchObject({ items: [] });
+    expect(cli.posts).toEqual([]);
+    const skipped = read.errors
+      .filter((line) => line.warning === 'outbox_skipped')
+      .map((line) => ({
+        file: line.file,
+        reason: line.reason,
+        renamedTo: line.renamedTo,
+      }));
+    expect(skipped).toEqual(
+      expect.arrayContaining(
+        Object.keys(files).map((name) => ({
+          file: join(ops, name),
+          reason: name.startsWith('truncated') ? 'json' : 'schema',
+          renamedTo: join(ops, `${name}.corrupt`),
+        })),
+      ),
+    );
+    expect(skipped).toHaveLength(Object.keys(files).length);
+    expect(
+      read.errors.find((line) => Array.isArray(line.pendingOperations)),
+    ).toMatchObject({ pendingOperations: ['good-1'] });
+    // The bytes are kept for inspection, never rewritten or deleted.
+    for (const [name, text] of Object.entries(files))
+      expect(await readFile(join(ops, `${name}.corrupt`), 'utf8')).toBe(text);
+    expect(await readFile(join(ops, 'good-1.json'), 'utf8')).toBe(goodBytes);
+
+    const resumed = await cli.run(['operation', 'resume']);
+    expect(resumed.code).toBe(0);
+    expect(cli.posts).toEqual(['good-1']);
+    expect((await readdir(ops)).sort()).toEqual(
+      Object.keys(files)
+        .map((name) => `${name}.corrupt`)
+        .sort(),
+    );
+  });
 });
