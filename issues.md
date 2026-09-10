@@ -86,12 +86,12 @@
 | [TI-015](#ti-015) | P2 | ИСПРАВЛЕНО | Неизменяемая конфигурация выпуска для отката |
 | [TI-016](#ti-016) | P2 | ИСПРАВЛЕНО | Обязательная проверка конкретного выпуска |
 | [TI-017](#ti-017) | P2 | ИСПРАВЛЕНО | Испытания deploy.sh и его аварийных ветвей |
-| [TI-018](#ti-018) | P2 | ОТКРЫТО | WebKit и приёмка на настоящем телефоне |
+| [TI-018](#ti-018) | P2 | ОТЛОЖЕНО | WebKit и приёмка на настоящем телефоне |
 | [TI-019](#ti-019) | P2 | ИСПРАВЛЕНО | Сохранение точных типов команд до обработчика |
 | [TI-020](#ti-020) | P2 | ИСПРАВЛЕНО | Диагностируемые ошибки и корреляция запросов |
 | [TI-021](#ti-021) | P2 | ИСПРАВЛЕНО | Независимые свойства команд и Undo |
 | [TI-022](#ti-022) | P3 | ИСПРАВЛЕНО | Проверка формата сохранённых черновиков и outbox |
-| [TI-023](#ti-023) | P3 | ПРЕДЛОЖЕНО | Общий жизненный цикл намерения в формах |
+| [TI-023](#ti-023) | P3 | ОТЛОЖЕНО | Общий жизненный цикл намерения в формах |
 | [TI-024](#ti-024) | P3 | ПРЕДЛОЖЕНО | Зависимости и измеримая загрузка интерфейса |
 | [TI-025](#ti-025) | P2 | ИСПРАВЛЕНО | Полноценная тёмная тема и общая основа оформления |
 | [TI-026](#ti-026) | P2 | ИСПРАВЛЕНО | Система скинов поверх общей темы |
@@ -102,7 +102,7 @@
 | [TI-031](#ti-031) | P2 | ИСПРАВЛЕНО | Единое русское склонение количества задач |
 | [TI-032](#ti-032) | P2 | ИСПРАВЛЕНО | История изменений на языке пользователя |
 | [TI-033](#ti-033) | P2 | ИСПРАВЛЕНО | Сверка документации с реализованными контрактами |
-| [TI-034](#ti-034) | P2 | ОТКРЫТО | Рабочая приёмка после исправлений |
+| [TI-034](#ti-034) | P2 | ОТЛОЖЕНО | Рабочая приёмка после исправлений |
 | [TI-035](#ti-035) | P1 | ИСПРАВЛЕНО | CLI пересылает чужой outbox под текущим агентом |
 | [TI-036](#ti-036) | P1 | ИСПРАВЛЕНО | Проверка API-ключа пишет auth-метаданные при каждом GET |
 | [TI-037](#ti-037) | P2 | ИСПРАВЛЕНО | Полный обход страниц срывается при параллельной записи |
@@ -131,21 +131,21 @@
 | [TI-060](#ti-060) | P2 | ИСПРАВЛЕНО | Лимиты повторяются в схемах, командах и JSX |
 | [TI-061](#ti-061) | P2 | ИСПРАВЛЕНО | Несколько canonical() могут разойтись в хешировании |
 | [TI-062](#ti-062) | P2 | ИСПРАВЛЕНО | Конфигурация разбросана, часть переменных не отражает runtime |
-| [TI-063](#ti-063) | P3 | ПРЕДЛОЖЕНО | Комментарии дублируются в store и отдельной загрузке по любому seq |
+| [TI-063](#ti-063) | P3 | ОТЛОЖЕНО | Комментарии дублируются в store и отдельной загрузке по любому seq |
 | [TI-064](#ti-064) | P3 | ИСПРАВЛЕНО | Выбор Drizzle/better-sqlite3 требует измерения, замена не обоснована |
 | [TI-065](#ti-065) | P3 | ПРЕДЛОЖЕНО | CSS shadcn привязан к пакету генератора и его транзитивным зависимостям |
 | [TI-066](#ti-066) | P3 | ПРЕДЛОЖЕНО | Dev/build конфигурация содержит лишнюю работу и широкое наблюдение |
 | [TI-067](#ti-067) | P2 | ИСПРАВЛЕНО | Пути runtime/migrations/static зависят от текущего каталога |
 | [TI-068](#ti-068) | P3 | ИСПРАВЛЕНО | Место сборки и состав production image можно упростить |
 | [TI-069](#ti-069) | P2 | ИСПРАВЛЕНО | E2E проверяет Vite dev, но не production static serving |
-| [TI-070](#ti-070) | P2 | ПРЕДЛОЖЕНО | Общее состояние, ожидания и дубли делают E2E хрупкими |
+| [TI-070](#ti-070) | P2 | ОТЛОЖЕНО | Общее состояние, ожидания и дубли делают E2E хрупкими |
 | [TI-071](#ti-071) | P3 | ИСПРАВЛЕНО | Lint, мёртвый код и соглашения дают неполный сигнал качества |
 | [TI-072](#ti-072) | P2 | ИСПРАВЛЕНО | Нет безопасного обзора deploy-плана и воспроизводимого bootstrap |
 | [TI-073](#ti-073) | P3 | ИСПРАВЛЕНО | События хранятся и отдельно, и в результате операции |
 | [TI-074](#ti-074) | P3 | ИСПРАВЛЕНО | Имя владельца зашито в UI |
 | [TI-075](#ti-075) | — | СНЯТО | Гипотеза: каждый health создаёт новые WAL-кадры |
 | [TI-076](#ti-076) | P3 | ИСПРАВЛЕНО | В UI активности нет фильтра по агенту, доступного в API/CLI |
-| [TI-077](#ti-077) | P3 | РЕШЕНИЕ | Жизненный цикл проекта не включает удаление/архивирование |
+| [TI-077](#ti-077) | P3 | ОТЛОЖЕНО | Жизненный цикл проекта не включает удаление/архивирование |
 | [TI-078](#ti-078) | P2 | ИСПРАВЛЕНО | Вид «Стол» для экрана Focus по макету «Фокус» |
 
 <a id="issue-cards"></a>
@@ -782,7 +782,7 @@
 
 ### TI-018 — WebKit и приёмка на настоящем телефоне
 
-**Тип:** Приёмка. **Статус:** ОТКРЫТО. **Приоритет:** P2.
+**Тип:** Приёмка. **Статус:** ОТЛОЖЕНО. **Приоритет:** P2.
 
 **Источники:** [Astra:S-05](/Users/dmitriy/code/taskindex/docs/audits/2026-09-08-multiside-review/01-stack.md:116); [FC:compare-stack-arch S-05](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/compare-stack-arch.md:98); [План 10, доп. шаг 21](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/10-code-quality-and-tests.md:342); [План 08, доп. шаг 17](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/08-styling-skin-and-dark-theme.md:251).
 
@@ -806,6 +806,8 @@
 
 - WebKit Playwright не является установленным Safari на iPhone. Не писать в отчёте «мобильная приёмка выполнена» только по desktop emulation.
 - Сверка Fable: проект `webkit` (`devices['Desktop Safari']`) для входа/выхода, создания и сохранения с переподключением SSE, восстановления черновика после перезагрузки, редактора, чеклиста, комментариев, индикатора pending; чек-лист телефона (passkey, клавиатура, safe area, ориентация) в `docs/acceptance/phone.md` ([план 10, доп. шаг 21](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/10-code-quality-and-tests.md:342)); тёмные сцены `dark` × `webkit` ([план 08, доп. шаг 17](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/08-styling-skin-and-dark-theme.md:251)).
+
+**Отложено (2026-09-11).** Причина: работа над интерфейсом передана Astra по решению владельца 2026-09-11, а физическая приёмка требует телефона владельца. Сделано: чек-лист `docs/acceptance/phone.md` (13 сцен, что фиксировать, где хранить отчёт; коммит `faacd13`); WebKit 26.6 установлен в кэш Playwright; спека `tests/e2e/webkit.spec.ts` была написана и откачена — доходила до входа, SSE, создания, правки и сохранения, падала на «черновик после перезагрузки» (редактор сворачивает секцию заметки после сохранения, нужен повторный клик по «Заметка»); конфиг чист. Поправка Fable к карточке остаётся: касания проверяются в эмуляции Chromium (`workspace.spec.ts`). Остаток: проект `webkit` в `playwright.config.ts` (план 10 доп. шаг 21) — Astra; отчёт с реального телефона — владелец (вместе с TI-034).
 
 **Связанные планы:** [astra-18-browser-and-phone-acceptance.md](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/astra-18-browser-and-phone-acceptance.md); [10-code-quality-and-tests.md](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/10-code-quality-and-tests.md); [08-styling-skin-and-dark-theme.md](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/08-styling-skin-and-dark-theme.md).
 
@@ -961,7 +963,7 @@
 
 ### TI-023 — Общий жизненный цикл намерения в формах
 
-**Тип:** Качество кода. **Статус:** ПРЕДЛОЖЕНО. **Приоритет:** P3.
+**Тип:** Качество кода. **Статус:** ОТЛОЖЕНО. **Приоритет:** P3.
 
 **Источники:** [Astra:Q-06](/Users/dmitriy/code/taskindex/docs/audits/2026-09-08-multiside-review/04-code-quality.md:117); [FQ:§3](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/review-4-quality.md:75); [FQ:§6](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/review-4-quality.md:130); [FQ:R5](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/review-4-quality.md:284); [FC:compare-quality-method Q-06](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/compare-quality-method.md:60); [План 07, доп. шаг 25](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/07-web-client-fixes-and-structure.md:274).
 
@@ -986,6 +988,8 @@
 - Начинать рефакторинг до исправления семантики означает закрепить ошибку в общем hook. Не объединять разные сущности только из-за внешне похожих полей.
 - QuickCreate/InlineCreate/ProjectDialog/TaskDiscussion: стабильный ID, persisted intent, unknown, definitive rejection, clear-after-ack. Вынести подписку черновика и общее повторяющееся сохранение, оставить формы и conflict semantics предметными. makeTask с revision=0 заменить подходящим draft type при этом рефакторинге.
 - Сверка Fable: одна таблица состояний намерения (editing → persisted → sending → success | definitive rejection | unknown); новый `operationId` только после окончательного отказа и изменения payload; `unknown` сохраняет `operationId` и конверт; применить к трём формам через `use-save-intent.ts`/`use-draft.ts` ([план 07, доп. шаг 25](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/07-web-client-fixes-and-structure.md:274)).
+
+**Отложено (2026-09-11).** Причина: рефакторинг форм интерфейса передан Astra по решению владельца 2026-09-11 (план 07 шаги 9, 13, доп. шаг 25; `astra-23`). Состояние на 2026-09-11: жизненный цикл намерения реализован по-прежнему в каждой форме отдельно, но контрактные гарантии уже закреплены тестами (TI-004 для CLI, TI-006/TI-007/TI-038 для web) — общий хук их не меняет. Запись в `docs/acceptance/test-debt.md`, раздел «Передано Astra».
 
 **Связанные планы:** [astra-23-form-intent-lifecycle.md](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/astra-23-form-intent-lifecycle.md); [10-code-quality-and-tests.md](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/10-code-quality-and-tests.md); [07-web-client-fixes-and-structure.md](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/07-web-client-fixes-and-structure.md).
 
@@ -1372,7 +1376,7 @@
 
 ### TI-034 — Рабочая приёмка после исправлений
 
-**Тип:** Приёмка. **Статус:** ОТКРЫТО. **Приоритет:** P2.
+**Тип:** Приёмка. **Статус:** ОТЛОЖЕНО. **Приоритет:** P2.
 
 **Источники:** [FI:A13](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/review-5-ai-ready.md:107); [BACKLOG: BL-ACCEPTANCE](/Users/dmitriy/code/taskindex/BACKLOG.md); [Исходное workflow-ревью BACKLOG](/Users/dmitriy/code/taskindex/docs/audits/2026-09-08-workflows/claude-review/REPORT.md).
 
@@ -1396,6 +1400,8 @@
 
 - Этот файл — план, а не разрешение на commit, изменение VPS, отправку сообщений или перенос данных. Подготовка пакета выполняется до финального согласования рабочего действия; повторное согласование уже явно порученного действия не требуется.
 - Оценки AI-readiness 6/10 и 4/10 — рубрика исходного автора, а не автоматический критерий закрытия. Нужны конкретные результаты agent cycle и целевых устройств.
+
+**Отложено (2026-09-11).** Причина (предварительно одобрена владельцем): приёмка требует реальной инфраструктуры — VPS с nginx и TLS, S3-реплика, чек healthchecks.io, телефон. Что уже есть для неё: гейт `npm run check` + полный e2e (34 сценария) + `npm run build` зелёные на `v2-fixes`; `deploy/local-drill.sh` и harness настоящего `deploy.sh` (`deploy/drill/deploy-drill.sh`, матрица из 10 сценариев) зелёные в Docker; `bootstrap.sh`, `deploy.sh --plan`, `--image` с проверкой метки; CI-workflow проверен `actionlint`; `docs/acceptance/agent-cycle.md` + `npm run agent-cycle` (`{ok:true, passed:[1,2,4,6,7], manual:[3]}`); `docs/acceptance/phone.md`. Остаётся владельцу по `astra-34`: чек healthchecks.io и URL в env, первый `bootstrap.sh` на VPS, восстановление из реального S3, проверка nginx/HSTS/`/health`-allowlist на домене, отчёт с телефона, живой прогон CI.
 
 **Связанные планы:** [astra-34-release-and-owner-acceptance.md](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/astra-34-release-and-owner-acceptance.md); [12-ai-readiness-and-docs.md](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/12-ai-readiness-and-docs.md).
 
@@ -2291,7 +2297,7 @@
 
 ### TI-063 — Комментарии дублируются в store и отдельной загрузке по любому seq
 
-**Тип:** Архитектура UI. **Статус:** ПРЕДЛОЖЕНО. **Приоритет:** P3.
+**Тип:** Архитектура UI. **Статус:** ОТЛОЖЕНО. **Приоритет:** P3.
 
 **Источники:** [FA:Ж3](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/review-2-architecture.md:99); [План 07, критерий 6](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/07-web-client-fixes-and-structure.md:62).
 
@@ -2308,6 +2314,8 @@
 - Несвязанные изменения не вызывают повторный запрос комментариев открытой задачи.
 - Add/delete/undo и snapshot recovery правильно отражаются в discussion.
 - Смена taskId и запоздалый ответ не подменяют комментарии другой задачи.
+
+**Отложено (2026-09-11).** Причина: перестройка загрузки обсуждения в интерфейсе передана Astra по решению владельца 2026-09-11 (план 07 §3.6 и шаг 9). Состояние на 2026-09-11: серверная сторона готова — история и комментарии читаются точечно по индексам (TI-012, коммит `0df0a30`), стоимость перечитывания обсуждения не растёт с журналом; остаётся клиентский выбор источника (`relevantSeq` из `lastEvents` store либо fetch с инвалидацией по `taskId`). Запись в `docs/acceptance/test-debt.md`.
 
 **Связанные планы:** [07-web-client-fixes-and-structure.md](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/07-web-client-fixes-and-structure.md).
 
@@ -2494,7 +2502,7 @@
 
 ### TI-070 — Общее состояние, ожидания и дубли делают E2E хрупкими
 
-**Тип:** Качество тестов. **Статус:** ПРЕДЛОЖЕНО. **Приоритет:** P2.
+**Тип:** Качество тестов. **Статус:** ОТЛОЖЕНО. **Приоритет:** P2.
 
 **Источники:** [FQ:§3](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/review-4-quality.md:75); [FQ:§9](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/review-4-quality.md:166); [FQ:R10](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/review-4-quality.md:289); [FC:compare-quality-method, побочный эффект e2e](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/compare-quality-method.md:68); [План 10, шаг 15](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/10-code-quality-and-tests.md:236).
 
@@ -2515,6 +2523,8 @@
 **Детали и оговорки:**
 
 - Не заменять сильные интеграционные сценарии большим числом тестов, зеркалящих функции. Property oracle закрывается отдельно в TI-021.
+
+**Отложено (2026-09-11).** Сделано (коммит `d0e14ca`, C, раунд 1): общие хелперы `tests/e2e/helpers.ts` (вход с `x-real-ip` из хеша `testId`, `snapshot`/`postCommand`/`command`), три копии хелперов убраны, ожидания вместо `waitForTimeout` в touch-drag; проекты `functional`/`static`/`dark`. Причина отложения остатка: перестройка e2e на проекты `setup`/`visual` со `storageState` и отдельной чистой базой (план 10 шаг 15) затрагивает те же спеки, что UI-работа, переданная Astra 2026-09-11; сейчас база e2e общая, поэтому новая спека, создающая задачи, идёт после `workspace.spec.ts` (так сделаны `dark.spec.ts` и тест скина). Четыре сцены со временем остаются недетерминированными. Запись в `docs/acceptance/test-debt.md`.
 
 **Связанные планы:** [10-code-quality-and-tests.md](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/10-code-quality-and-tests.md).
 
@@ -2705,7 +2715,7 @@
 
 ### TI-077 — Жизненный цикл проекта не включает удаление/архивирование
 
-**Тип:** Политика продукта. **Статус:** РЕШЕНИЕ. **Приоритет:** P3.
+**Тип:** Политика продукта. **Статус:** ОТЛОЖЕНО. **Приоритет:** P3.
 
 **Источники:** [FI: матрица паритета](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/review-5-ai-ready.md:44).
 
@@ -2724,6 +2734,8 @@
 - Исторические события и задачи не получают висячие ссылки; restore/undo согласованы.
 
 **План:** минимальный объём и критерии записаны в этой карточке; отдельный подробный файл для этого пункта пока не создан.
+
+**Отложено (2026-09-11).** Причина (предварительно одобрена владельцем): решения нет ни в реестре, ни в планах — удаление или архивирование проекта это продуктовый выбор владельца (что делать с задачами проекта, обратимость, права агентов). Код не менялся; `project.create`/`project.update` и undo работают как прежде.
 
 **Связанные записи / зависимости исходного плана:** [TI-010](#ti-010), [TI-014](#ti-014), [TI-027](#ti-027), [TI-040](#ti-040).
 
