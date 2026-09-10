@@ -1,8 +1,13 @@
 import type { Actor, DomainEvent } from '../shared/model.js';
+import { LIMITS } from '../shared/limits.js';
 import type { Credential } from './auth.js';
 // Idle streams re-check access on every heartbeat, so revocation reaches an
 // open stream no later than this interval (or the next delivery, if sooner).
 export const SSE_HEARTBEAT_MS = 25_000;
+// A cursor further behind than this gets `event: reset` (take a snapshot)
+// instead of a tail; a shorter tail streams in portions of one page.
+export const SSE_BACKLOG_LIMIT = 5_000;
+export const SSE_BACKLOG_CHUNK = LIMITS.pageSize;
 export type CloseReason = 'revoked' | 'shutdown';
 export type Subscriber = {
   actor: Actor;
@@ -73,4 +78,24 @@ export function createEventHub() {
       return subscribers.size;
     },
   };
+}
+// Catch-up for one stream in portions (plan 01, step 10): every portion goes
+// through the hub's gate, and `ready` runs between portions — it yields to
+// the event loop so live requests are served while a long tail streams, and
+// answers false once the stream is gone.
+export async function replayBacklog(
+  hub: EventHub,
+  s: Subscriber,
+  since: number,
+  read: (since: number, limit: number) => DomainEvent[],
+  ready: () => Promise<boolean>,
+) {
+  let cursor = since;
+  for (;;) {
+    const chunk = read(cursor, SSE_BACKLOG_CHUNK + 1);
+    hub.publishTo(s, chunk.slice(0, SSE_BACKLOG_CHUNK));
+    if (chunk.length <= SSE_BACKLOG_CHUNK) return;
+    cursor = chunk[SSE_BACKLOG_CHUNK - 1]!.seq;
+    if (!(await ready())) return;
+  }
 }

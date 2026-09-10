@@ -1,7 +1,9 @@
-import { it, expect } from 'vitest';
+import { describe, it, expect } from 'vitest';
 import { createEventHub } from '../../src/server/sse.js';
 import type { Subscriber } from '../../src/server/sse.js';
 import type { DomainEvent } from '../../src/shared/model.js';
+import { generation } from '../../src/server/db.js';
+import { fixture, success } from './helpers.js';
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 const event = (seq: number) => ({ seq }) as unknown as DomainEvent;
 function subscriber(agentId: string, check: Subscriber['check'] = () => true) {
@@ -104,4 +106,79 @@ it('closeFor closes only matching subscribers and publishTo gates a single catch
   await sleep(0);
   expect(b.got.events).toEqual([event(9)]);
   expect(a1.got.events).toEqual([]);
+});
+// Plan 01, step 10 and test 9: a long catch-up streams in portions through
+// the hub's gate with the event loop running between them; a cursor further
+// behind than sseBacklogLimit gets `event: reset` and a closed stream.
+describe('SSE backlog (plan 01, phase 3)', () => {
+  const seed = async (f: ReturnType<typeof fixture>, count: number) => {
+    for (let batch = 0; batch < count / 100; batch++)
+      success(
+        await f.batch(
+          Array.from({ length: 100 }, (_, i) => ({
+            command: 'task.create' as const,
+            payload: {
+              id: `t-${batch}-${i}`,
+              area: 'agency' as const,
+              title: `T${batch}-${i}`,
+            },
+          })),
+        ),
+      );
+  };
+  it('replays 1 200 events in seq order as portions of 500/500/200 through publishTo', async () => {
+    const hub = createEventHub();
+    const portions: number[] = [];
+    const publishTo = hub.publishTo.bind(hub);
+    hub.publishTo = (s, events) => {
+      portions.push(events.length);
+      publishTo(s, events);
+    };
+    const f = fixture({ hub });
+    await seed(f, 1200);
+    const response = await f.app.request(
+      `/api/events/stream?generation=${generation(f.db)}&since=0`,
+    );
+    const reader = response.body!.getReader();
+    const decoder = new TextDecoder();
+    let text = '';
+    const seqs: number[] = [];
+    while (seqs.length < 1200) {
+      const { value, done } = await reader.read();
+      if (done) break;
+      text += decoder.decode(value);
+      const lines = text.split('\n\n');
+      text = lines.pop() ?? '';
+      for (const line of lines) {
+        const id = /^id: [^:]+:(\d+)$/m.exec(line);
+        if (id) seqs.push(Number(id[1]));
+      }
+    }
+    await reader.cancel();
+    expect(seqs).toEqual(Array.from({ length: 1200 }, (_, i) => i + 1));
+    expect(portions).toEqual([500, 500, 200]);
+    f.close();
+  });
+  it('answers a cursor further behind than sseBacklogLimit with event: reset and closes', async () => {
+    const f = fixture({ sseBacklogLimit: 100 });
+    await seed(f, 200);
+    const gen = generation(f.db);
+    const reset = await f.app.request(
+      `/api/events/stream?generation=${gen}&since=0`,
+    );
+    const body = await reset.text();
+    expect(body).toContain('event: reset');
+    expect(body).toContain(`"generation":"${gen}"`);
+    expect(body).not.toContain('id: ');
+    // Within the limit the tail streams as before.
+    const near = await f.app.request(
+      `/api/events/stream?generation=${gen}&since=150`,
+    );
+    const reader = near.body!.getReader();
+    await reader.read();
+    const chunk = new TextDecoder().decode((await reader.read()).value);
+    expect(chunk).toContain(`id: ${gen}:151\n`);
+    await reader.cancel();
+    f.close();
+  });
 });

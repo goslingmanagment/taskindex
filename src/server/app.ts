@@ -5,7 +5,7 @@ import { secureHeaders } from 'hono/secure-headers';
 import { DomainError } from '../shared/errors.js';
 import { assertSchema, getSetting, schemaVersion, withWrite } from './db.js';
 import { writesAreOpen } from './admin.js';
-import { createEventHub, SSE_HEARTBEAT_MS } from './sse.js';
+import { createEventHub, SSE_BACKLOG_LIMIT, SSE_HEARTBEAT_MS } from './sse.js';
 import { createLogger } from './log.js';
 import type { AppOptions, Deps, Env } from './http/deps.js';
 import {
@@ -73,6 +73,7 @@ export function createApp(options: AppOptions) {
     hub,
     version: schemaVersion(options.migrationsDir),
     heartbeatMs: options.sseHeartbeatMs ?? SSE_HEARTBEAT_MS,
+    backlogLimit: options.sseBacklogLimit ?? SSE_BACKLOG_LIMIT,
     origins: options.trustedOrigins ?? [baseURL, 'http://localhost:5173'],
     now: () => options.now?.() ?? new Date().toISOString(),
     timezone: () => getSetting(db, 'timezone') ?? 'Europe/Moscow',

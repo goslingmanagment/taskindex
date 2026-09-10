@@ -19,6 +19,9 @@ export type AppOptions = {
   deploymentId?: string;
   migrationsDir?: string;
   sseHeartbeatMs?: number;
+  // Events a reconnecting cursor may be behind before the stream answers
+  // `event: reset` instead of a tail (plan 01, step 10).
+  sseBacklogLimit?: number;
   logger?: Logger;
   hub?: EventHub;
   now?: () => string;
@@ -51,6 +54,7 @@ export type Deps = {
   hub: EventHub;
   version: number;
   heartbeatMs: number;
+  backlogLimit: number;
   origins: string[];
   now: () => string;
   timezone: () => string;

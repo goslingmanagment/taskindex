@@ -6,6 +6,7 @@ import {
   readState,
 } from '../../src/server/db.js';
 import { createApp } from '../../src/server/app.js';
+import type { EventHub } from '../../src/server/sse.js';
 import type {
   Actor,
   Command,
@@ -32,10 +33,22 @@ export const otherAgent: Actor = {
   kind: 'agent',
   scope: 'write',
 };
-export function fixture(mode: 'held' | 'open' = 'open') {
+export function fixture(
+  options:
+    | 'held'
+    | 'open'
+    | {
+        mode?: 'held' | 'open';
+        hub?: EventHub;
+        sseBacklogLimit?: number;
+      } = 'open',
+) {
+  const { mode = 'open', ...rest } =
+    typeof options === 'string' ? { mode: options } : options;
   const db = openDatabase(':memory:');
   migrate(db);
   const app = createApp({
+    ...rest,
     db,
     baseURL: 'http://localhost:3001',
     trustedOrigins: ['http://localhost:5173'],

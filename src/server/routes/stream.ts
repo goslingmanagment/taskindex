@@ -2,7 +2,13 @@ import { createRoute } from '@hono/zod-openapi';
 import type { OpenAPIHono } from '@hono/zod-openapi';
 import { z } from 'zod';
 import { fail } from '../../shared/errors.js';
-import { generation, latestOperationSeq, readEvents } from '../db.js';
+import {
+  generation,
+  latestOperationSeq,
+  latestSeq,
+  readEvents,
+} from '../db.js';
+import { replayBacklog } from '../sse.js';
 import type { Subscriber } from '../sse.js';
 import { generationQuery, readErrors } from '../http/openapi.js';
 import type { Deps, Env } from '../http/deps.js';
@@ -11,7 +17,7 @@ export const registerStreamRoutes = <T extends OpenAPIHono<Env>>(
   app: T,
   deps: Deps,
 ) => {
-  const { db, hub, heartbeatMs } = deps;
+  const { db, hub, heartbeatMs, backlogLimit } = deps;
   return app.openapi(
     createRoute({
       method: 'get',
@@ -19,7 +25,7 @@ export const registerStreamRoutes = <T extends OpenAPIHono<Env>>(
       operationId: 'streamEvents',
       summary: 'Поток событий (SSE)',
       description:
-        'id сообщения — generation:seq; event: reset при другом поколении, event: operations (с operationSeq) как подсказка без сдвига курсора, event: revoked при отзыве ключа.',
+        'id сообщения — generation:seq; event: reset означает «возьмите снимок»: другое поколение или курсор дальше sseBacklogLimit (5 000 событий) от конца журнала; хвост короче отдаётся порциями по 500; event: operations (с operationSeq) как подсказка без сдвига курсора, event: revoked при отзыве ключа.',
       tags: ['events'],
       request: {
         query: z.object({
@@ -62,7 +68,9 @@ export const registerStreamRoutes = <T extends OpenAPIHono<Env>>(
       let cleanup = () => {};
       const body = new ReadableStream<Uint8Array>({
         start(controller) {
-          if (gen !== generation(db)) {
+          // Another generation or a cursor too far behind: the client takes
+          // a snapshot instead of a tail (plan 01, step 10).
+          if (gen !== generation(db) || latestSeq(db) - since > backlogLimit) {
             controller.enqueue(
               encoder.encode(
                 `event: reset\ndata: ${JSON.stringify({ generation: generation(db) })}\n\n`,
@@ -138,7 +146,21 @@ export const registerStreamRoutes = <T extends OpenAPIHono<Env>>(
           timer.unref();
           unsubscribe = hub.subscribe(subscriber);
           cleanup = close;
-          hub.publishTo(subscriber, readEvents(db, since));
+          // Between portions the event loop runs; a full queue waits for the
+          // consumer instead of growing.
+          const open = () => !closed;
+          const ready = async () => {
+            do await new Promise<void>((resolve) => setImmediate(resolve));
+            while (open() && (controller.desiredSize ?? 0) < 0);
+            return open();
+          };
+          void replayBacklog(
+            hub,
+            subscriber,
+            since,
+            (from, limit) => readEvents(db, from, limit),
+            ready,
+          );
         },
         cancel() {
           cleanup();
