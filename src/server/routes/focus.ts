@@ -4,7 +4,7 @@ import { z } from 'zod';
 import { focusResponseSchema } from '../../shared/domain-schemas.js';
 import { fail } from '../../shared/errors.js';
 import { focusGroups, todayInTimezone } from '../../shared/queries.js';
-import { generation, latestSeq, readState } from '../db.js';
+import { generation, latestSeq } from '../db.js';
 import { json, pageQuery, readErrors } from '../http/openapi.js';
 import type { Deps, Env } from '../http/deps.js';
 import { focusKey } from '../http/pagination.js';
@@ -13,7 +13,7 @@ export const registerFocusRoutes = <T extends OpenAPIHono<Env>>(
   app: T,
   deps: Deps,
 ) => {
-  const { db, now, timezone, checkGeneration, paging } = deps;
+  const { db, now, timezone, checkGeneration, paging, projection } = deps;
   return app.openapi(
     createRoute({
       method: 'get',
@@ -37,7 +37,7 @@ export const registerFocusRoutes = <T extends OpenAPIHono<Env>>(
       const q = c.req.valid('query');
       checkGeneration(q.generation);
       const groups = focusGroups(
-        readState(db).tasks,
+        projection.read().tasks,
         todayInTimezone(timezone(), now()),
       );
       if (q.group) {

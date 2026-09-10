@@ -15,6 +15,7 @@ import type {
   OperationEnvelope,
   OperationResponse,
   OperationSuccess,
+  WorkspaceState,
 } from '../shared/model.js';
 import type { DatabaseHandle } from './db.js';
 import {
@@ -31,11 +32,12 @@ import {
   writeState,
 } from './db.js';
 import * as schema from './schema.js';
+import type { Projection } from './projection.js';
 export function executeOperation(
   db: DatabaseHandle,
   input: OperationEnvelope,
   actor: Actor,
-  options: { now?: string; ids?: () => string } = {},
+  options: { now?: string; ids?: () => string; projection?: Projection } = {},
 ): {
   status: number;
   body: OperationResponse;
@@ -49,7 +51,10 @@ export function executeOperation(
   const hash = createHash('sha256')
     .update(canonicalJson(envelope))
     .digest('hex');
-  return withWrite(db, () => {
+  // The state written by this operation and the version it was written at,
+  // handed to the projection once the transaction has committed.
+  let committed: { state: WorkspaceState; version: string } | undefined;
+  const outcome = withWrite(db, () => {
     const gen = generation(db);
     if (envelope.generation !== gen)
       fail('generation_changed', 'База восстановлена. Получите новый снимок.', {
@@ -87,7 +92,7 @@ export function executeOperation(
               payload: envelope.payload,
             }),
           ];
-    const previous = readState(db);
+    const previous = options.projection?.read() ?? readState(db);
     let state = previous;
     const events: DomainEvent[] = [];
     // The reducer asks the journal only for what it needs (plan 01, step 2):
@@ -189,6 +194,8 @@ export function executeOperation(
           lastSeq,
         })
         .run();
+      if (options.projection)
+        committed = { state, version: options.projection.version() };
     }
     return {
       status: 200,
@@ -197,4 +204,7 @@ export function executeOperation(
       freshOperation: !envelope.dryRun,
     };
   });
+  if (committed)
+    options.projection?.replace(committed.state, committed.version);
+  return outcome;
 }

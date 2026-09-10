@@ -20,12 +20,13 @@ const runOperation = (
   input: Parameters<typeof executeOperation>[1],
   commandName: string,
 ) => {
-  const { db, options, logger, hub, now } = deps;
+  const { db, options, logger, hub, now, projection } = deps;
   c.set('operationId', input.operationId);
   c.set('commandName', commandName);
   const result = executeOperation(db, input, c.get('actor'), {
     now: now(),
     ids: options.ids,
+    projection,
   });
   try {
     hub.publish(result.freshEvents);

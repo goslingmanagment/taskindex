@@ -16,6 +16,7 @@ import {
 import { createAuthMiddleware } from './http/auth-middleware.js';
 import { createRequestLog } from './http/request-log.js';
 import { createPagination } from './http/pagination.js';
+import { createProjection } from './projection.js';
 import { registerHealthRoutes } from './routes/health.js';
 import { registerCommandRoutes } from './routes/commands.js';
 import { registerReadRoutes } from './routes/reads.js';
@@ -81,6 +82,7 @@ export function createApp(options: AppOptions) {
       writesAreOpen(db, options.writes ?? 'open', options.deploymentId),
     checkGeneration: paging.checkGeneration,
     paging,
+    projection: createProjection(db, options.projectionCache !== false),
   };
 
   const app = new OpenAPIHono<Env>({ defaultHook });

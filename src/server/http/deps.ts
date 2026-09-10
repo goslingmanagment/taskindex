@@ -4,6 +4,7 @@ import type { Auth, Authorized } from '../auth.js';
 import type { EventHub } from '../sse.js';
 import type { Logger } from '../log.js';
 import type { Pagination } from './pagination.js';
+import type { Projection } from '../projection.js';
 
 export type AppOptions = {
   db: DatabaseHandle;
@@ -22,6 +23,9 @@ export type AppOptions = {
   // Events a reconnecting cursor may be behind before the stream answers
   // `event: reset` instead of a tail (plan 01, step 10).
   sseBacklogLimit?: number;
+  // `false` reads the state from the database on every request (plan 01,
+  // step 11 rollback).
+  projectionCache?: boolean;
   logger?: Logger;
   hub?: EventHub;
   now?: () => string;
@@ -61,4 +65,5 @@ export type Deps = {
   opened: () => boolean;
   checkGeneration: (given?: string) => void;
   paging: Pagination;
+  projection: Projection;
 };

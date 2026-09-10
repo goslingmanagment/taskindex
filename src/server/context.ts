@@ -4,7 +4,7 @@ import type { Actor, Context } from '../shared/model.js';
 import { commandPayloadSchemas, commandNames } from '../shared/schemas.js';
 import { taskSchema } from '../shared/domain-schemas.js';
 import { focusGroups, todayInTimezone } from '../shared/queries.js';
-import { generation, latestSeq, readState } from './db.js';
+import { generation, latestSeq } from './db.js';
 import { listAgents } from './admin.js';
 import type { Deps } from './http/deps.js';
 
@@ -46,8 +46,8 @@ export const RULES = [
 ];
 
 export function buildContext(deps: Deps, actor: Actor): Context {
-  const { db, now, timezone } = deps;
-  const state = readState(db);
+  const { db, now, timezone, projection } = deps;
+  const state = projection.read();
   const today = todayInTimezone(timezone(), now());
   return {
     formatVersion: FORMAT_VERSION,

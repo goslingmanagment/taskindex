@@ -7,7 +7,6 @@ import {
   latestSeq,
   readOperationsPage,
   readOwnerCommentEvents,
-  readState,
   withRead,
 } from './db.js';
 import { stripStored } from './http/openapi.js';
@@ -22,11 +21,11 @@ export function buildDigest(
   deps: Deps,
   query: { since: number; sinceOp?: number },
 ): Digest {
-  const { db, now, timezone, paging } = deps;
+  const { db, now, timezone, paging, projection } = deps;
   const since = query.since;
   const limit = LIMITS.digestPage;
   return withRead(db, (): Digest => {
-    const state = readState(db);
+    const state = projection.read();
     const seq = latestSeq(db);
     const operationSeq = latestOperationSeq(db);
     const gen = generation(db);

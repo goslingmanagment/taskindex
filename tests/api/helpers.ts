@@ -34,7 +34,7 @@ export const otherAgent: Actor = {
   scope: 'write',
 };
 export function fixture(
-  options:
+  setup:
     | 'held'
     | 'open'
     | {
@@ -44,7 +44,7 @@ export function fixture(
       } = 'open',
 ) {
   const { mode = 'open', ...rest } =
-    typeof options === 'string' ? { mode: options } : options;
+    typeof setup === 'string' ? { mode: setup } : setup;
   const db = openDatabase(':memory:');
   migrate(db);
   const app = createApp({

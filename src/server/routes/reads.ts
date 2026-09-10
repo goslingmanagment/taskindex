@@ -20,7 +20,6 @@ import {
   latestSeq,
   readComments,
   readProjects,
-  readState,
   readTask,
   readTaskByOrigin,
   taskExists,
@@ -41,7 +40,7 @@ export const registerReadRoutes = <T extends OpenAPIHono<Env>>(
   app: T,
   deps: Deps,
 ) => {
-  const { db, version, now, timezone, paging } = deps;
+  const { db, version, now, timezone, paging, projection } = deps;
   return (
     app
       .openapi(
@@ -79,7 +78,7 @@ export const registerReadRoutes = <T extends OpenAPIHono<Env>>(
         (c) =>
           c.json(
             withRead(db, () => {
-              const state = readState(db);
+              const state = projection.read();
               return {
                 generation: generation(db),
                 seq: latestSeq(db),
@@ -105,7 +104,7 @@ export const registerReadRoutes = <T extends OpenAPIHono<Env>>(
           tags: ['context'],
           responses: { 200: json(appearanceSchema), ...readErrors },
         }),
-        (c) => c.json(readState(db).appearance[0]!, 200),
+        (c) => c.json(projection.read().appearance[0]!, 200),
       )
       .openapi(
         createRoute({
@@ -143,7 +142,7 @@ export const registerReadRoutes = <T extends OpenAPIHono<Env>>(
         }),
         (c) => {
           const q = c.req.valid('query');
-          const state = readState(db);
+          const state = projection.read();
           const values = queryTasks(
             state.tasks,
             state.projects,

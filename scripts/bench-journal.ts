@@ -28,6 +28,8 @@ import {
   writeState,
 } from '../src/server/db.js';
 import { executeOperation } from '../src/server/operations.js';
+import { createProjection } from '../src/server/projection.js';
+import type { Projection } from '../src/server/projection.js';
 import { createApp } from '../src/server/app.js';
 import { defaultAppearance } from '../src/shared/domain-schemas.js';
 import type {
@@ -238,8 +240,11 @@ function padJournal(
   })();
 }
 
+// The executor as the server runs it: with the cached projection (plan 01,
+// step 11), so the command reads the state once per external change.
 function update(
   db: ReturnType<typeof openDatabase>,
+  projection: Projection,
   id: string,
   revision: number,
   n: number,
@@ -253,6 +258,7 @@ function update(
       generation: generation(db),
     },
     owner,
+    { projection },
   );
   if (!response.body.ok) throw new Error(JSON.stringify(response.body));
   return revision + 1;
@@ -263,13 +269,14 @@ function commandCostByJournal() {
   const db = openDatabase(':memory:');
   migrate(db);
   seedTasks(db, 300);
+  const projection = createProjection(db);
   let revision = 1;
   let n = 0;
   for (const target of [320, 2020, 5020, 10020]) {
     const pad = target - 20 - latestSeq(db);
     if (pad > 0) padJournal(db, pad, false);
     measure('task.update, 300 задач, заметка 1 КБ', target, 20, () => {
-      revision = update(db, 't0', revision, n++);
+      revision = update(db, projection, 't0', revision, n++);
     });
   }
   db.close();
@@ -322,10 +329,11 @@ function tasksWithoutHistory() {
     const db = openDatabase(':memory:');
     migrate(db);
     seedTasks(db, count);
+    const projection = createProjection(db);
     let revision = 1;
     let n = 0;
     measure(`task.update, ${count} задач без истории`, 0, 5, () => {
-      revision = update(db, 't0', revision, n++);
+      revision = update(db, projection, 't0', revision, n++);
     });
     db.close();
   }
@@ -338,10 +346,11 @@ function oneTaskLongJournal() {
     migrate(db);
     seedTasks(db, 1);
     padJournal(db, count, true);
+    const projection = createProjection(db);
     let revision = 1;
     let n = 0;
     measure(`task.update, 1 задача, ${count} операций`, count, 5, () => {
-      revision = update(db, 't0', revision, n++);
+      revision = update(db, projection, 't0', revision, n++);
     });
     // The path of GET /api/operations/{id}: one row by id (plan 01, step 5).
     measure(`readOperation(db, id), ${count} операций`, count, 20, () => {
