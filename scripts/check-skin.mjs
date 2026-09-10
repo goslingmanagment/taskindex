@@ -359,10 +359,18 @@ for (const mode of ['light', 'dark'])
       );
   }
 
-// 9. Собранный CSS не растёт (план 08, тест 10).
-const BUNDLE_LIMIT = 109217;
+// 9. Собранный CSS не растёт (план 08, тест 10). Предел: замер после тёмной
+// темы (3982ba5) 116 453 Б плюс 2 % на округление; новый экран или скин
+// поднимает его осознанно, вместе с записью в план 08.
+const BUNDLE_LIMIT = 118_800;
 const assets = 'dist/web/assets';
-if (existsSync(assets)) {
+if (!existsSync(assets)) {
+  console.error(
+    'check-skin: dist/web/assets не найден — бюджет CSS не проверен; сначала npm run build',
+  );
+  process.exit(1);
+}
+{
   for (const name of readdirSync(assets).filter((n) => n.endsWith('.css'))) {
     const size = statSync(join(assets, name)).size;
     if (size > BUNDLE_LIMIT)
