@@ -40,6 +40,7 @@ const task = () =>
 const snapshot = (): Snapshot => ({
   generation: 'gen1',
   seq: 0,
+  schemaVersion: 4,
   today: '2026-09-08',
   timezone: 'Europe/Moscow',
   projects: [],

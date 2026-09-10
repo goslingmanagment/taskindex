@@ -205,12 +205,9 @@ export const snapshotSchema = z
   .object({
     generation: idSchema,
     seq: seq.describe('Последнее событие снимка'),
-    // Optional in the schema until the web tests (owner C) add the field to
-    // their Snapshot literals; the server always sends it (2026-09-10).
     schemaVersion: z
       .number()
       .int()
-      .optional()
       .describe(
         'Версия схемы сервера; другое значение у следующего снимка означает обновление сервера',
       ),
@@ -343,10 +340,7 @@ export const operationSeqSchema = z
 export const operationSummarySchema = z
   .object({
     id: idSchema,
-    // The server always sends it (tests/api/operations-journal.test.ts);
-    // optional in the schema until the CLI test doubles (owner B) carry it
-    // (2026-09-10). Exports require it, see exportSchema.
-    operationSeq: operationSeqSchema.optional(),
+    operationSeq: operationSeqSchema,
     status: z.number().int(),
     ok: z.boolean(),
     errorCode: errorCodeSchema.optional(),

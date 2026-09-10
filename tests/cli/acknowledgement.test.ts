@@ -225,6 +225,7 @@ describe('CLI removes an envelope only after a verified outcome of that operatio
       if (request.method === 'POST') throw new TypeError('network');
       return json({
         id: 'op8',
+        operationSeq: 1,
         status: 409,
         ok: false,
         errorCode: 'generation_changed',

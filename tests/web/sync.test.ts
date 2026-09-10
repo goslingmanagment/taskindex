@@ -69,6 +69,7 @@ class MemoryStorage {
 const snapshot = (generation = 'gen1', seq = 0): Snapshot => ({
   generation,
   seq,
+  schemaVersion: 4,
   today: '2026-09-08',
   timezone: 'Europe/Moscow',
   projects: [],
