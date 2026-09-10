@@ -717,3 +717,40 @@ test('register passkey, sign out, and sign in with a virtual WebAuthn authentica
   ownerCookies = await page.context().cookies();
   await cdp.send('WebAuthn.removeVirtualAuthenticator', { authenticatorId });
 });
+
+// TI-025 фаза A: скин обязан выигрывать у утилит примитивов слоем каскада, а не
+// !important. Скриншоты не покрывают диалоги, поэтому вычисленные значения
+// проверяются напрямую. Тест стоит последним в файле: он создаёт задачу, а
+// эталонные снимки уже сняты выше.
+test('the skin layer outranks the primitive utilities without !important', async ({
+  page,
+}) => {
+  const style = (selector: string, property: string) =>
+    page.evaluate(
+      ([sel, prop]) => {
+        const node = document.querySelector(sel!);
+        return node ? getComputedStyle(node).getPropertyValue(prop!) : null;
+      },
+      [selector, property] as const,
+    );
+  await login(page);
+  await page.setViewportSize({ width: 1440, height: 1000 });
+  // The heading tabs keep the skin height, not the primitive's own.
+  expect(await style('.view-tabs', 'height')).toBe('44px');
+  // The quick-create dialog keeps its width against `sm:max-w-sm`.
+  await page.keyboard.press('n');
+  await expect(
+    page.getByRole('dialog', { name: 'Новая задача', exact: true }),
+  ).toBeVisible();
+  expect(await style('.create-dialog', 'width')).toBe('480px');
+  await page.keyboard.press('Escape');
+  // The editor sheet keeps its width and its surface.
+  const title = 'Э2Э: скин';
+  await createTask(page, title);
+  await page.getByRole('button', { name: `Открыть: ${title}` }).click();
+  await expect(
+    page.getByRole('textbox', { name: 'Название задачи', exact: true }),
+  ).toBeVisible();
+  expect(await style('.task-sheet', 'width')).toBe('520px');
+  expect(await style('.task-title-row h3', 'padding-top')).toBe('0px');
+});
