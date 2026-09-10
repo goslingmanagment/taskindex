@@ -51,7 +51,7 @@ export const HELP = {
     'activity',
     'digest',
     'focus',
-    'events --since N [--follow]',
+    'events --since N --generation G [--follow [--interval MS]] (--follow печатает только страницы с событиями; интервал по умолчанию 1000 мс, минимум 250)',
     'operation get <id>',
     'operation list (локальная очередь этого агента: ожидающие и повреждённые конверты)',
     'export [--out file.json]',
@@ -113,6 +113,7 @@ const controls = new Set([
   'help',
   'out',
   'operation',
+  'interval',
 ]);
 const jsonFlags = new Set([
   'origin',
@@ -384,16 +385,18 @@ export async function runCli(
       case 'operation':
         if (action === 'get') path = `/api/operations/${encodedId()}`;
         break;
-      case 'events':
-        path = query('/api/events', args.flags, [
-          'since',
-          'generation',
-          'limit',
-        ]);
+      case 'events': {
+        const { interval: _interval, ...rest } = args.flags;
+        path = query('/api/events', rest, ['since', 'generation', 'limit']);
         break;
+      }
     }
 
     if (path) {
+      const intervalFlag = flagString(args.flags, 'interval');
+      if (intervalFlag !== undefined && !/^\d+$/.test(intervalFlag))
+        throw new ArgumentError('--interval: ожидается число миллисекунд');
+      const interval = Math.max(250, Number(intervalFlag ?? 1000));
       if (group === 'events' && !args.flags.generation) {
         const context = await client.request('/api/context');
         if (exitCode(context)) {
@@ -445,6 +448,15 @@ export async function runCli(
             generation: result.body.generation,
             seq: result.body.seq,
           });
+        } else if (
+          group === 'events' &&
+          args.flags.follow &&
+          exitCode(result) === 0 &&
+          Array.isArray(result.body.events) &&
+          !result.body.events.length
+        ) {
+          // Polling: an empty page is noise for an agent; only pages with
+          // events (and every error) are printed.
         } else emit(result.body);
         if (exitCode(result)) return exitCode(result);
         if (group === 'events' && (args.flags.follow || args.flags.all)) {
@@ -460,7 +472,7 @@ export async function runCli(
           await (
             options.sleep ??
             ((ms) => new Promise((resolve) => setTimeout(resolve, ms)))
-          )(1000);
+          )(interval);
           if (options.signal?.aborted) break;
           continue;
         }

@@ -217,6 +217,7 @@ src/shared/canonical-json.ts   canonicalJson(value)
 
 11. **`--all` с перезапуском и `--follow` без пустых страниц** (`reads.ts`, раздел 3.5). Тесты: хендлер отдаёт страницу 1, затем 409 на курсор, затем страницы 1 и 2 успешно → stdout две строки без дублей, stderr одна строка `restart: 1`; хендлер отдаёт 409 четыре раза → код 3, вывод сервера; `--follow` с мок-`sleep`: две пустые страницы и одна с событием → одна строка stdout.
 
+    2026-09-10: часть `--follow` шага 11 реализована (TI-051) в `run.ts` без выделения `reads.ts`; `--interval` принят; тест `tests/cli/follow.test.ts`. Перезапуск `--all` при 409 на курсоре (TI-037) не в этом раунде. Шаг 5 (EPIPE, TI-050) реализован в `src/cli/index.ts`, тест `tests/cli/process.test.ts` (реальный процесс, локальный `node:http`); локаль Zod `ru` не включена, так как русские `issues` (TI-045) не в этом раунде.
 12. **`inbox`** после плана 04: `READS` += `inbox` над `/api/digest`, вывод только раздела `comments` плюс `generation`, `seq`. Тест на форму вывода с мок-ответом.
 
 13. **Декомпозиция** по разделу 3.8; `ApiClient` без `hc`; удалить `import type { AppType }`; `runCli` до 120 строк. Проверка: `npm run check`, `wc -l src/cli/run.ts`, `grep -rn "server/" src/cli/*.ts`.
