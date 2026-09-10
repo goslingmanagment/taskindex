@@ -13,10 +13,11 @@ import {
   writeState,
   migrate,
   assertSchema,
+  schemaVersion,
 } from './db.js';
 import * as schema from './schema.js';
 import type { Auth } from './auth.js';
-import { FORMAT_VERSION, SCHEMA_VERSION } from '../shared/model.js';
+import { FORMAT_VERSION } from '../shared/model.js';
 import type { ExportData, Scope, WorkspaceState } from '../shared/model.js';
 import { assertInvariants, applyEvent } from '../shared/commands.js';
 import { fail } from '../shared/errors.js';
@@ -29,7 +30,10 @@ export function initialize(
   options: { timezone?: string; migrationsDir?: string } = {},
 ) {
   migrate(db, options);
-  return { generation: generation(db), schemaVersion: SCHEMA_VERSION };
+  return {
+    generation: generation(db),
+    schemaVersion: schemaVersion(options.migrationsDir),
+  };
 }
 export async function createOwner(
   db: DatabaseHandle,
@@ -362,13 +366,14 @@ function validateExport(data: ExportData) {
 export function importWorkspace(
   db: DatabaseHandle,
   data: ExportData,
-  options: { replace?: boolean } = {},
+  options: { replace?: boolean; migrationsDir?: string } = {},
 ) {
-  assertSchema(db);
+  assertSchema(db, options.migrationsDir);
   data = exportSchema.parse(data);
   if (
     data.formatVersion !== FORMAT_VERSION ||
-    data.settings.schema_version !== String(SCHEMA_VERSION)
+    data.settings.schema_version !==
+      String(schemaVersion(options.migrationsDir))
   )
     fail('invalid', 'Формат или схема экспорта не поддерживается.');
   assertInvariants(data);
@@ -443,12 +448,12 @@ export function importWorkspace(
       db.sqlite
         .prepare("INSERT INTO sqlite_sequence(name,seq) VALUES('events',?)")
         .run(data.seq);
-      return markRestored(db);
+      return markRestored(db, options.migrationsDir);
     })
     .immediate();
 }
-export function markRestored(db: DatabaseHandle) {
-  assertSchema(db);
+export function markRestored(db: DatabaseHandle, migrationsDir?: string) {
+  assertSchema(db, migrationsDir);
   const next = randomUUID();
   db.sqlite
     .transaction(() => {

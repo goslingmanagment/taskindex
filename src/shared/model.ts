@@ -83,5 +83,4 @@ export type FocusGroup = {
   title: string;
   tasks: Task[];
 };
-export const SCHEMA_VERSION = 1;
 export const FORMAT_VERSION = 1;

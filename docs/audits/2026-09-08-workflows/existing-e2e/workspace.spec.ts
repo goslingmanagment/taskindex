@@ -9,7 +9,8 @@ import type {
 } from '/Users/dmitriy/code/taskindex/src/shared/model';
 let ownerCookies: Awaited<ReturnType<BrowserContext['cookies']>> | undefined;
 test.afterAll(() => {
-  const directory = '/Users/dmitriy/code/taskindex/docs/audits/2026-09-08-workflows/existing-e2e/screenshots';
+  const directory =
+    '/Users/dmitriy/code/taskindex/docs/audits/2026-09-08-workflows/existing-e2e/screenshots';
   const hashes = Object.fromEntries(
     readdirSync(directory)
       .filter((name) => name.endsWith('.png'))
@@ -84,7 +85,10 @@ test('real owner login, atomic editor save, comments, and operation history', as
 }) => {
   await login(page);
   await page.setViewportSize({ width: 1440, height: 1000 });
-  mkdirSync('/Users/dmitriy/code/taskindex/docs/audits/2026-09-08-workflows/existing-e2e/screenshots', { recursive: true });
+  mkdirSync(
+    '/Users/dmitriy/code/taskindex/docs/audits/2026-09-08-workflows/existing-e2e/screenshots',
+    { recursive: true },
+  );
   const title = 'Э2Э: атомарное сохранение';
   await createTask(page, title);
   await page
@@ -343,7 +347,10 @@ test('populated visual comparison uses the preserved v1 fixture through real API
 }) => {
   await login(page);
   await page.setViewportSize({ width: 1440, height: 1000 });
-  mkdirSync('/Users/dmitriy/code/taskindex/docs/audits/2026-09-08-workflows/existing-e2e/screenshots', { recursive: true });
+  mkdirSync(
+    '/Users/dmitriy/code/taskindex/docs/audits/2026-09-08-workflows/existing-e2e/screenshots',
+    { recursive: true },
+  );
   writeFileSync(
     '/Users/dmitriy/code/taskindex/docs/audits/2026-09-08-workflows/existing-e2e/screenshots/environment.json',
     JSON.stringify(
@@ -362,7 +369,10 @@ test('populated visual comparison uses the preserved v1 fixture through real API
     ) + '\n',
   );
   const fixture = (
-    await import('/Users/dmitriy/code/taskindex/tests/e2e/reference-data.json', { with: { type: 'json' } })
+    await import(
+      '/Users/dmitriy/code/taskindex/tests/e2e/reference-data.json',
+      { with: { type: 'json' } }
+    )
   ).default;
   const snapshot = (await (
     await page.request.get('/api/snapshot')

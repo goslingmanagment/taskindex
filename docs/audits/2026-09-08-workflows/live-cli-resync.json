@@ -38,10 +38,7 @@
               "createdBy": "agent:qa-live-cli",
               "createdByLabel": "QA Агент",
               "ownerTouchedAt": "2026-09-08T14:35:20.315Z",
-              "ownerFields": [
-                "orderKey",
-                "status"
-              ],
+              "ownerFields": ["orderKey", "status"],
               "revision": 3,
               "createdAt": "2026-09-08T14:35:03.854Z",
               "updatedAt": "2026-09-08T14:35:21.348Z",
@@ -58,10 +55,7 @@
                 "to": "2"
               }
             },
-            "applied": [
-              "title",
-              "note"
-            ],
+            "applied": ["title", "note"],
             "skipped": [
               {
                 "field": "area",

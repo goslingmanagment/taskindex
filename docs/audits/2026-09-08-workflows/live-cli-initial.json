@@ -1,8 +1,6 @@
 [
   {
-    "args": [
-      "context"
-    ],
+    "args": ["context"],
     "code": 0,
     "output": [
       {
@@ -101,11 +99,7 @@
             },
             "area": {
               "type": "string",
-              "enum": [
-                "agency",
-                "development",
-                "personal"
-              ],
+              "enum": ["agency", "development", "personal"],
               "description": "Область задачи или проекта"
             },
             "projectId": {
@@ -129,12 +123,7 @@
             },
             "status": {
               "type": "string",
-              "enum": [
-                "todo",
-                "doing",
-                "waiting",
-                "done"
-              ],
+              "enum": ["todo", "doing", "waiting", "done"],
               "description": "Состояние задачи"
             },
             "note": {
@@ -206,11 +195,7 @@
                     "description": "Шаг выполнен"
                   }
                 },
-                "required": [
-                  "id",
-                  "text",
-                  "done"
-                ],
+                "required": ["id", "text", "done"],
                 "additionalProperties": false
               },
               "description": "До 100 шагов задачи"
@@ -362,11 +347,7 @@
                 },
                 "area": {
                   "type": "string",
-                  "enum": [
-                    "agency",
-                    "development",
-                    "personal"
-                  ],
+                  "enum": ["agency", "development", "personal"],
                   "description": "Область задачи или проекта"
                 },
                 "name": {
@@ -387,11 +368,7 @@
                   "maxLength": 500
                 }
               },
-              "required": [
-                "area",
-                "name",
-                "color"
-              ],
+              "required": ["area", "name", "color"],
               "additionalProperties": false
             }
           },
@@ -430,10 +407,7 @@
                   "maxLength": 500
                 }
               },
-              "required": [
-                "id",
-                "baseRevision"
-              ],
+              "required": ["id", "baseRevision"],
               "additionalProperties": false
             }
           },
@@ -445,11 +419,7 @@
               "properties": {
                 "area": {
                   "type": "string",
-                  "enum": [
-                    "agency",
-                    "development",
-                    "personal"
-                  ],
+                  "enum": ["agency", "development", "personal"],
                   "description": "Область задачи или проекта"
                 },
                 "projectId": {
@@ -513,12 +483,7 @@
                 },
                 "status": {
                   "type": "string",
-                  "enum": [
-                    "todo",
-                    "doing",
-                    "waiting",
-                    "done"
-                  ],
+                  "enum": ["todo", "doing", "waiting", "done"],
                   "description": "Состояние задачи"
                 },
                 "checklist": {
@@ -543,11 +508,7 @@
                         "description": "Шаг выполнен"
                       }
                     },
-                    "required": [
-                      "id",
-                      "text",
-                      "done"
-                    ],
+                    "required": ["id", "text", "done"],
                     "additionalProperties": false
                   },
                   "description": "До 100 шагов задачи"
@@ -584,10 +545,7 @@
                       "maxLength": 120
                     }
                   },
-                  "required": [
-                    "system",
-                    "ref"
-                  ],
+                  "required": ["system", "ref"],
                   "additionalProperties": false
                 },
                 "position": {
@@ -601,9 +559,7 @@
                           "description": "Устойчивый идентификатор, до 80 символов"
                         }
                       },
-                      "required": [
-                        "before"
-                      ],
+                      "required": ["before"],
                       "additionalProperties": false
                     },
                     {
@@ -615,19 +571,14 @@
                           "description": "Устойчивый идентификатор, до 80 символов"
                         }
                       },
-                      "required": [
-                        "after"
-                      ],
+                      "required": ["after"],
                       "additionalProperties": false
                     }
                   ],
                   "description": "Положение относительно соседней задачи"
                 }
               },
-              "required": [
-                "area",
-                "title"
-              ],
+              "required": ["area", "title"],
               "additionalProperties": false
             }
           },
@@ -664,10 +615,7 @@
                       "maxLength": 120
                     }
                   },
-                  "required": [
-                    "system",
-                    "ref"
-                  ],
+                  "required": ["system", "ref"],
                   "additionalProperties": false
                 },
                 "fields": {
@@ -675,11 +623,7 @@
                   "properties": {
                     "area": {
                       "type": "string",
-                      "enum": [
-                        "agency",
-                        "development",
-                        "personal"
-                      ],
+                      "enum": ["agency", "development", "personal"],
                       "description": "Область задачи или проекта"
                     },
                     "projectId": {
@@ -743,12 +687,7 @@
                     },
                     "status": {
                       "type": "string",
-                      "enum": [
-                        "todo",
-                        "doing",
-                        "waiting",
-                        "done"
-                      ],
+                      "enum": ["todo", "doing", "waiting", "done"],
                       "description": "Состояние задачи"
                     },
                     "checklist": {
@@ -773,27 +712,17 @@
                             "description": "Шаг выполнен"
                           }
                         },
-                        "required": [
-                          "id",
-                          "text",
-                          "done"
-                        ],
+                        "required": ["id", "text", "done"],
                         "additionalProperties": false
                       },
                       "description": "До 100 шагов задачи"
                     }
                   },
-                  "required": [
-                    "area",
-                    "title"
-                  ],
+                  "required": ["area", "title"],
                   "additionalProperties": false
                 }
               },
-              "required": [
-                "origin",
-                "fields"
-              ],
+              "required": ["origin", "fields"],
               "additionalProperties": false
             }
           },
@@ -805,11 +734,7 @@
               "properties": {
                 "area": {
                   "type": "string",
-                  "enum": [
-                    "agency",
-                    "development",
-                    "personal"
-                  ],
+                  "enum": ["agency", "development", "personal"],
                   "description": "Область задачи или проекта"
                 },
                 "projectId": {
@@ -883,10 +808,7 @@
                   "description": "Базовая версия прочитанной записи"
                 }
               },
-              "required": [
-                "id",
-                "baseRevision"
-              ],
+              "required": ["id", "baseRevision"],
               "additionalProperties": false
             }
           },
@@ -912,11 +834,7 @@
                   "properties": {
                     "area": {
                       "type": "string",
-                      "enum": [
-                        "agency",
-                        "development",
-                        "personal"
-                      ],
+                      "enum": ["agency", "development", "personal"],
                       "description": "Область задачи или проекта"
                     },
                     "projectId": {
@@ -983,12 +901,7 @@
                 },
                 "status": {
                   "type": "string",
-                  "enum": [
-                    "todo",
-                    "doing",
-                    "waiting",
-                    "done"
-                  ],
+                  "enum": ["todo", "doing", "waiting", "done"],
                   "description": "Состояние задачи"
                 },
                 "position": {
@@ -1002,9 +915,7 @@
                           "description": "Устойчивый идентификатор, до 80 символов"
                         }
                       },
-                      "required": [
-                        "before"
-                      ],
+                      "required": ["before"],
                       "additionalProperties": false
                     },
                     {
@@ -1016,9 +927,7 @@
                           "description": "Устойчивый идентификатор, до 80 символов"
                         }
                       },
-                      "required": [
-                        "after"
-                      ],
+                      "required": ["after"],
                       "additionalProperties": false
                     }
                   ],
@@ -1046,20 +955,13 @@
                         "description": "Шаг выполнен"
                       }
                     },
-                    "required": [
-                      "id",
-                      "text",
-                      "done"
-                    ],
+                    "required": ["id", "text", "done"],
                     "additionalProperties": false
                   },
                   "description": "До 100 шагов задачи"
                 }
               },
-              "required": [
-                "id",
-                "baseRevision"
-              ],
+              "required": ["id", "baseRevision"],
               "additionalProperties": false
             }
           },
@@ -1082,12 +984,7 @@
                 },
                 "status": {
                   "type": "string",
-                  "enum": [
-                    "todo",
-                    "doing",
-                    "waiting",
-                    "done"
-                  ],
+                  "enum": ["todo", "doing", "waiting", "done"],
                   "description": "Состояние задачи"
                 },
                 "before": {
@@ -1101,11 +998,7 @@
                   "description": "Устойчивый идентификатор, до 80 символов"
                 }
               },
-              "required": [
-                "id",
-                "baseRevision",
-                "status"
-              ],
+              "required": ["id", "baseRevision", "status"],
               "additionalProperties": false
             }
           },
@@ -1127,10 +1020,7 @@
                   "description": "Базовая версия прочитанной записи"
                 }
               },
-              "required": [
-                "id",
-                "baseRevision"
-              ],
+              "required": ["id", "baseRevision"],
               "additionalProperties": false
             }
           },
@@ -1152,10 +1042,7 @@
                   "description": "Базовая версия прочитанной записи"
                 }
               },
-              "required": [
-                "id",
-                "baseRevision"
-              ],
+              "required": ["id", "baseRevision"],
               "additionalProperties": false
             }
           },
@@ -1194,11 +1081,7 @@
                   "maximum": 100
                 }
               },
-              "required": [
-                "taskId",
-                "baseRevision",
-                "text"
-              ],
+              "required": ["taskId", "baseRevision", "text"],
               "additionalProperties": false
             }
           },
@@ -1235,11 +1118,7 @@
                   "type": "boolean"
                 }
               },
-              "required": [
-                "taskId",
-                "baseRevision",
-                "itemId"
-              ],
+              "required": ["taskId", "baseRevision", "itemId"],
               "additionalProperties": false
             }
           },
@@ -1266,11 +1145,7 @@
                   "description": "Устойчивый идентификатор, до 80 символов"
                 }
               },
-              "required": [
-                "taskId",
-                "baseRevision",
-                "itemId"
-              ],
+              "required": ["taskId", "baseRevision", "itemId"],
               "additionalProperties": false
             }
           },
@@ -1302,11 +1177,7 @@
                   "description": "Все шаги в нужном порядке"
                 }
               },
-              "required": [
-                "taskId",
-                "baseRevision",
-                "itemIds"
-              ],
+              "required": ["taskId", "baseRevision", "itemIds"],
               "additionalProperties": false
             }
           },
@@ -1333,10 +1204,7 @@
                   "description": "Комментарий или отчёт агента"
                 }
               },
-              "required": [
-                "taskId",
-                "text"
-              ],
+              "required": ["taskId", "text"],
               "additionalProperties": false
             }
           },
@@ -1352,9 +1220,7 @@
                   "description": "Устойчивый идентификатор, до 80 символов"
                 }
               },
-              "required": [
-                "commentId"
-              ],
+              "required": ["commentId"],
               "additionalProperties": false
             }
           },
@@ -1373,9 +1239,7 @@
                       "description": "Событие для отмены"
                     }
                   },
-                  "required": [
-                    "seq"
-                  ],
+                  "required": ["seq"],
                   "additionalProperties": false
                 },
                 {
@@ -1387,9 +1251,7 @@
                       "description": "Операция для отмены"
                     }
                   },
-                  "required": [
-                    "operationId"
-                  ],
+                  "required": ["operationId"],
                   "additionalProperties": false
                 }
               ]
@@ -1449,9 +1311,7 @@
     ]
   },
   {
-    "args": [
-      "digest"
-    ],
+    "args": ["digest"],
     "code": 0,
     "output": [
       {
@@ -1710,9 +1570,7 @@
               "createdAt": "2026-09-08T14:32:32.517Z",
               "ok": true,
               "taskCount": 1,
-              "titles": [
-                "QA Нет сети"
-              ]
+              "titles": ["QA Нет сети"]
             },
             {
               "id": "9bf78f33-b72a-4a8f-99df-1baafe6e3b34",
@@ -1725,9 +1583,7 @@
               "createdAt": "2026-09-08T14:31:49.833Z",
               "ok": true,
               "taskCount": 1,
-              "titles": [
-                "QA Мобильные правки"
-              ]
+              "titles": ["QA Мобильные правки"]
             },
             {
               "id": "fa487654-d1b5-401c-ab93-8f75193ee610",
@@ -1740,9 +1596,7 @@
               "createdAt": "2026-09-08T14:31:34.581Z",
               "ok": true,
               "taskCount": 1,
-              "titles": [
-                "QA Мобильные правки"
-              ]
+              "titles": ["QA Мобильные правки"]
             },
             {
               "id": "09644c3c-911e-47b3-b2a9-6d15a0e35073",
@@ -1781,9 +1635,7 @@
               "createdAt": "2026-09-08T14:28:43.125Z",
               "ok": true,
               "taskCount": 1,
-              "titles": [
-                "QA Один раз"
-              ]
+              "titles": ["QA Один раз"]
             },
             {
               "id": "88b11861-b719-4afa-b791-1b53dd901f01",
@@ -1796,9 +1648,7 @@
               "createdAt": "2026-09-08T14:28:30.469Z",
               "ok": true,
               "taskCount": 1,
-              "titles": [
-                "QA Один раз"
-              ]
+              "titles": ["QA Один раз"]
             },
             {
               "id": "b050e986-9863-4daa-a998-b0895aa6a689",
@@ -1828,9 +1678,7 @@
               "createdAt": "2026-09-08T14:26:59.166Z",
               "ok": true,
               "taskCount": 1,
-              "titles": [
-                "QA Версия А"
-              ]
+              "titles": ["QA Версия А"]
             },
             {
               "id": "0d44a3a4-a371-4975-888f-e062f05cd374",
@@ -1843,9 +1691,7 @@
               "createdAt": "2026-09-08T14:26:12.171Z",
               "ok": true,
               "taskCount": 1,
-              "titles": [
-                "QA Версия А"
-              ]
+              "titles": ["QA Версия А"]
             },
             {
               "id": "8ef89fb9-0679-4e43-8e08-d7fe1a63a5e6",
@@ -1858,9 +1704,7 @@
               "createdAt": "2026-09-08T14:26:08.764Z",
               "ok": true,
               "taskCount": 1,
-              "titles": [
-                "QA Версия А"
-              ]
+              "titles": ["QA Версия А"]
             },
             {
               "id": "ef6f1908-4774-4917-9d2a-c858593f7dcf",
@@ -1873,9 +1717,7 @@
               "createdAt": "2026-09-08T14:24:33.968Z",
               "ok": true,
               "taskCount": 1,
-              "titles": [
-                "QA Версия А"
-              ]
+              "titles": ["QA Версия А"]
             },
             {
               "id": "92097a14-116c-4c2a-8441-e436dfd0f743",
@@ -1888,9 +1730,7 @@
               "createdAt": "2026-09-08T14:24:13.126Z",
               "ok": true,
               "taskCount": 1,
-              "titles": [
-                "QA Версия А"
-              ]
+              "titles": ["QA Версия А"]
             },
             {
               "id": "8e89857d-17a2-4269-b82e-1dd719503f26",
@@ -1903,9 +1743,7 @@
               "createdAt": "2026-09-08T14:23:50.357Z",
               "ok": true,
               "taskCount": 1,
-              "titles": [
-                "QA Версия А"
-              ]
+              "titles": ["QA Версия А"]
             },
             {
               "id": "54dfc08e-d3b6-4b45-b077-96b61a930995",
@@ -1918,9 +1756,7 @@
               "createdAt": "2026-09-08T14:23:39.344Z",
               "ok": true,
               "taskCount": 1,
-              "titles": [
-                "QA Версия А"
-              ]
+              "titles": ["QA Версия А"]
             },
             {
               "id": "a25098b3-76d6-4e0e-b347-bd54c7801475",
@@ -1933,9 +1769,7 @@
               "createdAt": "2026-09-08T14:23:38.999Z",
               "ok": true,
               "taskCount": 1,
-              "titles": [
-                "QA Версия А"
-              ]
+              "titles": ["QA Версия А"]
             },
             {
               "id": "05640348-b25e-4b2f-a39a-6e0ab98b43b3",
@@ -1948,9 +1782,7 @@
               "createdAt": "2026-09-08T14:23:22.845Z",
               "ok": true,
               "taskCount": 1,
-              "titles": [
-                "QA Версия А"
-              ]
+              "titles": ["QA Версия А"]
             },
             {
               "id": "ff632b42-55c3-45f8-91bf-3a933b9e73cd",
@@ -1963,9 +1795,7 @@
               "createdAt": "2026-09-08T14:22:48.962Z",
               "ok": true,
               "taskCount": 1,
-              "titles": [
-                "QA Версия А"
-              ]
+              "titles": ["QA Версия А"]
             },
             {
               "id": "510d5f2c-62a9-4414-b8da-4d7a6da23bf8",
@@ -1978,9 +1808,7 @@
               "createdAt": "2026-09-08T14:22:05.881Z",
               "ok": true,
               "taskCount": 1,
-              "titles": [
-                "QA Версия А"
-              ]
+              "titles": ["QA Версия А"]
             },
             {
               "id": "470894d3-3f45-494b-8f89-3481f2707ff6",
@@ -1993,9 +1821,7 @@
               "createdAt": "2026-09-08T14:21:37.634Z",
               "ok": true,
               "taskCount": 1,
-              "titles": [
-                "QA Версия А"
-              ]
+              "titles": ["QA Версия А"]
             },
             {
               "id": "d18cbdca-9a9e-4ce1-89d3-dbe12d327dc9",
@@ -2008,9 +1834,7 @@
               "createdAt": "2026-09-08T14:20:34.301Z",
               "ok": true,
               "taskCount": 1,
-              "titles": [
-                "QA Версия А"
-              ]
+              "titles": ["QA Версия А"]
             },
             {
               "id": "7d695a5d-68ae-42f4-9cd8-7c9a2807d369",
@@ -2169,12 +1993,7 @@
                 "to": "2026-09-08T14:35:03.854Z"
               }
             },
-            "applied": [
-              "area",
-              "title",
-              "note",
-              "status"
-            ],
+            "applied": ["area", "title", "note", "status"],
             "skipped": []
           }
         ],

@@ -9,12 +9,12 @@ Open `/visions/index.html` on the local development server. The switcher also
 offers the original interface screenshot, a narrow preview, and a short rationale
 and tradeoff for each direction. Each prototype can be opened separately.
 
-| Direction | Main unit of work | Why it may fit |
-| --- | --- | --- |
-| Focus | One current action and a short next queue | Starting a bounded task and resuming after a context switch |
-| Dispatch | Decisions and replies | Seeing where the owner is holding up delegated work |
-| Atlas | Project, next outcome, and point of intervention | Recovering the overall picture across agency and engineering |
-| Evolution | Existing project navigation and status board | Better card hierarchy and context with a familiar structure |
+| Direction | Main unit of work                                | Why it may fit                                               |
+| --------- | ------------------------------------------------ | ------------------------------------------------------------ |
+| Focus     | One current action and a short next queue        | Starting a bounded task and resuming after a context switch  |
+| Dispatch  | Decisions and replies                            | Seeing where the owner is holding up delegated work          |
+| Atlas     | Project, next outcome, and point of intervention | Recovering the overall picture across agency and engineering |
+| Evolution | Existing project navigation and status board     | Better card hierarchy and context with a familiar structure  |
 
 ## Shared context
 

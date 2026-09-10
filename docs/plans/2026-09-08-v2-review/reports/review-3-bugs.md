@@ -15,10 +15,12 @@
 **Сценарий.** Владелец архивирует задачу (`task.archive`, `ownerFields` получает `archived`). Агент с ключом `tasks` шлёт `undo {operationId: <op владельца>}` → 200, задача возвращается из архива. Аналогично: агент отменяет `task.move done`, правку названия, `task.restore` владельца.
 
 **Проверка.** `scratchpad/repro/agent-undo-owner.mts`:
+
 ```
 agent(tasks) undo of owner archive -> 200 {"ok":true}
 task archived after agent undo: false ownerFields: ["archived",...] ownerTouchedAt: 2026-09-08T12:00:00.000Z
 ```
+
 Тест `enforces scopes on commands and the net effects of undo` (`tests/api/commands.test.ts:250`) проверяет только запрет `project.*`-undo для `tasks`; случай «агент отменяет владельца» тестами не покрыт.
 
 **Исправление.** В ветке `undo` (`commands.ts:294-363`) для `ctx.actor.kind !== 'owner'` запрещать группы, где `events.some(e => e.actorId === 'owner')` (или как минимум если `keys` пересекаются с `record.ownerFields`), с кодом `forbidden`. Добавить тест.
@@ -32,6 +34,7 @@ task archived after agent undo: false ownerFields: ["archived",...] ownerTouched
 **Сценарий.** Агент делает `task.sync {fields: {area, title, focus: true}}` (или `task.create`/`task.update` с `focus: true`) для задачи, которую владелец не трогал → задача сразу в группе `selected` («Выбрано мной»), а не в `new`. Список «выбранного владельцем» становится недостоверным; агент может «протолкнуть» свои задачи в личный шорт-лист владельца. Digest/`counts.focus` тоже искажаются.
 
 **Проверка.** Тот же скрипт:
+
 ```
 agent-synced focus:true task lands in group: selected | createdBy agent:test-agent ownerTouchedAt null
 agent task.update focus:true -> 200 true
@@ -44,12 +47,14 @@ agent task.update focus:true -> 200 true
 ### B-03 · средняя · CONFIRMED — стоимость каждой команды и ленты операций растёт линейно от размера журнала
 
 **Где:**
+
 - `src/server/operations.ts:93-95` — на каждую команду `readState(db)` (все задачи, чеклисты, комментарии) и `readEvents(db)` (весь журнал событий с JSON-парсингом `changes`), хотя `assertMerge`/`undo` нужны события только одной сущности (индекс `events_entity_revision` есть, не используется).
 - `src/server/db.ts:235-273` — `readOperations` читает все операции и делает до 3 SELECT на каждую (заголовки); используется в `/api/operations` (`app.ts:713`), `/api/operations/{id}` (`app.ts:736` — полный скан ради одной записи), `/api/digest` (`app.ts:962`), `/api/export`.
 - `src/server/app.ts:679` — `/api/tasks/{id}/history` читает весь журнал и фильтрует в JS.
 - `src/web/app/activity.tsx:138-179` — лента перезагружает все открытые страницы при каждом изменении `seq` (то есть при каждом событии в пространстве).
 
 **Измерение** (`scratchpad/repro/perf.mts`, `:memory:`, 2 010 задач / 4 010 событий / 4 010 операций):
+
 ```
 task.create @ ~0 events: 3.3 ms/op
 task.create @ 4k events: 35.7 ms/op
@@ -59,6 +64,7 @@ GET /api/operations/{id} (single): 88.0 ms/op
 GET /api/tasks/{id}/history: 14.5 ms/op
 GET /api/digest: 108.1 ms/op
 ```
+
 Рост ×11 на команду уже при 4k событий. При активных агентах (десятки тысяч операций за год) — сотни миллисекунд на каждую команду, около секунды на страницу ленты, при этом открытая «Активность» дергает это на каждое событие. Сервер синхронный (better-sqlite3): в это время не обслуживаются другие запросы и heartbeat SSE.
 
 **Исправление.** В `executeOperation` грузить события только по затронутым сущностям (`WHERE entity_kind=? AND entity_id=?`), для `undo` — по `operation_id`/`seq`. `readOperations`: пагинация в SQL (`ORDER BY created_at DESC LIMIT/OFFSET` или keyset), заголовки — одним JOIN по `events`. `/api/operations/{id}` — прямой `WHERE id=?`. История задачи — запрос по индексу.
@@ -72,6 +78,7 @@ GET /api/digest: 108.1 ms/op
 **Сценарий.** В момент восстановления базы (новое `generation`) в localStorage лежит `taskindex/ops/<id>` незавершённой операции. После перезагрузки `recover()` добавляет её в `pending` со статусом `unknown`, пропускает (`generation` не совпадает) и никогда не вызывает `finish()` → запись остаётся в localStorage, при каждой загрузке снова появляется баннер «Изменение от прежней версии базы. Перенесите текст вручную», кнопка недоступна, API для удаления нет (`finish` приватный). Превью команды при этом не применяется (`publish`, `:79`), так что «перенести текст» пользователь может только вручную из DevTools.
 
 **Проверка.** `scratchpad/repro/store-foreign-pending.mts`:
+
 ```
 pending after refresh: [{"id":"op-old","gen":"OLD-GEN","status":"unknown"}]
 storage still has op: true
@@ -90,6 +97,7 @@ pending after 2nd reload: 1 | any API to dismiss? finish is private: function
 **Сценарий.** В `~/.local/state/taskindex/ops/` появляется `bad name.json` (или валидно названный файл с обрезанным JSON — например после сбоя диска/ручного редактирования; атомарная запись через `link` защищает только собственные записи CLI). Любой запуск `taskindex context`, `tasks`, `task create …` завершается `{"ok":false,"code":"client_error"/"invalid_arguments",…}` с кодом 1/2. Агент теряет доступ к API целиком, пока кто-то не удалит файл вручную; диагностика не указывает на файл.
 
 **Проверка.** `scratchpad/repro/outbox-stray.mts`, `outbox-stray2.mts`:
+
 ```
 list threw: ArgumentError operationId: недопустимый идентификатор
 list threw (corrupt json): SyntaxError Expected property name or '}' in JSON at position 1
@@ -106,6 +114,7 @@ list threw (corrupt json): SyntaxError Expected property name or '}' in JSON at 
 **Сценарий.** Есть проект «Маркетинг» (`p-first`). Владелец создаёт « маркетинг » → 409 `conflict`, `current.id = p-second` (собственный ввод). Диалог показывает пользователю его же данные как «актуальную версию» и после «Совместить и проверить» отправляет `project.update` по несуществующему `id` (`base = conflict`, `revision: 0` → снова create → снова conflict). Для агента через API `current` также бесполезен.
 
 **Проверка.** `scratchpad/repro/name-conflict-current.mts`:
+
 ```
 status 409 code conflict current.id = p-second (existing is p-first)
 ```
@@ -121,6 +130,7 @@ status 409 code conflict current.id = p-second (existing is p-first)
 **Сценарий.** Приложение открыто не в secure context (например `http://192.168.x.x:3001` напрямую на Node-порт — `index.ts:39` слушает `0.0.0.0`) → `navigator.locks` отсутствует → каждая перезагрузка удваивает ключи `taskindex/drafts/*`.
 
 **Проверка.** `scratchpad/repro/drafts-scope.mts` (fake storage, `navigator = {}`):
+
 ```
 after load #1: scopes=1 draftKeys=3
 after load #2: scopes=2 draftKeys=6
@@ -184,20 +194,20 @@ after load #5: scopes=5 draftKeys=15
 
 ## Сводная таблица
 
-| ID | Тяжесть | Статус | Слой | Суть | Файл |
-|---|---|---|---|---|---|
-| B-01 | средняя | CONFIRMED | shared | агент отменяет операции владельца через `undo` | `commands.ts:65,329` |
-| B-02 | средняя | CONFIRMED | shared | агент ставит `focus` → «Выбрано мной» | `schemas.ts:82`, `commands.ts:561`, `queries.ts:73` |
-| B-03 | средняя | CONFIRMED | server/web | O(N) на команду и на страницу ленты, ×11 уже при 4k событий | `operations.ts:93`, `db.ts:235`, `app.ts:679,736`, `activity.tsx:138` |
-| B-04 | средняя | CONFIRMED | web | операция прежнего поколения висит навсегда без удаления | `store.ts:379-420`, `shell.tsx:531` |
-| B-05 | средняя | CONFIRMED | cli | посторонний/битый файл в outbox ломает все команды CLI | `outbox.ts:83`, `run.ts:212` |
-| B-06 | низкая | CONFIRMED | shared/web | `current` при дубле имени проекта — отклонённая запись | `commands.ts:183`, `dialogs.tsx:351` |
-| B-07 | низкая | CONFIRMED | web | рост localStorage: новые scope черновиков без GC (без Web Locks — каждый вход) | `drafts.ts:121-169` |
-| B-08 | низкая | CONFIRMED | web | «Назад» не меняет вид из-за fallback на localStorage | `url.ts:27,55,70` |
-| B-09 | низкая | CONFIRMED | server/cli/web | 409 на курсоре при любой записи; `--all` и «Ещё» не повторяют | `app.ts:220`, `run.ts:394`, `activity.tsx:180` |
-| B-10 | низкая | CONFIRMED | deploy | `/health` публичен, нет security-заголовков | `nginx/taskindex.conf:37`, `app.ts:390` |
-| B-11 | низкая | CONFIRMED | server | SSE отдаёт неограниченный хвост синхронно | `app.ts:851` |
-| B-12 | низкая | PLAUSIBLE | server | dev слушает `0.0.0.0` | `index.ts:39` |
+| ID   | Тяжесть | Статус    | Слой           | Суть                                                                           | Файл                                                                  |
+| ---- | ------- | --------- | -------------- | ------------------------------------------------------------------------------ | --------------------------------------------------------------------- |
+| B-01 | средняя | CONFIRMED | shared         | агент отменяет операции владельца через `undo`                                 | `commands.ts:65,329`                                                  |
+| B-02 | средняя | CONFIRMED | shared         | агент ставит `focus` → «Выбрано мной»                                          | `schemas.ts:82`, `commands.ts:561`, `queries.ts:73`                   |
+| B-03 | средняя | CONFIRMED | server/web     | O(N) на команду и на страницу ленты, ×11 уже при 4k событий                    | `operations.ts:93`, `db.ts:235`, `app.ts:679,736`, `activity.tsx:138` |
+| B-04 | средняя | CONFIRMED | web            | операция прежнего поколения висит навсегда без удаления                        | `store.ts:379-420`, `shell.tsx:531`                                   |
+| B-05 | средняя | CONFIRMED | cli            | посторонний/битый файл в outbox ломает все команды CLI                         | `outbox.ts:83`, `run.ts:212`                                          |
+| B-06 | низкая  | CONFIRMED | shared/web     | `current` при дубле имени проекта — отклонённая запись                         | `commands.ts:183`, `dialogs.tsx:351`                                  |
+| B-07 | низкая  | CONFIRMED | web            | рост localStorage: новые scope черновиков без GC (без Web Locks — каждый вход) | `drafts.ts:121-169`                                                   |
+| B-08 | низкая  | CONFIRMED | web            | «Назад» не меняет вид из-за fallback на localStorage                           | `url.ts:27,55,70`                                                     |
+| B-09 | низкая  | CONFIRMED | server/cli/web | 409 на курсоре при любой записи; `--all` и «Ещё» не повторяют                  | `app.ts:220`, `run.ts:394`, `activity.tsx:180`                        |
+| B-10 | низкая  | CONFIRMED | deploy         | `/health` публичен, нет security-заголовков                                    | `nginx/taskindex.conf:37`, `app.ts:390`                               |
+| B-11 | низкая  | CONFIRMED | server         | SSE отдаёт неограниченный хвост синхронно                                      | `app.ts:851`                                                          |
+| B-12 | низкая  | PLAUSIBLE | server         | dev слушает `0.0.0.0`                                                          | `index.ts:39`                                                         |
 
 Регрессий по исправлениям B01–B06 предыдущего аудита не найдено: логика владения черновиками по scope (B01), явная очистка (B02), подписка обеих форм (B03), `base`/`conflict` в диалоге проекта (B04), отдельная раскладка футера (B05), SSE-подсказка `operations` без смены курсора (B06) — согласованы с кодом и подтверждены 18/18 E2E.
 
@@ -215,20 +225,21 @@ after load #5: scopes=5 draftKeys=15
 === E2E ===            npm run e2e (tests/e2e/playwright.config.ts; временная БД в mkdtemp, порты 4173/4001)
                                                               → 18 passed (32.5s); e2e exit=0
 ```
+
 (полные логи: `scratchpad/check-static.log`, `scratchpad/vitest.log`, `scratchpad/e2e.log`).
 
 Repro-скрипты (`scratchpad/repro/*.mts`, запуск `node --import <repo>/node_modules/tsx/dist/loader.mjs …`, cwd = корень репозитория, БД `:memory:`/файлы в scratchpad):
 
-| Скрипт | Вывод | Вывод |
-|---|---|---|
-| `agent-undo-owner.mts` | `agent(tasks) undo of owner archive -> 200 {"ok":true}` · `task archived after agent undo: false` · `agent-synced focus:true task lands in group: selected` · `agent task.update focus:true -> 200 true` | B-01, B-02 |
-| `perf.mts` | см. B-03 (3.3 → 35.7 ms/op; `/api/operations` 95 ms; digest 108 ms) | B-03 |
-| `store-foreign-pending.mts` | `pending after refresh: [{"id":"op-old","gen":"OLD-GEN","status":"unknown"}]` · `retry rejected: …` · `pending after 2nd reload: 1` | B-04 |
-| `outbox-stray.mts`, `outbox-stray2.mts` | `list threw: ArgumentError operationId: недопустимый идентификатор` · `list threw (corrupt json): SyntaxError …` | B-05 |
-| `name-conflict-current.mts` | `status 409 code conflict current.id = p-second (existing is p-first)` · `/api/events since>latest -> 200 {…"latestSeq":1,"more":false,"events":[]}` | B-06 |
-| `drafts-scope.mts` (без `navigator.locks`) | `after load #1: scopes=1 draftKeys=3` … `after load #5: scopes=5 draftKeys=15` | B-07 |
-| `hono-use.mts` | `["mw-commands:/api/commands","mw-batch:/api/commands/batch"]` — `app.use('/api/commands')` не матчит `/api/commands/batch`; лимиты тел не пересекаются | гипотеза снята |
-| `health-write2.mts` | `after 20 /health: {"busy":0,"log":47,"checkpointed":47}`; `data_version` соседнего соединения не меняется → `UPDATE settings SET value=value` не порождает коммита/кадров WAL | гипотеза «запись на каждый /health» снята |
+| Скрипт                                     | Вывод                                                                                                                                                                                                    | Вывод                                     |
+| ------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------- |
+| `agent-undo-owner.mts`                     | `agent(tasks) undo of owner archive -> 200 {"ok":true}` · `task archived after agent undo: false` · `agent-synced focus:true task lands in group: selected` · `agent task.update focus:true -> 200 true` | B-01, B-02                                |
+| `perf.mts`                                 | см. B-03 (3.3 → 35.7 ms/op; `/api/operations` 95 ms; digest 108 ms)                                                                                                                                      | B-03                                      |
+| `store-foreign-pending.mts`                | `pending after refresh: [{"id":"op-old","gen":"OLD-GEN","status":"unknown"}]` · `retry rejected: …` · `pending after 2nd reload: 1`                                                                      | B-04                                      |
+| `outbox-stray.mts`, `outbox-stray2.mts`    | `list threw: ArgumentError operationId: недопустимый идентификатор` · `list threw (corrupt json): SyntaxError …`                                                                                         | B-05                                      |
+| `name-conflict-current.mts`                | `status 409 code conflict current.id = p-second (existing is p-first)` · `/api/events since>latest -> 200 {…"latestSeq":1,"more":false,"events":[]}`                                                     | B-06                                      |
+| `drafts-scope.mts` (без `navigator.locks`) | `after load #1: scopes=1 draftKeys=3` … `after load #5: scopes=5 draftKeys=15`                                                                                                                           | B-07                                      |
+| `hono-use.mts`                             | `["mw-commands:/api/commands","mw-batch:/api/commands/batch"]` — `app.use('/api/commands')` не матчит `/api/commands/batch`; лимиты тел не пересекаются                                                  | гипотеза снята                            |
+| `health-write2.mts`                        | `after 20 /health: {"busy":0,"log":47,"checkpointed":47}`; `data_version` соседнего соединения не меняется → `UPDATE settings SET value=value` не порождает коммита/кадров WAL                           | гипотеза «запись на каждый /health» снята |
 
 ---
 

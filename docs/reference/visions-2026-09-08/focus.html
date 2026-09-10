@@ -1,82 +1,1538 @@
 <!doctype html>
 <html lang="ru">
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>TaskIndex — Фокус</title>
-  <style>
-    :root{--paper:#f4f3ed;--card:#fffef9;--ink:#243b39;--text:#303c38;--muted:#767d72;--line:#dcded3;--warm:#ac5738;--warm-bg:#f0e5d7;--green:#58745c;--serif:Georgia,'Times New Roman',serif;--sans:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif}
-    *{box-sizing:border-box}body{margin:0;background:var(--paper);color:var(--text);font-family:var(--sans);font-size:15px;line-height:1.45}button,select{font:inherit}button{cursor:pointer}button:focus-visible,select:focus-visible,input:focus-visible{outline:3px solid #ba6546;outline-offset:4px}button{color:inherit}button:disabled{cursor:default}header{height:80px;border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;gap:28px;padding:0 48px}.brand{display:flex;align-items:center;gap:12px;font-size:21px;font-weight:650;letter-spacing:-.9px;color:var(--ink)}.brand-mark{width:31px;height:34px;display:grid;place-items:center;border:1.5px solid var(--ink);font:26px var(--serif);padding-bottom:3px;letter-spacing:-2px}.header-left{display:flex;align-items:center;gap:68px}.nav{display:flex;align-items:center;gap:29px;height:80px}.nav-current{height:80px;display:flex;align-items:center;border-bottom:2px solid var(--ink);font-weight:600}.plain{background:none;border:0;padding:8px 0;color:var(--muted)}.plain:hover{color:var(--ink)}.profile{display:flex;align-items:center;gap:17px;color:var(--muted);font-size:13px}.avatar{background:#e6e7db;color:var(--ink);width:33px;height:33px;border-radius:50%;display:grid;place-items:center;font-weight:600}.shell{max-width:1360px;margin:0 auto;padding:28px 48px 24px}.page-heading{display:flex;align-items:center;justify-content:space-between;gap:24px;margin-bottom:25px}.page-heading h1{font:36px/1.2 var(--serif);letter-spacing:-1.2px;font-weight:400;margin:0;color:var(--ink)}.date{display:flex;align-items:center;gap:12px;color:var(--muted);font-size:14px}.date strong{font-weight:500;color:var(--text)}.date .dot{width:3px;height:3px;background:#a8ad9f;border-radius:50%}.workbench{display:grid;grid-template-columns:minmax(0,1fr) 302px;gap:48px;align-items:start}.focus-card{background:var(--card);border:1px solid #d8dace;border-top:3px solid var(--warm);padding:26px 32px 23px;position:relative;box-shadow:0 3px 0 #e9e9df}.card-top{display:flex;justify-content:space-between;align-items:center;gap:15px}.eyebrow{font-size:12px;letter-spacing:1.8px;font-weight:650;text-transform:uppercase;color:var(--warm)}.time{font-size:13px;color:var(--muted)}.time strong{font-weight:500;color:var(--text)}.project-line{margin-top:21px;display:flex;align-items:center;gap:10px;color:var(--muted);font-size:13px}.project-line b{font-weight:600;color:var(--ink)}.project-line span:last-child:before{content:' / ';margin-right:7px;color:#b0b4a8}.focus-card h2{font:40px/1.12 var(--serif);letter-spacing:-1.2px;color:var(--ink);margin:10px 0 20px;max-width:610px;font-weight:400}.next-action{display:flex;align-items:flex-start;gap:13px;padding:15px 17px;background:#f0f0e7;border-left:2px solid #9ca58e}.next-action .arrow{font-size:20px;line-height:1.3;color:var(--green)}.next-action small{display:block;font-size:12px;color:var(--muted);margin-bottom:3px}.next-action p{margin:0;font-size:16px;line-height:1.45;max-width:570px}.checklist-head{display:flex;align-items:center;justify-content:space-between;font-size:12px;color:var(--muted);margin:22px 0 9px}.progress-track{width:65px;height:3px;background:#e6e8df;border-radius:4px;overflow:hidden}.progress-fill{height:100%;background:#7d9275;transition:width .2s}.checklist{display:grid;gap:7px}.check-row{display:flex;align-items:flex-start;gap:10px;font-size:14px;cursor:pointer;line-height:1.5}.check-row input{appearance:none;width:17px;height:17px;border:1px solid #b3b9a9;border-radius:3px;flex:none;margin:2px 0 0;display:grid;place-items:center;cursor:pointer;background:#fffef9}.check-row input:checked{background:#e3e8dc;border-color:#e3e8dc}.check-row input:checked:after{content:'✓';font-size:13px;color:var(--green);line-height:1}.check-row:has(input:checked) span{color:#8a9083}.focus-footer{display:flex;justify-content:space-between;gap:15px;align-items:center;margin-top:23px;padding-top:17px;border-top:1px solid #e8e9df}.context-link{border:0;background:none;padding:0;color:var(--ink);font-size:14px;font-weight:600;display:flex;gap:22px;align-items:center}.context-link:hover{text-decoration:underline}.saved{color:var(--muted);font-size:12px}.next-section{margin-top:27px}.section-heading{display:flex;align-items:baseline;justify-content:space-between;gap:16px;margin:0 0 12px}.section-heading h3{font-size:16px;font-weight:600;margin:0;color:var(--ink);letter-spacing:-.3px}.section-heading span{font-size:12px;color:var(--muted)}.choices{display:grid;grid-template-columns:1fr 1fr;gap:13px}.choice{display:block;text-align:left;border:1px solid var(--line);background:transparent;padding:17px 19px 15px;transition:background .15s,border-color .15s;min-height:146px}.choice:hover{background:var(--card);border-color:#b6bcac}.choice-meta{display:flex;justify-content:space-between;align-items:center;font-size:12px;color:var(--muted);gap:12px}.decision{color:var(--warm)}.choice h4{font-size:16px;line-height:1.32;font-weight:550;letter-spacing:-.2px;margin:10px 0 7px;max-width:285px}.choice-bottom{display:flex;align-items:center;justify-content:space-between;gap:10px;color:var(--muted);font-size:12px}.choice-bottom .choose-arrow{font-size:22px;line-height:1;color:var(--ink)}.rail{padding-top:2px}.rail-section+.rail-section{border-top:1px solid var(--line);margin-top:28px;padding-top:25px}.rail-title{display:flex;align-items:center;justify-content:space-between;gap:15px;margin-bottom:6px}.rail-title h3{font:23px/1.25 var(--serif);letter-spacing:-.5px;margin:0;color:var(--ink);font-weight:400}.rail-caption{font-size:13px;color:var(--muted);margin:0 0 18px}.waiting-item{border:0;background:transparent;text-align:left;display:grid;grid-template-columns:39px 1fr;gap:13px;width:100%;padding:12px 0;align-items:start}.waiting-item+.waiting-item{border-top:1px solid #e3e5da}.waiting-item:hover .wait-title{text-decoration:underline}.return-date{color:var(--muted);text-align:center;padding-top:2px}.return-date strong{display:block;font:24px/1 var(--serif);color:#596455;font-weight:400;letter-spacing:-.6px}.return-date span{font-size:12px;text-transform:uppercase;letter-spacing:.8px}.wait-title{font-size:14px;line-height:1.45;font-weight:500;display:block;margin:0 0 3px}.wait-person{font-size:12px;color:var(--muted)}.resume-item{background:none;border:0;border-bottom:1px solid #e3e5da;padding:14px 0;display:flex;align-items:flex-start;justify-content:space-between;gap:12px;width:100%;text-align:left}.resume-item:last-child{border-bottom:0}.resume-item:hover .resume-title{text-decoration:underline}.resume-project{display:block;color:var(--muted);font-size:12px;margin-bottom:4px}.resume-title{display:block;font-size:15px;font-weight:550;line-height:1.35}.resume-note{display:block;color:var(--muted);font-size:12px;margin-top:5px;line-height:1.45}.resume-arrow{font-size:22px;color:var(--green);margin-top:20px}.closed{margin-top:25px;padding:16px 0 0;border-top:1px solid var(--line)}.closed-title{font-size:12px;color:var(--green);display:flex;align-items:center;gap:7px;margin-bottom:7px}.closed p{color:var(--muted);font-size:12px;margin:0;line-height:1.6}.footer{display:flex;justify-content:space-between;align-items:center;gap:20px;color:#919687;font-size:12px;margin-top:31px;letter-spacing:.1px}.footer button{font-size:12px}.drawer{width:475px;max-width:calc(100vw - 24px);height:calc(100dvh - 24px);max-height:none;position:fixed;inset:12px 12px 12px auto;margin:0;border:1px solid var(--line);padding:0;background:var(--card);color:var(--text);box-shadow:0 16px 90px #243b3920}.drawer::backdrop{background:#20322b45;backdrop-filter:blur(2px)}.drawer[open]{display:flex;flex-direction:column}.drawer-top{display:flex;align-items:center;justify-content:space-between;padding:23px 27px;border-bottom:1px solid var(--line);gap:20px}.drawer-top h2{font:28px var(--serif);margin:0;font-weight:400;letter-spacing:-.7px}.close{background:none;border:1px solid var(--line);width:32px;height:32px;font-size:21px;line-height:1}.drawer-body{padding:24px 27px;overflow:auto}.filters{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:24px}.filters label{font-size:12px;color:var(--muted)}select{border:1px solid var(--line);background:var(--card);color:var(--text);width:100%;padding:9px 8px;margin-top:6px;font-size:13px;border-radius:0}.list-task{width:100%;display:block;text-align:left;border:0;border-top:1px solid var(--line);background:none;padding:16px 0}.list-task:hover strong{text-decoration:underline}.list-task small{font-size:12px;display:block;color:var(--muted);margin-bottom:5px}.list-task strong{font-size:16px;line-height:1.4;font-weight:550;display:block}.list-status{display:block;font-size:12px;color:var(--warm);margin-top:6px}.back{border:0;background:none;padding:0;color:var(--muted);font-size:13px;margin-bottom:25px}.detail-project{color:var(--muted);font-size:13px;margin-bottom:8px}.detail-title{font:32px/1.16 var(--serif);letter-spacing:-.8px;margin:0 0 17px;font-weight:400;color:var(--ink)}.status-pill{display:inline-block;color:var(--warm);background:var(--warm-bg);font-size:12px;padding:4px 9px}.detail-label{font-size:12px;color:var(--muted);margin-top:28px;margin-bottom:7px}.detail-next{font-size:17px;line-height:1.5;margin:0}.detail-note{padding:16px;border:1px solid var(--line);font-size:14px;margin-top:24px;background:var(--paper)}.detail-note p{margin:0}.detail-note p+p{margin-top:8px}.detail-action{width:100%;background:var(--ink);color:var(--card);border:0;padding:13px 20px;margin-top:27px;font-weight:550;font-size:14px}.detail-action:hover{background:#3b5248}.detail-fresh{font-size:12px;line-height:1.6;color:var(--muted);margin-top:25px}.empty{color:var(--muted);padding:25px 0;font-size:15px}.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:var(--ink);color:#fffef9;padding:12px 20px;font-size:14px;box-shadow:0 3px 14px #243b3920;max-width:calc(100% - 32px);z-index:3}.toast[hidden]{display:none}
-    @media(min-width:1500px){.shell{padding-top:36px}.focus-card{padding:29px 36px 27px}.focus-card h2{font-size:44px}}
-    @media(max-width:1200px){header{padding:0 32px}.shell{padding-left:32px;padding-right:32px}.workbench{grid-template-columns:minmax(0,1fr) 280px;gap:30px}.focus-card{padding-left:26px;padding-right:26px}.focus-card h2{font-size:37px}.choice{padding-left:15px;padding-right:15px}.header-left{gap:48px}}
-    @media(max-width:950px){.workbench{grid-template-columns:minmax(0,1fr) 240px;gap:24px}.focus-card h2{font-size:34px}.choices{grid-template-columns:1fr}.choice{min-height:auto}.choice h4{max-width:none}.profile-label{display:none}.saved{display:none}.date{font-size:12px}.date .dot,.date span:last-child{display:none}}
-    @media(max-width:720px){header{height:67px;padding:0 22px}.header-left{gap:24px}.brand{font-size:19px;gap:9px}.brand-mark{width:27px;height:30px;font-size:23px}.nav{gap:0;height:67px}.nav-current{display:none}.nav .plain{font-size:13px}.profile{display:none}.shell{padding:24px 22px}.page-heading{margin-bottom:21px;align-items:flex-end;gap:15px}.page-heading h1{font-size:30px;max-width:210px}.date{font-size:12px;white-space:nowrap;padding-bottom:3px}.workbench{grid-template-columns:1fr;gap:31px}.focus-card{padding:21px 22px 20px}.focus-card h2{font-size:34px;line-height:1.12;letter-spacing:-1px;margin-top:9px}.project-line{margin-top:20px;font-size:12px}.eyebrow{font-size:12px}.next-action{padding:13px}.next-action p{font-size:15px}.check-row{font-size:13px;line-height:1.55}.choices{grid-template-columns:1fr 1fr;gap:10px}.choice{padding:13px;min-height:164px}.choice h4{font-size:14px;line-height:1.4}.choice-meta{font-size:12px;align-items:flex-start;gap:4px}.choice-meta .decision{max-width:80px}.choice-bottom{font-size:12px;align-items:flex-end}.choice-bottom>span:first-child{max-width:110px}.section-heading span{display:none}.rail{display:grid;grid-template-columns:1fr;gap:0}.rail-section+.rail-section{margin-top:22px;padding-top:23px}.rail-title h3{font-size:25px}.waiting-item{grid-template-columns:45px 1fr}.waiting-item .wait-title{font-size:15px}.resume-title{font-size:16px}.closed{margin-top:20px}.footer{align-items:flex-end;margin-top:25px;line-height:1.5}.footer>span{max-width:220px}.drawer-top{padding:20px}.drawer-body{padding:22px 20px}.detail-title{font-size:30px}.toast{font-size:13px;width:max-content}}
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>TaskIndex — Фокус</title>
+    <style>
+      :root {
+        --paper: #f4f3ed;
+        --card: #fffef9;
+        --ink: #243b39;
+        --text: #303c38;
+        --muted: #767d72;
+        --line: #dcded3;
+        --warm: #ac5738;
+        --warm-bg: #f0e5d7;
+        --green: #58745c;
+        --serif: Georgia, 'Times New Roman', serif;
+        --sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        background: var(--paper);
+        color: var(--text);
+        font-family: var(--sans);
+        font-size: 15px;
+        line-height: 1.45;
+      }
+      button,
+      select {
+        font: inherit;
+      }
+      button {
+        cursor: pointer;
+      }
+      button:focus-visible,
+      select:focus-visible,
+      input:focus-visible {
+        outline: 3px solid #ba6546;
+        outline-offset: 4px;
+      }
+      button {
+        color: inherit;
+      }
+      button:disabled {
+        cursor: default;
+      }
+      header {
+        height: 80px;
+        border-bottom: 1px solid var(--line);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 28px;
+        padding: 0 48px;
+      }
+      .brand {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        font-size: 21px;
+        font-weight: 650;
+        letter-spacing: -0.9px;
+        color: var(--ink);
+      }
+      .brand-mark {
+        width: 31px;
+        height: 34px;
+        display: grid;
+        place-items: center;
+        border: 1.5px solid var(--ink);
+        font: 26px var(--serif);
+        padding-bottom: 3px;
+        letter-spacing: -2px;
+      }
+      .header-left {
+        display: flex;
+        align-items: center;
+        gap: 68px;
+      }
+      .nav {
+        display: flex;
+        align-items: center;
+        gap: 29px;
+        height: 80px;
+      }
+      .nav-current {
+        height: 80px;
+        display: flex;
+        align-items: center;
+        border-bottom: 2px solid var(--ink);
+        font-weight: 600;
+      }
+      .plain {
+        background: none;
+        border: 0;
+        padding: 8px 0;
+        color: var(--muted);
+      }
+      .plain:hover {
+        color: var(--ink);
+      }
+      .profile {
+        display: flex;
+        align-items: center;
+        gap: 17px;
+        color: var(--muted);
+        font-size: 13px;
+      }
+      .avatar {
+        background: #e6e7db;
+        color: var(--ink);
+        width: 33px;
+        height: 33px;
+        border-radius: 50%;
+        display: grid;
+        place-items: center;
+        font-weight: 600;
+      }
+      .shell {
+        max-width: 1360px;
+        margin: 0 auto;
+        padding: 28px 48px 24px;
+      }
+      .page-heading {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 24px;
+        margin-bottom: 25px;
+      }
+      .page-heading h1 {
+        font: 36px/1.2 var(--serif);
+        letter-spacing: -1.2px;
+        font-weight: 400;
+        margin: 0;
+        color: var(--ink);
+      }
+      .date {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        color: var(--muted);
+        font-size: 14px;
+      }
+      .date strong {
+        font-weight: 500;
+        color: var(--text);
+      }
+      .date .dot {
+        width: 3px;
+        height: 3px;
+        background: #a8ad9f;
+        border-radius: 50%;
+      }
+      .workbench {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) 302px;
+        gap: 48px;
+        align-items: start;
+      }
+      .focus-card {
+        background: var(--card);
+        border: 1px solid #d8dace;
+        border-top: 3px solid var(--warm);
+        padding: 26px 32px 23px;
+        position: relative;
+        box-shadow: 0 3px 0 #e9e9df;
+      }
+      .card-top {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 15px;
+      }
+      .eyebrow {
+        font-size: 12px;
+        letter-spacing: 1.8px;
+        font-weight: 650;
+        text-transform: uppercase;
+        color: var(--warm);
+      }
+      .time {
+        font-size: 13px;
+        color: var(--muted);
+      }
+      .time strong {
+        font-weight: 500;
+        color: var(--text);
+      }
+      .project-line {
+        margin-top: 21px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        color: var(--muted);
+        font-size: 13px;
+      }
+      .project-line b {
+        font-weight: 600;
+        color: var(--ink);
+      }
+      .project-line span:last-child:before {
+        content: ' / ';
+        margin-right: 7px;
+        color: #b0b4a8;
+      }
+      .focus-card h2 {
+        font: 40px/1.12 var(--serif);
+        letter-spacing: -1.2px;
+        color: var(--ink);
+        margin: 10px 0 20px;
+        max-width: 610px;
+        font-weight: 400;
+      }
+      .next-action {
+        display: flex;
+        align-items: flex-start;
+        gap: 13px;
+        padding: 15px 17px;
+        background: #f0f0e7;
+        border-left: 2px solid #9ca58e;
+      }
+      .next-action .arrow {
+        font-size: 20px;
+        line-height: 1.3;
+        color: var(--green);
+      }
+      .next-action small {
+        display: block;
+        font-size: 12px;
+        color: var(--muted);
+        margin-bottom: 3px;
+      }
+      .next-action p {
+        margin: 0;
+        font-size: 16px;
+        line-height: 1.45;
+        max-width: 570px;
+      }
+      .checklist-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        font-size: 12px;
+        color: var(--muted);
+        margin: 22px 0 9px;
+      }
+      .progress-track {
+        width: 65px;
+        height: 3px;
+        background: #e6e8df;
+        border-radius: 4px;
+        overflow: hidden;
+      }
+      .progress-fill {
+        height: 100%;
+        background: #7d9275;
+        transition: width 0.2s;
+      }
+      .checklist {
+        display: grid;
+        gap: 7px;
+      }
+      .check-row {
+        display: flex;
+        align-items: flex-start;
+        gap: 10px;
+        font-size: 14px;
+        cursor: pointer;
+        line-height: 1.5;
+      }
+      .check-row input {
+        appearance: none;
+        width: 17px;
+        height: 17px;
+        border: 1px solid #b3b9a9;
+        border-radius: 3px;
+        flex: none;
+        margin: 2px 0 0;
+        display: grid;
+        place-items: center;
+        cursor: pointer;
+        background: #fffef9;
+      }
+      .check-row input:checked {
+        background: #e3e8dc;
+        border-color: #e3e8dc;
+      }
+      .check-row input:checked:after {
+        content: '✓';
+        font-size: 13px;
+        color: var(--green);
+        line-height: 1;
+      }
+      .check-row:has(input:checked) span {
+        color: #8a9083;
+      }
+      .focus-footer {
+        display: flex;
+        justify-content: space-between;
+        gap: 15px;
+        align-items: center;
+        margin-top: 23px;
+        padding-top: 17px;
+        border-top: 1px solid #e8e9df;
+      }
+      .context-link {
+        border: 0;
+        background: none;
+        padding: 0;
+        color: var(--ink);
+        font-size: 14px;
+        font-weight: 600;
+        display: flex;
+        gap: 22px;
+        align-items: center;
+      }
+      .context-link:hover {
+        text-decoration: underline;
+      }
+      .saved {
+        color: var(--muted);
+        font-size: 12px;
+      }
+      .next-section {
+        margin-top: 27px;
+      }
+      .section-heading {
+        display: flex;
+        align-items: baseline;
+        justify-content: space-between;
+        gap: 16px;
+        margin: 0 0 12px;
+      }
+      .section-heading h3 {
+        font-size: 16px;
+        font-weight: 600;
+        margin: 0;
+        color: var(--ink);
+        letter-spacing: -0.3px;
+      }
+      .section-heading span {
+        font-size: 12px;
+        color: var(--muted);
+      }
+      .choices {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 13px;
+      }
+      .choice {
+        display: block;
+        text-align: left;
+        border: 1px solid var(--line);
+        background: transparent;
+        padding: 17px 19px 15px;
+        transition:
+          background 0.15s,
+          border-color 0.15s;
+        min-height: 146px;
+      }
+      .choice:hover {
+        background: var(--card);
+        border-color: #b6bcac;
+      }
+      .choice-meta {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        font-size: 12px;
+        color: var(--muted);
+        gap: 12px;
+      }
+      .decision {
+        color: var(--warm);
+      }
+      .choice h4 {
+        font-size: 16px;
+        line-height: 1.32;
+        font-weight: 550;
+        letter-spacing: -0.2px;
+        margin: 10px 0 7px;
+        max-width: 285px;
+      }
+      .choice-bottom {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+        color: var(--muted);
+        font-size: 12px;
+      }
+      .choice-bottom .choose-arrow {
+        font-size: 22px;
+        line-height: 1;
+        color: var(--ink);
+      }
+      .rail {
+        padding-top: 2px;
+      }
+      .rail-section + .rail-section {
+        border-top: 1px solid var(--line);
+        margin-top: 28px;
+        padding-top: 25px;
+      }
+      .rail-title {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 15px;
+        margin-bottom: 6px;
+      }
+      .rail-title h3 {
+        font: 23px/1.25 var(--serif);
+        letter-spacing: -0.5px;
+        margin: 0;
+        color: var(--ink);
+        font-weight: 400;
+      }
+      .rail-caption {
+        font-size: 13px;
+        color: var(--muted);
+        margin: 0 0 18px;
+      }
+      .waiting-item {
+        border: 0;
+        background: transparent;
+        text-align: left;
+        display: grid;
+        grid-template-columns: 39px 1fr;
+        gap: 13px;
+        width: 100%;
+        padding: 12px 0;
+        align-items: start;
+      }
+      .waiting-item + .waiting-item {
+        border-top: 1px solid #e3e5da;
+      }
+      .waiting-item:hover .wait-title {
+        text-decoration: underline;
+      }
+      .return-date {
+        color: var(--muted);
+        text-align: center;
+        padding-top: 2px;
+      }
+      .return-date strong {
+        display: block;
+        font: 24px/1 var(--serif);
+        color: #596455;
+        font-weight: 400;
+        letter-spacing: -0.6px;
+      }
+      .return-date span {
+        font-size: 12px;
+        text-transform: uppercase;
+        letter-spacing: 0.8px;
+      }
+      .wait-title {
+        font-size: 14px;
+        line-height: 1.45;
+        font-weight: 500;
+        display: block;
+        margin: 0 0 3px;
+      }
+      .wait-person {
+        font-size: 12px;
+        color: var(--muted);
+      }
+      .resume-item {
+        background: none;
+        border: 0;
+        border-bottom: 1px solid #e3e5da;
+        padding: 14px 0;
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 12px;
+        width: 100%;
+        text-align: left;
+      }
+      .resume-item:last-child {
+        border-bottom: 0;
+      }
+      .resume-item:hover .resume-title {
+        text-decoration: underline;
+      }
+      .resume-project {
+        display: block;
+        color: var(--muted);
+        font-size: 12px;
+        margin-bottom: 4px;
+      }
+      .resume-title {
+        display: block;
+        font-size: 15px;
+        font-weight: 550;
+        line-height: 1.35;
+      }
+      .resume-note {
+        display: block;
+        color: var(--muted);
+        font-size: 12px;
+        margin-top: 5px;
+        line-height: 1.45;
+      }
+      .resume-arrow {
+        font-size: 22px;
+        color: var(--green);
+        margin-top: 20px;
+      }
+      .closed {
+        margin-top: 25px;
+        padding: 16px 0 0;
+        border-top: 1px solid var(--line);
+      }
+      .closed-title {
+        font-size: 12px;
+        color: var(--green);
+        display: flex;
+        align-items: center;
+        gap: 7px;
+        margin-bottom: 7px;
+      }
+      .closed p {
+        color: var(--muted);
+        font-size: 12px;
+        margin: 0;
+        line-height: 1.6;
+      }
+      .footer {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 20px;
+        color: #919687;
+        font-size: 12px;
+        margin-top: 31px;
+        letter-spacing: 0.1px;
+      }
+      .footer button {
+        font-size: 12px;
+      }
+      .drawer {
+        width: 475px;
+        max-width: calc(100vw - 24px);
+        height: calc(100dvh - 24px);
+        max-height: none;
+        position: fixed;
+        inset: 12px 12px 12px auto;
+        margin: 0;
+        border: 1px solid var(--line);
+        padding: 0;
+        background: var(--card);
+        color: var(--text);
+        box-shadow: 0 16px 90px #243b3920;
+      }
+      .drawer::backdrop {
+        background: #20322b45;
+        backdrop-filter: blur(2px);
+      }
+      .drawer[open] {
+        display: flex;
+        flex-direction: column;
+      }
+      .drawer-top {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 23px 27px;
+        border-bottom: 1px solid var(--line);
+        gap: 20px;
+      }
+      .drawer-top h2 {
+        font: 28px var(--serif);
+        margin: 0;
+        font-weight: 400;
+        letter-spacing: -0.7px;
+      }
+      .close {
+        background: none;
+        border: 1px solid var(--line);
+        width: 32px;
+        height: 32px;
+        font-size: 21px;
+        line-height: 1;
+      }
+      .drawer-body {
+        padding: 24px 27px;
+        overflow: auto;
+      }
+      .filters {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 10px;
+        margin-bottom: 24px;
+      }
+      .filters label {
+        font-size: 12px;
+        color: var(--muted);
+      }
+      select {
+        border: 1px solid var(--line);
+        background: var(--card);
+        color: var(--text);
+        width: 100%;
+        padding: 9px 8px;
+        margin-top: 6px;
+        font-size: 13px;
+        border-radius: 0;
+      }
+      .list-task {
+        width: 100%;
+        display: block;
+        text-align: left;
+        border: 0;
+        border-top: 1px solid var(--line);
+        background: none;
+        padding: 16px 0;
+      }
+      .list-task:hover strong {
+        text-decoration: underline;
+      }
+      .list-task small {
+        font-size: 12px;
+        display: block;
+        color: var(--muted);
+        margin-bottom: 5px;
+      }
+      .list-task strong {
+        font-size: 16px;
+        line-height: 1.4;
+        font-weight: 550;
+        display: block;
+      }
+      .list-status {
+        display: block;
+        font-size: 12px;
+        color: var(--warm);
+        margin-top: 6px;
+      }
+      .back {
+        border: 0;
+        background: none;
+        padding: 0;
+        color: var(--muted);
+        font-size: 13px;
+        margin-bottom: 25px;
+      }
+      .detail-project {
+        color: var(--muted);
+        font-size: 13px;
+        margin-bottom: 8px;
+      }
+      .detail-title {
+        font: 32px/1.16 var(--serif);
+        letter-spacing: -0.8px;
+        margin: 0 0 17px;
+        font-weight: 400;
+        color: var(--ink);
+      }
+      .status-pill {
+        display: inline-block;
+        color: var(--warm);
+        background: var(--warm-bg);
+        font-size: 12px;
+        padding: 4px 9px;
+      }
+      .detail-label {
+        font-size: 12px;
+        color: var(--muted);
+        margin-top: 28px;
+        margin-bottom: 7px;
+      }
+      .detail-next {
+        font-size: 17px;
+        line-height: 1.5;
+        margin: 0;
+      }
+      .detail-note {
+        padding: 16px;
+        border: 1px solid var(--line);
+        font-size: 14px;
+        margin-top: 24px;
+        background: var(--paper);
+      }
+      .detail-note p {
+        margin: 0;
+      }
+      .detail-note p + p {
+        margin-top: 8px;
+      }
+      .detail-action {
+        width: 100%;
+        background: var(--ink);
+        color: var(--card);
+        border: 0;
+        padding: 13px 20px;
+        margin-top: 27px;
+        font-weight: 550;
+        font-size: 14px;
+      }
+      .detail-action:hover {
+        background: #3b5248;
+      }
+      .detail-fresh {
+        font-size: 12px;
+        line-height: 1.6;
+        color: var(--muted);
+        margin-top: 25px;
+      }
+      .empty {
+        color: var(--muted);
+        padding: 25px 0;
+        font-size: 15px;
+      }
+      .toast {
+        position: fixed;
+        bottom: 24px;
+        left: 50%;
+        transform: translateX(-50%);
+        background: var(--ink);
+        color: #fffef9;
+        padding: 12px 20px;
+        font-size: 14px;
+        box-shadow: 0 3px 14px #243b3920;
+        max-width: calc(100% - 32px);
+        z-index: 3;
+      }
+      .toast[hidden] {
+        display: none;
+      }
+      @media (min-width: 1500px) {
+        .shell {
+          padding-top: 36px;
+        }
+        .focus-card {
+          padding: 29px 36px 27px;
+        }
+        .focus-card h2 {
+          font-size: 44px;
+        }
+      }
+      @media (max-width: 1200px) {
+        header {
+          padding: 0 32px;
+        }
+        .shell {
+          padding-left: 32px;
+          padding-right: 32px;
+        }
+        .workbench {
+          grid-template-columns: minmax(0, 1fr) 280px;
+          gap: 30px;
+        }
+        .focus-card {
+          padding-left: 26px;
+          padding-right: 26px;
+        }
+        .focus-card h2 {
+          font-size: 37px;
+        }
+        .choice {
+          padding-left: 15px;
+          padding-right: 15px;
+        }
+        .header-left {
+          gap: 48px;
+        }
+      }
+      @media (max-width: 950px) {
+        .workbench {
+          grid-template-columns: minmax(0, 1fr) 240px;
+          gap: 24px;
+        }
+        .focus-card h2 {
+          font-size: 34px;
+        }
+        .choices {
+          grid-template-columns: 1fr;
+        }
+        .choice {
+          min-height: auto;
+        }
+        .choice h4 {
+          max-width: none;
+        }
+        .profile-label {
+          display: none;
+        }
+        .saved {
+          display: none;
+        }
+        .date {
+          font-size: 12px;
+        }
+        .date .dot,
+        .date span:last-child {
+          display: none;
+        }
+      }
+      @media (max-width: 720px) {
+        header {
+          height: 67px;
+          padding: 0 22px;
+        }
+        .header-left {
+          gap: 24px;
+        }
+        .brand {
+          font-size: 19px;
+          gap: 9px;
+        }
+        .brand-mark {
+          width: 27px;
+          height: 30px;
+          font-size: 23px;
+        }
+        .nav {
+          gap: 0;
+          height: 67px;
+        }
+        .nav-current {
+          display: none;
+        }
+        .nav .plain {
+          font-size: 13px;
+        }
+        .profile {
+          display: none;
+        }
+        .shell {
+          padding: 24px 22px;
+        }
+        .page-heading {
+          margin-bottom: 21px;
+          align-items: flex-end;
+          gap: 15px;
+        }
+        .page-heading h1 {
+          font-size: 30px;
+          max-width: 210px;
+        }
+        .date {
+          font-size: 12px;
+          white-space: nowrap;
+          padding-bottom: 3px;
+        }
+        .workbench {
+          grid-template-columns: 1fr;
+          gap: 31px;
+        }
+        .focus-card {
+          padding: 21px 22px 20px;
+        }
+        .focus-card h2 {
+          font-size: 34px;
+          line-height: 1.12;
+          letter-spacing: -1px;
+          margin-top: 9px;
+        }
+        .project-line {
+          margin-top: 20px;
+          font-size: 12px;
+        }
+        .eyebrow {
+          font-size: 12px;
+        }
+        .next-action {
+          padding: 13px;
+        }
+        .next-action p {
+          font-size: 15px;
+        }
+        .check-row {
+          font-size: 13px;
+          line-height: 1.55;
+        }
+        .choices {
+          grid-template-columns: 1fr 1fr;
+          gap: 10px;
+        }
+        .choice {
+          padding: 13px;
+          min-height: 164px;
+        }
+        .choice h4 {
+          font-size: 14px;
+          line-height: 1.4;
+        }
+        .choice-meta {
+          font-size: 12px;
+          align-items: flex-start;
+          gap: 4px;
+        }
+        .choice-meta .decision {
+          max-width: 80px;
+        }
+        .choice-bottom {
+          font-size: 12px;
+          align-items: flex-end;
+        }
+        .choice-bottom > span:first-child {
+          max-width: 110px;
+        }
+        .section-heading span {
+          display: none;
+        }
+        .rail {
+          display: grid;
+          grid-template-columns: 1fr;
+          gap: 0;
+        }
+        .rail-section + .rail-section {
+          margin-top: 22px;
+          padding-top: 23px;
+        }
+        .rail-title h3 {
+          font-size: 25px;
+        }
+        .waiting-item {
+          grid-template-columns: 45px 1fr;
+        }
+        .waiting-item .wait-title {
+          font-size: 15px;
+        }
+        .resume-title {
+          font-size: 16px;
+        }
+        .closed {
+          margin-top: 20px;
+        }
+        .footer {
+          align-items: flex-end;
+          margin-top: 25px;
+          line-height: 1.5;
+        }
+        .footer > span {
+          max-width: 220px;
+        }
+        .drawer-top {
+          padding: 20px;
+        }
+        .drawer-body {
+          padding: 22px 20px;
+        }
+        .detail-title {
+          font-size: 30px;
+        }
+        .toast {
+          font-size: 13px;
+          width: max-content;
+        }
+      }
 
-    @media(min-width:1100px) and (max-height:760px){
-      header{height:60px}.nav,.nav-current{height:60px}.shell{padding-top:18px;padding-bottom:16px}.page-heading{margin-bottom:18px}.page-heading h1{font-size:31px}.workbench{gap:35px;grid-template-columns:minmax(0,1fr) 280px}.focus-card{padding:18px 23px 16px}.eyebrow{font-size:12px;letter-spacing:1.3px}.card-top{line-height:1.3}.focus-body{display:grid;grid-template-columns:minmax(0,1fr) 215px;gap:26px;margin-top:13px}.project-line{margin-top:0;font-size:12px}.focus-card h2{font-size:31px;line-height:1.1;letter-spacing:-.9px;margin:7px 0 13px}.next-action{padding:10px 12px;gap:8px}.next-action small{font-size:12px;margin-bottom:2px}.next-action p{font-size:14px;line-height:1.35}.next-action .arrow{font-size:18px}.checklist-head{margin:0 0 12px}.checklist{gap:10px}.check-row{font-size:13px;line-height:1.4}.focus-footer{margin-top:15px;padding-top:12px}.context-link{font-size:13px}.saved{font-size:12px}.next-section{margin-top:20px}.section-heading{margin-bottom:10px}.section-heading h3{font-size:15px}.choice{padding:13px 16px;min-height:118px}.choice h4{font-size:15px;margin:8px 0 7px}.choice-meta,.choice-bottom{font-size:12px}.rail-title h3{font-size:22px}.rail-caption{margin-bottom:9px;font-size:12px}.waiting-item{padding:9px 0;gap:9px}.wait-title{font-size:13px}.rail-section+.rail-section{margin-top:17px;padding-top:18px}.resume-item{padding:10px 0}.resume-title{font-size:14px}.resume-note{font-size:12px;margin-top:3px}.closed{padding-top:13px;margin-top:14px}.closed p{font-size:12px}.footer{margin-top:17px;font-size:12px}
-    }
-    @media(prefers-reduced-motion:reduce){*{transition:none!important}}
-  </style>
-</head>
-<body>
-  <header>
-    <div class="header-left"><div class="brand"><span class="brand-mark" aria-hidden="true">t.</span>TaskIndex</div><nav class="nav" aria-label="Основная навигация"><span class="nav-current" aria-current="page">Рабочий стол</span><button class="plain" data-open-contexts>Все контексты <span aria-hidden="true">↗</span></button></nav></div>
-    <div class="profile"><span class="profile-label">Личное пространство</span><span class="avatar" aria-label="Дмитрий">Д</span></div>
-  </header>
-  <main class="shell">
-    <div class="page-heading"><h1>Фокус на сегодня</h1><div class="date"><strong>8 сентября</strong><span class="dot" aria-hidden="true"></span><span>вторник</span></div></div>
-    <div class="workbench">
-      <div class="workspace-main">
-        <section id="focus" class="focus-card" aria-label="Текущая задача"></section>
-        <section class="next-section" aria-labelledby="next-heading"><div class="section-heading"><h3 id="next-heading">Потом — один из двух</h3><span>Можно выбрать, когда освободишься</span></div><div id="choices" class="choices"></div></section>
+      @media (min-width: 1100px) and (max-height: 760px) {
+        header {
+          height: 60px;
+        }
+        .nav,
+        .nav-current {
+          height: 60px;
+        }
+        .shell {
+          padding-top: 18px;
+          padding-bottom: 16px;
+        }
+        .page-heading {
+          margin-bottom: 18px;
+        }
+        .page-heading h1 {
+          font-size: 31px;
+        }
+        .workbench {
+          gap: 35px;
+          grid-template-columns: minmax(0, 1fr) 280px;
+        }
+        .focus-card {
+          padding: 18px 23px 16px;
+        }
+        .eyebrow {
+          font-size: 12px;
+          letter-spacing: 1.3px;
+        }
+        .card-top {
+          line-height: 1.3;
+        }
+        .focus-body {
+          display: grid;
+          grid-template-columns: minmax(0, 1fr) 215px;
+          gap: 26px;
+          margin-top: 13px;
+        }
+        .project-line {
+          margin-top: 0;
+          font-size: 12px;
+        }
+        .focus-card h2 {
+          font-size: 31px;
+          line-height: 1.1;
+          letter-spacing: -0.9px;
+          margin: 7px 0 13px;
+        }
+        .next-action {
+          padding: 10px 12px;
+          gap: 8px;
+        }
+        .next-action small {
+          font-size: 12px;
+          margin-bottom: 2px;
+        }
+        .next-action p {
+          font-size: 14px;
+          line-height: 1.35;
+        }
+        .next-action .arrow {
+          font-size: 18px;
+        }
+        .checklist-head {
+          margin: 0 0 12px;
+        }
+        .checklist {
+          gap: 10px;
+        }
+        .check-row {
+          font-size: 13px;
+          line-height: 1.4;
+        }
+        .focus-footer {
+          margin-top: 15px;
+          padding-top: 12px;
+        }
+        .context-link {
+          font-size: 13px;
+        }
+        .saved {
+          font-size: 12px;
+        }
+        .next-section {
+          margin-top: 20px;
+        }
+        .section-heading {
+          margin-bottom: 10px;
+        }
+        .section-heading h3 {
+          font-size: 15px;
+        }
+        .choice {
+          padding: 13px 16px;
+          min-height: 118px;
+        }
+        .choice h4 {
+          font-size: 15px;
+          margin: 8px 0 7px;
+        }
+        .choice-meta,
+        .choice-bottom {
+          font-size: 12px;
+        }
+        .rail-title h3 {
+          font-size: 22px;
+        }
+        .rail-caption {
+          margin-bottom: 9px;
+          font-size: 12px;
+        }
+        .waiting-item {
+          padding: 9px 0;
+          gap: 9px;
+        }
+        .wait-title {
+          font-size: 13px;
+        }
+        .rail-section + .rail-section {
+          margin-top: 17px;
+          padding-top: 18px;
+        }
+        .resume-item {
+          padding: 10px 0;
+        }
+        .resume-title {
+          font-size: 14px;
+        }
+        .resume-note {
+          font-size: 12px;
+          margin-top: 3px;
+        }
+        .closed {
+          padding-top: 13px;
+          margin-top: 14px;
+        }
+        .closed p {
+          font-size: 12px;
+        }
+        .footer {
+          margin-top: 17px;
+          font-size: 12px;
+        }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        * {
+          transition: none !important;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <div class="header-left">
+        <div class="brand">
+          <span class="brand-mark" aria-hidden="true">t.</span>TaskIndex
+        </div>
+        <nav class="nav" aria-label="Основная навигация">
+          <span class="nav-current" aria-current="page">Рабочий стол</span
+          ><button class="plain" data-open-contexts>
+            Все контексты <span aria-hidden="true">↗</span>
+          </button>
+        </nav>
       </div>
-      <aside class="rail" aria-label="Ожидания и сохранённые контексты">
-        <section class="rail-section"><div class="rail-title"><h3>Жду от других</h3></div><p class="rail-caption">Вернуться в указанную дату</p><div id="waiting"></div></section>
-        <section class="rail-section"><div class="rail-title"><h3>Легко вернуться</h3></div><p class="rail-caption">Следующий шаг уже сохранён</p><div id="resume"></div></section>
-        <section class="closed"><div class="closed-title"><span aria-hidden="true">✓</span> Закрыто в демо</div><p>Экран найма с перепиской<br>Рабочие ссылки для контента</p></section>
-      </aside>
-    </div>
-    <footer class="footer"><span>Демо · 8 сентября · изменения до перезагрузки</span><button class="plain" data-parked>Отложенные контексты <span aria-hidden="true">↗</span></button></footer>
-  </main>
-  <dialog id="drawer" class="drawer" aria-labelledby="drawer-title"><div class="drawer-top"><h2 id="drawer-title">Все контексты</h2><button class="close" aria-label="Закрыть контекст" data-close>×</button></div><div class="drawer-body" id="drawer-body"></div></dialog>
-  <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
-  <script>
-    const tasks=[
-      {id:'core',project:'ContentOps',area:'Разработка',title:'Закрепить схему ядра ContentOps',short:'Схема ядра ContentOps',next:'Разобрать один путь «файл появился → материал найден».',status:'doing',minutes:25,check:['Определить границы ядра','Разделить файл и материал','Пройти путь от появления файла до поиска','Записать решение в схему'],done:[true,true,false,false],note:'Продолжить с одного сквозного пути. После него проверить, хватает ли связей в схеме ядра.'},
-      {id:'release',project:'ChatGoose',area:'Разработка',title:'Подготовить релиз расширения 2.0',short:'Релиз расширения 2.0',next:'Пройти сценарий новой сессии.',status:'doing',check:['Собрать изменения релиза','Проверить миграцию настроек','Проверить текущую сессию','Пройти сценарий новой сессии','Завершить проверку владельцем'],done:[true,true,true,false,false],note:'Нужна проверка владельцем. Точка возврата: сценарий новой сессии.'},
-      {id:'socket',project:'Hub',area:'Разработка',title:'Проверить серверный WebSocket Fansly',short:'WebSocket Fansly',next:'Проверить обновление на одной странице.',status:'queue',minutes:15,note:'Начать с одной страницы и проследить, приходит ли серверное обновление.'},
-      {id:'hiring',project:'Найм',area:'Агентство',title:'Найти КМ для OF Лоры',short:'Выбрать КМ для Лоры',next:'Сравнить два тестовых и выбрать, с кем созвониться.',status:'decision',minutes:15,note:'Решение владельца: кого пригласить на созвон после сравнения двух тестовых.'},
-      {id:'refs',project:'Контент',area:'Агентство',title:'Передать 19 рефов Лоры в производство',short:'Передать 19 рефов в производство',next:'Назначить ответственного за первую пачку.',status:'queue',minutes:10,note:'Первая точка действия — ответственный за первую пачку референсов Лоры.'},
-      {id:'ari',project:'Контент',area:'Агентство',title:'Принять у Ари 18 FYP по ТЗ №3',short:'18 FYP Ари по ТЗ №3',next:'Сверить сданные пачки с техническим заданием.',status:'waiting',person:'Карина',day:'10',date:'10 сентября',note:'Ожидается сдача от Карины. Вернуться 10 сентября и сверить пачки с ТЗ №3.'},
-      {id:'asuna',project:'Контент',area:'Агентство',title:'Получить от Asuna план старта',short:'План старта от Asuna',next:'Посмотреть план старта после ответа Asuna.',status:'waiting',person:'Asuna',day:'09',date:'9 сентября',note:'Ожидается ответ Asuna с планом старта. Дата возврата — 9 сентября.'},
-      {id:'garant',project:'Трафик',area:'Агентство',title:'Получить обратную связь GarantTeam по Instagram Лоры',short:'Обратная связь по Instagram Лоры',next:'Разобрать обратную связь GarantTeam, когда она придёт.',status:'waiting',person:'GarantTeam',day:'11',date:'11 сентября',note:'Ожидается обратная связь GarantTeam. Дата возврата — 11 сентября.'},
-      {id:'chatters',project:'Чаттеры',area:'Агентство',title:'Решить замены чаттеров на выходные',short:'Замены чаттеров на выходные',next:'Попросить старшего смены предложить два варианта.',status:'decision',note:'Нужно решение владельца. Следующее действие — запросить у старшего смены два варианта замен.'},
-      {id:'hrids',project:'tg-assistant',area:'Разработка',title:'Развести app-идентификаторы HR-аккаунтов',short:'Идентификаторы HR-аккаунтов',next:'Открыть контекст задачи и определить первый шаг.',status:'queue',note:'Задача в очереди. Конкретный первый шаг ещё не записан.'},
-      {id:'retention',project:'Hub',area:'Разработка',title:'Сверить ретеншен raw-снапшотов',short:'Ретеншен raw-снапшотов',next:'Проверить текущую политику хранения в режиме чтения.',status:'queue',note:'Начать с диагностики текущего состояния в режиме чтения.'},
-      {id:'traffic',project:'traffic-control',area:'Разработка',title:'Выбрать следующий тест трафика',short:'Следующий тест трафика',next:'Вернуться после ответа подрядчика.',status:'parked',note:'Отложено до ответа подрядчика. Дата возврата пока не назначена.'},
-      {id:'psyflow',project:'psyflow',area:'Разработка',title:'Упростить первый экран',short:'Первый экран psyflow',next:'Возобновить, когда появится место в работе.',status:'parked',note:'Контекст отложен. Следующий конкретный шаг ещё не записан.'},
-      {id:'hiredscreen',project:'tg-assistant',area:'Разработка',title:'Собрать простой экран найма с перепиской',status:'done',next:'Завершено в демо.',note:'Задача закрыта в демонстрационном состоянии.'},
-      {id:'links',project:'Контент',area:'Агентство',title:'Собрать рабочие ссылки в одном месте',status:'done',next:'Завершено в демо.',note:'Задача закрыта в демонстрационном состоянии.'}
-    ];
-    const labels={doing:'В работе',queue:'В очереди',decision:'Нужно решение',waiting:'Жду ответа',parked:'Отложено',done:'Готово'};
-    let active='core',resumeIds=['release','socket'],projectFilter='',statusFilter='',toastTimer;
-    const $=s=>document.querySelector(s),get=id=>tasks.find(t=>t.id===id),esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-    function checklist(t){if(!t.check)return '';return `<div class="checklist-head"><span>Шаги <span id="check-count">${t.done.filter(Boolean).length} из ${t.check.length}</span></span><div class="progress-track" aria-hidden="true"><div class="progress-fill" id="progress-fill" style="width:${t.done.filter(Boolean).length/t.check.length*100}%"></div></div></div><div class="checklist">${t.check.map((text,i)=>`<label class="check-row"><input type="checkbox" data-check="${i}" ${t.done[i]?'checked':''}><span>${esc(text)}</span></label>`).join('')}</div>`}
-    function render(){const t=get(active);$('#focus').innerHTML=`<div class="card-top"><span class="eyebrow">В фокусе · сейчас</span><span class="time">${t.minutes?`Один подход <strong>· ${t.minutes} мин</strong>`:'Один следующий шаг'}</span></div><div class="focus-body"><div class="focus-summary"><div class="project-line"><b>${esc(t.project)}</b><span>${esc(t.area)}</span></div><h2>${esc(t.title)}</h2><div class="next-action"><span class="arrow" aria-hidden="true">↳</span><div><small>Следующее действие</small><p>${esc(t.next)}</p></div></div></div><div class="focus-steps">${checklist(t)}</div></div><div class="focus-footer"><button class="context-link" data-detail="${t.id}">Контекст задачи <span aria-hidden="true">↗</span></button><span class="saved">${t.check?'Можно остановиться на любом шаге':'Точка возврата сохранена'}</span></div>`;
-      $('#choices').innerHTML=['hiring','refs','socket','chatters'].filter(id=>id!==active).slice(0,2).map(id=>{const c=get(id);return `<button class="choice" data-focus="${id}" aria-label="Взять в фокус: ${esc(c.title)}"><span class="choice-meta"><span class="${c.status==='decision'?'decision':''}">${esc(c.status==='decision'?'Нужно решение':c.project)}</span><span>${c.minutes?c.minutes+' мин':'Следом'}</span></span><h4>${esc(c.short)}</h4><span class="choice-bottom"><span>${esc(({hiring:'Сравнить два тестовых',refs:'Назначить ответственного',socket:'Обновить одну страницу',chatters:'Запросить два варианта'})[id])}</span><span class="choose-arrow" aria-hidden="true">↗</span></span></button>`}).join('');
-      $('#waiting').innerHTML=['asuna','ari','garant'].map(id=>{const w=get(id);return `<button class="waiting-item" data-detail="${id}" aria-label="${esc(w.title)}. Ждём ${esc(w.person)}, вернуться ${w.date}"><span class="return-date"><strong>${w.day}</strong><span>сент</span></span><span><span class="wait-title">${esc(w.short)}</span><span class="wait-person">${esc(w.person)}</span></span></button>`}).join('');
-      $('#resume').innerHTML=resumeIds.filter(id=>id!==active).slice(0,2).map(id=>{const r=get(id);return `<button class="resume-item" data-focus="${id}" aria-label="Продолжить: ${esc(r.title)}"><span><span class="resume-project">${esc(r.project)}</span><span class="resume-title">${esc(r.short)}</span><span class="resume-note">${esc(r.next)}</span></span><span class="resume-arrow" aria-hidden="true">↗</span></button>`}).join('');
-    }
-    function notify(text){clearTimeout(toastTimer);$('#toast').textContent=text;$('#toast').hidden=false;toastTimer=setTimeout(()=>$('#toast').hidden=true,2600)}
-    function takeFocus(id){if(id===active){$('#drawer').close();return}const previous=active;active=id;resumeIds=[previous,...resumeIds.filter(r=>r!==previous&&r!==id)];render();$('#drawer').close();notify('В фокусе — '+get(id).project+'. Предыдущий контекст сохранён.');$('#focus').scrollIntoView({behavior:'smooth',block:'nearest'});}
-    function openDrawer(){if(!$('#drawer').open)$('#drawer').showModal()}
-    function contextList(){ $('#drawer-title').textContent='Все контексты';const projects=[...new Set(tasks.map(t=>t.project))];$('#drawer-body').innerHTML=`<div class="filters"><label>Проект<select id="project-filter"><option value="">Все проекты</option>${projects.map(p=>`<option value="${esc(p)}" ${p===projectFilter?'selected':''}>${esc(p)}</option>`).join('')}</select></label><label>Состояние<select id="status-filter"><option value="">Все состояния</option>${Object.entries(labels).map(([k,v])=>`<option value="${k}" ${k===statusFilter?'selected':''}>${v}</option>`).join('')}</select></label></div><div id="task-list"></div>`;renderList();openDrawer()}
-    function renderList(){const list=tasks.filter(t=>(!projectFilter||t.project===projectFilter)&&(!statusFilter||t.status===statusFilter));$('#task-list').innerHTML=list.length?list.map(t=>`<button class="list-task" data-detail="${t.id}"><small>${esc(t.project)} / ${esc(t.area)}</small><strong>${esc(t.title)}</strong><span class="list-status">${active===t.id?'Сейчас в фокусе':labels[t.status]}${t.person?' · '+esc(t.person)+' · '+esc(t.date):''}</span></button>`).join(''):'<p class="empty">Здесь пока нет задач.</p>'}
-    function detail(id){const t=get(id);$('#drawer-title').textContent='Контекст задачи';$('#drawer-body').innerHTML=`<button class="back" data-back>← Все контексты</button><div class="detail-project">${esc(t.project)} / ${esc(t.area)}</div><h3 class="detail-title">${esc(t.title)}</h3><span class="status-pill">${active===id?'Сейчас в фокусе':labels[t.status]}</span><div class="detail-label">Следующее действие</div><p class="detail-next">${esc(t.next)}</p><div class="detail-note"><p>${esc(t.note)}</p>${t.check?`<p>Пройдено шагов: ${t.done.filter(Boolean).length} из ${t.check.length}.</p>`:''}</div>${['waiting','done'].includes(t.status)?'<button class="detail-action" data-close>Вернуться на рабочий стол</button>':`<button class="detail-action" data-focus="${t.id}">${active===id?'Продолжить текущую задачу':'Взять в фокус'}</button>`}<p class="detail-fresh">Демо-состояние на 8 сентября.<br>Даты и контекст показаны как пример.</p>`;openDrawer()}
-    document.addEventListener('click',event=>{const el=event.target.closest('button');if(!el)return;if(el.hasAttribute('data-open-contexts')){projectFilter='';statusFilter='';contextList()}else if(el.hasAttribute('data-parked')){projectFilter='';statusFilter='parked';contextList()}else if(el.hasAttribute('data-close'))$('#drawer').close();else if(el.hasAttribute('data-back'))contextList();else if(el.dataset.detail)detail(el.dataset.detail);else if(el.dataset.focus)takeFocus(el.dataset.focus)});
-    document.addEventListener('change',event=>{if(event.target.matches('[data-check]')){const t=get(active);t.done[Number(event.target.dataset.check)]=event.target.checked;$('#check-count').textContent=t.done.filter(Boolean).length+' из '+t.check.length;$('#progress-fill').style.width=t.done.filter(Boolean).length/t.check.length*100+'%';if(t.done.every(Boolean))notify('Все шаги отмечены. Можно выбрать следующую задачу.')}else if(event.target.id==='project-filter'){projectFilter=event.target.value;renderList()}else if(event.target.id==='status-filter'){statusFilter=event.target.value;renderList()}});
-    $('#drawer').addEventListener('click',event=>{if(event.target===$('#drawer')){const r=$('#drawer').getBoundingClientRect();if(event.clientX<r.left||event.clientX>r.right||event.clientY<r.top||event.clientY>r.bottom)$('#drawer').close()}});
-    render();
-  </script>
-</body>
+      <div class="profile">
+        <span class="profile-label">Личное пространство</span
+        ><span class="avatar" aria-label="Дмитрий">Д</span>
+      </div>
+    </header>
+    <main class="shell">
+      <div class="page-heading">
+        <h1>Фокус на сегодня</h1>
+        <div class="date">
+          <strong>8 сентября</strong><span class="dot" aria-hidden="true"></span
+          ><span>вторник</span>
+        </div>
+      </div>
+      <div class="workbench">
+        <div class="workspace-main">
+          <section
+            id="focus"
+            class="focus-card"
+            aria-label="Текущая задача"
+          ></section>
+          <section class="next-section" aria-labelledby="next-heading">
+            <div class="section-heading">
+              <h3 id="next-heading">Потом — один из двух</h3>
+              <span>Можно выбрать, когда освободишься</span>
+            </div>
+            <div id="choices" class="choices"></div>
+          </section>
+        </div>
+        <aside class="rail" aria-label="Ожидания и сохранённые контексты">
+          <section class="rail-section">
+            <div class="rail-title"><h3>Жду от других</h3></div>
+            <p class="rail-caption">Вернуться в указанную дату</p>
+            <div id="waiting"></div>
+          </section>
+          <section class="rail-section">
+            <div class="rail-title"><h3>Легко вернуться</h3></div>
+            <p class="rail-caption">Следующий шаг уже сохранён</p>
+            <div id="resume"></div>
+          </section>
+          <section class="closed">
+            <div class="closed-title">
+              <span aria-hidden="true">✓</span> Закрыто в демо
+            </div>
+            <p>Экран найма с перепиской<br />Рабочие ссылки для контента</p>
+          </section>
+        </aside>
+      </div>
+      <footer class="footer">
+        <span>Демо · 8 сентября · изменения до перезагрузки</span
+        ><button class="plain" data-parked>
+          Отложенные контексты <span aria-hidden="true">↗</span>
+        </button>
+      </footer>
+    </main>
+    <dialog id="drawer" class="drawer" aria-labelledby="drawer-title">
+      <div class="drawer-top">
+        <h2 id="drawer-title">Все контексты</h2>
+        <button class="close" aria-label="Закрыть контекст" data-close>
+          ×
+        </button>
+      </div>
+      <div class="drawer-body" id="drawer-body"></div>
+    </dialog>
+    <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
+    <script>
+      const tasks = [
+        {
+          id: 'core',
+          project: 'ContentOps',
+          area: 'Разработка',
+          title: 'Закрепить схему ядра ContentOps',
+          short: 'Схема ядра ContentOps',
+          next: 'Разобрать один путь «файл появился → материал найден».',
+          status: 'doing',
+          minutes: 25,
+          check: [
+            'Определить границы ядра',
+            'Разделить файл и материал',
+            'Пройти путь от появления файла до поиска',
+            'Записать решение в схему',
+          ],
+          done: [true, true, false, false],
+          note: 'Продолжить с одного сквозного пути. После него проверить, хватает ли связей в схеме ядра.',
+        },
+        {
+          id: 'release',
+          project: 'ChatGoose',
+          area: 'Разработка',
+          title: 'Подготовить релиз расширения 2.0',
+          short: 'Релиз расширения 2.0',
+          next: 'Пройти сценарий новой сессии.',
+          status: 'doing',
+          check: [
+            'Собрать изменения релиза',
+            'Проверить миграцию настроек',
+            'Проверить текущую сессию',
+            'Пройти сценарий новой сессии',
+            'Завершить проверку владельцем',
+          ],
+          done: [true, true, true, false, false],
+          note: 'Нужна проверка владельцем. Точка возврата: сценарий новой сессии.',
+        },
+        {
+          id: 'socket',
+          project: 'Hub',
+          area: 'Разработка',
+          title: 'Проверить серверный WebSocket Fansly',
+          short: 'WebSocket Fansly',
+          next: 'Проверить обновление на одной странице.',
+          status: 'queue',
+          minutes: 15,
+          note: 'Начать с одной страницы и проследить, приходит ли серверное обновление.',
+        },
+        {
+          id: 'hiring',
+          project: 'Найм',
+          area: 'Агентство',
+          title: 'Найти КМ для OF Лоры',
+          short: 'Выбрать КМ для Лоры',
+          next: 'Сравнить два тестовых и выбрать, с кем созвониться.',
+          status: 'decision',
+          minutes: 15,
+          note: 'Решение владельца: кого пригласить на созвон после сравнения двух тестовых.',
+        },
+        {
+          id: 'refs',
+          project: 'Контент',
+          area: 'Агентство',
+          title: 'Передать 19 рефов Лоры в производство',
+          short: 'Передать 19 рефов в производство',
+          next: 'Назначить ответственного за первую пачку.',
+          status: 'queue',
+          minutes: 10,
+          note: 'Первая точка действия — ответственный за первую пачку референсов Лоры.',
+        },
+        {
+          id: 'ari',
+          project: 'Контент',
+          area: 'Агентство',
+          title: 'Принять у Ари 18 FYP по ТЗ №3',
+          short: '18 FYP Ари по ТЗ №3',
+          next: 'Сверить сданные пачки с техническим заданием.',
+          status: 'waiting',
+          person: 'Карина',
+          day: '10',
+          date: '10 сентября',
+          note: 'Ожидается сдача от Карины. Вернуться 10 сентября и сверить пачки с ТЗ №3.',
+        },
+        {
+          id: 'asuna',
+          project: 'Контент',
+          area: 'Агентство',
+          title: 'Получить от Asuna план старта',
+          short: 'План старта от Asuna',
+          next: 'Посмотреть план старта после ответа Asuna.',
+          status: 'waiting',
+          person: 'Asuna',
+          day: '09',
+          date: '9 сентября',
+          note: 'Ожидается ответ Asuna с планом старта. Дата возврата — 9 сентября.',
+        },
+        {
+          id: 'garant',
+          project: 'Трафик',
+          area: 'Агентство',
+          title: 'Получить обратную связь GarantTeam по Instagram Лоры',
+          short: 'Обратная связь по Instagram Лоры',
+          next: 'Разобрать обратную связь GarantTeam, когда она придёт.',
+          status: 'waiting',
+          person: 'GarantTeam',
+          day: '11',
+          date: '11 сентября',
+          note: 'Ожидается обратная связь GarantTeam. Дата возврата — 11 сентября.',
+        },
+        {
+          id: 'chatters',
+          project: 'Чаттеры',
+          area: 'Агентство',
+          title: 'Решить замены чаттеров на выходные',
+          short: 'Замены чаттеров на выходные',
+          next: 'Попросить старшего смены предложить два варианта.',
+          status: 'decision',
+          note: 'Нужно решение владельца. Следующее действие — запросить у старшего смены два варианта замен.',
+        },
+        {
+          id: 'hrids',
+          project: 'tg-assistant',
+          area: 'Разработка',
+          title: 'Развести app-идентификаторы HR-аккаунтов',
+          short: 'Идентификаторы HR-аккаунтов',
+          next: 'Открыть контекст задачи и определить первый шаг.',
+          status: 'queue',
+          note: 'Задача в очереди. Конкретный первый шаг ещё не записан.',
+        },
+        {
+          id: 'retention',
+          project: 'Hub',
+          area: 'Разработка',
+          title: 'Сверить ретеншен raw-снапшотов',
+          short: 'Ретеншен raw-снапшотов',
+          next: 'Проверить текущую политику хранения в режиме чтения.',
+          status: 'queue',
+          note: 'Начать с диагностики текущего состояния в режиме чтения.',
+        },
+        {
+          id: 'traffic',
+          project: 'traffic-control',
+          area: 'Разработка',
+          title: 'Выбрать следующий тест трафика',
+          short: 'Следующий тест трафика',
+          next: 'Вернуться после ответа подрядчика.',
+          status: 'parked',
+          note: 'Отложено до ответа подрядчика. Дата возврата пока не назначена.',
+        },
+        {
+          id: 'psyflow',
+          project: 'psyflow',
+          area: 'Разработка',
+          title: 'Упростить первый экран',
+          short: 'Первый экран psyflow',
+          next: 'Возобновить, когда появится место в работе.',
+          status: 'parked',
+          note: 'Контекст отложен. Следующий конкретный шаг ещё не записан.',
+        },
+        {
+          id: 'hiredscreen',
+          project: 'tg-assistant',
+          area: 'Разработка',
+          title: 'Собрать простой экран найма с перепиской',
+          status: 'done',
+          next: 'Завершено в демо.',
+          note: 'Задача закрыта в демонстрационном состоянии.',
+        },
+        {
+          id: 'links',
+          project: 'Контент',
+          area: 'Агентство',
+          title: 'Собрать рабочие ссылки в одном месте',
+          status: 'done',
+          next: 'Завершено в демо.',
+          note: 'Задача закрыта в демонстрационном состоянии.',
+        },
+      ];
+      const labels = {
+        doing: 'В работе',
+        queue: 'В очереди',
+        decision: 'Нужно решение',
+        waiting: 'Жду ответа',
+        parked: 'Отложено',
+        done: 'Готово',
+      };
+      let active = 'core',
+        resumeIds = ['release', 'socket'],
+        projectFilter = '',
+        statusFilter = '',
+        toastTimer;
+      const $ = (s) => document.querySelector(s),
+        get = (id) => tasks.find((t) => t.id === id),
+        esc = (s) =>
+          String(s ?? '').replace(
+            /[&<>"']/g,
+            (c) =>
+              ({
+                '&': '&amp;',
+                '<': '&lt;',
+                '>': '&gt;',
+                '"': '&quot;',
+                "'": '&#39;',
+              })[c],
+          );
+      function checklist(t) {
+        if (!t.check) return '';
+        return `<div class="checklist-head"><span>Шаги <span id="check-count">${t.done.filter(Boolean).length} из ${t.check.length}</span></span><div class="progress-track" aria-hidden="true"><div class="progress-fill" id="progress-fill" style="width:${(t.done.filter(Boolean).length / t.check.length) * 100}%"></div></div></div><div class="checklist">${t.check.map((text, i) => `<label class="check-row"><input type="checkbox" data-check="${i}" ${t.done[i] ? 'checked' : ''}><span>${esc(text)}</span></label>`).join('')}</div>`;
+      }
+      function render() {
+        const t = get(active);
+        $('#focus').innerHTML =
+          `<div class="card-top"><span class="eyebrow">В фокусе · сейчас</span><span class="time">${t.minutes ? `Один подход <strong>· ${t.minutes} мин</strong>` : 'Один следующий шаг'}</span></div><div class="focus-body"><div class="focus-summary"><div class="project-line"><b>${esc(t.project)}</b><span>${esc(t.area)}</span></div><h2>${esc(t.title)}</h2><div class="next-action"><span class="arrow" aria-hidden="true">↳</span><div><small>Следующее действие</small><p>${esc(t.next)}</p></div></div></div><div class="focus-steps">${checklist(t)}</div></div><div class="focus-footer"><button class="context-link" data-detail="${t.id}">Контекст задачи <span aria-hidden="true">↗</span></button><span class="saved">${t.check ? 'Можно остановиться на любом шаге' : 'Точка возврата сохранена'}</span></div>`;
+        $('#choices').innerHTML = ['hiring', 'refs', 'socket', 'chatters']
+          .filter((id) => id !== active)
+          .slice(0, 2)
+          .map((id) => {
+            const c = get(id);
+            return `<button class="choice" data-focus="${id}" aria-label="Взять в фокус: ${esc(c.title)}"><span class="choice-meta"><span class="${c.status === 'decision' ? 'decision' : ''}">${esc(c.status === 'decision' ? 'Нужно решение' : c.project)}</span><span>${c.minutes ? c.minutes + ' мин' : 'Следом'}</span></span><h4>${esc(c.short)}</h4><span class="choice-bottom"><span>${esc({ hiring: 'Сравнить два тестовых', refs: 'Назначить ответственного', socket: 'Обновить одну страницу', chatters: 'Запросить два варианта' }[id])}</span><span class="choose-arrow" aria-hidden="true">↗</span></span></button>`;
+          })
+          .join('');
+        $('#waiting').innerHTML = ['asuna', 'ari', 'garant']
+          .map((id) => {
+            const w = get(id);
+            return `<button class="waiting-item" data-detail="${id}" aria-label="${esc(w.title)}. Ждём ${esc(w.person)}, вернуться ${w.date}"><span class="return-date"><strong>${w.day}</strong><span>сент</span></span><span><span class="wait-title">${esc(w.short)}</span><span class="wait-person">${esc(w.person)}</span></span></button>`;
+          })
+          .join('');
+        $('#resume').innerHTML = resumeIds
+          .filter((id) => id !== active)
+          .slice(0, 2)
+          .map((id) => {
+            const r = get(id);
+            return `<button class="resume-item" data-focus="${id}" aria-label="Продолжить: ${esc(r.title)}"><span><span class="resume-project">${esc(r.project)}</span><span class="resume-title">${esc(r.short)}</span><span class="resume-note">${esc(r.next)}</span></span><span class="resume-arrow" aria-hidden="true">↗</span></button>`;
+          })
+          .join('');
+      }
+      function notify(text) {
+        clearTimeout(toastTimer);
+        $('#toast').textContent = text;
+        $('#toast').hidden = false;
+        toastTimer = setTimeout(() => ($('#toast').hidden = true), 2600);
+      }
+      function takeFocus(id) {
+        if (id === active) {
+          $('#drawer').close();
+          return;
+        }
+        const previous = active;
+        active = id;
+        resumeIds = [
+          previous,
+          ...resumeIds.filter((r) => r !== previous && r !== id),
+        ];
+        render();
+        $('#drawer').close();
+        notify(
+          'В фокусе — ' + get(id).project + '. Предыдущий контекст сохранён.',
+        );
+        $('#focus').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      }
+      function openDrawer() {
+        if (!$('#drawer').open) $('#drawer').showModal();
+      }
+      function contextList() {
+        $('#drawer-title').textContent = 'Все контексты';
+        const projects = [...new Set(tasks.map((t) => t.project))];
+        $('#drawer-body').innerHTML =
+          `<div class="filters"><label>Проект<select id="project-filter"><option value="">Все проекты</option>${projects.map((p) => `<option value="${esc(p)}" ${p === projectFilter ? 'selected' : ''}>${esc(p)}</option>`).join('')}</select></label><label>Состояние<select id="status-filter"><option value="">Все состояния</option>${Object.entries(
+            labels,
+          )
+            .map(
+              ([k, v]) =>
+                `<option value="${k}" ${k === statusFilter ? 'selected' : ''}>${v}</option>`,
+            )
+            .join('')}</select></label></div><div id="task-list"></div>`;
+        renderList();
+        openDrawer();
+      }
+      function renderList() {
+        const list = tasks.filter(
+          (t) =>
+            (!projectFilter || t.project === projectFilter) &&
+            (!statusFilter || t.status === statusFilter),
+        );
+        $('#task-list').innerHTML = list.length
+          ? list
+              .map(
+                (t) =>
+                  `<button class="list-task" data-detail="${t.id}"><small>${esc(t.project)} / ${esc(t.area)}</small><strong>${esc(t.title)}</strong><span class="list-status">${active === t.id ? 'Сейчас в фокусе' : labels[t.status]}${t.person ? ' · ' + esc(t.person) + ' · ' + esc(t.date) : ''}</span></button>`,
+              )
+              .join('')
+          : '<p class="empty">Здесь пока нет задач.</p>';
+      }
+      function detail(id) {
+        const t = get(id);
+        $('#drawer-title').textContent = 'Контекст задачи';
+        $('#drawer-body').innerHTML =
+          `<button class="back" data-back>← Все контексты</button><div class="detail-project">${esc(t.project)} / ${esc(t.area)}</div><h3 class="detail-title">${esc(t.title)}</h3><span class="status-pill">${active === id ? 'Сейчас в фокусе' : labels[t.status]}</span><div class="detail-label">Следующее действие</div><p class="detail-next">${esc(t.next)}</p><div class="detail-note"><p>${esc(t.note)}</p>${t.check ? `<p>Пройдено шагов: ${t.done.filter(Boolean).length} из ${t.check.length}.</p>` : ''}</div>${['waiting', 'done'].includes(t.status) ? '<button class="detail-action" data-close>Вернуться на рабочий стол</button>' : `<button class="detail-action" data-focus="${t.id}">${active === id ? 'Продолжить текущую задачу' : 'Взять в фокус'}</button>`}<p class="detail-fresh">Демо-состояние на 8 сентября.<br>Даты и контекст показаны как пример.</p>`;
+        openDrawer();
+      }
+      document.addEventListener('click', (event) => {
+        const el = event.target.closest('button');
+        if (!el) return;
+        if (el.hasAttribute('data-open-contexts')) {
+          projectFilter = '';
+          statusFilter = '';
+          contextList();
+        } else if (el.hasAttribute('data-parked')) {
+          projectFilter = '';
+          statusFilter = 'parked';
+          contextList();
+        } else if (el.hasAttribute('data-close')) $('#drawer').close();
+        else if (el.hasAttribute('data-back')) contextList();
+        else if (el.dataset.detail) detail(el.dataset.detail);
+        else if (el.dataset.focus) takeFocus(el.dataset.focus);
+      });
+      document.addEventListener('change', (event) => {
+        if (event.target.matches('[data-check]')) {
+          const t = get(active);
+          t.done[Number(event.target.dataset.check)] = event.target.checked;
+          $('#check-count').textContent =
+            t.done.filter(Boolean).length + ' из ' + t.check.length;
+          $('#progress-fill').style.width =
+            (t.done.filter(Boolean).length / t.check.length) * 100 + '%';
+          if (t.done.every(Boolean))
+            notify('Все шаги отмечены. Можно выбрать следующую задачу.');
+        } else if (event.target.id === 'project-filter') {
+          projectFilter = event.target.value;
+          renderList();
+        } else if (event.target.id === 'status-filter') {
+          statusFilter = event.target.value;
+          renderList();
+        }
+      });
+      $('#drawer').addEventListener('click', (event) => {
+        if (event.target === $('#drawer')) {
+          const r = $('#drawer').getBoundingClientRect();
+          if (
+            event.clientX < r.left ||
+            event.clientX > r.right ||
+            event.clientY < r.top ||
+            event.clientY > r.bottom
+          )
+            $('#drawer').close();
+        }
+      });
+      render();
+    </script>
+  </body>
 </html>

@@ -1,43 +1,92 @@
 async (page) => {
-  const dir='/tmp/taskindex-ui-reference-20260908';
-  const shot=async name=>{await page.mouse.move(389,843);await page.screenshot({path:`${dir}/mobile-${name}.png`,animations:'disabled',scale:'css'});};
-  const nav=async name=>{await page.getByRole('button',{name:'Открыть навигацию',exact:true}).click();await page.getByRole('button',{name,exact:true}).click();};
-  await page.setViewportSize({width:390,height:844});
+  const dir = '/tmp/taskindex-ui-reference-20260908';
+  const shot = async (name) => {
+    await page.mouse.move(389, 843);
+    await page.screenshot({
+      path: `${dir}/mobile-${name}.png`,
+      animations: 'disabled',
+      scale: 'css',
+    });
+  };
+  const nav = async (name) => {
+    await page
+      .getByRole('button', { name: 'Открыть навигацию', exact: true })
+      .click();
+    await page.getByRole('button', { name, exact: true }).click();
+  };
+  await page.setViewportSize({ width: 390, height: 844 });
   await page.goto('http://127.0.0.1:4328');
-  await page.evaluate(()=>{localStorage.clear();sessionStorage.clear();});
+  await page.evaluate(() => {
+    localStorage.clear();
+    sessionStorage.clear();
+  });
   await page.reload();
-  await page.getByRole('heading',{name:'Выбрать контент-менеджера',exact:true}).waitFor();
+  await page
+    .getByRole('heading', { name: 'Выбрать контент-менеджера', exact: true })
+    .waitFor();
   await shot('board');
-  await page.getByRole('button',{name:'Открыть навигацию',exact:true}).click();
+  await page
+    .getByRole('button', { name: 'Открыть навигацию', exact: true })
+    .click();
   await shot('navigation');
-  await page.getByRole('button',{name:'Агентство',exact:true}).click();
-  await page.getByRole('button',{name:'Открыть: Выбрать контент-менеджера',exact:true}).click();
-  await page.getByRole('textbox',{name:'Название задачи',exact:true}).waitFor();
+  await page.getByRole('button', { name: 'Агентство', exact: true }).click();
+  await page
+    .getByRole('button', {
+      name: 'Открыть: Выбрать контент-менеджера',
+      exact: true,
+    })
+    .click();
+  await page
+    .getByRole('textbox', { name: 'Название задачи', exact: true })
+    .waitFor();
   await shot('editor');
-  await page.getByRole('button',{name:'Закрыть карточку',exact:true}).click();
-  await page.getByRole('tab',{name:'Список',exact:true}).click();
+  await page
+    .getByRole('button', { name: 'Закрыть карточку', exact: true })
+    .click();
+  await page.getByRole('tab', { name: 'Список', exact: true }).click();
   await shot('list');
   await nav('Фокус 3');
-  await page.getByRole('heading',{name:'Фокус',exact:true}).waitFor();
+  await page.getByRole('heading', { name: 'Фокус', exact: true }).waitFor();
   await shot('focus');
-  await page.getByRole('button',{name:'Открыть поиск',exact:true}).click();
-  await page.getByRole('textbox',{name:'Найти во всех областях',exact:true}).fill('сценарий');
-  await page.getByRole('heading',{name:'Поиск',exact:true}).waitFor();
+  await page
+    .getByRole('button', { name: 'Открыть поиск', exact: true })
+    .click();
+  await page
+    .getByRole('textbox', { name: 'Найти во всех областях', exact: true })
+    .fill('сценарий');
+  await page.getByRole('heading', { name: 'Поиск', exact: true }).waitFor();
   await shot('search');
-  await page.getByRole('textbox',{name:'Найти во всех областях',exact:true}).press('Escape');
+  await page
+    .getByRole('textbox', { name: 'Найти во всех областях', exact: true })
+    .press('Escape');
   await nav('Архив 1');
-  await page.getByRole('heading',{name:'Архив',exact:true}).waitFor();
+  await page.getByRole('heading', { name: 'Архив', exact: true }).waitFor();
   await shot('archive');
   await nav('Агентство');
-  await page.getByRole('tab',{name:'Доска',exact:true}).click();
-  await page.getByRole('button',{name:'Добавить задачу',exact:true}).first().click();
-  await page.getByRole('textbox',{name:'Что нужно сделать?',exact:true}).fill('Проверить следующий шаг');
+  await page.getByRole('tab', { name: 'Доска', exact: true }).click();
+  await page
+    .getByRole('button', { name: 'Добавить задачу', exact: true })
+    .first()
+    .click();
+  await page
+    .getByRole('textbox', { name: 'Что нужно сделать?', exact: true })
+    .fill('Проверить следующий шаг');
   await shot('quick-create');
   await page.keyboard.press('Escape');
-  await page.getByRole('button',{name:'Открыть навигацию',exact:true}).click();
-  await page.getByRole('button',{name:'Добавить направление',exact:true}).click();
-  await page.getByRole('textbox',{name:'Название направления',exact:true}).fill('Новое направление');
+  await page
+    .getByRole('button', { name: 'Открыть навигацию', exact: true })
+    .click();
+  await page
+    .getByRole('button', { name: 'Добавить направление', exact: true })
+    .click();
+  await page
+    .getByRole('textbox', { name: 'Название направления', exact: true })
+    .fill('Новое направление');
   await shot('project-dialog');
-  await page.getByRole('button',{name:'Отмена',exact:true}).click();
-  return {captured:9,viewport:'390x844',browser:await page.context().browser().version()};
-}
+  await page.getByRole('button', { name: 'Отмена', exact: true }).click();
+  return {
+    captured: 9,
+    viewport: '390x844',
+    browser: await page.context().browser().version(),
+  };
+};

@@ -3,12 +3,8 @@
   "projectSentinel": {
     "projectCreationStatus": 200,
     "requestedProjectId": "none",
-    "expectedTaskIds": [
-      "inside-project"
-    ],
-    "actualTaskIds": [
-      "unassigned"
-    ]
+    "expectedTaskIds": ["inside-project"],
+    "actualTaskIds": ["unassigned"]
   },
   "taskRoute": {
     "taskCreationStatus": 200,

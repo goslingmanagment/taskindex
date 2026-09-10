@@ -3,12 +3,7 @@ import type { ContentfulStatusCode } from 'hono/utils/http-status';
 import { bodyLimit } from 'hono/body-limit';
 import { eq } from 'drizzle-orm';
 import { randomUUID, createHash } from 'node:crypto';
-import {
-  AREAS,
-  STATUSES,
-  SCHEMA_VERSION,
-  FORMAT_VERSION,
-} from '../shared/model.js';
+import { AREAS, STATUSES, FORMAT_VERSION } from '../shared/model.js';
 import type {
   Actor,
   DomainEvent,
@@ -51,6 +46,7 @@ import {
   readState,
   readEvents,
   readOperations,
+  schemaVersion,
 } from './db.js';
 import * as tables from './schema.js';
 import type { Auth } from './auth.js';
@@ -66,6 +62,7 @@ export type AppOptions = {
   trustedOrigins?: string[];
   writes?: 'held' | 'open';
   deploymentId?: string;
+  migrationsDir?: string;
   now?: () => string;
   ids?: () => string;
 };
@@ -174,7 +171,8 @@ const digestSchema = z.object({
 });
 export function createApp(options: AppOptions) {
   const { db } = options;
-  assertSchema(db);
+  assertSchema(db, options.migrationsDir);
+  const version = schemaVersion(options.migrationsDir);
   db.sqlite
     .prepare("UPDATE settings SET value=value WHERE key='generation'")
     .run();
@@ -406,7 +404,7 @@ export function createApp(options: AppOptions) {
         },
       }),
       (c) => {
-        assertSchema(db);
+        assertSchema(db, options.migrationsDir);
         db.sqlite
           .prepare("UPDATE settings SET value=value WHERE key='generation'")
           .run();
@@ -416,7 +414,7 @@ export function createApp(options: AppOptions) {
             generation: generation(db),
             seq: latestSeq(db),
             dbWritable: true,
-            schemaVersion: SCHEMA_VERSION,
+            schemaVersion: version,
             build: options.build ?? 'development',
             writes: opened() ? ('open' as const) : ('held' as const),
           },

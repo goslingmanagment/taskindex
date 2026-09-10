@@ -1,11 +1,29 @@
 import SQLite from 'better-sqlite3';
 import { mkdtempSync, statSync, existsSync } from 'node:fs';
-import { join } from 'node:path'; import { tmpdir } from 'node:os';
-const dir = mkdtempSync(join(tmpdir(), 'ti-probe2-')); const p = join(dir, 'a.db');
-const db = new SQLite(p); db.pragma('journal_mode = WAL'); db.pragma('synchronous = FULL');
-db.exec('CREATE TABLE settings(key TEXT PRIMARY KEY, value TEXT NOT NULL)'); db.prepare('INSERT INTO settings VALUES(?,?)').run('generation','g1');
-const wal = p+'-wal'; const before = existsSync(wal)?statSync(wal).size:0;
-for (let i=0;i<5;i++) db.prepare("UPDATE settings SET value=value WHERE key='generation'").run();
-const after = existsSync(wal)?statSync(wal).size:0;
-console.log('better-sqlite3', SQLite.SqliteError?'ok':'', 'sqlite version', db.prepare('select sqlite_version() v').get().v, '| WAL before', before, 'after', after, 'per no-op update', (after-before)/5);
+import { join } from 'node:path';
+import { tmpdir } from 'node:os';
+const dir = mkdtempSync(join(tmpdir(), 'ti-probe2-'));
+const p = join(dir, 'a.db');
+const db = new SQLite(p);
+db.pragma('journal_mode = WAL');
+db.pragma('synchronous = FULL');
+db.exec('CREATE TABLE settings(key TEXT PRIMARY KEY, value TEXT NOT NULL)');
+db.prepare('INSERT INTO settings VALUES(?,?)').run('generation', 'g1');
+const wal = p + '-wal';
+const before = existsSync(wal) ? statSync(wal).size : 0;
+for (let i = 0; i < 5; i++)
+  db.prepare("UPDATE settings SET value=value WHERE key='generation'").run();
+const after = existsSync(wal) ? statSync(wal).size : 0;
+console.log(
+  'better-sqlite3',
+  SQLite.SqliteError ? 'ok' : '',
+  'sqlite version',
+  db.prepare('select sqlite_version() v').get().v,
+  '| WAL before',
+  before,
+  'after',
+  after,
+  'per no-op update',
+  (after - before) / 5,
+);
 db.close();

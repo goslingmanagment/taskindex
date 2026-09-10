@@ -6,16 +6,16 @@
 
 Код читается как работа **одного автора с устойчивым почерком**: плотные функции, мало комментариев, английские идентификаторы, русские строки для людей и агентов, единый форматер. Это не «сшитые куски» — за одним исключением: `src/web/styles.css` (2713 строк) явно склеен из трёх слоёв (палитра v1 → «Minimal workspace» → «v2 additions») с 93 повторно определёнными селекторами и 25 мёртвыми классами. Доменное ядро (`shared/commands.ts` + `server/operations.ts` + `web/app/store.ts`) спроектировано хорошо: один редьюсер для сервера и оптимистичного превью, общая проекция событий, идемпотентность по хешу конверта. Главный налог на сопровождение — пять god-функций (897/637/604/433/329 строк) и редьюсер, который сразу после Zod-валидации стирает discriminated union и дальше живёт на 48 `as`-кастах.
 
-| Область | Оценка | Одной строкой |
-|---|---|---|
-| Структура | 3/5 | Слои и направление зависимостей верные; 5 god-функций, `admin.ts`-свалка, `lib/` vs `app/` в web — случайный разрез |
-| Читаемость | 3/5 | Единый стиль и языковая политика; однобуквенные имена, 47 вложенных тернариев, sentinel-строки `'all'/'none'`, лимиты Zod переписаны литералами в JSX |
-| Типы | 3/5 | `any` = 0, `@ts-*` = 0, tsc чистый, типы из `z.infer`; но 94 небезопасных assertion, 7 `JSON.parse` без валидации, клиент не проверяет ответы, нет `never`-проверок |
-| React | 3/5 | Compiler-совместимый код, useSyncExternalStore, aria-разметка; prop drilling 11 пропсов, ручные fetch-эффекты ×3, две стилевые системы, CSS-долг |
-| Сервер | 3.5/5 | Транзакционность, таксономия ошибок, OpenAPI из тех же схем; один файл на 19 роутов, конфиг без схемы, 7 инлайн-литералов ошибок, `readState` на каждый GET |
-| CLI | 3.5/5 | Outbox, коды выхода, DI для тестов — продуманно; `runCli` 329 строк, четыре набора флагов в двух файлах, `--json` не делает ничего, нет `today`/`hasFollowUp` |
-| Тесты | 4/5 | Реальные SQLite/Hono/Better Auth, property-тесты с настоящими инвариантами, 0 snapshot, role-селекторы; сценарные мега-тесты, дубли хелперов, e2e пишет в `docs/`, компоненты только через e2e |
-| Документация | 4/5 | README/deploy/SKILL точны по всем проверенным пунктам; `--json` и `LOG_LEVEL` мёртвые, три разных пина Node, чеклист лежит в `tests/` |
+| Область      | Оценка | Одной строкой                                                                                                                                                                                  |
+| ------------ | ------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Структура    | 3/5    | Слои и направление зависимостей верные; 5 god-функций, `admin.ts`-свалка, `lib/` vs `app/` в web — случайный разрез                                                                            |
+| Читаемость   | 3/5    | Единый стиль и языковая политика; однобуквенные имена, 47 вложенных тернариев, sentinel-строки `'all'/'none'`, лимиты Zod переписаны литералами в JSX                                          |
+| Типы         | 3/5    | `any` = 0, `@ts-*` = 0, tsc чистый, типы из `z.infer`; но 94 небезопасных assertion, 7 `JSON.parse` без валидации, клиент не проверяет ответы, нет `never`-проверок                            |
+| React        | 3/5    | Compiler-совместимый код, useSyncExternalStore, aria-разметка; prop drilling 11 пропсов, ручные fetch-эффекты ×3, две стилевые системы, CSS-долг                                               |
+| Сервер       | 3.5/5  | Транзакционность, таксономия ошибок, OpenAPI из тех же схем; один файл на 19 роутов, конфиг без схемы, 7 инлайн-литералов ошибок, `readState` на каждый GET                                    |
+| CLI          | 3.5/5  | Outbox, коды выхода, DI для тестов — продуманно; `runCli` 329 строк, четыре набора флагов в двух файлах, `--json` не делает ничего, нет `today`/`hasFollowUp`                                  |
+| Тесты        | 4/5    | Реальные SQLite/Hono/Better Auth, property-тесты с настоящими инвариантами, 0 snapshot, role-селекторы; сценарные мега-тесты, дубли хелперов, e2e пишет в `docs/`, компоненты только через e2e |
+| Документация | 4/5    | README/deploy/SKILL точны по всем проверенным пунктам; `--json` и `LOG_LEVEL` мёртвые, три разных пина Node, чеклист лежит в `tests/`                                                          |
 
 ## (b) Находки по областям
 
@@ -24,6 +24,7 @@
 ### 1. Структура модулей
 
 **важно — `createApp` 897 строк** (`src/server/app.ts:175-1071`). Внутри: схемы ответов (99-174), пагинация с курсорами (196-244), обработчик ошибок (259-295), middleware auth+origin+writes+logging в одном замыкании (296-339), 19 `createRoute`, SSE-стрим (752-866), контекст/дайджест/фокус. Предложение:
+
 - `server/http/errors.ts` — `onError`, `defaultHook`, `bodyLimitError()`;
 - `server/http/auth-middleware.ts` (296-322) и `server/http/request-log.ts` (323-338) — сейчас один `try/finally` делает четыре дела;
 - `server/http/pagination.ts` — `page()`, `cursorSchema`, `checkGeneration`;
@@ -40,7 +41,7 @@
 
 **желательно — `admin.ts` как свалка** (`src/server/admin.ts`): владелец/пароль (34-104), агенты/ключи (105-206), export/validate/import (207-449), restore/writes-gating (450-481) плюс реэкспорт `migrate`/`createAuth` как фасад для `admin-run.ts`. → `server/owner.ts`, `server/agents.ts`, `server/backup.ts`, `server/deployment.ts`.
 
-**желательно — разрез `src/shared/*`** принципиален, но имена вводят в заблуждение: `schemas.ts` = схемы *входа* (payload команд), `domain-schemas.ts` = схемы *сущностей и ответов*. Переименовать в `command-schemas.ts` / `entity-schemas.ts`. `model.ts` смешивает типы (`z.infer`) с презентационными константами `AREAS`/`STATUSES` (имена, цвета, подсказки; `model.ts:3-38`) — это данные UI, им место в `shared/catalog.ts` или в web. `export { z }` из `schemas.ts:2` заставляет весь код импортировать Zod из файла схем — случайная зависимость.
+**желательно — разрез `src/shared/*`** принципиален, но имена вводят в заблуждение: `schemas.ts` = схемы _входа_ (payload команд), `domain-schemas.ts` = схемы _сущностей и ответов_. Переименовать в `command-schemas.ts` / `entity-schemas.ts`. `model.ts` смешивает типы (`z.infer`) с презентационными константами `AREAS`/`STATUSES` (имена, цвета, подсказки; `model.ts:3-38`) — это данные UI, им место в `shared/catalog.ts` или в web. `export { z }` из `schemas.ts:2` заставляет весь код импортировать Zod из файла схем — случайная зависимость.
 
 **желательно — `web/lib/workspace.ts` + `use-workspace.ts` vs `app/store.ts`.** `lib/workspace.ts` — реэкспорт-фасад над `@shared/model` + `makeTask` + тип `WorkspaceData` (дубликат `WorkspaceState` без `comments`, `lib/workspace.ts:5-8`). `use-workspace.ts` содержит `taskSaveCommand`, `editableFields`, хук и реэкспорт `ApiError` (`use-workspace.ts:4`), при этом `dialogs.tsx:30` импортирует `ApiError` из `./api`, а `editor.tsx:3` — из `../lib/use-workspace`. Построение команд размазано по трём файлам: `use-workspace.ts:44-95`, `shell.tsx:214-247`, `activity.tsx:82-91,381-401`. Предложение: `web/app/commands.ts` (чистые билдеры `Command`), `web/app/store.ts`, `web/app/use-workspace.ts`; `lib/workspace.ts` удалить (импортировать из `@shared`), `lib/` оставить для `utils.ts`/`hooks`.
 
@@ -53,6 +54,7 @@
 **важно — лимиты Zod переписаны литералами в JSX** (10 мест: `editor.tsx:311,381,436,503,553`, `dialogs.tsx:139,320,332`, `board.tsx:226`, `activity.tsx:469`) и `editor.tsx:560` `draft.checklist.length >= 100` дублирует `checklistSchema.max(100)` (`schemas.ts:43`). При смене лимита в схеме UI разъедется молча. → `export const LIMITS = { title: 240, note: 16000, ... }` в `shared/`, использовать в схемах и JSX.
 
 **желательно — вводящие в заблуждение имена**:
+
 - `first(task)` (`shell.tsx:248`) — «переместить в начало очереди» → `moveToQueueTop`.
 - `focusCount` (`shell.tsx:304-311`) считает только «новое от агентов», а не размер Focus → `newFromAgentsCount`.
 - `change(task, patch, message)` (`shell.tsx:229-247`) выбирает команду, инспектируя ключи `patch` (`'archived' in patch` → archive/restore, `patch.status` → move, иначе save) — неявная диспетчеризация; лучше три явных функции.
@@ -83,6 +85,7 @@
 **важно — три `canonical()`**: `operations.ts:27-34` и `admin.ts:231-238` (идентичны), `outbox.ts:23-32` (другой алгоритм). Сервер хеширует конверт одной канонизацией, CLI сравнивает конверты другой — сегодня совпадают по результату, но это два источника истины для одного контракта. → `shared/canonical-json.ts`.
 
 **желательно**:
+
 - Парсинг булевых query `q.x === 'true' || q.x === '1'` ×4 (`app.ts:565-574`) → `booleanQuery = z.enum([...]).transform(...)`.
 - `sleep` по умолчанию ×3 (`store.ts:66`, `client.ts:136`, `run.ts:389`).
 - Продолжение пагинации `new URL(path, baseUrl); set(...); path = ...` ×2 (`run.ts:381-383`, `397-401`).
@@ -165,7 +168,7 @@
 
 ### 9. Тесты
 
-**Хорошо (существенно):** api-тесты идут через реальные `:memory:` SQLite + `migrate` + `createApp` + `app.request` (`tests/api/helpers.ts:28-48`); auth/agent-cycle/e2e — с настоящим Better Auth; `agent-cycle.test.ts:80-92` теряет ответ *после* коммита реальной транзакции — честная проверка идемпотентности. Утверждения конкретные: 470 `expect` на 93 теста, 0 `toBeTruthy`, 0 snapshot. Property-тесты проверяют настоящие инварианты: `projection == state` после каждой команды + `assertInvariants` + монотонность revision (`property/commands.test.ts:60-66`); undo восстанавливает предметные поля без отката revision (`property/undo.test.ts:101-105`). `migrations.test.ts` триангулирует Drizzle-снимок ↔ `schema.ts` ↔ живые `PRAGMA`. e2e-селекторы — почти только `getByRole/getByLabel/getByText`.
+**Хорошо (существенно):** api-тесты идут через реальные `:memory:` SQLite + `migrate` + `createApp` + `app.request` (`tests/api/helpers.ts:28-48`); auth/agent-cycle/e2e — с настоящим Better Auth; `agent-cycle.test.ts:80-92` теряет ответ _после_ коммита реальной транзакции — честная проверка идемпотентности. Утверждения конкретные: 470 `expect` на 93 теста, 0 `toBeTruthy`, 0 snapshot. Property-тесты проверяют настоящие инварианты: `projection == state` после каждой команды + `assertInvariants` + монотонность revision (`property/commands.test.ts:60-66`); undo восстанавливает предметные поля без отката revision (`property/undo.test.ts:101-105`). `migrations.test.ts` триангулирует Drizzle-снимок ↔ `schema.ts` ↔ живые `PRAGMA`. e2e-селекторы — почти только `getByRole/getByLabel/getByText`.
 
 **желательно — сценарные мега-тесты**: заголовки на 3-4 поведения (`commands.test.ts:29` «preserves Focus through retries, stale edits, snapshot and archive restoration», `:132`, `:180`, `recovery-and-history.test.ts:22`; 5 заголовков > 100 символов) — при падении локализация хуже, поведения не независимы. `describe` есть в `commands`/`unit`, отсутствует в `recovery`/`auth`/`durability` — непоследовательно.
 
@@ -191,7 +194,7 @@
 
 **Документация — проверено, совпадает с кодом**: README (порты 5173/3001, поведение `setup:dev`, `admin` флаги `--email/--agent/--scope/--out`, `npm run cli -- --help` — печатает JSON-справку, `SCHEMA_VERSION` в `shared/model.ts`, `data/dev.db`, e2e во временной папке), `deploy/README.md` (3100 → 127.0.0.1, `stop_grace_period 20s`, litestream 0.5.12, поля `/health`, семантика `--replace`, `TASKINDEX_FAIL_AT`), SKILL.md (см. п. 8). Расхождения/мелочи: три пина Node — README «24.20.0», `engines` `>=24.11.0 <25`, `.nvmrc` `24` (`.node-version` и Dockerfile — 24.20.0); README не упоминает `--password-op op://` (`admin-run.ts:41,67`); `LOG_LEVEL` мёртв; `TIMEZONE` потребляет только `taskindex-admin migrate` (`admin-run.ts:94`), README подаёт как конфиг сервера; `deploy/README.md:74` шлёт к ручному чеклисту.
 
-**deploy/*.sh — высокое качество ops-скриптинга**: `set -Eeuo pipefail`, `umask 077`, ERR-ловушки с фазами, `flock`, файл границы «запись открыта» до вызова команды, отказ от отката после границы. Мелочи: 27 строк длиннее 140 символов (`deploy.sh:34,70-72`, `local-drill.sh:37,50,66,119`); `for command in docker git curl jq flock` (`deploy.sh:17`) затеняет builtin `command` (работает, но путает); `common.sh` зависит от `$repo` вызывающего (задокументировано в строке 2); четыре копии health-пробы; `local-drill.sh` содержит 4 heredoc-программы Node (`46-52, 70-78, 81-86, 112-118`) → `deploy/drill/*.mjs`. `scripts/dev.mjs:7-8` грузит `.env` через `loadEnvFile`, а дочерний процесс — ещё раз через `--env-file-if-exists=.env` (строка 19).
+**deploy/\*.sh — высокое качество ops-скриптинга**: `set -Eeuo pipefail`, `umask 077`, ERR-ловушки с фазами, `flock`, файл границы «запись открыта» до вызова команды, отказ от отката после границы. Мелочи: 27 строк длиннее 140 символов (`deploy.sh:34,70-72`, `local-drill.sh:37,50,66,119`); `for command in docker git curl jq flock` (`deploy.sh:17`) затеняет builtin `command` (работает, но путает); `common.sh` зависит от `$repo` вызывающего (задокументировано в строке 2); четыре копии health-пробы; `local-drill.sh` содержит 4 heredoc-программы Node (`46-52, 70-78, 81-86, 112-118`) → `deploy/drill/*.mjs`. `scripts/dev.mjs:7-8` грузит `.env` через `loadEnvFile`, а дочерний процесс — ещё раз через `--env-file-if-exists=.env` (строка 19).
 
 **TODO/FIXME**: 0. Заголовки файлов: нет (последовательно). Неиспользуемые экспорты (кроме `ui/*`): `initializeDatabase` (`db.ts:97`), `serverId` (`outbox.ts:144`), `requireScope`, `compareStrings`, `Agent`, `revisionSchema/checklistItemSchema/originSchema/positionSchema/taskFieldsSchema` (экспорт без потребителя), `PendingOperation.attempts` (никогда не инкрементируется) и `.message` (никогда не читается — `shell.tsx:536-538` показывает фиксированные строки) (`store.ts:17,20`), `pendingCount` (`use-workspace.ts:43`), `editableFields`, `HELP`, `authClient`.
 
@@ -200,15 +203,27 @@
 **Лучшее:**
 
 `src/server/operations.ts:51-82` — одна транзакция: поколение, повтор по хешу, чужой operationId, mismatch — читается как спецификация:
+
 ```ts
 if (old) {
-  if (old.actorId !== actor.id) fail('forbidden', 'Идентификатор операции принадлежит другому актору.');
-  if (old.commandHash !== hash) fail('operation_mismatch', 'Этот operationId уже использован для другого запроса.');
-  return { status: old.status, body: old.result, freshEvents: [], freshOperation: false };
+  if (old.actorId !== actor.id)
+    fail('forbidden', 'Идентификатор операции принадлежит другому актору.');
+  if (old.commandHash !== hash)
+    fail(
+      'operation_mismatch',
+      'Этот operationId уже использован для другого запроса.',
+    );
+  return {
+    status: old.status,
+    body: old.result,
+    freshEvents: [],
+    freshOperation: false,
+  };
 }
 ```
 
 `src/cli/outbox.ts:111-114` — редкий здесь комментарий «почему», ровно там, где нужен:
+
 ```ts
 // link() is an atomic, no-overwrite publication: concurrent invocations
 // cannot replace another request that has the same operationId.
@@ -222,21 +237,34 @@ await link(temporary, destination);
 **Худшее:**
 
 `src/shared/commands.ts:230-231` — union валидируется и немедленно выбрасывается, дальше 48 кастов:
+
 ```ts
 const command = parseCommand(raw);
 const p = command.payload as Record<string, unknown>;
 ```
 
 `src/shared/schemas.ts:219-430` — 32 union-члена, отличающиеся одним литералом (фрагмент):
+
 ```ts
 z.object({ ...envelopeFields, command: z.literal('task.create').describe('Имя команды'), payload: schemas['task.create'].describe('Параметры команды') }).strict(),
 z.object({ ...envelopeFields, command: z.literal('task.sync').describe('Имя команды'),   payload: schemas['task.sync'].describe('Параметры команды') }).strict(),
 ```
 
 `src/web/app/shell.tsx:355-367` — заголовок страницы пятиуровневым тернарием:
+
 ```tsx
-{searching ? 'Поиск' : activity ? 'Активность' : focusView ? 'Фокус' : archive ? 'Архив'
-  : project?.name || (projectId === 'none' ? 'Без направления' : current.name)}
+{
+  searching
+    ? 'Поиск'
+    : activity
+      ? 'Активность'
+      : focusView
+        ? 'Фокус'
+        : archive
+          ? 'Архив'
+          : project?.name ||
+            (projectId === 'none' ? 'Без направления' : current.name);
+}
 ```
 
 `src/web/styles.css:55` и `:1608` — две палитры `:root`, вторая перекрывает первую; между ними 1500 строк, часть из которых уже мертва.
@@ -245,48 +273,48 @@ z.object({ ...envelopeFields, command: z.literal('task.sync').describe('Имя �
 
 ## (c) Метрики
 
-| Метрика | Значение |
-|---|---|
-| `tsc --noEmit` | 0 ошибок |
-| `npm run lint` (проектный конфиг) | 0 предупреждений/ошибок |
-| `npm run format:check` | 88 файлов, чисто |
-| `vitest run` | 14 файлов, 75 тестов, все зелёные, 1.4 с |
-| `any` / `@ts-expect-error` / `as unknown as` | 0 / 0 / 1 |
-| `as`-касты (кроме `as const`, import/export) | 84 (`commands.ts` 48, далее ≤3 на файл) |
-| `typescript/no-unsafe-type-assertion` (src) | 94 |
-| Non-null `!` (src) | 24 (`drafts.ts` 7, `commands.ts` 8); из них избыточных (`no-unnecessary-type-assertion`) — 8 |
-| `Record<string, unknown>` | 19 (`commands.ts` 6, `run.ts` 5, `client.ts` 3) |
-| `JSON.parse` в src | 7 (валидировано схемой — 1) |
-| `.catch(() => {})` / `void promise` | 10 / 34 |
-| `console.*` в src | 2 (`app.ts:285,328`) |
-| Файлы > 300 строк | 12 (`app.ts` 1072, `shell.tsx` 727, `ui/sidebar.tsx` 719, `commands.ts` 696, `editor.tsx` 693, `run.ts` 514, `activity.tsx` 504, `admin.ts` 481, `schemas.ts` 446, `store.ts` 423, `dialogs.tsx` 407, `board.tsx` 349) |
-| Функции > 60 строк (src) | 33; топ: `createApp` 897, `WorkspaceBody` 637, `TaskEditor` 604, `applyCommand` 433, `runCli` 329, `ProjectDialog` 222, `runAdmin` 216, `TaskCardContent` 216, `TaskDiscussion` 195, `executeOperation` 165 |
-| Компоненты > 150 строк | 8 |
-| Комментарии в src | 44 строки (0 кириллических); TODO/FIXME — 0 |
-| `styles.css` | 2713 строк, 138 классов, 2 `:root` + 2 `.dark`, 93 селектора определены >1 раза, 25 классов не используются, `@apply` — 3, media-запросов — 11 |
-| Tailwind-утилиты в `app/*.tsx` | 3 (только Skeleton) |
-| Неиспользуемые зависимости | `date-fns` |
-| Неиспользуемые экспорты | ~20 в app-коде (см. п. 10), ~60 в сгенерированных `ui/*` |
-| Sentinel `'all'/'none'` | 14 сравнений в 7 файлах |
-| `maxLength` литералы в JSX, дублирующие Zod | 10 |
-| oxlint по категориям (src+tests+scripts) | suspicious 11; perf 31; pedantic ≈180 (`max-lines-per-function` 70); style ≈3300 (шум) + `no-nested-ternary` 47, `max-statements` 81; restriction ≈170 (`no-void` 44, `no-undefined` 59) |
-| Тесты | 93 `it/test`, 470 `expect`, 0 `toBeTruthy`, 0 snapshot, 8 `toBeDefined`, 2 `waitForTimeout`, заголовков >100 симв. — 5 |
-| e2e-локаторы по CSS | 14 (остальное — role/label/text) |
+| Метрика                                      | Значение                                                                                                                                                                                                               |
+| -------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `tsc --noEmit`                               | 0 ошибок                                                                                                                                                                                                               |
+| `npm run lint` (проектный конфиг)            | 0 предупреждений/ошибок                                                                                                                                                                                                |
+| `npm run format:check`                       | 88 файлов, чисто                                                                                                                                                                                                       |
+| `vitest run`                                 | 14 файлов, 75 тестов, все зелёные, 1.4 с                                                                                                                                                                               |
+| `any` / `@ts-expect-error` / `as unknown as` | 0 / 0 / 1                                                                                                                                                                                                              |
+| `as`-касты (кроме `as const`, import/export) | 84 (`commands.ts` 48, далее ≤3 на файл)                                                                                                                                                                                |
+| `typescript/no-unsafe-type-assertion` (src)  | 94                                                                                                                                                                                                                     |
+| Non-null `!` (src)                           | 24 (`drafts.ts` 7, `commands.ts` 8); из них избыточных (`no-unnecessary-type-assertion`) — 8                                                                                                                           |
+| `Record<string, unknown>`                    | 19 (`commands.ts` 6, `run.ts` 5, `client.ts` 3)                                                                                                                                                                        |
+| `JSON.parse` в src                           | 7 (валидировано схемой — 1)                                                                                                                                                                                            |
+| `.catch(() => {})` / `void promise`          | 10 / 34                                                                                                                                                                                                                |
+| `console.*` в src                            | 2 (`app.ts:285,328`)                                                                                                                                                                                                   |
+| Файлы > 300 строк                            | 12 (`app.ts` 1072, `shell.tsx` 727, `ui/sidebar.tsx` 719, `commands.ts` 696, `editor.tsx` 693, `run.ts` 514, `activity.tsx` 504, `admin.ts` 481, `schemas.ts` 446, `store.ts` 423, `dialogs.tsx` 407, `board.tsx` 349) |
+| Функции > 60 строк (src)                     | 33; топ: `createApp` 897, `WorkspaceBody` 637, `TaskEditor` 604, `applyCommand` 433, `runCli` 329, `ProjectDialog` 222, `runAdmin` 216, `TaskCardContent` 216, `TaskDiscussion` 195, `executeOperation` 165            |
+| Компоненты > 150 строк                       | 8                                                                                                                                                                                                                      |
+| Комментарии в src                            | 44 строки (0 кириллических); TODO/FIXME — 0                                                                                                                                                                            |
+| `styles.css`                                 | 2713 строк, 138 классов, 2 `:root` + 2 `.dark`, 93 селектора определены >1 раза, 25 классов не используются, `@apply` — 3, media-запросов — 11                                                                         |
+| Tailwind-утилиты в `app/*.tsx`               | 3 (только Skeleton)                                                                                                                                                                                                    |
+| Неиспользуемые зависимости                   | `date-fns`                                                                                                                                                                                                             |
+| Неиспользуемые экспорты                      | ~20 в app-коде (см. п. 10), ~60 в сгенерированных `ui/*`                                                                                                                                                               |
+| Sentinel `'all'/'none'`                      | 14 сравнений в 7 файлах                                                                                                                                                                                                |
+| `maxLength` литералы в JSX, дублирующие Zod  | 10                                                                                                                                                                                                                     |
+| oxlint по категориям (src+tests+scripts)     | suspicious 11; perf 31; pedantic ≈180 (`max-lines-per-function` 70); style ≈3300 (шум) + `no-nested-ternary` 47, `max-statements` 81; restriction ≈170 (`no-void` 44, `no-undefined` 59)                               |
+| Тесты                                        | 93 `it/test`, 470 `expect`, 0 `toBeTruthy`, 0 snapshot, 8 `toBeDefined`, 2 `waitForTimeout`, заголовков >100 симв. — 5                                                                                                 |
+| e2e-локаторы по CSS                          | 14 (остальное — role/label/text)                                                                                                                                                                                       |
 
 ## (d) Приоритетный список рефакторингов
 
-| # | Что | Где | Усилие |
-|---|---|---|---|
-| 1 | `applyCommand` → `switch (command.command)` с сужением payload, `assertNever`, типизированный `get<K>()`; убрать 48 кастов и catch-all `else` | `shared/commands.ts:225-657` | M |
-| 2 | Генерировать `commandSchema`/`commandEnvelopeSchema` из `commandPayloadSchemas`; `command` в событиях/эффектах → `z.enum(commandNames)` | `shared/schemas.ts:219-430`, `domain-schemas.ts:137`, `commands.ts:23` | S |
-| 3 | Разрезать `createApp`: `http/{errors,auth-middleware,request-log,pagination}.ts`, `routes/*.ts`; схемы `context/digest` → shared; `runOperation()` вместо двух копий | `server/app.ts` | M |
-| 4 | Декомпозиция `WorkspaceBody`: `useWorkspaceCommands`, `useKeyboardShortcuts`, `selectVisibleTasks`, `WorkspaceHeader`, `WorkspaceEmpty`; убрать prop drilling через `useNavigation()` | `web/app/shell.tsx`, `card.tsx`, `sidebar.tsx` | M |
-| 5 | `TaskEditor`: `useDraft(key)` (заменит 7 копий `writeDraft`), `useSaveIntent`, `ChecklistEditor`, общий `ConflictPanel` с `ProjectDialog` | `web/app/editor.tsx`, `dialogs.tsx`, `board.tsx`, `activity.tsx` | M |
-| 6 | CSS: слить три слоя в одну палитру, убрать 93 дубля и 25 мёртвых классов, влить `workspace-overview.css`; проверить по e2e-скриншотам | `web/styles.css`, `web/app/workspace-overview.css` | M |
-| 7 | `server/config.ts` на Zod; убрать `BUILD_ID`, `LOG_LEVEL` (или начать читать); `shared/LIMITS` для лимитов, использовать в схемах и JSX | `server/index.ts`, `cli/admin-run.ts`, `deploy/compose.yml`, `web/app/*` | S |
-| 8 | Валидация на границах: `request(path, schema)` в web, `eventSchema` в `sync.ts`, схема конверта в `store.recover`, `Draft` в `drafts.ts`, `SavedOperation` в `outbox.ts` | `web/app/api.ts`, `sync.ts`, `store.ts:385`, `drafts.ts:38`, `cli/outbox.ts:63` | S–M |
-| 9 | Линт: включить `suspicious` + 7 правил из п. 10; починить 24 `!`, 7 `type`, `catch` → `error`; решить судьбу `noUncheckedIndexedAccess`; `oxlint .`/`oxfmt --check .` вместо списков; удалить `date-fns`, `@web` | `.oxlintrc.json`, `package.json`, `tsconfig.json` | S |
-| 10 | CLI: разрезать `runCli`; единый реестр флагов, генерирующий `HELP`; убрать `--json`; добавить `today`/`hasFollowUp`; `canonical()` → `shared/`; тесты: `tests/helpers/`, `agent-cycle.md` → `docs/`, артефакты e2e → `test-results/` | `cli/run.ts`, `cli/arguments.ts`, `server/operations.ts`, `server/admin.ts`, `tests/**` | M |
+| #   | Что                                                                                                                                                                                                                                  | Где                                                                                     | Усилие |
+| --- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | --------------------------------------------------------------------------------------- | ------ |
+| 1   | `applyCommand` → `switch (command.command)` с сужением payload, `assertNever`, типизированный `get<K>()`; убрать 48 кастов и catch-all `else`                                                                                        | `shared/commands.ts:225-657`                                                            | M      |
+| 2   | Генерировать `commandSchema`/`commandEnvelopeSchema` из `commandPayloadSchemas`; `command` в событиях/эффектах → `z.enum(commandNames)`                                                                                              | `shared/schemas.ts:219-430`, `domain-schemas.ts:137`, `commands.ts:23`                  | S      |
+| 3   | Разрезать `createApp`: `http/{errors,auth-middleware,request-log,pagination}.ts`, `routes/*.ts`; схемы `context/digest` → shared; `runOperation()` вместо двух копий                                                                 | `server/app.ts`                                                                         | M      |
+| 4   | Декомпозиция `WorkspaceBody`: `useWorkspaceCommands`, `useKeyboardShortcuts`, `selectVisibleTasks`, `WorkspaceHeader`, `WorkspaceEmpty`; убрать prop drilling через `useNavigation()`                                                | `web/app/shell.tsx`, `card.tsx`, `sidebar.tsx`                                          | M      |
+| 5   | `TaskEditor`: `useDraft(key)` (заменит 7 копий `writeDraft`), `useSaveIntent`, `ChecklistEditor`, общий `ConflictPanel` с `ProjectDialog`                                                                                            | `web/app/editor.tsx`, `dialogs.tsx`, `board.tsx`, `activity.tsx`                        | M      |
+| 6   | CSS: слить три слоя в одну палитру, убрать 93 дубля и 25 мёртвых классов, влить `workspace-overview.css`; проверить по e2e-скриншотам                                                                                                | `web/styles.css`, `web/app/workspace-overview.css`                                      | M      |
+| 7   | `server/config.ts` на Zod; убрать `BUILD_ID`, `LOG_LEVEL` (или начать читать); `shared/LIMITS` для лимитов, использовать в схемах и JSX                                                                                              | `server/index.ts`, `cli/admin-run.ts`, `deploy/compose.yml`, `web/app/*`                | S      |
+| 8   | Валидация на границах: `request(path, schema)` в web, `eventSchema` в `sync.ts`, схема конверта в `store.recover`, `Draft` в `drafts.ts`, `SavedOperation` в `outbox.ts`                                                             | `web/app/api.ts`, `sync.ts`, `store.ts:385`, `drafts.ts:38`, `cli/outbox.ts:63`         | S–M    |
+| 9   | Линт: включить `suspicious` + 7 правил из п. 10; починить 24 `!`, 7 `type`, `catch` → `error`; решить судьбу `noUncheckedIndexedAccess`; `oxlint .`/`oxfmt --check .` вместо списков; удалить `date-fns`, `@web`                     | `.oxlintrc.json`, `package.json`, `tsconfig.json`                                       | S      |
+| 10  | CLI: разрезать `runCli`; единый реестр флагов, генерирующий `HELP`; убрать `--json`; добавить `today`/`hasFollowUp`; `canonical()` → `shared/`; тесты: `tests/helpers/`, `agent-cycle.md` → `docs/`, артефакты e2e → `test-results/` | `cli/run.ts`, `cli/arguments.ts`, `server/operations.ts`, `server/admin.ts`, `tests/**` | M      |
 
 ## (e) Что запускалось и проверялось
 
@@ -305,7 +333,7 @@ z.object({ ...envelopeFields, command: z.literal('task.sync').describe('Имя �
 - Транзакционная модель `executeOperation`: идемпотентность по хешу канонизированного конверта, проверка поколения, `dryRun` без записи, `.immediate()`.
 - Таксономия ошибок `DomainError`/`fail()` с одной картой статусов; `retryable` как явный контракт для агентов.
 - DI-точки для тестов: `AppOptions.authorize/now/ids`, `CliOptions.fetch/sleep/stdout/stderr/readInput`, `WorkspaceStore(transport, storage, delay)` — тесты не мокают модули.
-- Тесты: реальные SQLite/Hono/Better Auth, property-инварианты «проекция == состояние» и «undo восстанавливает», триангуляция миграций, e2e по ролям/подписям, потеря ответа *после* коммита, виртуальный WebAuthn.
+- Тесты: реальные SQLite/Hono/Better Auth, property-инварианты «проекция == состояние» и «undo восстанавливает», триангуляция миграций, e2e по ролям/подписям, потеря ответа _после_ коммита, виртуальный WebAuthn.
 - `outbox.ts`: атомарная публикация, fsync, 0600, проверка `baseUrl` и origin перед следованием по ссылкам пагинации (`client.ts:68-71`).
 - Deploy: фазовые ERR-ловушки, flock, граница «запись открыта» до вызова, отказ отката после границы, drill с инжекцией несовместимой схемы.
 - `tsc`, oxlint (проектный), oxfmt, vitest — все зелёные; `any` и `@ts-*` отсутствуют; TODO отсутствуют; языковая политика (код/тесты — английский, UI/агентские сообщения — русский) выдержана без исключений.

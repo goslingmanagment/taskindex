@@ -86,7 +86,7 @@ export async function runAdmin(
     if (command !== 'migrate' && databasePath !== ':memory:')
       await access(databasePath);
     db = openDatabase(databasePath);
-    if (command !== 'migrate') assertSchema(db);
+    if (command !== 'migrate') assertSchema(db, env.TASKINDEX_MIGRATIONS_DIR);
     let result: unknown;
     switch (command) {
       case 'migrate':
@@ -176,7 +176,12 @@ export async function runAdmin(
             await input(required(action, 'файл импорта')),
             'export',
           ) as ExportData,
-          { replace: flagBoolean(args.flags, 'replace') },
+          {
+            replace: flagBoolean(args.flags, 'replace'),
+            ...(env.TASKINDEX_MIGRATIONS_DIR
+              ? { migrationsDir: env.TASKINDEX_MIGRATIONS_DIR }
+              : {}),
+          },
         );
         break;
       case 'export': {
@@ -196,7 +201,7 @@ export async function runAdmin(
         break;
       }
       case 'mark-restored':
-        result = admin.markRestored(db);
+        result = admin.markRestored(db, env.TASKINDEX_MIGRATIONS_DIR);
         break;
       case 'open-writes':
         result = admin.openWrites(

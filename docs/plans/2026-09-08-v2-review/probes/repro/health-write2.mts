@@ -1,6 +1,10 @@
-import { openDatabase, migrate } from '/Users/dmitriy/code/taskindex/src/server/db.ts';
+import {
+  openDatabase,
+  migrate,
+} from '/Users/dmitriy/code/taskindex/src/server/db.ts';
 import { createApp } from '/Users/dmitriy/code/taskindex/src/server/app.ts';
-const path = '/private/tmp/claude-501/-Users-dmitriy-code-taskindex/c5cd56f9-7e33-4f1e-8f89-5a82fb964e56/scratchpad/repro/health2.db';
+const path =
+  '/private/tmp/claude-501/-Users-dmitriy-code-taskindex/c5cd56f9-7e33-4f1e-8f89-5a82fb964e56/scratchpad/repro/health2.db';
 const db = openDatabase(path);
 migrate(db, { migrationsDir: '/Users/dmitriy/code/taskindex/drizzle/v2' });
 const frames = () => (db.sqlite.pragma('wal_checkpoint(PASSIVE)') as any)[0];
@@ -9,12 +13,26 @@ const dv0 = db.sqlite.pragma('data_version', { simple: true });
 const app = createApp({ db, authorize: () => null });
 console.log('after createApp (1 probe write):', JSON.stringify(frames()));
 for (let i = 0; i < 20; i++) await app.request('/health');
-console.log('after 20 /health:', JSON.stringify(frames()), 'data_version delta (other-connection view n/a)', db.sqlite.pragma('data_version', { simple: true }) === dv0);
+console.log(
+  'after 20 /health:',
+  JSON.stringify(frames()),
+  'data_version delta (other-connection view n/a)',
+  db.sqlite.pragma('data_version', { simple: true }) === dv0,
+);
 // Independent connection to observe data_version changes (increments on commits by other connections)
-const SQLite = (await import('/Users/dmitriy/code/taskindex/node_modules/better-sqlite3/lib/index.js')).default;
+const SQLite = (
+  await import('/Users/dmitriy/code/taskindex/node_modules/better-sqlite3/lib/index.js')
+).default;
 const other = new SQLite(path);
 const v1 = other.pragma('data_version', { simple: true });
 for (let i = 0; i < 5; i++) await app.request('/health');
 const v2 = other.pragma('data_version', { simple: true });
-console.log('other-connection data_version before/after 5 health:', v1, v2, '-> commits observed:', v2 !== v1);
-other.close(); db.close();
+console.log(
+  'other-connection data_version before/after 5 health:',
+  v1,
+  v2,
+  '-> commits observed:',
+  v2 !== v1,
+);
+other.close();
+db.close();

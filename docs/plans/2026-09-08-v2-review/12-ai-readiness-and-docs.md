@@ -28,18 +28,18 @@
 
 ### 1.5 B6: дрейф документации
 
-| Что | Где написано | Что в коде | Правка |
-|---|---|---|---|
-| `LOG_LEVEL` | `deploy/.env.example:7`, `deploy/compose.yml:15`, план §12 (строка «Переменные: … `LOG_LEVEL`») | `grep -rn LOG_LEVEL src` → 0 | план 06 решает: читать или убрать; здесь пометка в плане и `.env.example` «пока не используется» |
-| `--json` | `run.ts:63,91`, план §10 «`--json` (по умолчанию, если stdout не терминал)» | никогда не читается, вывод всегда JSON (`run.ts:194`) | план 03 удаляет флаг; здесь текст плана §10 |
-| `events --since N` | `HELP` `run.ts:48` без `--generation` | `run.ts:223-230` требует `--generation` при `N > 0` | план 03 генерирует справку; здесь SKILL.md и план §10 |
-| Пины Node | README 24.20.0, `engines >=24.11.0 <25`, `.nvmrc` `24`, `.node-version` 24.20.0 | `nvm use` по `.nvmrc` даст последний 24.x | `.nvmrc` → `24.20.0`; README: «24.20.0 закреплён; `engines` задаёт нижнюю границу 24.11 из-за tsdown» |
-| `--password-op op://…` | `admin-run.ts:41-42,67-83` | README:49-58 описывает только stdin | добавить в README одну строку |
-| `TIMEZONE` | `deploy/.env.example:6`, `compose.yml:14`, `setup-dev.mjs:15`, README как переменная сервера | читает только `admin-run.ts:94` при `migrate`; сервер берёт `settings.timezone` (`app.ts:187`), записанный один раз (`db.ts:91-92`) | README и `.env.example`: «влияет только на первую миграцию; далее хранится в базе» |
-| `tests/e2e/agent-cycle.md` как приёмка | `BACKLOG.md:82`, `deploy/README.md:74` | прозаический чек-лист | переезд в `docs/acceptance/agent-cycle.md` и `scripts/agent-cycle.mts`, ссылки обновить |
-| Установка скилла | план §3 «симлинк в ~/.claude/skills», `BACKLOG.md:83`, `README.md:82` | инструкции нет | раздел «Установка» в SKILL.md и README |
-| `BUILD` и `BUILD_ID` | `src/server/index.ts:22` | два имени одной переменной | план 06 (`server/config.ts`); здесь только упоминание в CLAUDE.md, что истина `BUILD` |
-| Артефакты e2e | `tests/e2e/workspace.spec.ts:10-11` | пишутся в `docs/reference/v2-validation` по умолчанию | план 10; здесь do-not-touch и `TASKINDEX_E2E_ARTIFACT_DIR` в CLAUDE.md |
+| Что                                    | Где написано                                                                                    | Что в коде                                                                                                                          | Правка                                                                                                |
+| -------------------------------------- | ----------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------- |
+| `LOG_LEVEL`                            | `deploy/.env.example:7`, `deploy/compose.yml:15`, план §12 (строка «Переменные: … `LOG_LEVEL`») | `grep -rn LOG_LEVEL src` → 0                                                                                                        | план 06 решает: читать или убрать; здесь пометка в плане и `.env.example` «пока не используется»      |
+| `--json`                               | `run.ts:63,91`, план §10 «`--json` (по умолчанию, если stdout не терминал)»                     | никогда не читается, вывод всегда JSON (`run.ts:194`)                                                                               | план 03 удаляет флаг; здесь текст плана §10                                                           |
+| `events --since N`                     | `HELP` `run.ts:48` без `--generation`                                                           | `run.ts:223-230` требует `--generation` при `N > 0`                                                                                 | план 03 генерирует справку; здесь SKILL.md и план §10                                                 |
+| Пины Node                              | README 24.20.0, `engines >=24.11.0 <25`, `.nvmrc` `24`, `.node-version` 24.20.0                 | `nvm use` по `.nvmrc` даст последний 24.x                                                                                           | `.nvmrc` → `24.20.0`; README: «24.20.0 закреплён; `engines` задаёт нижнюю границу 24.11 из-за tsdown» |
+| `--password-op op://…`                 | `admin-run.ts:41-42,67-83`                                                                      | README:49-58 описывает только stdin                                                                                                 | добавить в README одну строку                                                                         |
+| `TIMEZONE`                             | `deploy/.env.example:6`, `compose.yml:14`, `setup-dev.mjs:15`, README как переменная сервера    | читает только `admin-run.ts:94` при `migrate`; сервер берёт `settings.timezone` (`app.ts:187`), записанный один раз (`db.ts:91-92`) | README и `.env.example`: «влияет только на первую миграцию; далее хранится в базе»                    |
+| `tests/e2e/agent-cycle.md` как приёмка | `BACKLOG.md:82`, `deploy/README.md:74`                                                          | прозаический чек-лист                                                                                                               | переезд в `docs/acceptance/agent-cycle.md` и `scripts/agent-cycle.mts`, ссылки обновить               |
+| Установка скилла                       | план §3 «симлинк в ~/.claude/skills», `BACKLOG.md:83`, `README.md:82`                           | инструкции нет                                                                                                                      | раздел «Установка» в SKILL.md и README                                                                |
+| `BUILD` и `BUILD_ID`                   | `src/server/index.ts:22`                                                                        | два имени одной переменной                                                                                                          | план 06 (`server/config.ts`); здесь только упоминание в CLAUDE.md, что истина `BUILD`                 |
+| Артефакты e2e                          | `tests/e2e/workspace.spec.ts:10-11`                                                             | пишутся в `docs/reference/v2-validation` по умолчанию                                                                               | план 10; здесь do-not-touch и `TASKINDEX_E2E_ARTIFACT_DIR` в CLAUDE.md                                |
 
 ### 1.6 B8: сгенерированные файлы не помечены
 
@@ -235,8 +235,12 @@ SKILL.md → тесты `tests/api/commands.test.ts`, `tests/api/permissions.tes
 import { readFileSync } from 'node:fs';
 export function checkNode(version, engines) {
   const [major, minor] = version.split('.').map(Number);
-  const [, lowMajor, lowMinor, highMajor] = /^>=(\d+)\.(\d+)\.\d+ <(\d+)$/.exec(engines) ?? [];
-  const ok = major >= Number(lowMajor) && (major > Number(lowMajor) || minor >= Number(lowMinor)) && major < Number(highMajor);
+  const [, lowMajor, lowMinor, highMajor] =
+    /^>=(\d+)\.(\d+)\.\d+ <(\d+)$/.exec(engines) ?? [];
+  const ok =
+    major >= Number(lowMajor) &&
+    (major > Number(lowMajor) || minor >= Number(lowMinor)) &&
+    major < Number(highMajor);
   if (ok) return { ok: true };
   return {
     ok: false,
@@ -248,11 +252,22 @@ export function checkNode(version, engines) {
   };
 }
 if (import.meta.url === `file://${process.argv[1]}`) {
-  const pkg = JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf8'));
-  const pinned = readFileSync(new URL('../.node-version', import.meta.url), 'utf8').trim();
+  const pkg = JSON.parse(
+    readFileSync(new URL('../package.json', import.meta.url), 'utf8'),
+  );
+  const pinned = readFileSync(
+    new URL('../.node-version', import.meta.url),
+    'utf8',
+  ).trim();
   const result = checkNode(process.versions.node, pkg.engines.node);
-  if (!result.ok) { process.stderr.write(`${result.message}\n`); process.exit(1); }
-  if (process.versions.node !== pinned) process.stderr.write(`Внимание: закреплён Node ${pinned}, запущен ${process.version}.\n`);
+  if (!result.ok) {
+    process.stderr.write(`${result.message}\n`);
+    process.exit(1);
+  }
+  if (process.versions.node !== pinned)
+    process.stderr.write(
+      `Внимание: закреплён Node ${pinned}, запущен ${process.version}.\n`,
+    );
 }
 ```
 
@@ -263,6 +278,7 @@ if (import.meta.url === `file://${process.argv[1]}`) {
 Запуск `node --import tsx scripts/sandbox.mts` (скрипт `"sandbox"`), импортирует `src/server/{db,admin,auth,app}.ts` напрямую, как `tests/e2e/server.ts`.
 
 Поведение по умолчанию (`start`):
+
 1. `mkdtemp(join(tmpdir(), 'taskindex-sandbox-'))`; внутри `sandbox.db`, `state/` (для `XDG_STATE_HOME`), `keys/`, `owner.json` (0600: email `owner@sandbox.test`, случайный пароль для входа в браузере), `sandbox.json` (pid, порт, каталог, агенты).
 2. `openDatabase` → `initialize(db, { timezone: 'Europe/Moscow' })` → `createOwner` → `createAgent` `claude` («Клод, sandbox») и `codex` («Кодекс, sandbox») → `createAgentKey` (`claude`: `write`, `codex`: `tasks`; переопределение `--agents name:scope,name:scope`); ключи в `keys/<agent>.json` 0600.
 3. Свободный порт (`net.createServer().listen(0)`); дочерний процесс `node --import tsx src/server/index.ts` с `PORT`, `BASE_URL=http://127.0.0.1:<port>`, `DATABASE_PATH`, `BETTER_AUTH_SECRET=<random 64 hex>`, `BUILD=sandbox`, `NODE_ENV` не задан (dev-режим, `trustedOrigins` включает localhost:5173), `detached: true`, `stdio` в `server.log`; `unref()`.
@@ -284,15 +300,15 @@ if (import.meta.url === `file://${process.argv[1]}`) {
 
 Скрипт поверх работающего sandbox (`TASKINDEX_SANDBOX` обязателен), два агента через `runCli` с разными `XDG_STATE_HOME`, владелец через Better Auth (`POST /api/auth/sign-in/email` с паролем из `owner.json`, cookie, заголовок `Origin`). Соответствие шагам `tests/e2e/agent-cycle.md`:
 
-| Шаг | Что делает скрипт | Статус |
-|---|---|---|
-| 1 | оба агента `context`, `digest`; A `project create`; B находит проект в `context`; оба `task sync` с одним origin и версией; проверка: одна задача, `createdBy` первого, у второго `skipped: all, reason: stale` или `existing`; sync без версии: создание, затем `freshness_unknown` без события (`seq` не растёт) | автоматизировано |
-| 2 | владелец по cookie `task.save` (проект, статус `done`); A `task sync` новой версии: `status`/`projectId` в `skipped`, `note` в `applied`; оба агента `comment add` параллельно с `task.save` владельца: три операции, `commentCount` 2, заметка сохранена | автоматизировано |
-| 3 | черновик в браузере во время правки агента | вручную (`docs/acceptance`), частично e2e `workspace.spec.ts` |
-| 4 | A `batch` из трёх `task.create`; `activity` показывает одну операцию; владелец `undo --operation`; затем A меняет поле одной задачи, владелец повторяет undo другой операции, затрагивающей то же поле → `conflict`; B (`tasks`) `undo` операции с `project.update` → 403; после плана 02: B `undo` операции A → 403 | автоматизировано |
-| 5 | потеря ответа после commit | остаётся в `tests/cli/agent-cycle.test.ts:52-110` (требует перехвата транспорта); скрипт печатает ссылку |
-| 6 | перезапуск sandbox с `--writes held --deployment d2`; A `task create` → четыре попытки, 503, конверт сохранён, код 1; `taskindex-admin open-writes` через `admin-run` с `DATABASE_PATH` sandbox; `operation resume` → ровно одно изменение; перезапуск того же `deployment` → `writes: open`; новый `deployment` → `held` | автоматизировано |
-| 7 | перезагрузка вкладки с неподтверждённой отправкой; `mark-restored` и старые конверты | вручную; часть про `mark-restored` автоматизируется: `admin markRestored` на sandbox-базе, затем `operation resume` старого конверта → `generation_changed`, конверт остаётся |
+| Шаг | Что делает скрипт                                                                                                                                                                                                                                                                                                         | Статус                                                                                                                                                                        |
+| --- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1   | оба агента `context`, `digest`; A `project create`; B находит проект в `context`; оба `task sync` с одним origin и версией; проверка: одна задача, `createdBy` первого, у второго `skipped: all, reason: stale` или `existing`; sync без версии: создание, затем `freshness_unknown` без события (`seq` не растёт)        | автоматизировано                                                                                                                                                              |
+| 2   | владелец по cookie `task.save` (проект, статус `done`); A `task sync` новой версии: `status`/`projectId` в `skipped`, `note` в `applied`; оба агента `comment add` параллельно с `task.save` владельца: три операции, `commentCount` 2, заметка сохранена                                                                 | автоматизировано                                                                                                                                                              |
+| 3   | черновик в браузере во время правки агента                                                                                                                                                                                                                                                                                | вручную (`docs/acceptance`), частично e2e `workspace.spec.ts`                                                                                                                 |
+| 4   | A `batch` из трёх `task.create`; `activity` показывает одну операцию; владелец `undo --operation`; затем A меняет поле одной задачи, владелец повторяет undo другой операции, затрагивающей то же поле → `conflict`; B (`tasks`) `undo` операции с `project.update` → 403; после плана 02: B `undo` операции A → 403      | автоматизировано                                                                                                                                                              |
+| 5   | потеря ответа после commit                                                                                                                                                                                                                                                                                                | остаётся в `tests/cli/agent-cycle.test.ts:52-110` (требует перехвата транспорта); скрипт печатает ссылку                                                                      |
+| 6   | перезапуск sandbox с `--writes held --deployment d2`; A `task create` → четыре попытки, 503, конверт сохранён, код 1; `taskindex-admin open-writes` через `admin-run` с `DATABASE_PATH` sandbox; `operation resume` → ровно одно изменение; перезапуск того же `deployment` → `writes: open`; новый `deployment` → `held` | автоматизировано                                                                                                                                                              |
+| 7   | перезагрузка вкладки с неподтверждённой отправкой; `mark-restored` и старые конверты                                                                                                                                                                                                                                      | вручную; часть про `mark-restored` автоматизируется: `admin markRestored` на sandbox-базе, затем `operation resume` старого конверта → `generation_changed`, конверт остаётся |
 
 Вывод: JSON-строки `{step, ok, operationIds, details}` и итог `{ok, passed, failed, manual: [3, 7]}`; код выхода 0 при всех автоматизированных `ok`. `docs/acceptance/agent-cycle.md`: прежний текст семи шагов с пометками «автоматизировано: `npm run agent-cycle`, шаг N» и инструкцией для ручных шагов 3 и 7 (что открыть, что нажать, что увидеть), плюс шаблон отчёта (кто, URL, build, generation, operationId). `tests/e2e/agent-cycle.md` удаляется; ссылки `BACKLOG.md:82`, `deploy/README.md:74`, README обновляются.
 
@@ -312,18 +328,18 @@ if (import.meta.url === `file://${process.argv[1]}`) {
 
 ### 3.6 Порядок работ по чек-листу (f) ревью готовности
 
-| # | Пункт | План | Волна |
-|---|---|---|---|
-| 1 | `CLAUDE.md`, `AGENTS.md`, `preflight`, `.npmrc` | 12 (шаги 1-2) | 1 |
-| 2 | `sandbox.mts`, `agent-cycle.mts`, `docs/acceptance` | 12 (шаги 3-4) | 1 |
-| 3 | Разделение состояния CLI по серверу и агенту, тест с двумя токенами | 03 (шаги 1-6) | 1 |
-| 4 | Справка из схем, `me`, `--today`, русские ошибки, EPIPE | 03 (шаги 7-9) | 2 |
-| 5 | `issues`, OpenAPI с компонентами и `security`, публичный документ, `taskindex openapi` | 04 (шаги 6-7), 03 | 2 |
-| 6 | Курсор `--since last`, `digest.comments`, `inbox` | 03 (шаги 10-12), 04 (раздел 7) | 2 |
-| 7 | Исчерпывающесть: union из схем, `labels`, `assertNever`, `SCHEMA_VERSION` ↔ журнал | 04 (шаг 3), 10 (R1), 06 (B4/V6) | 2 |
-| 8 | Скилл, README, справка без `--json`, `LOG_LEVEL`, `--generation` | 12 (шаги 5-6), 03, 06 | 2 |
-| 9 | Разрез `app.ts`, `noUnusedLocals`, пометки сгенерированных файлов | 06, 12 (шаги 7-8) | 3 (пометки и `noUnusedLocals` в 1) |
-| 10 | `deploy.sh --plan`, `bootstrap.sh`, фильтр по актору в UI | 11, 07 | 3 |
+| #   | Пункт                                                                                  | План                            | Волна                              |
+| --- | -------------------------------------------------------------------------------------- | ------------------------------- | ---------------------------------- |
+| 1   | `CLAUDE.md`, `AGENTS.md`, `preflight`, `.npmrc`                                        | 12 (шаги 1-2)                   | 1                                  |
+| 2   | `sandbox.mts`, `agent-cycle.mts`, `docs/acceptance`                                    | 12 (шаги 3-4)                   | 1                                  |
+| 3   | Разделение состояния CLI по серверу и агенту, тест с двумя токенами                    | 03 (шаги 1-6)                   | 1                                  |
+| 4   | Справка из схем, `me`, `--today`, русские ошибки, EPIPE                                | 03 (шаги 7-9)                   | 2                                  |
+| 5   | `issues`, OpenAPI с компонентами и `security`, публичный документ, `taskindex openapi` | 04 (шаги 6-7), 03               | 2                                  |
+| 6   | Курсор `--since last`, `digest.comments`, `inbox`                                      | 03 (шаги 10-12), 04 (раздел 7)  | 2                                  |
+| 7   | Исчерпывающесть: union из схем, `labels`, `assertNever`, `SCHEMA_VERSION` ↔ журнал     | 04 (шаг 3), 10 (R1), 06 (B4/V6) | 2                                  |
+| 8   | Скилл, README, справка без `--json`, `LOG_LEVEL`, `--generation`                       | 12 (шаги 5-6), 03, 06           | 2                                  |
+| 9   | Разрез `app.ts`, `noUnusedLocals`, пометки сгенерированных файлов                      | 06, 12 (шаги 7-8)               | 3 (пометки и `noUnusedLocals` в 1) |
+| 10  | `deploy.sh --plan`, `bootstrap.sh`, фильтр по актору в UI                              | 11, 07                          | 3                                  |
 
 ## 4. Шаги
 
@@ -342,6 +358,7 @@ if (import.meta.url === `file://${process.argv[1]}`) {
 6. **Дрейф документации** (1.5): README (Node, `--password-op`, `TIMEZONE`, установка скилла, sandbox, `help <group>`), `deploy/.env.example:6-7` (комментарии к `TIMEZONE` и `LOG_LEVEL`), `docs/plans/2026-09-08-taskindex-v2.md` §3 (структура: `scripts/`, `docs/acceptance/`), §10 (`--json` удалён, вывод всегда JSON; путь outbox `servers/<server>/agents/<agent>/ops`; `--since last`; `me`; `inbox`), §12 (`LOG_LEVEL` до решения плана 06 «не используется»), `deploy/README.md:74`. Каждое исправление одной строкой в разделе «Отклонения от плана» в конце плана v2 (создать раздел, если нет), чтобы план оставался истиной по объёму.
 
 7. **Пометки сгенерированных файлов** (B8): `drizzle/v2/README.md` (что такое `0000_taskindex.sql`, что `meta/*` генерируется `npm run db:generate` и не редактируется, что применённые SQL не меняются, ссылка на раздел «Как добавить миграцию» в `CLAUDE.md`); `.gitattributes`:
+
    ```
    drizzle/v2/meta/** linguist-generated=true
    docs/reference/**/*-sha256.json linguist-generated=true
@@ -355,18 +372,18 @@ if (import.meta.url === `file://${process.argv[1]}`) {
 
 ## 5. Тесты
 
-| Критерий | Файл | Сценарий | Ожидание |
-|---|---|---|---|
-| 1 | ручная проверка | `cat AGENTS.md`, `git ls-files -s AGENTS.md` | содержимое `CLAUDE.md`, режим `120000` |
-| 2 | `tests/unit/preflight.test.ts` | `checkNode('26.7.0', '>=24.11.0 <25')`, `checkNode('24.10.0', …)`, `checkNode('24.20.0', …)` | первые два `ok: false` с русским `message`, третий `ok: true` |
-| 2 | ручная проверка под Node 26 | `npm test` | код 1, сообщение preflight, без трассы `better-sqlite3`; `npm ci` → `EBADENGINE` |
-| 3 | `tests/cli/sandbox.test.ts` | `sandbox.mts --json`, `/health`, `runCli(['me'])`, `--stop` | `ok`, `scope: 'write'`, каталог удалён |
-| 3 | ручная проверка | `eval "$(npm run -s sandbox)" && npm run cli -- digest` из чистого worktree | код 0; `git status` без новых файлов |
-| 4 | ручная проверка | `npm run agent-cycle` на sandbox | шаги 1, 2, 4, 6 `ok`; итог `manual: [3, 7]` |
-| 5 | `tests/cli/skill.test.ts` | разбор SKILL.md | каждая команда и флаг присутствуют в справке |
-| 6 | `tests/unit/docs.test.ts` (source-scan) | `README.md` не содержит `--json`; `.nvmrc` равен `.node-version`; `deploy/README.md` и `BACKLOG.md` не ссылаются на `tests/e2e/agent-cycle.md` | проходит |
-| 7 | ручная проверка | `git check-attr linguist-generated drizzle/v2/meta/_journal.json` | `set` |
-| 8 | `npm run check` | | зелёный с `noUnusedLocals` |
+| Критерий | Файл                                    | Сценарий                                                                                                                                       | Ожидание                                                                         |
+| -------- | --------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------- |
+| 1        | ручная проверка                         | `cat AGENTS.md`, `git ls-files -s AGENTS.md`                                                                                                   | содержимое `CLAUDE.md`, режим `120000`                                           |
+| 2        | `tests/unit/preflight.test.ts`          | `checkNode('26.7.0', '>=24.11.0 <25')`, `checkNode('24.10.0', …)`, `checkNode('24.20.0', …)`                                                   | первые два `ok: false` с русским `message`, третий `ok: true`                    |
+| 2        | ручная проверка под Node 26             | `npm test`                                                                                                                                     | код 1, сообщение preflight, без трассы `better-sqlite3`; `npm ci` → `EBADENGINE` |
+| 3        | `tests/cli/sandbox.test.ts`             | `sandbox.mts --json`, `/health`, `runCli(['me'])`, `--stop`                                                                                    | `ok`, `scope: 'write'`, каталог удалён                                           |
+| 3        | ручная проверка                         | `eval "$(npm run -s sandbox)" && npm run cli -- digest` из чистого worktree                                                                    | код 0; `git status` без новых файлов                                             |
+| 4        | ручная проверка                         | `npm run agent-cycle` на sandbox                                                                                                               | шаги 1, 2, 4, 6 `ok`; итог `manual: [3, 7]`                                      |
+| 5        | `tests/cli/skill.test.ts`               | разбор SKILL.md                                                                                                                                | каждая команда и флаг присутствуют в справке                                     |
+| 6        | `tests/unit/docs.test.ts` (source-scan) | `README.md` не содержит `--json`; `.nvmrc` равен `.node-version`; `deploy/README.md` и `BACKLOG.md` не ссылаются на `tests/e2e/agent-cycle.md` | проходит                                                                         |
+| 7        | ручная проверка                         | `git check-attr linguist-generated drizzle/v2/meta/_journal.json`                                                                              | `set`                                                                            |
+| 8        | `npm run check`                         |                                                                                                                                                | зелёный с `noUnusedLocals`                                                       |
 
 ## 6. Риски и откат
 
@@ -390,50 +407,53 @@ if (import.meta.url === `file://${process.argv[1]}`) {
 
 ## Покрытые находки
 
-| ID | Отчёт | Кратко | Где в плане |
-|---|---|---|---|
-| B1 | AI-готовность | нет `CLAUDE.md`/`AGENTS.md`, ловушка Node 26 | 1.1, 3.1, 3.2, шаги 1-2 |
-| B2 | AI-готовность | нет одноразового окружения одной командой; `setup-dev` пишет в чекаут | 1.2, 3.3, шаг 3 |
-| A13 | AI-готовность | скилл без установки, окружения, примеров, политики undo; `agent-cycle.md` не исполняем | 1.3, 1.4, 3.4, 3.5, шаги 4-5 |
-| B6 | AI-готовность | дрейф документации (`LOG_LEVEL`, `--json`, `--generation`, пины Node, `--password-op`, `TIMEZONE`, чек-лист как приёмка) | 1.5, шаг 6 |
-| B8 | AI-готовность | сгенерированные файлы не помечены | 1.6, шаг 7 |
-| B7 | AI-готовность | `noUnusedLocals`, неиспользуемый `serverId` | 1.7, шаг 8 (использование `serverId` в плане 03) |
-| B9 | AI-готовность | смешение языков в ошибках | 1.8 (реализация в планах 03 и 04) |
-| (f) чек-лист | AI-готовность | порядок работ | 3.6 |
-| §9, §10 качества | качество | `agent-cycle.md` в `tests/`, три пина Node, `--password-op` не в README, e2e пишет в `docs/` | 1.4, 1.5, 1.9, шаги 4, 6 |
-| Ж6 | архитектура | мёртвые `TIMEZONE` (только migrate) и `LOG_LEVEL` | 1.5, шаг 6 (документирование; решение в плане 06) |
-| план §10 `--json` | архитектура (d), стек | документация обещает `--json` по TTY | шаг 6 |
-| побочный эффект ревью | сводка | e2e перезаписал `docs/reference/v2-validation/` | 1.9, do-not-touch в 3.1 |
-| Astra BL-NODE | astra / TI-028 | постоянный Node 24; ранний preflight до загрузки нативного модуля | 3.2, шаги 1-2; шаг 10 |
-| Astra BL-DOCS | astra / TI-033 | дрейф документации; таблица «утверждение → код → поведение → документ» | 1.5, шаг 6; шаг 11 |
-| Astra BL-AUTHORITY (текст скилла) | astra / TI-027 | политику undo и focus описывать после решения владельца | 3.5; шаг 13 |
-| Astra B-04, FB:B-09, Astra B-01 (правила скилла) | astra / TI-008, TI-037, TI-001 | ограничение `digest`/`--since`; повтор при 409 на курсоре; поток после отзыва ключа | шаг 13 |
-| Astra BL-LOCALIZATION, BL-PLURALS, BL-HISTORY | astra / TI-030, TI-031, TI-032 | UX-пункты BACKLOG: русские ошибки и подписи, склонения, читаемая история | только ссылка; B9 частично в планах 03 и 04 |
-| Сверка (реестр) | `issues.md`, `ASTRA-INDEX.md` | реестр находок как точка входа для агентов | шаг 12 |
+| ID                                               | Отчёт                          | Кратко                                                                                                                   | Где в плане                                       |
+| ------------------------------------------------ | ------------------------------ | ------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------- |
+| B1                                               | AI-готовность                  | нет `CLAUDE.md`/`AGENTS.md`, ловушка Node 26                                                                             | 1.1, 3.1, 3.2, шаги 1-2                           |
+| B2                                               | AI-готовность                  | нет одноразового окружения одной командой; `setup-dev` пишет в чекаут                                                    | 1.2, 3.3, шаг 3                                   |
+| A13                                              | AI-готовность                  | скилл без установки, окружения, примеров, политики undo; `agent-cycle.md` не исполняем                                   | 1.3, 1.4, 3.4, 3.5, шаги 4-5                      |
+| B6                                               | AI-готовность                  | дрейф документации (`LOG_LEVEL`, `--json`, `--generation`, пины Node, `--password-op`, `TIMEZONE`, чек-лист как приёмка) | 1.5, шаг 6                                        |
+| B8                                               | AI-готовность                  | сгенерированные файлы не помечены                                                                                        | 1.6, шаг 7                                        |
+| B7                                               | AI-готовность                  | `noUnusedLocals`, неиспользуемый `serverId`                                                                              | 1.7, шаг 8 (использование `serverId` в плане 03)  |
+| B9                                               | AI-готовность                  | смешение языков в ошибках                                                                                                | 1.8 (реализация в планах 03 и 04)                 |
+| (f) чек-лист                                     | AI-готовность                  | порядок работ                                                                                                            | 3.6                                               |
+| §9, §10 качества                                 | качество                       | `agent-cycle.md` в `tests/`, три пина Node, `--password-op` не в README, e2e пишет в `docs/`                             | 1.4, 1.5, 1.9, шаги 4, 6                          |
+| Ж6                                               | архитектура                    | мёртвые `TIMEZONE` (только migrate) и `LOG_LEVEL`                                                                        | 1.5, шаг 6 (документирование; решение в плане 06) |
+| план §10 `--json`                                | архитектура (d), стек          | документация обещает `--json` по TTY                                                                                     | шаг 6                                             |
+| побочный эффект ревью                            | сводка                         | e2e перезаписал `docs/reference/v2-validation/`                                                                          | 1.9, do-not-touch в 3.1                           |
+| Astra BL-NODE                                    | astra / TI-028                 | постоянный Node 24; ранний preflight до загрузки нативного модуля                                                        | 3.2, шаги 1-2; шаг 10                             |
+| Astra BL-DOCS                                    | astra / TI-033                 | дрейф документации; таблица «утверждение → код → поведение → документ»                                                   | 1.5, шаг 6; шаг 11                                |
+| Astra BL-AUTHORITY (текст скилла)                | astra / TI-027                 | политику undo и focus описывать после решения владельца                                                                  | 3.5; шаг 13                                       |
+| Astra B-04, FB:B-09, Astra B-01 (правила скилла) | astra / TI-008, TI-037, TI-001 | ограничение `digest`/`--since`; повтор при 409 на курсоре; поток после отзыва ключа                                      | шаг 13                                            |
+| Astra BL-LOCALIZATION, BL-PLURALS, BL-HISTORY    | astra / TI-030, TI-031, TI-032 | UX-пункты BACKLOG: русские ошибки и подписи, склонения, читаемая история                                                 | только ссылка; B9 частично в планах 03 и 04       |
+| Сверка (реестр)                                  | `issues.md`, `ASTRA-INDEX.md`  | реестр находок как точка входа для агентов                                                                               | шаг 12                                            |
 
 ## Сверка с ревью Astra (2026-09-08)
 
 Кратко: трека готовности к ИИ-агентам у Astra нет (`ASTRA-VS-FABLE.md` §2 и `reports/compare-quality-method.md`, раздел (e)): общий outbox, справка, форма OpenAPI, `CLAUDE.md`, sandbox, `--today`, `me`, курсор, `inbox`, EPIPE остаются только нашими, и Astra не назвала это пробелом. Пересечения: `astra-28-permanent-node-runtime.md` (BL-NODE, реестр TI-028) совпадает с B1 (preflight 3.2 и раздел «Окружение» в `CLAUDE.md`) и добавляет правила «один менеджер версий, один пин, сначала свежая проверка, не пересобирать нативный модуль под Node 26»; `astra-33-contract-documentation-reconciliation.md` (BL-DOCS, TI-033) совпадает с B6 (1.5, шаг 6) и добавляет таблицу сверки и правило «права tasks/write описывать после решения плана 27, до этого помечать как открытый вопрос»; `astra-30/31/32` (TI-030, TI-031, TI-032) это UX-пункты BACKLOG, здесь только ссылка (B9 с русской локалью Zod частично закрывает TI-030). После сверки существуют единый реестр `issues.md` (77 карточек) в корне репозитория и `ASTRA-INDEX.md`; `CLAUDE.md` должен направлять агентов туда. `ASTRA-VS-FABLE.md` §5 про sandbox («выдаёт только локальные тестовые credentials, не печатает рабочие секреты») совпадает с 3.3. Из `reports/compare-bugs.md` (раздел (e)) в SKILL.md добавляются ограничение `digest` (Astra B-04) и правило повтора при 409 на курсоре (B-09).
 
 ### Добавлено по итогам сверки
-| Пункт | Источник Astra | Реестр | План Astra | Что делаем здесь / где делается |
-|---|---|---|---|---|
-| Один менеджер версий и один пин; свежая проверка до починки; preflight до загрузки нативного модуля | BL-NODE | TI-028 | `astra-28`, шаги 1-3, 6 | 3.2 уже preflight; шаг 10 ниже |
-| Таблица сверки «утверждение → код/тест → фактическое поведение → документ»; исторические отчёты не переписываются | BL-DOCS | TI-033 | `astra-33`, шаги 1-2, 6 | 1.5, шаг 6; шаг 11 ниже |
-| Права агентов описывать после решения, до этого помечать открытым вопросом | BL-DOCS, BL-AUTHORITY | TI-033, TI-027 | `astra-33`, шаг 3; `astra-27` | шаг 13 ниже |
-| Реестр как точка входа; обязательный namespace при совпадающих коротких ID (`Astra:B-01` и `FB:B-01` разные находки) | `ASTRA-INDEX.md`, `issues.md` | все | нет | шаг 12 ниже |
-| Правила скилла из сверки: ограничение `digest`/`--since`, повтор при 409 на курсоре, поток после отзыва ключа | B-04, FB:B-09, B-01 | TI-008, TI-037, TI-001 | `astra-08`, `astra-01` | шаг 13 ниже |
-| Sandbox печатает только локальные тестовые credentials | `ASTRA-VS-FABLE.md` §5 | TI-053 | нет | 3.3 уже; без изменений |
-| Рабочая приёмка после исправлений | BL-ACCEPTANCE | TI-034 | `astra-34-release-and-owner-acceptance.md` | 3.4 (`agent-cycle.mts`, `docs/acceptance`) это исполняемая часть; релизная приёмка в плане 11 |
-| UX-пункты BACKLOG | BL-LOCALIZATION, BL-PLURALS, BL-HISTORY | TI-030, TI-031, TI-032 | `astra-30`, `astra-31`, `astra-32` | только ссылка |
+
+| Пункт                                                                                                                | Источник Astra                          | Реестр                 | План Astra                                 | Что делаем здесь / где делается                                                               |
+| -------------------------------------------------------------------------------------------------------------------- | --------------------------------------- | ---------------------- | ------------------------------------------ | --------------------------------------------------------------------------------------------- |
+| Один менеджер версий и один пин; свежая проверка до починки; preflight до загрузки нативного модуля                  | BL-NODE                                 | TI-028                 | `astra-28`, шаги 1-3, 6                    | 3.2 уже preflight; шаг 10 ниже                                                                |
+| Таблица сверки «утверждение → код/тест → фактическое поведение → документ»; исторические отчёты не переписываются    | BL-DOCS                                 | TI-033                 | `astra-33`, шаги 1-2, 6                    | 1.5, шаг 6; шаг 11 ниже                                                                       |
+| Права агентов описывать после решения, до этого помечать открытым вопросом                                           | BL-DOCS, BL-AUTHORITY                   | TI-033, TI-027         | `astra-33`, шаг 3; `astra-27`              | шаг 13 ниже                                                                                   |
+| Реестр как точка входа; обязательный namespace при совпадающих коротких ID (`Astra:B-01` и `FB:B-01` разные находки) | `ASTRA-INDEX.md`, `issues.md`           | все                    | нет                                        | шаг 12 ниже                                                                                   |
+| Правила скилла из сверки: ограничение `digest`/`--since`, повтор при 409 на курсоре, поток после отзыва ключа        | B-04, FB:B-09, B-01                     | TI-008, TI-037, TI-001 | `astra-08`, `astra-01`                     | шаг 13 ниже                                                                                   |
+| Sandbox печатает только локальные тестовые credentials                                                               | `ASTRA-VS-FABLE.md` §5                  | TI-053                 | нет                                        | 3.3 уже; без изменений                                                                        |
+| Рабочая приёмка после исправлений                                                                                    | BL-ACCEPTANCE                           | TI-034                 | `astra-34-release-and-owner-acceptance.md` | 3.4 (`agent-cycle.mts`, `docs/acceptance`) это исполняемая часть; релизная приёмка в плане 11 |
+| UX-пункты BACKLOG                                                                                                    | BL-LOCALIZATION, BL-PLURALS, BL-HISTORY | TI-030, TI-031, TI-032 | `astra-30`, `astra-31`, `astra-32`         | только ссылка                                                                                 |
 
 ### Расхождения и решение
+
 - Права в скилле. 3.5 формулирует политику A (агент отменяет только свои операции, `focus` только владелец) как факт; `astra-33` шаг 3 требует описывать права после решения плана 27 и до этого помечать открытым вопросом. Решение: текст 3.5 остаётся, но с пометкой «по решению владельца (план 02, раздел 3.2)» до записи решения (шаг 13); `tests/cli/skill.test.ts` это не затрагивает.
 - Node. `astra-28`: не ставить несколько менеджеров параллельно, сначала свежая проверка; `CLAUDE.md` в 3.1 называет и `fnm`/`nvm`, и путь `/private/tmp/...`. Решение: до выбора владельцем (BACKLOG, TI-028) оба пути остаются с пометкой «временно»; после выбора `CLAUDE.md` называет один менеджер и путь `/private/tmp` удаляется (шаг 10).
 - У Astra нет `CLAUDE.md`, `AGENTS.md`, sandbox, исполняемого агентского цикла и теста «скилл против справки»; противоречия нет, трек только наш.
 - OpenAPI и `taskindex openapi`: совместимо с `ASTRA-VS-FABLE.md` §4.4 («сделать полезным для агента»); решение в плане 04.
 
 ### Дополнительные шаги
+
 10. Node (`astra-28`). После того как владелец закрепит постоянный Node 24 на машине (BACKLOG, TI-028; действие вне репозитория): раздел «Окружение» в `CLAUDE.md` называет только выбранный менеджер, упоминание `/private/tmp/taskindex-v2-tools/...` удаляется; `tests/unit/docs.test.ts` проверяет, что `CLAUDE.md` не содержит `/private/tmp`; `scripts/preflight.mjs` без изменений (это шаг 3 `astra-28`). Шаги 1-2 и 5-6 `astra-28` (свежая проверка `command -v`/`realpath`, один менеджер, `npm ci` только под 24, без пересборки под 26, согласование с Docker) это действия на машине владельца и записываются в BACKLOG, не в код.
 11. Таблица сверки документации (`astra-33`, шаг 1) в разделе «Отклонения от плана» файла `docs/plans/2026-09-08-taskindex-v2.md` (создаётся шагом 6): колонки «утверждение → код/тест → фактическое поведение → документ → статус (принято / реализовано / открыто / запланировано, план NN)». Заполнить строками из 1.5 и пунктами `astra-33`: порядок с архивными соседями, выключенный rate limit ключей, проверка привязки ключа, `approved_deployment`, fingerprint страниц, фактический SQLite backup, уже реализованный `event: operations`. Исторические отчёты (`docs/audits/**`, `reports/`) не переписываются (`astra-33`, шаг 2). `tests/unit/docs.test.ts` дополняется: каждый путь файла из таблицы существует.
 12. `CLAUDE.md`, новый раздел «Реестр находок и планы» после абзаца «Истина по объёму…» в 3.1: `issues.md` в корне репозитория это источник статуса и приоритета (карточки TI-NNN, 77 записей); планы этого ревью: `docs/plans/2026-09-08-v2-review/README.md` (планы 01-12) и `ASTRA-INDEX.md` (`astra-01`…`astra-34`); правило: перед исправлением прочитать карточку, после исправления обновить её статус с revision и тестом; namespace обязателен (`Astra:B-01` и `FB:B-01` разные находки); новая находка сначала становится карточкой. `docs/audits/**` остаётся в списке «Не трогать».

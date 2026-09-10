@@ -29,10 +29,10 @@ Call log:
 
 ```yaml
 - dialog "Переименовать направление":
-  - heading "Переименовать направление" [level=2]
-  - paragraph: Агентство
-  - group
-  - button "Close"
+    - heading "Переименовать направление" [level=2]
+    - paragraph: Агентство
+    - group
+    - button "Close"
 ```
 
 # Test source
@@ -40,7 +40,7 @@ Call log:
 ```ts
   1   | import { test, expect, type Page } from '@playwright/test';
   2   | import { randomUUID } from 'node:crypto';
-  3   | 
+  3   |
   4   | // These assert the desired behavior. The audited implementation fails them.
   5   | const origin = 'http://localhost:4198';
   6   | async function snapshot(page: Page) {
@@ -74,7 +74,7 @@ Call log:
   34  |   await page.getByRole('button', { name: 'Войти', exact: true }).click();
   35  |   await expect(page.getByRole('heading', { name: 'Агентство', exact: true })).toBeVisible();
   36  | });
-  37  | 
+  37  |
   38  | test('B01 saving tab B must not delete the unsaved task draft in tab A', async ({ page, context }) => {
   39  |   await task(page, 'B01 исходное название');
   40  |   await open(page, 'B01 исходное название');
@@ -92,7 +92,7 @@ Call log:
   52  |   await open(page, 'B01 сохранено в Б');
   53  |   await expect(page.getByRole('textbox', { name: 'Название задачи', exact: true })).toHaveValue('B01 важный несохранённый текст');
   54  | });
-  55  | 
+  55  |
   56  | test('B02 clearing a comment draft must stay cleared after reopening', async ({ page }) => {
   57  |   await task(page, 'B02 комментарий');
   58  |   await open(page, 'B02 комментарий');
@@ -105,7 +105,7 @@ Call log:
   65  |   await page.getByRole('button', { name: 'Комментарии 0', exact: true }).click();
   66  |   await expect(field).toHaveValue('');
   67  | });
-  68  | 
+  68  |
   69  | test('B03 quick-create must consume the inline draft after creating its task', async ({ page }) => {
   70  |   await task(page, 'B03 доска не пуста');
   71  |   const add = page.getByRole('button', { name: 'Добавить задачу', exact: true });
@@ -120,7 +120,7 @@ Call log:
   80  |   await add.nth(1).click();
   81  |   await expect(field).toHaveValue('');
   82  | });
-  83  | 
+  83  |
   84  | test('B04 a project conflict must recover after reopening on the current revision', async ({ page }) => {
   85  |   const id = randomUUID();
   86  |   expect((await command(page, 'project.create', { id, area: 'agency', name: 'B04 направление', color: '#3465df' })).ok()).toBe(true);
@@ -140,7 +140,7 @@ Call log:
 > 100 |   await expect(page.getByRole('dialog', { name: 'Переименовать направление', exact: true })).toBeHidden();
       |                                                                                              ^ Error: expect(locator).toBeHidden() failed
   101 | });
-  102 | 
+  102 |
   103 | test('B05 current version control must remain on-screen at mobile width', async ({ page }) => {
   104 |   const id = await task(page, 'B05 мобильный конфликт');
   105 |   await page.setViewportSize({ width: 320, height: 568 });
@@ -153,7 +153,7 @@ Call log:
   112 |   const box = (await summary.boundingBox())!;
   113 |   expect(box.x, 'The current-version control must be reachable without leaving the viewport').toBeGreaterThanOrEqual(0);
   114 | });
-  115 | 
+  115 |
   116 | test('B06 open activity must receive a new rejected operation without a data mutation', async ({ page }) => {
   117 |   await page.getByRole('button', { name: 'Активность', exact: true }).click();
   118 |   await expect(page.getByText('Загружаем активность…', { exact: true })).toBeHidden();
@@ -162,5 +162,5 @@ Call log:
   121 |   expect((await command(page, 'task.update', { id: randomUUID(), baseRevision: 1, title: 'B06 отказ' })).status()).toBe(404);
   122 |   await expect(rejected).toHaveCount(before + 1);
   123 | });
-  124 | 
+  124 |
 ```

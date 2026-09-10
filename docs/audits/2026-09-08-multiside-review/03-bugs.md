@@ -8,16 +8,16 @@
 
 ## Сводка
 
-| ID | Приоритет | Дефект | Уверенность |
-|---|---|---|---|
-| B-01 | P1 | Отозванный ключ продолжает получать новые приватные данные через открытый SSE | Высокая; воспроизведено |
-| B-02 | P2 | Ручное обновление накрывает уже полученные SSE-события более старым снимком | Высокая; воспроизведено |
-| B-03 | P2 | CLI удаляет outbox после произвольного JSON с HTTP 200 | Высокая; воспроизведено |
-| B-04 | P2 | `digest` и инкрементальная активность навсегда пропускают операции без событий | Высокая; воспроизведено |
-| B-05 | P2 | Валидный `checklist.add`, нарушивший лимит итогового состояния, не сохраняет окончательный отказ | Высокая; воспроизведено |
-| B-06 | P2 | Разрешённый project ID `none` / `all` пересекается со служебными фильтрами | Высокая; `none` воспроизведён, `all` подтверждён кодом |
-| B-07 | P2 | Разрешённый task ID `by-origin` невозможно прочитать по адресу задачи | Высокая; воспроизведено |
-| B-08 | P2 | При запрете доступа к `localStorage` браузер отправляет команды без сохраняемого конверта | Высокая; воспроизведено |
+| ID   | Приоритет | Дефект                                                                                           | Уверенность                                            |
+| ---- | --------- | ------------------------------------------------------------------------------------------------ | ------------------------------------------------------ |
+| B-01 | P1        | Отозванный ключ продолжает получать новые приватные данные через открытый SSE                    | Высокая; воспроизведено                                |
+| B-02 | P2        | Ручное обновление накрывает уже полученные SSE-события более старым снимком                      | Высокая; воспроизведено                                |
+| B-03 | P2        | CLI удаляет outbox после произвольного JSON с HTTP 200                                           | Высокая; воспроизведено                                |
+| B-04 | P2        | `digest` и инкрементальная активность навсегда пропускают операции без событий                   | Высокая; воспроизведено                                |
+| B-05 | P2        | Валидный `checklist.add`, нарушивший лимит итогового состояния, не сохраняет окончательный отказ | Высокая; воспроизведено                                |
+| B-06 | P2        | Разрешённый project ID `none` / `all` пересекается со служебными фильтрами                       | Высокая; `none` воспроизведён, `all` подтверждён кодом |
+| B-07 | P2        | Разрешённый task ID `by-origin` невозможно прочитать по адресу задачи                            | Высокая; воспроизведено                                |
+| B-08 | P2        | При запрете доступа к `localStorage` браузер отправляет команды без сохраняемого конверта        | Высокая; воспроизведено                                |
 
 ## B-01. Отзыв ключа не закрывает уже открытый SSE
 
@@ -43,7 +43,11 @@
 Доказательство: `03-probes.ts`, секция `revoked-key-keeps-live-sse-access`; `03-probe-results.json`:
 
 ```json
-{"freshRequestStatus":403,"mutationStatus":200,"receivedPostRevocationTitle":true}
+{
+  "freshRequestStatus": 403,
+  "mutationStatus": 200,
+  "receivedPostRevocationTitle": true
+}
 ```
 
 ## B-02. Более старый snapshot стирает уже принятый SSE при ручном refresh
@@ -67,9 +71,9 @@
 
 ```json
 {
-  "afterEvent":{"seq":1,"tasks":1},
-  "afterSnapshot":{"seq":0,"tasks":0,"connected":true},
-  "requests":["/api/snapshot"]
+  "afterEvent": { "seq": 1, "tasks": 1 },
+  "afterSnapshot": { "seq": 0, "tasks": 0, "connected": true },
+  "requests": ["/api/snapshot"]
 }
 ```
 
@@ -90,7 +94,11 @@
 Доказательство: `03-probes.ts`, секция `cli-deletes-outbox-without-operation-result`:
 
 ```json
-{"reply":{"status":200,"body":{"status":"maintenance"}},"exitCode":0,"outboxExists":false}
+{
+  "reply": { "status": 200, "body": { "status": "maintenance" } },
+  "exitCode": 0,
+  "outboxExists": false
+}
 ```
 
 ## B-04. `digest` / `operations?since=` теряют no-op и отклонённые операции
@@ -113,7 +121,11 @@
 Доказательство: `03-probes.ts`, секция `digest-and-since-exclude-no-event-operations`:
 
 ```json
-{"activityIds":["rejected","no-effect","initial"],"filteredIds":["initial"],"digestIds":["initial"]}
+{
+  "activityIds": ["rejected", "no-effect", "initial"],
+  "filteredIds": ["initial"],
+  "digestIds": ["initial"]
+}
 ```
 
 Обычная UI-лента без `since` получает эти операции корректно; SSE invalidation `event: operations` существует и не исправляет API-фильтр.
@@ -140,7 +152,15 @@
 Доказательство: `03-probes.ts`, секция `invariant-rejection-is-not-idempotently-recorded`:
 
 ```json
-{"failed":{"status":400,"body":{"ok":false,"code":"invalid","retryable":false}},"operationGetStatus":404,"reusedStatus":200,"reusedOk":true}
+{
+  "failed": {
+    "status": 400,
+    "body": { "ok": false, "code": "invalid", "retryable": false }
+  },
+  "operationGetStatus": 404,
+  "reusedStatus": 200,
+  "reusedOk": true
+}
 ```
 
 ## B-06. Разрешённые project ID пересекаются с `none` / `all`
@@ -162,7 +182,12 @@
 Доказательство: `03-id-probes.ts`, `03-id-probe-results.json`:
 
 ```json
-{"projectCreationStatus":200,"requestedProjectId":"none","expectedTaskIds":["inside-project"],"actualTaskIds":["unassigned"]}
+{
+  "projectCreationStatus": 200,
+  "requestedProjectId": "none",
+  "expectedTaskIds": ["inside-project"],
+  "actualTaskIds": ["unassigned"]
+}
 ```
 
 ## B-07. Задача `by-origin` создаётся, но её GET попадает в другой endpoint
@@ -208,7 +233,14 @@ B-06 и B-07 объединены только общим недостатком
 Доказательство: `03-storage-probe.ts`, `03-storage-probe-result.json`:
 
 ```json
-{"storageGetter":"SecurityError","resolvedStorage":"undefined","postCount":4,"beforeReloadPending":1,"afterReloadPending":0,"draftPersistedAcrossInstance":false}
+{
+  "storageGetter": "SecurityError",
+  "resolvedStorage": "undefined",
+  "postCount": 4,
+  "beforeReloadPending": 1,
+  "afterReloadPending": 0,
+  "draftPersistedAcrossInstance": false
+}
 ```
 
 ## Воспроизведение и границы проверки
