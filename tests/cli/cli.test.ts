@@ -83,6 +83,119 @@ async function setup(
   };
 }
 
+describe('CLI argument errors name the field and the fix', () => {
+  it('TI-046: a missing baseRevision is reported in Russian with a path and a hint about task get', async () => {
+    let requests = 0;
+    const test = await setup(() => {
+      requests += 1;
+      return json({});
+    });
+    expect(await test.run(['task', 'move', 't1', '--status', 'doing'])).toBe(2);
+    expect(requests).toBe(0);
+    const issues = test.output.at(-1)?.issues as {
+      path: string;
+      message: string;
+      hint?: string;
+    }[];
+    expect(test.output.at(-1)).toMatchObject({
+      ok: false,
+      code: 'invalid_arguments',
+    });
+    expect(issues[0]).toMatchObject({ path: 'baseRevision' });
+    expect(issues[0]!.message).toMatch(/[а-я]/);
+    expect(issues[0]!.message).not.toMatch(/Invalid input/);
+    expect(issues[0]!.hint).toContain('task get');
+    expect(issues[0]!.hint).toContain('--base-revision');
+    expect(
+      await test.run([
+        'task',
+        'move',
+        't1',
+        '--base-revision',
+        '2',
+        '--status',
+        'later',
+      ]),
+    ).toBe(2);
+    const status = (
+      test.output.at(-1)!.issues as { path: string; hint?: string }[]
+    )[0]!;
+    expect(status.path).toBe('status');
+    expect(status.hint).toBe('Допустимо: todo, doing, waiting, done');
+    expect(
+      await test.run([
+        'task',
+        'create',
+        '--area',
+        'agency',
+        '--titel',
+        'Опечатка',
+      ]),
+    ).toBe(2);
+    expect(test.output.at(-1)).toMatchObject({
+      code: 'invalid_arguments',
+      message: 'Флаг --titel не поддерживается командой task create',
+      hint: 'taskindex help task create',
+    });
+    expect(
+      await test.run([
+        'task',
+        'create',
+        '--payload',
+        '{"area":"agency","titel":"Опечатка","checklist":[{"id":"s1","text":"","done":false}]}',
+      ]),
+    ).toBe(2);
+    const paths = (test.output.at(-1)!.issues as { path: string }[]).map(
+      (issue) => issue.path,
+    );
+    expect(paths).toContain('title');
+    expect(paths).toContain('checklist[0].text');
+    expect(paths.some((path) => path === '' || path === 'payload')).toBe(true);
+  });
+
+  it('TI-046: issues sent by the server are printed as they are, with a hint when the field is known', async () => {
+    const test = await setup(() =>
+      json(
+        {
+          ok: false,
+          code: 'invalid',
+          message: 'Проверьте поля запроса.',
+          retryable: false,
+          issues: [
+            { path: 'payload.origin.version', message: 'Неверный ввод' },
+            { path: 'payload.custom', message: 'Лишнее поле' },
+          ],
+        },
+        400,
+      ),
+    );
+    expect(
+      await test.run([
+        'task',
+        'sync',
+        '--origin',
+        '{"system":"telegram","ref":"1","version":"x"}',
+        '--fields',
+        '{"area":"agency","title":"Т"}',
+        '--generation',
+        'g_first',
+      ]),
+    ).toBe(1);
+    expect(test.output.at(-1)).toMatchObject({
+      ok: false,
+      code: 'invalid',
+      issues: [
+        {
+          path: 'payload.origin.version',
+          message: 'Неверный ввод',
+          hint: 'Упорядоченная версия самого источника, не время наблюдения',
+        },
+        { path: 'payload.custom', message: 'Лишнее поле' },
+      ],
+    });
+  });
+});
+
 describe('CLI durable operations', () => {
   it('requires the saved generation with a nonzero event cursor', async () => {
     let requests = 0;

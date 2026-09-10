@@ -18,6 +18,7 @@ import {
 } from './arguments.js';
 import { acknowledgeStored } from './acknowledge.js';
 import { ApiClient, exitCode, type ApiReply } from './client.js';
+import { configureLocale, formatIssues, withHints } from './errors.js';
 import { renderHelp } from './help.js';
 import {
   CorruptEnvelopeError,
@@ -119,7 +120,7 @@ async function runResume(session: Session, id?: string): Promise<number> {
   let code = 0;
   for (const operation of operations) {
     const reply = await client.resume(outbox, operation!);
-    emit(reply.body);
+    emit(withHints(reply.body));
     code = Math.max(code, exitCode(reply));
   }
   if (!operations.length) emit({ ok: true, resumed: 0 });
@@ -283,7 +284,9 @@ async function runWrite(
       emit({
         ok: false,
         code: 'invalid_arguments',
-        issues: validation.error.issues,
+        message: `Проверьте поля команды ${command}`,
+        issues: formatIssues(validation.error.issues),
+        hint: `taskindex help ${spec.group} ${spec.action ?? ''}`.trim(),
       });
       return 2;
     }
@@ -319,7 +322,8 @@ async function runWrite(
     emit({
       ok: false,
       code: 'invalid_arguments',
-      issues: parsedEnvelope.error.issues,
+      message: 'Проверьте конверт операции',
+      issues: formatIssues(parsedEnvelope.error.issues),
     });
     return 2;
   }
@@ -331,7 +335,7 @@ async function runWrite(
     savedAt: saved?.savedAt ?? new Date().toISOString(),
     envelope: parsedEnvelope.data,
   });
-  emit(reply.body);
+  emit(withHints(reply.body));
   return exitCode(reply);
 }
 
@@ -422,6 +426,7 @@ export async function runCli(
   const emit = (value: unknown) => output(JSON.stringify(value));
   const warn = (value: unknown) => diagnostic(JSON.stringify(value));
   try {
+    configureLocale();
     switches ??= booleanFlagNames();
     const args = parseArguments(argv, switches);
     const [group, ...rest] = args.positional;

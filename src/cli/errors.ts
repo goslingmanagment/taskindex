@@ -18,3 +18,94 @@ export const CLI_ERROR_CODES = [
 
 export const cliErrorCodeSchema = z.enum(CLI_ERROR_CODES);
 export type CliErrorCode = z.infer<typeof cliErrorCodeSchema>;
+
+// Zod speaks Russian in the CLI process, like the server's own messages;
+// idempotent, so tests that import the CLI may call it any number of times.
+let localized = false;
+export function configureLocale(): void {
+  if (localized) return;
+  z.config(z.locales.ru());
+  localized = true;
+}
+
+export interface Issue {
+  path: string;
+  message: string;
+  hint?: string;
+}
+
+// What to do about a field, by its last path segment or the full path.
+export const HINTS: Record<string, string> = {
+  baseRevision:
+    'Возьмите revision из `taskindex task get ID` и передайте `--base-revision N`',
+  area: 'Допустимо: agency, development, personal',
+  status: 'Допустимо: todo, doing, waiting, done',
+  'origin.version':
+    'Упорядоченная версия самого источника, не время наблюдения',
+  'origin.system': 'Слаг источника: строчные латинские буквы, цифры, `_`, `-`',
+  generation:
+    'Возьмите generation из `taskindex me` или используйте `--since last`',
+  id: 'Идентификатор: латиница, цифры, `_`, `-`, до 80 символов',
+  taskId: 'Идентификатор: латиница, цифры, `_`, `-`, до 80 символов',
+  itemId: 'Идентификатор: латиница, цифры, `_`, `-`, до 80 символов',
+  commentId: 'Идентификатор: латиница, цифры, `_`, `-`, до 80 символов',
+  projectId: 'Идентификатор проекта или null (без проекта)',
+  due: 'Календарная дата YYYY-MM-DD или null',
+  followUp: 'Календарная дата YYYY-MM-DD или null',
+  color: 'Цвет в форме #rrggbb',
+  focus: 'focus ставит только владелец; агент это поле не передаёт',
+};
+
+// `a.b[0].c` from a Zod path; a server issue already carries a string.
+export function formatPath(
+  path: (string | number | symbol)[] | string,
+): string {
+  if (typeof path === 'string') return path;
+  return path.reduce<string>(
+    (text, segment) =>
+      typeof segment === 'number'
+        ? `${text}[${segment}]`
+        : text
+          ? `${text}.${String(segment)}`
+          : String(segment),
+    '',
+  );
+}
+
+export function hintFor(path: string): string | undefined {
+  const bare = path.replace(/^(payload|commands\[\d+\]\.payload|fields)\./, '');
+  const segments = bare.replace(/\[\d+\]/g, '').split('.');
+  return (
+    HINTS[bare] ??
+    HINTS[segments.slice(-2).join('.')] ??
+    HINTS[segments.at(-1) ?? '']
+  );
+}
+
+interface RawIssue {
+  path?: (string | number | symbol)[] | string;
+  message?: string;
+  hint?: string;
+}
+
+// Local Zod issues and server `issues` alike become {path, message, hint}.
+export function formatIssues(issues: readonly RawIssue[]): Issue[] {
+  return issues.map((issue) => {
+    const path = formatPath(issue.path ?? []);
+    const hint = issue.hint ?? hintFor(path);
+    return {
+      path,
+      message: issue.message ?? 'Неверное значение',
+      ...(hint ? { hint } : {}),
+    };
+  });
+}
+
+// A server reply is printed as it is; only a hint is added where the CLI
+// knows what to do next (validation issues by field).
+export function withHints(
+  body: Record<string, unknown>,
+): Record<string, unknown> {
+  if (body.ok !== false || !Array.isArray(body.issues)) return body;
+  return { ...body, issues: formatIssues(body.issues as RawIssue[]) };
+}
