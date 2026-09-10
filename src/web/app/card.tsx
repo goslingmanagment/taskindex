@@ -12,6 +12,8 @@ import {
 } from 'lucide-react';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
+import { AREAS, STATUSES, type Task } from '@shared/model';
+import { dateLabel } from '@shared/queries';
 import { Button } from '../ui/button';
 import {
   DropdownMenu,
@@ -21,35 +23,15 @@ import {
   DropdownMenuSeparator,
 } from '../ui/dropdown-menu';
 import { toast } from '../ui/toast';
-import {
-  AREAS,
-  STATUSES,
-  dateLabel,
-  type Task,
-  type Status,
-  type WorkspaceData,
-} from '../lib/workspace';
+import { useWorkspace } from './use-workspace';
+import { useWorkspaceCommands } from './use-workspace-commands';
+import { useNavigation } from './navigation';
 type TaskCardProps = {
   task: Task;
-  data: WorkspaceData;
-  projectId: string;
-  globalView: boolean;
+  /** Экран показывает задачи всех областей: подписываем область и состояние. */
+  showContext: boolean;
   pending: boolean;
-  today: string;
   disabled: boolean;
-  setSelected: (task: Task) => void;
-  change: (
-    task: Task,
-    patch: Partial<Task>,
-    message: string,
-  ) => Promise<unknown>;
-  move: (
-    task: Task,
-    status: Status,
-    before?: Task,
-    after?: Task,
-  ) => Promise<unknown>;
-  first: (task: Task) => Promise<unknown>;
 };
 function safely(promise: Promise<unknown>) {
   void promise.catch((error) =>
@@ -69,15 +51,8 @@ export function TaskCard(props: TaskCardProps) {
 }
 export function TaskCardContent({
   task,
-  data,
-  projectId,
-  globalView,
+  showContext,
   pending,
-  today,
-  setSelected,
-  change,
-  move,
-  first,
   disabled,
   sortable,
 }: TaskCardProps & { sortable?: ReturnType<typeof useSortable> }) {
@@ -90,7 +65,11 @@ export function TaskCardContent({
     transition,
     isDragging,
   } = sortable ?? {};
-  const p = data.projects.find((p) => p.id === task.projectId);
+  const { data, today } = useWorkspace();
+  const { location, openTask } = useNavigation();
+  const { setStatus, toggleArchive, saveFields, moveToQueueTop } =
+    useWorkspaceCommands();
+  const p = data.projects.find((project) => project.id === task.projectId);
   return (
     <article
       ref={setNodeRef}
@@ -100,17 +79,25 @@ export function TaskCardContent({
       }}
       className={`task-card ${task.status === 'done' ? 'task-done' : ''} ${isDragging ? 'dragging' : ''}`}
     >
+      {/* Оверлей вместо клика по `<article>`: сама карточка не фокусируется, а
+          оверлей даёт одну цель для мыши, касания и фокуса. Он делит
+          `listeners` dnd-kit, чтобы перенос начинался с любого места карточки;
+          `onKeyDown={undefined}` снимает клавиатурный активатор dnd-kit — иначе
+          Enter и пробел начинали бы перенос вместо открытия, а клавиатурный
+          перенос живёт на отдельной ручке ниже. */}
       <button
         {...listeners}
+        type="button"
         onKeyDown={undefined}
         className="card-open"
         data-task-open={task.id}
-        onClick={() => setSelected(task)}
+        onClick={() => openTask(task.id)}
         aria-label={'Открыть: ' + task.title}
       />
       <div className="task-title-row">
         <button
-          disabled={!!pending}
+          type="button"
+          disabled={pending}
           className="complete-circle"
           aria-label={
             task.archived
@@ -121,17 +108,15 @@ export function TaskCardContent({
           }
           onClick={() =>
             safely(
-              change(
-                task,
-                task.archived
-                  ? { archived: false }
-                  : { status: task.status === 'done' ? 'todo' : 'done' },
-                task.archived
-                  ? 'Задача возвращена'
-                  : task.status === 'done'
-                    ? 'Возвращено в очередь'
-                    : 'Задача готова',
-              ),
+              task.archived
+                ? toggleArchive(task, 'Задача возвращена')
+                : setStatus(
+                    task,
+                    task.status === 'done' ? 'todo' : 'done',
+                    task.status === 'done'
+                      ? 'Возвращено в очередь'
+                      : 'Задача готова',
+                  ),
             )
           }
         >
@@ -152,7 +137,7 @@ export function TaskCardContent({
         </p>
       )}
       <div className="card-label-row">
-        {globalView && (
+        {showContext && (
           <span className="task-context">
             {AREAS.find((a) => a.id === task.area)?.name} ·{' '}
             {STATUSES.find((s) => s.id === task.status)?.name}
@@ -164,7 +149,7 @@ export function TaskCardContent({
             <Star size={13} fill="currentColor" />В фокусе
           </span>
         )}
-        {p && (globalView || projectId !== p.id) && (
+        {p && (showContext || location.project !== p.id) && (
           <span className="project-tag">
             <span className="tag-dot" style={{ background: p.color }} />
             {p.name}
@@ -220,10 +205,10 @@ export function TaskCardContent({
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end">
           <DropdownMenuItem
-            disabled={!!pending || task.archived || task.status === 'done'}
+            disabled={pending || task.archived || task.status === 'done'}
             onClick={() =>
               safely(
-                change(
+                saveFields(
                   task,
                   { focus: !task.focus },
                   task.focus ? 'Задача убрана из фокуса' : 'Задача в фокусе',
@@ -238,8 +223,8 @@ export function TaskCardContent({
           {STATUSES.map((s) => (
             <DropdownMenuItem
               key={s.id}
-              disabled={!!pending || task.status === s.id}
-              onClick={() => safely(move(task, s.id))}
+              disabled={pending || task.status === s.id}
+              onClick={() => safely(setStatus(task, s.id))}
             >
               <span className="status-dot" style={{ background: s.color }} />
               {s.name}
@@ -247,22 +232,14 @@ export function TaskCardContent({
           ))}
           <DropdownMenuSeparator />
           <DropdownMenuItem
-            disabled={!!pending}
-            onClick={() => safely(first(task))}
+            disabled={pending}
+            onClick={() => safely(moveToQueueTop(task))}
           >
             <ArrowUp />В начало очереди
           </DropdownMenuItem>
           <DropdownMenuItem
-            disabled={!!pending}
-            onClick={() =>
-              safely(
-                change(
-                  task,
-                  { archived: !task.archived },
-                  task.archived ? 'Задача возвращена' : 'Задача в архиве',
-                ),
-              )
-            }
+            disabled={pending}
+            onClick={() => safely(toggleArchive(task))}
           >
             <Archive />
             {task.archived ? 'Вернуть из архива' : 'В архив'}
@@ -271,6 +248,7 @@ export function TaskCardContent({
       </DropdownMenu>
       {!disabled && sortable && (
         <button
+          type="button"
           ref={setActivatorNodeRef}
           {...attributes}
           {...listeners}

@@ -1,3 +1,7 @@
+// oxlint-disable jsx-a11y/prefer-tag-over-role -- план 07, §3.9: `<output>` это
+// результат вычисления и по HTML принимает только фразовое содержимое, а здесь
+// внутри живут абзацы, `pre` и кнопки. Роль `status` даёт ту же живую область
+// без нарушения модели содержимого.
 import { useEffect, useRef, useState, useSyncExternalStore } from 'react';
 import { LIMITS } from '@shared/limits';
 import type {
@@ -32,11 +36,18 @@ import {
   pageSchema,
   storedOperationSchema,
 } from '@shared/domain-schemas';
-import { request } from './api';
+import { ApiError, request } from './api';
 import { workspaceStore } from './store';
 import { commandLabels, taskCount } from './labels';
 import { actorOptions, ALL_ACTORS, describeEvent } from './history';
-import { readDraft, writeDraft, clearDraft } from './drafts';
+import { useDraft } from './use-draft';
+import {
+  commentAddCommand,
+  commentRemoveCommand,
+  undoCommand,
+} from './commands';
+import { latestSeqForTask } from './selectors';
+import { useWorkspace } from './use-workspace';
 const labels = commandLabels;
 function time(value: string) {
   return new Date(value).toLocaleString('ru-RU', {
@@ -49,7 +60,7 @@ function time(value: string) {
 }
 async function undo(payload: { seq: number } | { operationId: string }) {
   try {
-    await workspaceStore.submit({ command: 'undo', payload });
+    await workspaceStore.submit(undoCommand(payload));
     toast.add({ title: 'Изменение отменено', type: 'success' });
   } catch (error) {
     toast.add({
@@ -128,6 +139,8 @@ export function Activity({
     workspaceStore.getSnapshot,
   );
   const [page, setPage] = useState<Page<OperationSummary> | null>(null),
+    // План 01, доп. 16: страницы ленты собраны из разных позиций журнала.
+    [changed, setChanged] = useState(false),
     [error, setError] = useState(''),
     [busy, setBusy] = useState(false),
     [agents, setAgents] = useState<Context['agents'] | null>(null),
@@ -202,17 +215,44 @@ export function Activity({
     if (!page?.nextCursor || busy || loading) return;
     setBusy(true);
     const flight = requestVersion.current;
+    const first = `/api/operations?limit=50${query}`;
     try {
       const next = await request(
-        `/api/operations?limit=50${query}&cursor=${encodeURIComponent(page.nextCursor)}`,
+        `${first}&cursor=${encodeURIComponent(page.nextCursor)}`,
         pageSchema(operationSummarySchema),
       );
       if (flight.active) {
         const items = [...page.items, ...next.items];
         loadedCount.current = items.length;
         setPage({ ...next, items });
+        // Позиция журнала между страницами разъехалась: показанный список
+        // склеен из разных состояний, и об этом честнее сказать.
+        setChanged(next.seq !== page.seq);
       }
     } catch (error) {
+      // Курсор устарел (журнал усечён или сменилось поколение): единственный
+      // согласованный ответ — перечитать с первой страницы.
+      if (error instanceof ApiError && error.status === 409) {
+        try {
+          const restart = await request(
+            first,
+            pageSchema(operationSummarySchema),
+          );
+          if (flight.active) {
+            loadedCount.current = restart.items.length;
+            setPage(restart);
+            setChanged(true);
+            setError('');
+          }
+          return;
+        } catch (retry) {
+          if (flight.active)
+            setError(
+              retry instanceof Error ? retry.message : 'Не удалось загрузить.',
+            );
+          return;
+        }
+      }
       if (flight.active)
         setError(
           error instanceof Error ? error.message : 'Не удалось загрузить.',
@@ -256,7 +296,12 @@ export function Activity({
           {error}
         </p>
       )}
-      {!page && !error && <output>Загружаем активность…</output>}
+      {changed && (
+        <p className="focus-hint" role="status">
+          Список изменился во время загрузки
+        </p>
+      )}
+      {!page && !error && <p role="status">Загружаем активность…</p>}
       {page && !page.items.length && (
         <p className="focus-hint">
           {actor
@@ -343,7 +388,7 @@ function OperationRow({ operation }: { operation: OperationSummary }) {
       )}
       <CollapsibleContent>
         {error && <p role="alert">{error}</p>}
-        {!detail && !error && <output>Загружаем изменения…</output>}
+        {!detail && !error && <p role="status">Загружаем изменения…</p>}
         {detail && !detail.result.ok && !operation.errorMessage && (
           <p className="form-error">
             Операция отклонена: {detail.result.message}
@@ -360,10 +405,7 @@ function OperationRow({ operation }: { operation: OperationSummary }) {
   );
 }
 export function TaskDiscussion({ task }: { task: Task }) {
-  const { seq, generation } = useSyncExternalStore(
-    workspaceStore.subscribe,
-    workspaceStore.getSnapshot,
-  );
+  const { generation, lastEvents, connected } = useWorkspace();
   const [commentsOpen, setCommentsOpen] = useState(false),
     [historyOpen, setHistoryOpen] = useState(false);
   const [comments, setComments] = useState<Page<Comment> | null>(null),
@@ -371,31 +413,27 @@ export function TaskDiscussion({ task }: { task: Task }) {
   const [error, setError] = useState(''),
     [busy, setBusy] = useState(false);
   const key = `comment/${task.id}`;
-  const [initial] = useState(() => readDraft<{ text: string }>(key));
-  const [text, setText] = useState(
-    initial?.generation === generation ? initial.fields.text : '',
+  const [text, setText] = useState('');
+  const draft = useDraft<{ text: string }>(
+    key,
+    { text },
+    { enabled: text.length > 0 },
   );
-  const [intent, setIntent] = useState(() => ({
-    id:
-      initial?.generation === generation && initial.id
-        ? initial.id
-        : crypto.randomUUID(),
-    operationId:
-      initial?.generation === generation && initial.operationId
-        ? initial.operationId
-        : crypto.randomUUID(),
-  }));
+  const [seeded, setSeeded] = useState(false);
+  if (!seeded) {
+    setSeeded(true);
+    if (draft.fields?.text) setText(draft.fields.text);
+  }
+  // TI-063: обсуждение перечитывается по событиям своей задачи, а не по общему
+  // `seq`: правка соседней карточки больше не дёргает `/comments` и `/history`.
+  const relevantSeq = latestSeqForTask(lastEvents, task.id);
+  // Разрыв потока мог пропустить события: после восстановления связи читаем заново.
+  const [reconnects, setReconnects] = useState(0);
+  const wasConnected = useRef(connected);
   useEffect(() => {
-    if (text)
-      writeDraft(key, {
-        formatVersion: 1,
-        generation,
-        baseRevision: 0,
-        fields: { text },
-        ...intent,
-      });
-    else if (!initial || initial.generation === generation) clearDraft(key);
-  }, [text, key, generation, intent, initial]);
+    if (connected && !wasConnected.current) setReconnects((n) => n + 1);
+    wasConnected.current = connected;
+  }, [connected]);
   useEffect(() => {
     let active = true;
     const load = async () => {
@@ -428,23 +466,28 @@ export function TaskDiscussion({ task }: { task: Task }) {
     return () => {
       active = false;
     };
-  }, [task.id, seq, commentsOpen, historyOpen]);
+  }, [task.id, relevantSeq, generation, reconnects, commentsOpen, historyOpen]);
   async function add() {
     if (!text.trim() || busy) return;
     setBusy(true);
     setError('');
     try {
+      // TI-023: тот же конверт, пока прошлая отправка не завершилась
+      // окончательно; новый — только после отказа и правки текста.
+      draft.dispatch({ type: 'edit', signature: text.trim() });
+      const sending = draft.dispatch({ type: 'send', signature: text.trim() });
       await workspaceStore.submit(
-        {
-          command: 'comment.add',
-          payload: { taskId: task.id, id: intent.id, text: text.trim() },
-        },
-        intent.operationId,
+        commentAddCommand(task.id, draft.entity.current, text.trim()),
+        sending.operationId,
       );
-      clearDraft(key);
+      draft.dispatch({ type: 'success' });
+      draft.clear();
       setText('');
-      setIntent({ id: crypto.randomUUID(), operationId: crypto.randomUUID() });
     } catch (error) {
+      draft.dispatch({
+        type: 'reject',
+        retryable: !(error instanceof ApiError) || error.detail.retryable,
+      });
       setError(
         error instanceof Error ? error.message : 'Не удалось отправить.',
       );
@@ -454,10 +497,7 @@ export function TaskDiscussion({ task }: { task: Task }) {
   }
   async function remove(comment: Comment) {
     try {
-      await workspaceStore.submit({
-        command: 'comment.remove',
-        payload: { commentId: comment.id },
-      });
+      await workspaceStore.submit(commentRemoveCommand(comment.id));
     } catch (error) {
       setError(error instanceof Error ? error.message : 'Не удалось удалить.');
     }
@@ -500,7 +540,7 @@ export function TaskDiscussion({ task }: { task: Task }) {
           Комментарии <span>{task.commentCount}</span>
         </CollapsibleTrigger>
         <CollapsibleContent>
-          {comments === null && <output>Загружаем комментарии…</output>}
+          {comments === null && <p role="status">Загружаем комментарии…</p>}
           <ol className="comment-list">
             {comments?.items.map((comment) => (
               <li key={comment.id}>
@@ -544,7 +584,7 @@ export function TaskDiscussion({ task }: { task: Task }) {
           История
         </CollapsibleTrigger>
         <CollapsibleContent>
-          {history === null && <output>Загружаем историю…</output>}
+          {history === null && <p role="status">Загружаем историю…</p>}
           <ol className="event-list">
             {history?.items.map((event) => (
               <EventRow key={event.seq} event={event} />

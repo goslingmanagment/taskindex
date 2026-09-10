@@ -94,7 +94,10 @@ export class WorkspaceStore {
     generation: '',
     seq: 0,
     today: '',
-    timezone: 'Europe/Moscow',
+    // TI-074 (план 07, шаг 17): часовой пояс приходит со снимком. До него его
+    // не знает никто, и подставлять московский — значит один раз показать
+    // владельцу чужое «сегодня».
+    timezone: '',
     pending: [],
     loading: true,
     error: '',

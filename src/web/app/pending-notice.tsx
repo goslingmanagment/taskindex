@@ -1,6 +1,10 @@
+// oxlint-disable jsx-a11y/prefer-tag-over-role -- план 07, §3.9: `<output>` это
+// результат вычисления и по HTML принимает только фразовое содержимое, а здесь
+// внутри живут абзацы, `pre` и кнопки. Роль `status` даёт ту же живую область
+// без нарушения модели содержимого.
 import { Button } from '../ui/button';
 import { toast } from '../ui/toast';
-import { useWorkspace } from '../lib/use-workspace';
+import { useWorkspace } from './use-workspace';
 import {
   workspaceStore,
   SERVER_UPDATED_MESSAGE,
@@ -15,7 +19,12 @@ export function PendingNotice() {
   return (
     <>
       {incompatible && (
-        <output className="pending-notice" data-notice="server-updated">
+        <section
+          className="pending-notice"
+          role="status"
+          aria-live="polite"
+          data-notice="server-updated"
+        >
           <span>{SERVER_UPDATED_MESSAGE}</span>
           <div className="pending-notice-actions">
             <Button
@@ -26,12 +35,17 @@ export function PendingNotice() {
               Перезагрузить
             </Button>
           </div>
-        </output>
+        </section>
       )}
       {!storageAvailable && (
-        <output className="pending-notice" data-notice="storage-unavailable">
+        <section
+          className="pending-notice"
+          role="status"
+          aria-live="polite"
+          data-notice="storage-unavailable"
+        >
           <span>{STORAGE_UNAVAILABLE_MESSAGE}</span>
-        </output>
+        </section>
       )}
       {pending
         .filter((p) => p.status === 'unknown')
@@ -39,8 +53,10 @@ export function PendingNotice() {
           const own = p.envelope.generation === generation;
           const { title, texts } = describeEnvelope(p.envelope);
           return (
-            <output
+            <section
               className="pending-notice"
+              role="status"
+              aria-live="polite"
               key={p.envelope.operationId}
               data-notice={own ? 'unknown' : 'foreign-generation'}
             >
@@ -77,7 +93,7 @@ export function PendingNotice() {
                   Убрать
                 </Button>
               </div>
-            </output>
+            </section>
           );
         })}
     </>

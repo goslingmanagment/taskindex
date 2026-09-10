@@ -1,4 +1,10 @@
-import { type ReactNode, useEffect, useRef, useState } from 'react';
+import {
+  type ReactNode,
+  useCallback,
+  useRef,
+  useState,
+  useSyncExternalStore,
+} from 'react';
 import { LIMITS } from '@shared/limits';
 import {
   DndContext,
@@ -18,20 +24,16 @@ import {
   sortableKeyboardCoordinates,
 } from '@dnd-kit/sortable';
 import { Plus, X } from 'lucide-react';
-import {
-  STATUSES,
-  makeTask,
-  type Task,
-  type Status,
-  type AreaId,
-} from '../lib/workspace';
+import { STATUSES, type Task, type Status, type AreaId } from '@shared/model';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
 import { Empty, EmptyDescription } from '../ui/empty';
 import { readDraft, writeDraft, clearDraft, subscribeDraft } from './drafts';
+import { useIntent } from './use-draft';
 import { workspaceStore } from './store';
 import { toast } from '../ui/toast';
 import { ApiError } from './api';
+import type { NewTask } from './commands';
 export function DragBoard({
   tasks,
   disabled,
@@ -75,8 +77,8 @@ export function DragBoard({
       tasks.indexOf(task) < tasks.indexOf(target)
         ? target
         : undefined;
-    void move(task, status, after ? undefined : target, after).catch((e) =>
-      toast.add({ title: e.message, type: 'error' }),
+    void move(task, status, after ? undefined : target, after).catch(
+      (e: Error) => toast.add({ title: e.message, type: 'error' }),
     );
   };
   return (
@@ -122,6 +124,7 @@ function Column({
     </section>
   );
 }
+type DraftTitle = { title: string };
 function InlineCreate({
   area,
   projectId,
@@ -131,82 +134,71 @@ function InlineCreate({
   area: AreaId;
   projectId: string;
   status: Status;
-  onSave: (task: Task, operationId: string) => Promise<Task>;
+  onSave: (task: NewTask, operationId: string) => Promise<Task>;
 }) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [open, setOpen] = useState(false),
     [busy, setBusy] = useState(false),
     [error, setError] = useState('');
-  const key = `new/${area}/${projectId}/${status}`,
-    generation = workspaceStore.getSnapshot().generation;
-  const [title, setTitle] = useState(() => {
-    const draft = readDraft<{ title: string }>(key);
-    return draft?.generation === generation ? draft.fields.title : '';
-  });
-  const [foreign, setForeign] = useState(() => {
-    const draft = readDraft<{ title: string }>(key);
-    return draft && draft.generation !== generation ? draft.fields.title : null;
-  });
-  const intent = useRef<{ id: string; operationId: string } | null>(null);
-  useEffect(
-    () =>
-      subscribeDraft(key, () => {
-        const draft = readDraft<{ title: string }>(key);
-        const valid = draft?.generation === generation;
-        setTitle(valid ? draft.fields.title : '');
-        setForeign(draft && !valid ? draft.fields.title : null);
-        intent.current =
-          valid && draft.id && draft.operationId
-            ? { id: draft.id, operationId: draft.operationId }
-            : null;
-      }),
-    [key, generation],
+  const key = `new/${area}/${projectId}/${status}`;
+  const [generation] = useState(() => workspaceStore.getSnapshot().generation);
+  // План 07, шаг 15: черновик читается подпиской, а не эффектом с тремя
+  // `setState` — тот же ключ пишет диалог «Новая задача», и оба поля должны
+  // показывать один текст.
+  const stored = useSyncExternalStore(
+    useCallback((listener: () => void) => subscribeDraft(key, listener), [key]),
+    useCallback(() => readDraft<DraftTitle>(key), [key]),
   );
+  const own = stored && stored.generation === generation ? stored : null;
+  const title = own?.fields.title ?? '';
+  const foreign = stored && !own ? stored.fields.title : null;
+  const [initial] = useState(() => {
+    const draft = readDraft<DraftTitle>(key);
+    const restored = draft?.generation === generation ? draft : null;
+    return {
+      entityId: restored?.id ?? crypto.randomUUID(),
+      operationId: restored?.operationId ?? crypto.randomUUID(),
+    };
+  });
+  const intent = useIntent(initial.operationId, initial.entityId);
+  const persist = (value: string) =>
+    writeDraft<DraftTitle>(key, {
+      formatVersion: 1,
+      generation,
+      baseRevision: 0,
+      fields: { title: value },
+      id: intent.entity.current,
+      operationId: intent.ref.current.operationId,
+    });
   const submit = async () => {
     if (!title.trim() || busy) return;
     setBusy(true);
     setError('');
     try {
-      if (!intent.current) {
-        const draft = readDraft<{ title: string }>(key);
-        intent.current = {
-          id:
-            draft?.generation === generation && draft.id
-              ? draft.id
-              : crypto.randomUUID(),
-          operationId:
-            draft?.generation === generation && draft.operationId
-              ? draft.operationId
-              : crypto.randomUUID(),
-        };
-      }
-      writeDraft(key, {
-        formatVersion: 1,
-        generation,
-        baseRevision: 0,
-        fields: { title },
-        ...intent.current,
+      intent.dispatch({ type: 'edit', signature: title.trim() });
+      const sending = intent.dispatch({
+        type: 'send',
+        signature: title.trim(),
       });
+      persist(title);
       await onSave(
-        makeTask(
-          {
-            id: intent.current.id,
-            area,
-            projectId:
-              projectId === 'all' || projectId === 'none' ? null : projectId,
-            status,
-            title: title.trim(),
-          },
-          workspaceStore.getSnapshot().actor,
-        ),
-        intent.current.operationId,
+        {
+          id: intent.entity.current,
+          area,
+          projectId:
+            projectId === 'all' || projectId === 'none' ? null : projectId,
+          status,
+          title: title.trim(),
+        },
+        sending.operationId,
       );
+      intent.dispatch({ type: 'success' });
       clearDraft(key);
-      intent.current = null;
-      setTitle('');
     } catch (error) {
-      if (error instanceof ApiError && !error.detail.retryable)
-        intent.current = null;
+      intent.dispatch({
+        type: 'reject',
+        retryable: !(error instanceof ApiError) || error.detail.retryable,
+      });
       setError(
         error instanceof Error ? error.message : 'Не удалось сохранить.',
       );
@@ -236,14 +228,8 @@ function InlineCreate({
           if (e.key === 'Escape' && !busy) setOpen(false);
         }}
         onChange={(e) => {
-          setTitle(e.target.value);
-          writeDraft(key, {
-            formatVersion: 1,
-            generation,
-            baseRevision: 0,
-            fields: { title: e.target.value },
-            ...intent.current,
-          });
+          if (e.target.value) persist(e.target.value);
+          else clearDraft(key);
         }}
       />
       {error && (
@@ -286,9 +272,8 @@ export function Board({
   view,
   area,
   projectId,
-  archive,
+  mode,
   filtered,
-  disabled,
   renderTask,
   onCreate,
 }: {
@@ -296,18 +281,19 @@ export function Board({
   view: 'board' | 'list';
   area: AreaId;
   projectId: string;
-  archive: boolean;
+  /** Архив показывает те же колонки, но без переноса и без добавления. */
+  mode: 'board' | 'archive';
   filtered: boolean;
-  disabled: boolean;
   renderTask: (task: Task) => ReactNode;
-  onCreate: (task: Task, operationId: string) => Promise<Task>;
+  onCreate: (task: NewTask, operationId: string) => Promise<Task>;
 }) {
+  const archive = mode === 'archive';
   return (
     <div className={'kanban ' + (view === 'list' ? 'list-view' : '')}>
       {STATUSES.map((status) => {
         const column = tasks.filter((t) => t.status === status.id);
         return (
-          <Column key={status.id} status={status.id} disabled={disabled}>
+          <Column key={status.id} status={status.id} disabled={archive}>
             <div className="column-head">
               <div>
                 <span

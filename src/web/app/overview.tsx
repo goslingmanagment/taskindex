@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react';
 import { Star, Search } from 'lucide-react';
-import type { Task } from '../lib/workspace';
+import type { Task } from '@shared/model';
 import { Button } from '../ui/button';
 import { Empty, EmptyTitle, EmptyDescription } from '../ui/empty';
 import { taskCount } from './labels';

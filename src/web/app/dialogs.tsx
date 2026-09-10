@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { LIMITS } from '@shared/limits';
 import { Plus } from 'lucide-react';
 import {
@@ -16,19 +16,22 @@ import {
 } from '../ui/collapsible';
 import { Input } from '../ui/input';
 import { Textarea } from '../ui/textarea';
-import { Choice } from './editor';
+import { Choice } from './editor/choice';
 import {
   AREAS,
   STATUSES,
-  makeTask,
   type AreaId,
   type Project,
   type Status,
   type Task,
-} from '../lib/workspace';
-import { readDraft, writeDraft, clearDraft } from './drafts';
+} from '@shared/model';
+import { readDraft } from './drafts';
+import { useDraft } from './use-draft';
 import { workspaceStore } from './store';
 import { ApiError } from './api';
+import { ConflictPanel } from './conflict-panel';
+import type { NewTask } from './commands';
+type QuickFields = { title: string; projectId: string | null };
 export function QuickCreate({
   area,
   projectId,
@@ -42,67 +45,56 @@ export function QuickCreate({
   status: Status;
   projects: Project[];
   onClose: () => void;
-  onSave: (task: Task, operationId: string) => Promise<Task>;
+  onSave: (task: NewTask, operationId: string) => Promise<Task>;
 }) {
-  const key = `new/${area}/${projectId}/${status}`,
-    generation = workspaceStore.getSnapshot().generation;
-  const [initial] = useState(() =>
-    readDraft<{ title: string; projectId: string | null }>(key),
-  );
-  const foreign = initial && initial.generation !== generation;
-  const [title, setTitle] = useState(
-    foreign ? '' : initial?.fields.title || '',
-  );
+  const key = `new/${area}/${projectId}/${status}`;
+  const defaultProject =
+    projectId === 'all' || projectId === 'none' ? null : projectId;
+  const [restored] = useState(() => readDraft<QuickFields>(key));
+  const [generation] = useState(() => workspaceStore.getSnapshot().generation);
+  const own = restored && restored.generation === generation ? restored : null;
+  const [title, setTitle] = useState(own?.fields.title ?? '');
   const [selected, setSelected] = useState<string | null>(
-    foreign
-      ? null
-      : (initial?.fields.projectId ??
-          (projectId === 'all' || projectId === 'none' ? null : projectId)),
-  );
-  const [id] = useState(
-    initial && !foreign && initial.id ? initial.id : crypto.randomUUID(),
-  );
-  const [operationId, setOperationId] = useState<string>(
-    initial && !foreign && initial.operationId
-      ? initial.operationId
-      : crypto.randomUUID(),
+    own?.fields.projectId ?? defaultProject,
   );
   const [busy, setBusy] = useState(false),
     [error, setError] = useState('');
-  useEffect(() => {
-    if (title || !foreign)
-      writeDraft(key, {
-        formatVersion: 1,
-        generation,
-        baseRevision: 0,
-        fields: { title, projectId: selected },
-        id,
-        operationId,
-      });
-  }, [title, selected, key, generation, id, operationId, foreign]);
+  // План 07, §3.9: черновик пишется, только когда в форме что-то есть. Пустая
+  // форма, открытая и закрытая, не оставляет записи `title: ''`.
+  const draft = useDraft<QuickFields>(
+    key,
+    { title, projectId: selected },
+    { enabled: title.trim().length > 0 || selected !== defaultProject },
+  );
   async function submit() {
     if (!title.trim() || busy) return;
     setBusy(true);
     setError('');
     try {
+      const signature = JSON.stringify({ title: title.trim(), selected });
+      // TI-023: правка после окончательного отказа делает операцию другой.
+      draft.dispatch({ type: 'edit', signature });
+      const sending = draft.dispatch({ type: 'send', signature });
       await onSave(
-        makeTask(
-          {
-            id,
-            area,
-            projectId: selected,
-            title: title.trim(),
-            status,
-          },
-          workspaceStore.getSnapshot().actor,
-        ),
-        operationId,
+        {
+          id: draft.entity.current,
+          area,
+          projectId: selected,
+          title: title.trim(),
+          status,
+        },
+        sending.operationId,
       );
-      clearDraft(key);
+      draft.dispatch({ type: 'success' });
+      draft.clear();
       onClose();
     } catch (error) {
-      if (error instanceof ApiError && !error.detail.retryable)
-        setOperationId(crypto.randomUUID());
+      // TI-023: новый идентификатор операции появится только после правки
+      // текста, и только если отказ был окончательным.
+      draft.dispatch({
+        type: 'reject',
+        retryable: !(error instanceof ApiError) || error.detail.retryable,
+      });
       setError(
         error instanceof Error ? error.message : 'Не удалось сохранить.',
       );
@@ -133,10 +125,10 @@ export function QuickCreate({
           }}
         >
           <fieldset disabled={busy}>
-            {foreign && (
+            {draft.foreign && draft.restored && (
               <details className="conflict-box">
                 <summary>Черновик от прежней версии базы</summary>
-                <p>{initial.fields.title}</p>
+                <p>{draft.restored.fields.title}</p>
               </details>
             )}
             <Input
@@ -159,6 +151,7 @@ export function QuickCreate({
               </div>
               <CollapsibleContent className="quick-project-choice">
                 <Choice
+                  id="new-task-project"
                   label="Направление новой задачи"
                   value={selected || 'none'}
                   onChange={(v) => setSelected(v === 'none' ? null : v)}
@@ -189,6 +182,13 @@ export function QuickCreate({
     </Dialog>
   );
 }
+type ProjectFields = {
+  name: string;
+  description: string;
+  color: string;
+  base?: Project;
+  conflict?: Project | null;
+};
 export function ProjectDialog({
   area,
   project,
@@ -200,18 +200,10 @@ export function ProjectDialog({
   onClose: () => void;
   onSave: (project: Project, operationId: string) => Promise<Project>;
 }) {
-  const key = `project/${area}/${project?.id || 'new'}`,
-    generation = workspaceStore.getSnapshot().generation;
-  const [initial] = useState(() =>
-    readDraft<{
-      name: string;
-      description: string;
-      color: string;
-      base?: Project;
-      conflict?: Project | null;
-    }>(key),
-  );
-  const valid = initial?.generation === generation ? initial : null;
+  const key = `project/${area}/${project?.id || 'new'}`;
+  const [restored] = useState(() => readDraft<ProjectFields>(key));
+  const [generation] = useState(() => workspaceStore.getSnapshot().generation);
+  const valid = restored?.generation === generation ? restored : null;
   const [base, setBase] = useState(
     () =>
       valid?.fields.base ??
@@ -227,52 +219,44 @@ export function ProjectDialog({
         ? project
         : null),
   );
-  const [name, setName] = useState(valid?.fields.name ?? project?.name ?? '');
+  const defaults = {
+    name: project?.name ?? '',
+    description: project?.description ?? '',
+    color: project?.color ?? AREAS.find((a) => a.id === area)!.color,
+  };
+  const [name, setName] = useState(valid?.fields.name ?? defaults.name);
   const [description, setDescription] = useState(
-    valid?.fields.description ?? project?.description ?? '',
+    valid?.fields.description ?? defaults.description,
   );
-  const [color, setColor] = useState(
-    valid?.fields.color ??
-      project?.color ??
-      AREAS.find((a) => a.id === area)!.color,
-  );
-  const [id, setId] = useState(project?.id ?? valid?.id ?? crypto.randomUUID()),
-    [operationId, setOperationId] = useState<string>(
-      valid?.operationId ?? crypto.randomUUID(),
-    );
+  const [color, setColor] = useState(valid?.fields.color ?? defaults.color);
+  const [id, setId] = useState(project?.id ?? valid?.id ?? crypto.randomUUID());
   const [busy, setBusy] = useState(false),
     [error, setError] = useState('');
-  useEffect(() => {
-    writeDraft(key, {
-      formatVersion: 1,
-      generation,
-      baseRevision: base?.revision ?? 0,
-      fields: { name, description, color, base, conflict },
-      id,
-      operationId,
-    });
-  }, [
+  const dirty =
+    name !== defaults.name ||
+    description !== defaults.description ||
+    color !== defaults.color ||
+    conflict !== null;
+  const draft = useDraft<ProjectFields>(
     key,
-    generation,
-    base,
-    conflict,
-    name,
-    description,
-    color,
-    id,
-    operationId,
-  ]);
+    { name, description, color, base, conflict },
+    { enabled: dirty, baseRevision: base?.revision ?? 0, id },
+  );
   const title = area === 'development' ? 'проект' : 'направление';
   // TI-040: после перехода на существующую запись диалог продолжает работать
   // как переименование, в том числе после перезагрузки — id лежит в черновике.
   const editing = Boolean(project ?? base);
   // Создание упёрлось в занятое имя: сервер прислал ту самую запись.
   const duplicate = !editing && conflict !== null;
+  const signature = () =>
+    JSON.stringify({ name: name.trim(), description, color, id });
   async function submit() {
     if (busy || conflict || !name.trim()) return;
     setBusy(true);
     setError('');
     try {
+      draft.dispatch({ type: 'edit', signature: signature() });
+      const sending = draft.dispatch({ type: 'send', signature: signature() });
       await onSave(
         {
           id,
@@ -284,13 +268,16 @@ export function ProjectDialog({
           createdAt: project?.createdAt ?? '',
           updatedAt: project?.updatedAt ?? '',
         },
-        operationId,
+        sending.operationId,
       );
-      clearDraft(key);
+      draft.dispatch({ type: 'success' });
+      draft.clear();
       onClose();
     } catch (error) {
-      if (error instanceof ApiError && !error.detail.retryable)
-        setOperationId(crypto.randomUUID());
+      draft.dispatch({
+        type: 'reject',
+        retryable: !(error instanceof ApiError) || error.detail.retryable,
+      });
       if (error instanceof ApiError && error.status === 409 && error.current)
         setConflict(error.current as Project);
       setError(
@@ -347,9 +334,10 @@ export function ProjectDialog({
                 onChange={(e) => setDescription(e.target.value)}
               />
             </label>
-            <label className="project-color">
+            <label className="project-color" htmlFor="project-color">
               Цвет{' '}
               <input
+                id="project-color"
                 className="color-field"
                 type="color"
                 aria-label="Цвет направления"
@@ -362,7 +350,7 @@ export function ProjectDialog({
                 {error}
               </p>
             )}
-            {duplicate && (
+            {duplicate && conflict && (
               <div className="conflict-box project-conflict">
                 <strong>
                   Такое {title} уже есть: {conflict.name}
@@ -381,7 +369,7 @@ export function ProjectDialog({
                     setDescription(conflict.description);
                     setColor(conflict.color);
                     setConflict(null);
-                    setOperationId(crypto.randomUUID());
+                    draft.dispatch({ type: 'success' });
                     setError('');
                   }}
                 >
@@ -390,39 +378,32 @@ export function ProjectDialog({
               </div>
             )}
             {conflict && !duplicate && (
-              <div className="conflict-box project-conflict">
-                <strong>Актуальная версия</strong>
-                <dl>
-                  <dt>Название</dt>
-                  <dd>{conflict.name}</dd>
-                  <dt>Описание</dt>
-                  <dd>{conflict.description || 'Без описания'}</dd>
-                  <dt>Цвет</dt>
-                  <dd>{conflict.color}</dd>
-                </dl>
-                <p>
-                  Оставим изменённые тобой поля, остальные возьмём из актуальной
-                  версии. Перед сохранением проверь результат.
-                </p>
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => {
-                    if (base) {
-                      if (name === base.name) setName(conflict.name);
-                      if (description === base.description)
-                        setDescription(conflict.description);
-                      if (color === base.color) setColor(conflict.color);
-                    }
-                    setBase(conflict);
-                    setConflict(null);
-                    setOperationId(crypto.randomUUID());
-                    setError('');
-                  }}
-                >
-                  Совместить и проверить
-                </Button>
-              </div>
+              <ConflictPanel
+                className="project-conflict"
+                summary={
+                  <dl>
+                    <dt>Название</dt>
+                    <dd>{conflict.name}</dd>
+                    <dt>Описание</dt>
+                    <dd>{conflict.description || 'Без описания'}</dd>
+                    <dt>Цвет</dt>
+                    <dd>{conflict.color}</dd>
+                  </dl>
+                }
+                note="Оставим изменённые тобой поля, остальные возьмём из актуальной версии. Перед сохранением проверь результат."
+                onMerge={() => {
+                  if (base) {
+                    if (name === base.name) setName(conflict.name);
+                    if (description === base.description)
+                      setDescription(conflict.description);
+                    if (color === base.color) setColor(conflict.color);
+                  }
+                  setBase(conflict);
+                  setConflict(null);
+                  draft.dispatch({ type: 'success' });
+                  setError('');
+                }}
+              />
             )}
             <div className="dialog-actions">
               <Button

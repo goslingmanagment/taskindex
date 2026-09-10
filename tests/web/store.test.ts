@@ -8,8 +8,8 @@ import type {
 import { defaultAppearance } from '../../src/shared/domain-schemas';
 import { WorkspaceStore } from '../../src/web/app/store';
 import { ApiError } from '../../src/web/app/api';
-import { makeTask } from '../../src/web/lib/workspace';
-import { taskSaveCommand } from '../../src/web/lib/use-workspace';
+import { makeTask } from './fixtures';
+import { taskSaveCommand } from '../../src/web/app/commands';
 class MemoryStorage {
   map = new Map<string, string>();
   get length() {

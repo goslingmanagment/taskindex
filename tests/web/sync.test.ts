@@ -9,7 +9,7 @@ import {
   RESYNC_INTERVAL_MS,
   type SyncDeps,
 } from '../../src/web/app/sync';
-import { makeTask } from '../../src/web/lib/workspace';
+import { makeTask } from './fixtures';
 
 // TI-043: a CLOSED EventSource is recreated with backoff; 401/403 and `revoked` stop it.
 class FakeEventSource {

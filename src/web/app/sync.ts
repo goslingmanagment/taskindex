@@ -136,7 +136,8 @@ export function startSync(
   );
   const timer = deps.setInterval(() => {
     const state = store.getSnapshot();
-    store.setToday(todayInTimezone(state.timezone));
+    // Пояс пустой, пока не пришёл снимок: «сегодня» тогда считать не из чего.
+    if (state.timezone) store.setToday(todayInTimezone(state.timezone));
     if (state.connected || revoked) return;
     void store.catchUp();
     if (stream === null && reconnect === null) connect();

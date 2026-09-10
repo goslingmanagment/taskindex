@@ -20,40 +20,34 @@ import {
   SidebarMenuButton,
 } from '../ui/sidebar';
 import { Button } from '../ui/button';
-import { AREAS, type AreaId, type Project, type Task } from '../lib/workspace';
-import type { LocationState } from './url';
+import { AREAS, type Project, type Task } from '@shared/model';
 import { AccountMenu } from './auth';
 import { taskCount } from './labels';
+import { newFromAgentsCount } from './selectors';
+import { useNavigation } from './navigation';
 const icons = {
   agency: BriefcaseBusiness,
   development: Code2,
   personal: House,
 };
 export function WorkspaceSidebar({
-  location,
   projects,
   tasks,
-  focusCount,
-  navigate,
-  showFocus,
-  showActivity,
-  showArchive,
-  createProject,
   disabled,
+  onCreateProject,
 }: {
-  location: LocationState;
+  /** Направления текущей области. */
   projects: Project[];
+  /** Все задачи: счётчики считаются по ним, а не по видимому списку. */
   tasks: Task[];
-  focusCount: number;
-  navigate: (area: AreaId, project?: string) => void;
-  showFocus: () => void;
-  showActivity: () => void;
-  showArchive: () => void;
-  createProject: () => void;
   disabled: boolean;
+  onCreateProject: () => void;
 }) {
+  const { location, navigate, showFocus, showActivity, showArchive } =
+    useNavigation();
   const { area, project: projectId, archive, focus, activity, q } = location,
     globalView = !!q.trim() || focus || activity,
+    focusCount = newFromAgentsCount(tasks),
     archivedCount = tasks.filter((t) => t.area === area && t.archived).length;
   return (
     <Sidebar className="workspace-sidebar">
@@ -160,7 +154,7 @@ export function WorkspaceSidebar({
           variant="ghost"
           className="add-project"
           disabled={disabled}
-          onClick={createProject}
+          onClick={onCreateProject}
         >
           <Plus />
           Добавить {area === 'development' ? 'проект' : 'направление'}

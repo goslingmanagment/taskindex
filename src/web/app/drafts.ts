@@ -12,7 +12,7 @@ export function browserStorage(): StorageLike | undefined {
     return undefined;
   }
 }
-type Draft<T> = {
+export type Draft<T> = {
   formatVersion: 1;
   generation: string;
   baseRevision: number;
@@ -87,6 +87,9 @@ export class DraftStorage {
       quarantine(this.storage, key, 'нет полей');
       return null;
     }
+    // Разобранная запись кладётся в кэш: `useSyncExternalStore` требует, чтобы
+    // снимок не менял тождество между вызовами, пока черновик не переписали.
+    this.values.set(id, draft as Draft<unknown>);
     return draft as Draft<T>;
   }
   write<T>(id: string, draft: Draft<T>) {

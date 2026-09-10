@@ -4,7 +4,7 @@ import {
   isFutureBaseError,
   pendingTaskLabel,
 } from '../../src/web/app/editor-base';
-import { makeTask } from '../../src/web/lib/workspace';
+import { makeTask } from './fixtures';
 
 describe('TI-007 editor base comes from the confirmed record', () => {
   const confirmed = makeTask({
