@@ -2,7 +2,7 @@
 // better-auth / passkey error code. The code stays visible in the technical
 // suffix so a report can still be matched with the server log; the server's
 // English message is never shown as is.
-export type AuthFailure = {
+type AuthFailure = {
   code?: string;
   message?: string;
   status?: number;
@@ -33,7 +33,7 @@ const known: Record<string, string> = {
   YOU_ARE_NOT_ALLOWED_TO_REGISTER_THIS_PASSKEY: 'Этот passkey добавить нельзя.',
   FAILED_TO_UPDATE_PASSKEY: 'Не удалось сохранить passkey.',
 };
-export const AUTH_FALLBACK = {
+const AUTH_FALLBACK = {
   signIn: 'Не удалось войти.',
   passkey: 'Не удалось войти по passkey.',
   addPasskey: 'Не удалось добавить passkey.',

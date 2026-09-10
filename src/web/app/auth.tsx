@@ -23,7 +23,7 @@ import { workspaceStore } from './store';
 import { APPEARANCE_LABELS, applyMode, chooseMode } from './appearance';
 import { toast } from '../ui/toast';
 import { authErrorMessage } from './auth-errors';
-export const authClient = createAuthClient({ plugins: [passkeyClient()] });
+const authClient = createAuthClient({ plugins: [passkeyClient()] });
 export function AuthGate({ children }: { children: ReactNode }) {
   const session = authClient.useSession();
   const [email, setEmail] = useState(''),
@@ -47,8 +47,8 @@ export function AuthGate({ children }: { children: ReactNode }) {
         return;
       }
       await session.refetch();
-    } catch (e) {
-      setError(authErrorMessage(e, passkey ? 'passkey' : 'signIn'));
+    } catch (error) {
+      setError(authErrorMessage(error, passkey ? 'passkey' : 'signIn'));
     } finally {
       setBusy(false);
     }
@@ -133,8 +133,11 @@ export function AccountMenu() {
         return;
       }
       toast.add({ title: 'Passkey добавлен', type: 'success' });
-    } catch (e) {
-      toast.add({ title: authErrorMessage(e, 'addPasskey'), type: 'error' });
+    } catch (error) {
+      toast.add({
+        title: authErrorMessage(error, 'addPasskey'),
+        type: 'error',
+      });
     }
   }
   return (

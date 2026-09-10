@@ -12,7 +12,7 @@ export function browserStorage(): StorageLike | undefined {
     return undefined;
   }
 }
-export type Draft<T> = {
+type Draft<T> = {
   formatVersion: 1;
   generation: string;
   baseRevision: number;
@@ -24,7 +24,7 @@ const scopePrefix = 'taskindex/draft-scope/';
 // План 04, доп. 16: испорченная запись не выбрасывается и не роняет загрузку.
 // Она переносится под служебный префикс, чтобы владелец мог достать из неё
 // текст, и один раз попадает в консоль. Повторно её уже не читают.
-export const CORRUPT_PREFIX = 'taskindex/corrupt/';
+const CORRUPT_PREFIX = 'taskindex/corrupt/';
 export function quarantine(
   storage: StorageLike | undefined,
   key: string,
@@ -45,6 +45,7 @@ export function quarantine(
 const tabKey = 'taskindex/draft-tab';
 const prefix = (scope: string) =>
   scope === 'legacy' ? 'taskindex/draft/' : `taskindex/drafts/${scope}/`;
+/** @internal for tests */
 export class DraftStorage {
   private listeners = new Map<string, Set<() => void>>();
   private values = new Map<string, Draft<unknown> | null>();
@@ -135,8 +136,9 @@ export class DraftStorage {
 // sharing a writer. New tabs can reclaim an inactive scope after it was closed.
 // TI-041: without Web Locks a reload keeps the previous scope instead of cloning
 // it; scopes unused for DRAFT_SCOPE_TTL_MS and not held by a live tab are removed.
+/** @internal for tests */
 export const DRAFT_SCOPE_TTL_MS = 30 * 24 * 60 * 60 * 1000;
-export type ScopeDeps = {
+type ScopeDeps = {
   storage?: StorageLike;
   session?: Pick<StorageLike, 'getItem' | 'setItem'>;
   locks?: LockManager;
@@ -213,6 +215,7 @@ function removeScope(storage: StorageLike, scope: string) {
   for (const key of doomed) storage.removeItem(key);
   storage.removeItem(`${scopePrefix}${scope}`);
 }
+/** @internal for tests */
 export async function chooseScope(
   deps: ScopeDeps,
 ): Promise<{ scope: string; removed: string[] }> {

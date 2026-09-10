@@ -244,15 +244,15 @@ export function TaskEditor({
       setStep('');
       setDiscard(false);
       if (close) onClose();
-    } catch (e) {
-      if (e instanceof ApiError && !e.detail.retryable)
+    } catch (error) {
+      if (error instanceof ApiError && !error.detail.retryable)
         saveIntent.current = null;
-      if (e instanceof ApiError && e.status === 409 && e.current)
-        setConflict(e.current as Task);
+      if (error instanceof ApiError && error.status === 409 && error.current)
+        setConflict(error.current as Task);
       if (
-        e instanceof ApiError &&
-        e.detail.code === 'invalid' &&
-        isFutureBaseError(e.detail.message)
+        error instanceof ApiError &&
+        error.detail.code === 'invalid' &&
+        isFutureBaseError(error.detail.message)
       ) {
         // The base got ahead of the server: fall back to the confirmed revision
         // (the draft effect rewrites baseRevision) and let the owner save again.
@@ -262,7 +262,7 @@ export function TaskEditor({
         );
         return;
       }
-      setError(e instanceof Error ? e.message : 'Не сохранилось.');
+      setError(error instanceof Error ? error.message : 'Не сохранилось.');
     } finally {
       setBusy(false);
     }
@@ -278,8 +278,10 @@ export function TaskEditor({
     try {
       await onArchive(saved);
       onClose();
-    } catch (e) {
-      setError(e instanceof Error ? e.message : 'Не удалось убрать задачу.');
+    } catch (error) {
+      setError(
+        error instanceof Error ? error.message : 'Не удалось убрать задачу.',
+      );
     } finally {
       setBusy(false);
     }
@@ -608,10 +610,10 @@ export function TaskEditor({
                   try {
                     await onFirst(saved);
                     onClose();
-                  } catch (e) {
+                  } catch (error) {
                     setError(
-                      e instanceof Error
-                        ? e.message
+                      error instanceof Error
+                        ? error.message
                         : 'Не удалось переместить задачу.',
                     );
                   } finally {

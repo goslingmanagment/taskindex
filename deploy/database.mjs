@@ -99,6 +99,9 @@ try {
       `${source}-wal`,
       `${source}-shm`,
       `${source}-journal`,
+      // Ж13: sidecar с generation прежней базы. Если оставить его рядом,
+      // подставленная копия будет сверяться с чужим значением.
+      `${source}.generation`,
       join(dirname(source), '.taskindex.db-litestream'),
     ]) {
       try {

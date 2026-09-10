@@ -29,7 +29,7 @@ import {
   type Status,
   type WorkspaceData,
 } from '../lib/workspace';
-export type TaskCardProps = {
+type TaskCardProps = {
   task: Task;
   data: WorkspaceData;
   projectId: string;

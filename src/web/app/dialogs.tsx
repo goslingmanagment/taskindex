@@ -100,10 +100,12 @@ export function QuickCreate({
       );
       clearDraft(key);
       onClose();
-    } catch (e) {
-      if (e instanceof ApiError && !e.detail.retryable)
+    } catch (error) {
+      if (error instanceof ApiError && !error.detail.retryable)
         setOperationId(crypto.randomUUID());
-      setError(e instanceof Error ? e.message : 'Не удалось сохранить.');
+      setError(
+        error instanceof Error ? error.message : 'Не удалось сохранить.',
+      );
     } finally {
       setBusy(false);
     }
@@ -286,12 +288,14 @@ export function ProjectDialog({
       );
       clearDraft(key);
       onClose();
-    } catch (e) {
-      if (e instanceof ApiError && !e.detail.retryable)
+    } catch (error) {
+      if (error instanceof ApiError && !error.detail.retryable)
         setOperationId(crypto.randomUUID());
-      if (e instanceof ApiError && e.status === 409 && e.current)
-        setConflict(e.current as Project);
-      setError(e instanceof Error ? e.message : 'Не удалось сохранить.');
+      if (error instanceof ApiError && error.status === 409 && error.current)
+        setConflict(error.current as Project);
+      setError(
+        error instanceof Error ? error.message : 'Не удалось сохранить.',
+      );
     } finally {
       setBusy(false);
     }

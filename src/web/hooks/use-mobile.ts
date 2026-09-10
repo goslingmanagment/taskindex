@@ -3,10 +3,13 @@ import { useSyncExternalStore } from 'react';
 // tokens.css), so the media queries of the skin and this hook cannot drift
 // apart. The literal below is only the fallback for a build where the variable
 // was not emitted into `:root`.
+/** @internal for tests */
 export const FALLBACK_BREAKPOINT = '48rem';
+/** @internal for tests */
 export function mobileQuery(breakpoint: string): string {
   return `(width < ${breakpoint.trim() || FALLBACK_BREAKPOINT})`;
 }
+/** @internal for tests */
 export function currentQuery(): string {
   try {
     return mobileQuery(
@@ -18,6 +21,7 @@ export function currentQuery(): string {
     return mobileQuery(FALLBACK_BREAKPOINT);
   }
 }
+/** @internal for tests */
 export function isMobile(): boolean {
   return window.matchMedia(currentQuery()).matches;
 }

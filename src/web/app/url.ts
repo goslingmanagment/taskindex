@@ -14,6 +14,7 @@ export type LocationState = {
   /** TI-076: author filter of the activity feed; '' is everyone. */
   actor: string;
 };
+/** @internal for tests */
 export const defaultLocation: LocationState = {
   area: 'agency',
   project: 'all',
@@ -31,6 +32,7 @@ const savedKey = 'taskindex/location';
 // TI-042: two ways to read the location. The URL is the only source for
 // history navigation; the remembered location is used once, when the app
 // opens on a bare `/`.
+/** @internal for tests */
 export function parseLocation(search: string): LocationState {
   const p = new URLSearchParams(search),
     area = p.get('area');
@@ -50,6 +52,7 @@ export function parseLocation(search: string): LocationState {
     ),
   };
 }
+/** @internal for tests */
 export function serializeLocation(state: LocationState): string {
   const p = new URLSearchParams();
   for (const [key, val] of Object.entries(state))
@@ -57,14 +60,14 @@ export function serializeLocation(state: LocationState): string {
       p.set(key, val === true ? '1' : String(val));
   return `?${p.toString()}`;
 }
-export function savedLocation(): string {
+function savedLocation(): string {
   try {
     return localStorage.getItem(savedKey) || '';
   } catch {
     return '';
   }
 }
-export function rememberLocation(query: string) {
+function rememberLocation(query: string) {
   try {
     const saved = new URLSearchParams(query);
     saved.delete('task');

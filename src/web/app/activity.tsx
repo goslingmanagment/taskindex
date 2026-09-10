@@ -51,9 +51,9 @@ async function undo(payload: { seq: number } | { operationId: string }) {
   try {
     await workspaceStore.submit({ command: 'undo', payload });
     toast.add({ title: 'Изменение отменено', type: 'success' });
-  } catch (e) {
+  } catch (error) {
     toast.add({
-      title: e instanceof Error ? e.message : 'Не удалось отменить.',
+      title: error instanceof Error ? error.message : 'Не удалось отменить.',
       type: 'error',
     });
   }
@@ -212,9 +212,11 @@ export function Activity({
         loadedCount.current = items.length;
         setPage({ ...next, items });
       }
-    } catch (e) {
+    } catch (error) {
       if (flight.active)
-        setError(e instanceof Error ? e.message : 'Не удалось загрузить.');
+        setError(
+          error instanceof Error ? error.message : 'Не удалось загрузить.',
+        );
     } finally {
       if (flight.active) setBusy(false);
     }
@@ -413,10 +415,12 @@ export function TaskDiscussion({ task }: { task: Task }) {
           if (active) setHistory(value);
         }
         if (active) setError('');
-      } catch (e) {
+      } catch (error) {
         if (active)
           setError(
-            e instanceof Error ? e.message : 'Не удалось загрузить историю.',
+            error instanceof Error
+              ? error.message
+              : 'Не удалось загрузить историю.',
           );
       }
     };
@@ -440,8 +444,10 @@ export function TaskDiscussion({ task }: { task: Task }) {
       clearDraft(key);
       setText('');
       setIntent({ id: crypto.randomUUID(), operationId: crypto.randomUUID() });
-    } catch (e) {
-      setError(e instanceof Error ? e.message : 'Не удалось отправить.');
+    } catch (error) {
+      setError(
+        error instanceof Error ? error.message : 'Не удалось отправить.',
+      );
     } finally {
       setBusy(false);
     }
@@ -452,8 +458,8 @@ export function TaskDiscussion({ task }: { task: Task }) {
         command: 'comment.remove',
         payload: { commentId: comment.id },
       });
-    } catch (e) {
-      setError(e instanceof Error ? e.message : 'Не удалось удалить.');
+    } catch (error) {
+      setError(error instanceof Error ? error.message : 'Не удалось удалить.');
     }
   }
   // Каждая страница проверяется своей схемой: комментарии и события — разные
@@ -476,8 +482,10 @@ export function TaskDiscussion({ task }: { task: Task }) {
           items: [...(history?.items ?? []), ...next.items],
         });
       }
-    } catch (e) {
-      setError(e instanceof Error ? e.message : 'Не удалось загрузить.');
+    } catch (error) {
+      setError(
+        error instanceof Error ? error.message : 'Не удалось загрузить.',
+      );
     }
   }
   return (

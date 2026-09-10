@@ -1,11 +1,15 @@
 import { todayInTimezone } from '@shared/queries';
+import { ignoreRejection } from '@shared/ignore-rejection';
 import { actorSchema } from '@shared/domain-schemas';
 import { ApiError, request } from './api';
 import type { Transport } from './store';
 import { workspaceStore, type WorkspaceStore } from './store';
-export const SSE_RECONNECT_MIN_MS = 1000;
+const SSE_RECONNECT_MIN_MS = 1000;
+/** @internal for tests */
 export const SSE_RECONNECT_MAX_MS = 30000;
+/** @internal for tests */
 export const RESYNC_INTERVAL_MS = 60000;
+/** @internal for tests */
 export type SyncDeps = {
   EventSource: typeof EventSource;
   setTimeout: (fn: () => void, ms: number) => unknown;
@@ -84,7 +88,10 @@ export function startSync(
       source.close();
       stream = null;
       identity = '';
-      void store.resync().catch(() => {});
+      ignoreRejection(
+        store.resync(),
+        'сброс потока: следующий снимок вернёт состояние',
+      );
     });
     source.addEventListener('operations', () => store.invalidateOperations());
     source.addEventListener('revoked', () => {
@@ -123,10 +130,10 @@ export function startSync(
     }, delay);
   };
   const unsubscribe = store.subscribe(connect);
-  void store
-    .refresh()
-    .then(connect)
-    .catch(() => {});
+  ignoreRejection(
+    store.refresh().then(connect),
+    'первая загрузка: ошибка уже показана баннером состояния',
+  );
   const timer = deps.setInterval(() => {
     const state = store.getSnapshot();
     store.setToday(todayInTimezone(state.timezone));

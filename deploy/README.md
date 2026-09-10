@@ -386,8 +386,8 @@ Litestream 0.5.12: все три проверки прошли, `idle:true`; ф�
    `-force` поверх рабочей базы. Проверить `PRAGMA integrity_check` и
    `PRAGMA foreign_key_check`. Произвольная отметка HTTP-экспорта не задаёт точный
    restore point; предварительно подтвердить TXID и возможность его восстановления.
-2. Сохранить прежнюю базу вместе с её `-wal`, `-shm` и локальным tracking Litestream
-   отдельно. Помощник `node deploy/database.mjs quarantine-and-install /data/backups/recovered.db`
+2. Сохранить прежнюю базу вместе с её `-wal`, `-shm`, sidecar `<база>.generation`
+   и локальным tracking Litestream отдельно. Помощник `node deploy/database.mjs quarantine-and-install /data/backups/recovered.db`
    делает это только при `TASKINDEX_OFFLINE_RESTORE=confirmed-no-open-connections`.
    Это явное подтверждение проверенного offline-состояния оператором, не проверка
    открытых файлов самим помощником. Он не удаляет файлы и не запускает сервисы.

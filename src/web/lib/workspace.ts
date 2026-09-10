@@ -1,7 +1,7 @@
 import type { Actor, Task } from '@shared/model';
 export { AREAS, STATUSES } from '@shared/model';
 export type { Task, Project, AreaId, Status } from '@shared/model';
-export { dateLabel, todayInTimezone } from '@shared/queries';
+export { dateLabel } from '@shared/queries';
 export type WorkspaceData = {
   tasks: Task[];
   projects: import('@shared/model').Project[];

@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { ignoreRejection } from '@shared/ignore-rejection';
 import {
   Plus,
   Search,
@@ -548,7 +549,12 @@ function WorkspaceBody() {
                   )}
                   <DropdownMenuItem
                     disabled={loading}
-                    onClick={() => void state.refresh().catch(() => {})}
+                    onClick={() =>
+                      ignoreRejection(
+                        state.refresh(),
+                        'повтор загрузки: ошибка снова попадёт в баннер',
+                      )
+                    }
                   >
                     <RefreshCw />
                     Обновить данные
@@ -569,7 +575,14 @@ function WorkspaceBody() {
             <Empty className="main-empty">
               <EmptyTitle>Не удалось открыть доску</EmptyTitle>
               <EmptyDescription>{error}</EmptyDescription>
-              <Button onClick={() => void state.refresh().catch(() => {})}>
+              <Button
+                onClick={() =>
+                  ignoreRejection(
+                    state.refresh(),
+                    'повтор загрузки: ошибка снова попадёт в баннер',
+                  )
+                }
+              >
                 <RefreshCw />
                 Попробовать ещё раз
               </Button>

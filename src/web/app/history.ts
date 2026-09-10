@@ -11,18 +11,18 @@ import type {
 // and everything it cannot explain from the event stays in the technical
 // details instead of being guessed.
 
-export type HistoryContext = {
+type HistoryContext = {
   // Directory used to name a project id. It describes today's workspace, not
   // the moment of the event — every line built from it carries `note`.
   projects: readonly Project[];
 };
-export type HistoryLine = {
+type HistoryLine = {
   label: string;
   text: string;
   // A caveat shown next to the line: today's directory was consulted.
   note?: string;
 };
-export type HistoryStory = {
+type HistoryStory = {
   lines: HistoryLine[];
   // Everything the story does not cover: bookkeeping fields and any field this
   // build does not know about. Shown collapsed, verbatim.

@@ -1,4 +1,4 @@
-import { APPEARANCE_MODES, type AppearanceMode } from '@shared/appearance';
+import type { AppearanceMode } from '@shared/appearance';
 import { workspaceStore } from './store';
 // TI-025: the owner's theme. The workspace record is the truth (it syncs
 // between devices through `appearance.update`); the local cache exists only so
@@ -10,16 +10,6 @@ export const APPEARANCE_LABELS: Record<AppearanceMode, string> = {
   light: 'Светлая',
   dark: 'Тёмная',
 };
-export function cachedMode(): AppearanceMode {
-  try {
-    const value = localStorage.getItem(CACHE_KEY);
-    return APPEARANCE_MODES.includes(value as AppearanceMode)
-      ? (value as AppearanceMode)
-      : 'system';
-  } catch {
-    return 'system';
-  }
-}
 // `system` means «no choice»: the attribute is removed so the media query in
 // tokens.css decides, and `prefers-color-scheme` keeps working live.
 export function applyMode(mode: AppearanceMode) {

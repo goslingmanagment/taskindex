@@ -7,6 +7,7 @@ import type {
   Snapshot,
   WorkspaceState,
 } from '@shared/model';
+import { ignoreRejection } from '@shared/ignore-rejection';
 import { applyEvent, applyCommand } from '@shared/commands';
 import {
   actorSchema,
@@ -21,14 +22,14 @@ import { batchEnvelopeSchema, commandEnvelopeSchema } from '@shared/schemas';
 const envelopeSchema = z.union([commandEnvelopeSchema, batchEnvelopeSchema]);
 import { ApiError, request } from './api';
 import { browserStorage, quarantine, type StorageLike } from './drafts';
-export type PendingOperation = {
+type PendingOperation = {
   envelope: OperationEnvelope;
   status: 'sending' | 'unknown' | 'acked';
   previewTime: string;
   previewIds: string[];
   message?: string;
 };
-export type StoreState = {
+type StoreState = {
   confirmed: WorkspaceState;
   data: WorkspaceState;
   generation: string;
@@ -56,7 +57,7 @@ export type StoreState = {
   /** TI-074: who this client acts as (`GET /api/me`); previews are attributed to it. */
   actor: Actor | null;
 };
-export const FALLBACK_ACTOR: Actor = {
+const FALLBACK_ACTOR: Actor = {
   id: 'owner',
   label: 'Владелец',
   kind: 'owner',
@@ -277,7 +278,11 @@ export class WorkspaceStore {
               ? error.message
               : 'Не удалось загрузить задачи.',
         });
-        throw error;
+        // Причина уходит наверх целиком: баннер показывает текст, а вызвавший
+        // код (и консоль) получает исходную ошибку транспорта.
+        throw new Error('Не удалось загрузить пространство.', {
+          cause: error,
+        });
       } finally {
         // One flight per epoch: a superseded flight leaves the slot to the newer one.
         if (epoch === this.refreshEpoch) this.refreshFlight = null;
@@ -288,7 +293,10 @@ export class WorkspaceStore {
   }
   ingest = (events: DomainEvent[]) => {
     if (events.some((e) => e.generation !== this.state.generation)) {
-      void this.resync().catch(() => {});
+      ignoreRejection(
+        this.resync(),
+        'смена поколения: состояние восстановит следующий снимок',
+      );
       return;
     }
     for (const event of events)
@@ -328,7 +336,11 @@ export class WorkspaceStore {
         lastEvents: [...this.state.lastEvents, ...operation].slice(-500),
       });
     }
-    if (this.buffer.size) void this.catchUp().catch(() => {});
+    if (this.buffer.size)
+      ignoreRejection(
+        this.catchUp(),
+        'догон журнала: неудача помечает соединение офлайн',
+      );
   };
   async catchUp() {
     if (this.catchingUp || !this.state.generation) return;
@@ -348,14 +360,19 @@ export class WorkspaceStore {
         this.ingest(page.events);
         more = page.more;
         if (more && !page.events.length)
-          throw new Error('Пустая страница журнала.');
+          throw new Error(
+            `Пустая страница журнала: сервер обещал продолжение после ${received}.`,
+          );
       }
     } catch (error) {
       if (
         error instanceof ApiError &&
         error.detail.code === 'generation_changed'
       )
-        void this.resync().catch(() => {});
+        ignoreRejection(
+          this.resync(),
+          'смена поколения при догоне: перезагрузка снимка',
+        );
       else this.setConnected(false);
     } finally {
       this.catchingUp = false;
@@ -363,7 +380,10 @@ export class WorkspaceStore {
   }
   acknowledge(result: OperationSuccess) {
     if (result.generation !== this.state.generation) {
-      void this.resync().catch(() => {});
+      ignoreRejection(
+        this.resync(),
+        'подтверждение из другого поколения: перезагрузка снимка',
+      );
       return;
     }
     if (
@@ -470,7 +490,10 @@ export class WorkspaceStore {
           if (error instanceof ApiError && !error.detail.retryable) {
             this.finish(id);
             if (error.detail.code === 'generation_changed')
-              void this.resync().catch(() => {});
+              ignoreRejection(
+                this.resync(),
+                'отказ по смене поколения: перезагрузка снимка',
+              );
             throw error;
           }
           this.status(id, 'unknown', 'Изменение не подтверждено');
@@ -485,7 +508,9 @@ export class WorkspaceStore {
             throw new ApiError(resolved.result, resolved.status);
           }
           if (envelope.generation !== this.state.generation)
-            throw new Error('Версия базы изменилась.');
+            // Причина сохраняется в cause: по тексту «Версия базы изменилась»
+            // не видно, чем именно закончилась попытка отправки.
+            throw new Error('Версия базы изменилась.', { cause: error });
         }
       }
     })().finally(() => this.flights.delete(id));
@@ -547,7 +572,10 @@ export class WorkspaceStore {
         else if (!operation.result.retryable) this.finish(envelope.operationId);
       } catch (error) {
         if (error instanceof ApiError && error.detail.code === 'not_found')
-          void this.send(envelope).catch(() => {});
+          ignoreRejection(
+            this.send(envelope),
+            'повтор конверта при восстановлении: результат виден в pending',
+          );
       }
     }
   }

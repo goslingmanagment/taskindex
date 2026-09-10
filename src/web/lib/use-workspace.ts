@@ -2,7 +2,7 @@ import { useSyncExternalStore } from 'react';
 import type { Command, Project, Task } from '@shared/model';
 import { workspaceStore } from '../app/store';
 export { ApiError } from '../app/api';
-export const editableFields = [
+const editableFields = [
   'area',
   'projectId',
   'title',

@@ -204,9 +204,12 @@ function InlineCreate({
       clearDraft(key);
       intent.current = null;
       setTitle('');
-    } catch (e) {
-      if (e instanceof ApiError && !e.detail.retryable) intent.current = null;
-      setError(e instanceof Error ? e.message : 'Не удалось сохранить.');
+    } catch (error) {
+      if (error instanceof ApiError && !error.detail.retryable)
+        intent.current = null;
+      setError(
+        error instanceof Error ? error.message : 'Не удалось сохранить.',
+      );
     } finally {
       setBusy(false);
     }
