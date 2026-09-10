@@ -198,7 +198,7 @@ export const READS: ReadSpec[] = [
   {
     group: 'task',
     action: 'find-origin',
-    route: '/api/tasks/by-origin',
+    route: '/api/tasks/lookup/by-origin',
     query: [
       flag('system', 'string', 'Слаг источника', { required: true }),
       flag('ref', 'string', 'Идентификатор объекта в источнике', {
@@ -232,6 +232,11 @@ export const READS: ReadSpec[] = [
     pageable: true,
     query: [
       flag('actor', 'string', 'Только операции этого актора (owner, agent:ID)'),
+      flag(
+        'after',
+        'number',
+        'Курсор журнала: операции с operationSeq больше указанного, по возрастанию (видны отказы и операции без событий)',
+      ),
       sinceFlag,
       flag('until', 'string', 'Не позже события с этим seq'),
     ],
@@ -243,7 +248,15 @@ export const READS: ReadSpec[] = [
   {
     group: 'digest',
     route: '/api/digest',
-    query: [sinceFlag, generationFlag],
+    query: [
+      sinceFlag,
+      flag(
+        'since-op',
+        'number',
+        'Окно по журналу операций: операции с operationSeq больше указанного',
+      ),
+      generationFlag,
+    ],
     flags: [commitFlag],
     summary:
       'Сводка: Focus, ожидание, счётчики и операции после since (только операции с событиями)',

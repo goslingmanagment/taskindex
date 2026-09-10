@@ -265,10 +265,10 @@ describe('TI-010 TI-011 reserved identifiers and the origin lookup route', () =>
     const bare = await f.app.request('/api/tasks/lookup');
     expect(bare.status).toBe(404);
     expect(await bare.json()).toMatchObject({ code: 'not_found' });
-    // Transitional alias for the CLI (hidden from OpenAPI): same answer.
+    // The old flat path is gone: it is now read as a task id and 404s.
     const legacy = await f.app.request('/api/tasks/by-origin?system=tg&ref=42');
-    expect(legacy.status).toBe(200);
-    expect(await legacy.json()).toMatchObject({ id: 'from-tg' });
+    expect(legacy.status).toBe(404);
+    expect(await legacy.json()).toMatchObject({ code: 'not_found' });
     f.close();
   });
   it('import refuses reserved identifiers before replaying history', () => {

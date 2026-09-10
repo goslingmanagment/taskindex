@@ -735,30 +735,6 @@ export function createApp(options: AppOptions) {
         return c.json(task, 200);
       },
     )
-    // Transitional alias for the CLI `find-origin` (owner B) until it moves to
-    // /api/tasks/lookup/by-origin; hidden from the contract, harmless because
-    // `by-origin` is a reserved id. Remove with the CLI change (2026-09-10).
-    .openapi(
-      createRoute({
-        method: 'get',
-        path: '/api/tasks/by-origin',
-        operationId: 'getTaskByOriginLegacy',
-        hide: true,
-        tags: ['tasks'],
-        request: {
-          query: z.object({ system: z.string(), ref: z.string() }),
-        },
-        responses: { 200: json(taskSchema), ...readErrors },
-      }),
-      (c) => {
-        const q = c.req.valid('query');
-        const task = readState(db).tasks.find(
-          (t) => t.originSystem === q.system && t.originRef === q.ref,
-        );
-        if (!task) fail('not_found', 'Задача источника не найдена.');
-        return c.json(task, 200);
-      },
-    )
     .openapi(
       createRoute({
         method: 'get',
