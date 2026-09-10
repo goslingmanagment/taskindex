@@ -50,7 +50,10 @@ README по `capturedAt` из `environment.json` и коммитят всё вм
 Конфигурация: `tests/e2e/playwright.config.ts`. Сервер тестов создаёт отдельную
 SQLite-базу в `/tmp/taskindex-e2e-*`, мигрирует её и создаёт тестового владельца
 штатным admin API. Вход проходит через настоящий Better Auth. API слушает
-localhost:4001, Vite — localhost:4173. Данные из
+localhost:4001, Vite — localhost:4173. Проект Playwright `static`
+(`tests/e2e/static.spec.ts`, TI-069) отдельно поднимает production-сборку
+`vite build` через настоящий `src/server/index.ts` на localhost:4373 и проверяет
+вход, `Cache-Control` статики и заголовки. Данные из
 `tests/e2e/reference-data.json` создаются только через реальные команды API.
 Это копия тестовой фикстуры эталона: 10 направлений и 20 задач, включая
 архивную. Предыдущие сценарии также оставляют свои тестовые операции в ленте.
