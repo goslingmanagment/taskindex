@@ -67,6 +67,14 @@ scope `tasks`) или выделенное тестовое окружение. 
    конверт с очереди, повторять его нельзя, нужен свежий контекст и новая
    оценка действия. Тексты черновиков в браузере остаются доступны для
    ручного переноса.
+8. **Вручную (экспорт).** `taskindex export --out backup.json` на базе sandbox:
+   в файле `formatVersion: 3`, у каждой операции есть `operationSeq`, в
+   `settings` есть `schema_version`, и присутствует массив `appearance` ровно с
+   одной записью (`id: owner`, `mode`, `skinId`, `revision`). Импорт этого
+   файла в пустую базу (`npm run admin -- import`) проходит `validateExport`;
+   экспорт прежних форматов (1 — без `operationSeq`, 2 — без `appearance`)
+   импортируется с подстановкой значений по умолчанию, но сервер их не пишет
+   (`tests/api/migration-compat.test.ts`, `tests/fixtures/export-schema-2.json`).
 
 Результат записать отдельно: кто выполнял, URL тестового окружения, build,
 generation, operationId каждого существенного шага (из вывода

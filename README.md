@@ -168,16 +168,23 @@ CLI сохраняет конверт до отправки в
 при обновлении shadcn и Base UI. Собственная разметка приложения получает свой
 класс и одноуровневый селектор.
 
-Новый экран: свой блок правил внутри `@layer skin`; цвета только токенами, при
-нехватке роли токен добавляется в `tokens.css`. После шага 5 плана 08 скин
-разрезается по экранам, и новый экран будет отдельным файлом
-`src/web/skin/<экран>.css` с `@import './skin/<экран>.css' layer(skin);` в
-`styles.css`; тогда же появляются линт-гейт (`color-no-hex`,
-`declaration-no-important`) и `scripts/check-skin.mjs`, на который уже ссылается
-шапка `tokens.css`. Обновление примитива: `npx shadcn@latest add <компонент>`,
+Скин разрезан по экранам: один файл `src/web/skin/<экран>.css` на экран
+(`base`, `sidebar`, `board`, `editor`, `activity`, `dialogs`, `auth`), каждый
+подключается строкой `@import './skin/<экран>.css' layer(skin);` в `styles.css`.
+Новый экран — новый файл и новая строка импорта; цвета только токенами, при
+нехватке роли токен добавляется в `tokens.css`.
+
+Гейт скина — `npm run check:skin` (`scripts/check-skin.mjs`), он входит в
+`npm run check` и запускается отдельно, пока правится CSS: ни одного литерала
+цвета вне `tokens.css`, ни одного `!important`, ни одного селектора внутрь
+примитива мимо `data-slot`/`data-sidebar`, контраст пар токенов по WCAG 2.2 в
+светлой и тёмной теме. Обновление примитива: `npx shadcn@latest add <компонент>`,
 затем проверить, что `data-slot`, на которые опирается скин, не изменились, и
-прогнать `npm run e2e` — `tests/e2e/skin.spec.ts` держит вычисленные размеры,
-которые раньше держались на `!important`.
+прогнать e2e-проекты `static` и `dark`.
+
+Тёмная тема и скины проверяются не только в Chromium: движок WebKit ставится
+отдельно (`npx playwright install webkit`), физическая приёмка на телефоне
+описана в [docs/acceptance/phone.md](docs/acceptance/phone.md) (TI-018, TI-034).
 
 ## Проверки
 
@@ -185,6 +192,7 @@ CLI сохраняет конверт до отправки в
 npm run check
 npm run build
 npx playwright install chromium
+npx playwright install webkit
 npm run e2e
 node scripts/gate.mjs
 bash deploy/local-drill.sh
