@@ -3,10 +3,31 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <meta name="theme-color" content="#f7f9fc" />
+    <meta
+      name="theme-color"
+      media="(prefers-color-scheme: light)"
+      content="#f7f8fa"
+    />
+    <meta
+      name="theme-color"
+      media="(prefers-color-scheme: dark)"
+      content="#191d24"
+    />
     <meta name="robots" content="noindex, nofollow" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <title>TaskIndex</title>
+    <script>
+      // TI-025: тема применяется до первой отрисовки, иначе светлый кадр мигает
+      // перед тёмным. Здесь только локальный кэш предпочтения: настоящее
+      // значение приходит со снимком и переписывает кэш (src/web/app/appearance.ts).
+      try {
+        var mode = localStorage.getItem('taskindex/appearance-mode');
+        if (mode === 'light' || mode === 'dark')
+          document.documentElement.dataset.theme = mode;
+      } catch (error) {
+        /* Приватный режим: остаётся системная тема. */
+      }
+    </script>
   </head>
   <body>
     <div id="root"></div>

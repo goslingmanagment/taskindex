@@ -1,7 +1,8 @@
 import { defineConfig, devices } from '@playwright/test';
-// Two fixtures: `functional` runs the specs against the Vite dev server
+// Three projects: `functional` runs the specs against the Vite dev server
 // (API 4001, web 4173); `static` (TI-069) runs the production bundle through
-// src/server/index.ts on 4373. Both start for every run.
+// src/server/index.ts on 4373; `dark` (TI-025) repeats the workspace scenes
+// with `prefers-color-scheme: dark`. All start for every run.
 export default defineConfig({
   testDir: '.',
   testMatch: '**/*.spec.ts',
@@ -16,8 +17,15 @@ export default defineConfig({
   },
   outputDir: '../../test-results',
   projects: [
-    { name: 'functional', testIgnore: /static\.spec\.ts$/ },
+    { name: 'functional', testIgnore: /(static|dark)\.spec\.ts$/ },
     { name: 'static', testMatch: /static\.spec\.ts$/ },
+    // TI-025 шаг 10: те же девять сцен в тёмной теме. Снимки идут в
+    // test-results/e2e-dark, эталон светлой темы не трогают.
+    {
+      name: 'dark',
+      testMatch: /dark\.spec\.ts$/,
+      use: { colorScheme: 'dark' },
+    },
   ],
   webServer: [
     {

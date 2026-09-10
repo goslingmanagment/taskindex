@@ -278,13 +278,38 @@ for (const file of skinFiles) {
 
 // 8. Контраст WCAG 2.2 по парам ролей (доп. шаг 13 плана 08).
 const palette = new Map();
+const darkBlocks = [];
 for (const rule of rules(tokensCss)) {
-  if (rule.prelude !== ':root' && rule.prelude !== '.dark') continue;
-  const mode = rule.prelude === ':root' ? 'light' : 'dark';
+  const dark =
+    rule.prelude === ":root[data-theme='dark']" ||
+    rule.prelude === ":root:not([data-theme='light'])";
+  if (rule.prelude !== ':root' && !dark) continue;
+  const values = new Map();
   for (const hit of rule.body.matchAll(
     /(--[a-z0-9-]+)\s*:\s*(#[0-9a-fA-F]{3,8})\s*;/g,
   ))
-    palette.set(`${mode}${hit[1]}`, hit[2]);
+    values.set(hit[1], hit[2]);
+  if (dark) darkBlocks.push({ rule, values });
+  for (const [name, value] of values)
+    palette.set(`${dark ? 'dark' : 'light'}${name}`, value);
+}
+// Тёмная палитра объявлена дважды (явный выбор и системное предпочтение).
+// Блоки обязаны совпадать: иначе одна из двух дорог покрасит интерфейс иначе.
+if (darkBlocks.length !== 2)
+  fail(
+    TOKENS,
+    0,
+    `тёмных блоков ${darkBlocks.length}, ожидались два (data-theme и prefers-color-scheme)`,
+  );
+else {
+  const [a, b] = darkBlocks;
+  for (const name of new Set([...a.values.keys(), ...b.values.keys()]))
+    if (a.values.get(name) !== b.values.get(name))
+      fail(
+        TOKENS,
+        lineOf(tokensCss, b.rule.index),
+        `тёмные блоки расходятся по ${name}: ${a.values.get(name) ?? '—'} и ${b.values.get(name) ?? '—'}`,
+      );
 }
 function channel(value) {
   const c = value / 255;

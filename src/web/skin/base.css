@@ -1,4 +1,15 @@
 /* Основа: сброс, оболочка, общие состояния и подсказки. Файл подключается со слоем skin из styles.css. */
+/* Владелец выбрал тему — говорим об этом браузеру: он красит скроллбары,
+   системные контролы и фон холста. План 08, шаг 10. */
+:root {
+  color-scheme: light dark;
+}
+:root[data-theme='light'] {
+  color-scheme: light;
+}
+:root[data-theme='dark'] {
+  color-scheme: dark;
+}
 html,
 body {
   margin: 0;

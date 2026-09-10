@@ -1,4 +1,9 @@
-import { useState, type ReactNode } from 'react';
+import {
+  useEffect,
+  useState,
+  useSyncExternalStore,
+  type ReactNode,
+} from 'react';
 import { createAuthClient } from 'better-auth/react';
 import { passkeyClient } from '@better-auth/passkey/client';
 import { PanelsTopLeft, KeyRound } from 'lucide-react';
@@ -9,7 +14,13 @@ import {
   DropdownMenuTrigger,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuLabel,
+  DropdownMenuGroup,
 } from '../ui/dropdown-menu';
+import { APPEARANCE_MODES } from '@shared/appearance';
+import { workspaceStore } from './store';
+import { APPEARANCE_LABELS, applyMode, chooseMode } from './appearance';
 import { toast } from '../ui/toast';
 import { authErrorMessage } from './auth-errors';
 export const authClient = createAuthClient({ plugins: [passkeyClient()] });
@@ -104,6 +115,13 @@ export function AuthGate({ children }: { children: ReactNode }) {
 }
 export function AccountMenu() {
   const session = authClient.useSession();
+  // The workspace record is the truth; the local cache only survives a reload.
+  const { data } = useSyncExternalStore(
+    workspaceStore.subscribe,
+    workspaceStore.getSnapshot,
+  );
+  const mode = data.appearance[0]?.mode ?? 'system';
+  useEffect(() => applyMode(mode), [mode]);
   async function addPasskey() {
     try {
       const result = await authClient.passkey.addPasskey({ name: 'TaskIndex' });
@@ -128,6 +146,29 @@ export function AccountMenu() {
         <DropdownMenuItem onClick={() => void addPasskey()}>
           Добавить passkey
         </DropdownMenuItem>
+        <DropdownMenuSeparator />
+        <DropdownMenuGroup>
+          <DropdownMenuLabel>Оформление</DropdownMenuLabel>
+          {APPEARANCE_MODES.map((value) => (
+            <DropdownMenuItem
+              key={value}
+              data-active={mode === value ? '' : undefined}
+              onClick={() =>
+                void chooseMode(value).catch((e: unknown) =>
+                  toast.add({
+                    title:
+                      e instanceof Error ? e.message : 'Не удалось сохранить.',
+                    type: 'error',
+                  }),
+                )
+              }
+            >
+              {APPEARANCE_LABELS[value]}
+              {mode === value && ' ·'}
+            </DropdownMenuItem>
+          ))}
+        </DropdownMenuGroup>
+        <DropdownMenuSeparator />
         <DropdownMenuItem
           onClick={() =>
             void authClient.signOut().then(() => location.reload())

@@ -88,6 +88,11 @@
   height: 6px;
   border-radius: 50%;
   margin: 0 5px;
+  /* Доп. шаг 16: цвет направления и статуса остаётся данными, его никто не
+     переписывает; обводка отделяет тёмный цвет от тёмной подложки. В светлой
+     теме токен прозрачный, поэтому вид не меняется. */
+  outline: 1px solid var(--surface-ring);
+  outline-offset: -1px;
 }
 .add-project {
   justify-content: flex-start;

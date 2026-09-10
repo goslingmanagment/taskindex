@@ -15,7 +15,20 @@
 @import './skin/dialogs.css' layer(skin);
 @import './skin/auth.css' layer(skin);
 
-@custom-variant dark (&:is(.dark *));
+/* Тёмная тема: выбор владельца (data-theme на <html>, ставит ранний скрипт из
+   index.html) или системное предпочтение, когда выбора нет. Тот же порядок, что
+   у тёмных блоков tokens.css, — иначе утилиты dark: примитивов разойдутся с
+   токенами скина. План 08, шаг 10. */
+@custom-variant dark {
+  &:where([data-theme='dark'], [data-theme='dark'] *) {
+    @slot;
+  }
+  @media (prefers-color-scheme: dark) {
+    &:where(:not([data-theme='light'], [data-theme='light'] *)) {
+      @slot;
+    }
+  }
+}
 
 @layer base {
   * {
