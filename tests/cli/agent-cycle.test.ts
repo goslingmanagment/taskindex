@@ -4,6 +4,7 @@ import { join } from 'node:path';
 import { expect, it } from 'vitest';
 import { runCli } from '../../src/cli/run.js';
 import { Outbox, type SavedOperation } from '../../src/cli/outbox.js';
+import { statePaths } from '../../src/cli/state.js';
 import { createApp } from '../../src/server/app.js';
 import { createAuth } from '../../src/server/auth.js';
 import {
@@ -63,7 +64,7 @@ it('runs two authenticated agents through owner decisions and recovers a committ
         TASKINDEX_TOKEN: token,
         XDG_STATE_HOME: join(directory, name),
       };
-      const outbox = new Outbox(env);
+      const outbox = new Outbox(statePaths(env, baseURL).ops(name));
       const transport = (async (
         input: string | URL | Request,
         init?: RequestInit,

@@ -18,7 +18,12 @@ import {
   type Arguments,
 } from './arguments.js';
 import { ApiClient, exitCode, type ApiReply } from './client.js';
-import { Outbox, type Envelope, type SavedOperation } from './outbox.js';
+import {
+  CorruptEnvelopeError,
+  OUTBOX_FORMAT_VERSION,
+  type SavedOperation,
+} from './outbox.js';
+import { CliState } from './state.js';
 
 export interface CliOptions {
   env?: NodeJS.ProcessEnv;
@@ -47,6 +52,7 @@ export const HELP = {
     'focus',
     'events --since N [--follow]',
     'operation get <id>',
+    'operation list (локальная очередь этого агента: ожидающие и повреждённые конверты)',
     'export [--out file.json]',
   ],
   writes: [
@@ -76,7 +82,7 @@ export const HELP = {
   configuration: [
     'TASKINDEX_URL',
     'TASKINDEX_TOKEN (через op)',
-    'XDG_STATE_HOME (по умолчанию ~/.local/state)',
+    'XDG_STATE_HOME (по умолчанию ~/.local/state); конверты: $XDG_STATE_HOME/taskindex/servers/<server>/agents/<agent>/ops',
   ],
   exitCodes: {
     success: 0,
@@ -183,6 +189,19 @@ function resultCompleted(reply: ApiReply): boolean {
   return reply.body.ok === true && Array.isArray(reply.body.results);
 }
 
+function describe(operation: SavedOperation): Record<string, unknown> {
+  const { envelope } = operation;
+  return {
+    operationId: envelope.operationId,
+    generation: envelope.generation,
+    endpoint: operation.endpoint,
+    command: 'commands' in envelope ? 'batch' : envelope.command,
+    ...('commands' in envelope ? { commands: envelope.commands.length } : {}),
+    ...(envelope.dryRun !== undefined ? { dryRun: envelope.dryRun } : {}),
+    ...(operation.savedAt ? { savedAt: operation.savedAt } : {}),
+  };
+}
+
 export async function runCli(
   argv: string[],
   options: CliOptions = {},
@@ -192,6 +211,7 @@ export async function runCli(
   const diagnostic =
     options.stderr ?? ((line: string) => process.stderr.write(`${line}\n`));
   const emit = (value: unknown) => output(JSON.stringify(value));
+  const warn = (value: unknown) => diagnostic(JSON.stringify(value));
   const input = options.readInput ?? readInput;
   try {
     const args = parseArguments(argv);
@@ -200,25 +220,14 @@ export async function runCli(
       return 0;
     }
     const env = options.env ?? process.env;
-    const outbox = new Outbox(env);
+    const token = required(env.TASKINDEX_TOKEN, 'TASKINDEX_TOKEN');
     const client = new ApiClient({
       baseUrl: required(env.TASKINDEX_URL, 'TASKINDEX_URL'),
-      token: required(env.TASKINDEX_TOKEN, 'TASKINDEX_TOKEN'),
-      outbox,
+      token,
       ...(options.fetch ? { fetch: options.fetch } : {}),
       ...(options.sleep ? { sleep: options.sleep } : {}),
       ...(options.timeoutMs ? { timeoutMs: options.timeoutMs } : {}),
     });
-    const pending = await outbox.list(client.baseUrl);
-    if (pending.length)
-      diagnostic(
-        JSON.stringify({
-          pendingOperations: pending.map(
-            (operation) => operation.envelope.operationId,
-          ),
-          next: 'taskindex operation get <id> или operation resume <id>',
-        }),
-      );
     const [group, action, id, itemId] = args.positional;
     if (
       args.flags.since !== undefined &&
@@ -229,13 +238,76 @@ export async function runCli(
         'Для --since после первого события нужен --generation исходного курсора',
       );
 
+    // State is kept per server and per agent: the identity comes from the key
+    // (GET /api/me, cached by the key hash), so two agents on one machine never
+    // see or resend each other's envelopes.
+    const state = new CliState(env, client.baseUrl, token);
+    const legacy = await state.legacyPending();
+    if (legacy.length)
+      warn({
+        warning: 'legacy_outbox',
+        directory: state.paths.legacyOps,
+        files: legacy,
+        next: 'taskindex operation get <id>, затем удалить файл вручную',
+      });
+    const { identity, warning } = await state.identify(() =>
+      client.request('/api/me'),
+    );
+    if (warning) warn(warning);
+    const outbox = state.outbox(identity);
+    const actorId = state.actorId(identity);
+    const listed = await state.pending(identity);
+    for (const skipped of listed.skipped)
+      warn({ warning: 'outbox_skipped', ...skipped });
+    const pending = listed.operations;
+    if (pending.length)
+      warn({
+        pendingOperations: pending.map(
+          (operation) => operation.envelope.operationId,
+        ),
+        next: 'taskindex operation get <id> или operation resume <id>',
+      });
+
+    if (group === 'operation' && action === 'list') {
+      const corrupt = [
+        ...listed.skipped.map((skipped) => ({
+          ...skipped,
+          file: skipped.renamedTo ?? skipped.file,
+        })),
+        ...(await outbox.corrupt())
+          .filter(
+            (file) =>
+              !listed.skipped.some((skipped) => skipped.renamedTo === file),
+          )
+          .map((file) => ({
+            file,
+            reason: 'corrupt' as const,
+            message: 'отложен предыдущим запуском',
+          })),
+      ];
+      emit({
+        ok: true,
+        actorId,
+        ...(identity ? { agentId: identity.agentId } : {}),
+        directory: outbox.directory,
+        pending: pending.map(describe),
+        corrupt,
+        ...(legacy.length
+          ? { legacy: { directory: state.paths.legacyOps, files: legacy } }
+          : {}),
+      });
+      return 0;
+    }
+
     if (group === 'operation' && action === 'resume') {
-      const operations = id ? [await outbox.get(id)] : pending;
+      const operations = id
+        ? [pending.find((operation) => operation.envelope.operationId === id)]
+        : pending;
       if (operations.some((operation) => !operation))
         throw new ArgumentError('Сохранённый конверт не найден');
       let code = 0;
       for (const operation of operations) {
-        const reply = await client.resume(operation!);
+        const reply = await client.resume(outbox, operation!);
         emit(reply.body);
         code = Math.max(code, exitCode(reply));
       }
@@ -475,7 +547,7 @@ export async function runCli(
         'generation в ответе context',
       );
     }
-    const envelope: Envelope = {
+    const envelope = {
       operationId,
       generation,
       ...(flagBoolean(args.flags, 'dry-run') !== undefined
@@ -494,10 +566,12 @@ export async function runCli(
       });
       return 2;
     }
-    const reply = await client.send({
-      formatVersion: 1,
+    const reply = await client.send(outbox, {
+      formatVersion: OUTBOX_FORMAT_VERSION,
       baseUrl: client.baseUrl,
       endpoint,
+      actorId,
+      savedAt: saved?.savedAt ?? new Date().toISOString(),
       envelope: parsedEnvelope.data,
     });
     emit(reply.body);
@@ -508,6 +582,7 @@ export async function runCli(
       code:
         error instanceof ArgumentError ? 'invalid_arguments' : 'client_error',
       message: error instanceof Error ? error.message : 'Ошибка CLI',
+      ...(error instanceof CorruptEnvelopeError ? error.skipped : {}),
     });
     return error instanceof ArgumentError ? 2 : 1;
   }

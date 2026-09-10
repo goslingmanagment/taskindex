@@ -6,7 +6,8 @@ import {
   commandEnvelopeSchema,
 } from '../shared/schemas.js';
 import { storedOperationSchema } from '../shared/domain-schemas.js';
-import { Outbox, type SavedOperation } from './outbox.js';
+import type { Outbox } from './outbox.js';
+import type { SavedOperation } from './outbox.js';
 
 export interface ApiReply {
   status: number;
@@ -18,7 +19,6 @@ export interface ClientOptions {
   fetch?: typeof fetch;
   timeoutMs?: number;
   sleep?: (milliseconds: number) => Promise<void>;
-  outbox: Outbox;
 }
 
 export function exitCode(reply: ApiReply): number {
@@ -121,12 +121,14 @@ export class ApiClient {
     return { status: response.status, body: body as Record<string, unknown> };
   }
 
-  async send(operation: SavedOperation): Promise<ApiReply> {
+  // The outbox is the durable record of intent: the envelope is written before
+  // the first attempt and removed only after a confirmed final outcome.
+  async send(outbox: Outbox, operation: SavedOperation): Promise<ApiReply> {
     if (operation.baseUrl !== this.baseUrl)
       throw new ArgumentError(
         'Сохранённая операция относится к другому TASKINDEX_URL',
       );
-    await this.options.outbox.put(operation);
+    await outbox.put(operation);
     let finalReply: ApiReply | undefined;
     let unknown = false;
     for (let attempt = 0; attempt <= 3; attempt += 1) {
@@ -144,7 +146,7 @@ export class ApiClient {
         const successful = exitCode(reply) === 0;
         const definitive = reply.body.retryable === false;
         if (successful || definitive) {
-          await this.options.outbox.remove(operation.envelope.operationId);
+          await outbox.remove(operation.envelope.operationId);
           return reply;
         }
         // A proxy 5xx, malformed response or unspecified failure is not proof
@@ -180,7 +182,7 @@ export class ApiClient {
     };
   }
 
-  async resume(operation: SavedOperation): Promise<ApiReply> {
+  async resume(outbox: Outbox, operation: SavedOperation): Promise<ApiReply> {
     if (operation.baseUrl !== this.baseUrl)
       throw new ArgumentError(
         'Сохранённая операция относится к другому TASKINDEX_URL',
@@ -204,13 +206,13 @@ export class ApiClient {
         },
       };
     }
-    if (state.status === 404) return this.send(operation);
+    if (state.status === 404) return this.send(outbox, operation);
     if (exitCode(state) !== 0) return state;
     const result = state.body.result;
     if (result && typeof result === 'object') {
       const body = result as Record<string, unknown>;
       if (body.ok === true || body.retryable === false) {
-        await this.options.outbox.remove(operation.envelope.operationId);
+        await outbox.remove(operation.envelope.operationId);
         return {
           status: body.ok === false ? Number(state.body.status) || 409 : 200,
           body,
@@ -218,10 +220,10 @@ export class ApiClient {
       }
     }
     if (state.body.ok === true && Array.isArray(state.body.results)) {
-      await this.options.outbox.remove(operation.envelope.operationId);
+      await outbox.remove(operation.envelope.operationId);
       return state;
     }
     // Pending/unspecified status is resolved through the idempotent endpoint.
-    return this.send(operation);
+    return this.send(outbox, operation);
   }
 }

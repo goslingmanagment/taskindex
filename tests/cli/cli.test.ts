@@ -4,6 +4,15 @@ import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { runCli } from '../../src/cli/run.js';
 import { Outbox } from '../../src/cli/outbox.js';
+import { statePaths } from '../../src/cli/state.js';
+
+const actor = {
+  id: 'agent:test',
+  agentId: 'test',
+  label: 'Тест',
+  kind: 'agent',
+  scope: 'write',
+};
 
 function requestUrl(value: string | URL | Request): URL {
   return new URL(value instanceof Request ? value.url : value.toString());
@@ -36,13 +45,17 @@ async function setup(
   const requestFetch = (async (
     url: string | URL | Request,
     init?: RequestInit,
-  ) => handler(requestUrl(url), init)) as typeof fetch;
+  ) => {
+    const target = requestUrl(url);
+    // Identity is fetched once per key and cached in the state directory.
+    return target.pathname === '/api/me' ? json(actor) : handler(target, init);
+  }) as typeof fetch;
   return {
     directory,
     env,
     output,
     errors,
-    outbox: new Outbox(env),
+    outbox: new Outbox(statePaths(env, env.TASKINDEX_URL).ops('test')),
     run: (argv: string[]) =>
       runCli(argv, {
         env,
@@ -105,16 +118,13 @@ describe('CLI durable operations', () => {
       const body = requestBody(init);
       bodies.push(body);
       const saved = JSON.parse(
-        await readFile(
-          join(test.directory, 'taskindex', 'ops', 'op1.json'),
-          'utf8',
-        ),
+        await readFile(join(test.outbox.directory, 'op1.json'), 'utf8'),
       );
       expect(saved.envelope).toEqual(JSON.parse(body));
+      expect(saved.actorId).toBe('agent:test');
       expect(JSON.stringify(saved)).not.toContain('secret-test-token');
       expect(
-        (await stat(join(test.directory, 'taskindex', 'ops', 'op1.json')))
-          .mode & 0o777,
+        (await stat(join(test.outbox.directory, 'op1.json'))).mode & 0o777,
       ).toBe(0o600);
       if (bodies.length === 1)
         throw new TypeError('connection reset after commit');
@@ -318,6 +328,7 @@ describe('CLI durable operations', () => {
       env: test.env,
       fetch: (async (url: string | URL | Request, init?: RequestInit) => {
         const u = requestUrl(url);
+        if (u.pathname === '/api/me') return json(actor);
         if (u.pathname === '/api/context')
           return json({ generation: 'g_first' });
         sent = JSON.parse(requestBody(init));

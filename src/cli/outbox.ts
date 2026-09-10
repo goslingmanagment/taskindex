@@ -1,24 +1,58 @@
-import { createHash, randomUUID } from 'node:crypto';
-import { homedir } from 'node:os';
+import { randomUUID } from 'node:crypto';
 import { dirname, join } from 'node:path';
-import { link, mkdir, open, readFile, readdir, unlink } from 'node:fs/promises';
+import {
+  link,
+  mkdir,
+  open,
+  readFile,
+  readdir,
+  rename,
+  stat,
+  unlink,
+} from 'node:fs/promises';
 import { ArgumentError } from './arguments.js';
+import {
+  batchEnvelopeSchema,
+  commandEnvelopeSchema,
+  z,
+} from '../shared/schemas.js';
 
-export interface Envelope {
-  operationId: string;
-  generation: string;
-  dryRun?: boolean;
-  command?: string;
-  payload?: Record<string, unknown>;
-  commands?: unknown[];
+export const OUTBOX_FORMAT_VERSION = 2;
+
+// The persisted intent of one CLI write: enough to resend exactly the same
+// envelope to the same server and to prove which actor saved it.
+export const savedOperationSchema = z
+  .object({
+    formatVersion: z.literal(OUTBOX_FORMAT_VERSION),
+    baseUrl: z.string().min(1),
+    endpoint: z.enum(['/api/commands', '/api/commands/batch']),
+    actorId: z.string().min(1),
+    savedAt: z.iso.datetime({ offset: true }).optional(),
+    envelope: z.union([commandEnvelopeSchema, batchEnvelopeSchema]),
+  })
+  .strict();
+export type SavedOperation = z.infer<typeof savedOperationSchema>;
+
+export interface SkippedFile {
+  file: string;
+  reason: 'name' | 'json' | 'schema' | 'read' | 'actor';
+  message: string;
+  renamedTo?: string;
 }
 
-export interface SavedOperation {
-  formatVersion: 1;
-  baseUrl: string;
-  endpoint: '/api/commands' | '/api/commands/batch';
-  envelope: Envelope;
+export class CorruptEnvelopeError extends Error {
+  constructor(readonly skipped: SkippedFile) {
+    super(
+      skipped.renamedTo
+        ? `Повреждён конверт ${skipped.file}; файл переименован в ${skipped.renamedTo}`
+        : `Повреждён конверт ${skipped.file}: ${skipped.message}`,
+    );
+    this.name = 'CorruptEnvelopeError';
+  }
 }
+
+const idPattern = /^[A-Za-z0-9_-]{1,80}$/;
+const PENDING_MAX_AGE_MS = 60 * 60 * 1000;
 
 function canonical(value: unknown): string {
   if (Array.isArray(value)) return `[${value.map(canonical).join(',')}]`;
@@ -35,7 +69,8 @@ export function sameOperation(
   left: SavedOperation,
   right: SavedOperation,
 ): boolean {
-  return canonical(left) === canonical(right);
+  const strip = ({ savedAt: _savedAt, ...rest }: SavedOperation) => rest;
+  return canonical(strip(left)) === canonical(strip(right));
 }
 
 function isMissing(error: unknown): boolean {
@@ -43,58 +78,130 @@ function isMissing(error: unknown): boolean {
 }
 
 export class Outbox {
-  readonly directory: string;
-  constructor(env: NodeJS.ProcessEnv = process.env) {
-    this.directory = join(
-      env.XDG_STATE_HOME || join(homedir(), '.local', 'state'),
-      'taskindex',
-      'ops',
-    );
-  }
+  constructor(readonly directory: string) {}
 
   path(id: string): string {
-    if (!/^[A-Za-z0-9_-]{1,80}$/.test(id))
+    if (!idPattern.test(id))
       throw new ArgumentError('operationId: недопустимый идентификатор');
     return join(this.directory, `${id}.json`);
   }
 
+  // Reads one envelope. A file that cannot be executed is renamed to
+  // `<name>.corrupt` (bytes preserved) and reported, never silently deleted.
   async get(id: string): Promise<SavedOperation | undefined> {
+    const file = this.path(id);
+    let text: string;
     try {
-      const parsed = JSON.parse(
-        await readFile(this.path(id), 'utf8'),
-      ) as SavedOperation;
-      if (
-        parsed.formatVersion !== 1 ||
-        parsed.envelope?.operationId !== id ||
-        !parsed.baseUrl ||
-        !['/api/commands', '/api/commands/batch'].includes(parsed.endpoint)
-      ) {
-        throw new ArgumentError(
-          `Повреждён конверт ${id}; сохранённый файл оставлен для проверки`,
-        );
-      }
-      return parsed;
+      text = await readFile(file, 'utf8');
     } catch (error) {
       if (isMissing(error)) return undefined;
-      throw error;
+      throw new CorruptEnvelopeError({
+        file,
+        reason: 'read',
+        message: error instanceof Error ? error.message : String(error),
+      });
+    }
+    let raw: unknown;
+    try {
+      raw = JSON.parse(text);
+    } catch (error) {
+      throw await this.quarantine(file, 'json', error);
+    }
+    const parsed = savedOperationSchema.safeParse(raw);
+    if (!parsed.success)
+      throw await this.quarantine(
+        file,
+        'schema',
+        `формат конверта не распознан (${parsed.error.issues
+          .slice(0, 3)
+          .map((issue) => issue.path.join('.') || 'корень')
+          .join(', ')})`,
+      );
+    if (parsed.data.envelope.operationId !== id)
+      throw await this.quarantine(
+        file,
+        'schema',
+        'operationId внутри файла не совпадает с именем файла',
+      );
+    return parsed.data;
+  }
+
+  private async quarantine(
+    file: string,
+    reason: SkippedFile['reason'],
+    cause: unknown,
+  ): Promise<CorruptEnvelopeError> {
+    const message = cause instanceof Error ? cause.message : String(cause);
+    const renamedTo = `${file}.corrupt`;
+    try {
+      await rename(file, renamedTo);
+      return new CorruptEnvelopeError({ file, reason, message, renamedTo });
+    } catch {
+      return new CorruptEnvelopeError({ file, reason, message });
     }
   }
 
-  async list(baseUrl: string): Promise<SavedOperation[]> {
+  // Lists the executable envelopes; each broken file is isolated separately so
+  // one bad file never hides the others or blocks an unrelated command.
+  async list(): Promise<{
+    operations: SavedOperation[];
+    skipped: SkippedFile[];
+  }> {
     let files: string[];
     try {
       files = await readdir(this.directory);
     } catch (error) {
-      if (isMissing(error)) return [];
+      if (isMissing(error)) return { operations: [], skipped: [] };
       throw error;
     }
     const operations: SavedOperation[] = [];
+    const skipped: SkippedFile[] = [];
     for (const file of files.sort()) {
+      if (file.startsWith('.pending-')) {
+        await this.expirePending(join(this.directory, file));
+        continue;
+      }
       if (!file.endsWith('.json')) continue;
-      const operation = await this.get(file.slice(0, -5));
-      if (operation?.baseUrl === baseUrl) operations.push(operation);
+      const id = file.slice(0, -5);
+      if (!idPattern.test(id)) {
+        skipped.push({
+          file: join(this.directory, file),
+          reason: 'name',
+          message: 'имя файла не является operationId',
+        });
+        continue;
+      }
+      try {
+        const operation = await this.get(id);
+        if (operation) operations.push(operation);
+      } catch (error) {
+        if (!(error instanceof CorruptEnvelopeError)) throw error;
+        skipped.push(error.skipped);
+      }
     }
-    return operations;
+    return { operations, skipped };
+  }
+
+  // Files already set aside by earlier runs, kept for manual inspection.
+  async corrupt(): Promise<string[]> {
+    try {
+      return (await readdir(this.directory))
+        .filter((file) => file.endsWith('.corrupt'))
+        .sort()
+        .map((file) => join(this.directory, file));
+    } catch (error) {
+      if (isMissing(error)) return [];
+      throw error;
+    }
+  }
+
+  private async expirePending(file: string): Promise<void> {
+    try {
+      const info = await stat(file);
+      if (Date.now() - info.mtimeMs > PENDING_MAX_AGE_MS) await unlink(file);
+    } catch {
+      // A concurrent writer may have finished with it; nothing to clean.
+    }
   }
 
   async put(operation: SavedOperation): Promise<void> {
@@ -111,23 +218,43 @@ export class Outbox {
     try {
       // link() is an atomic, no-overwrite publication: concurrent invocations
       // cannot replace another request that has the same operationId.
+      await this.publish(temporary, destination, operation);
+    } finally {
+      await unlink(temporary).catch(() => undefined);
+    }
+  }
+
+  private async publish(
+    temporary: string,
+    destination: string,
+    operation: SavedOperation,
+    retried = false,
+  ): Promise<void> {
+    try {
       await link(temporary, destination);
-      const directory = await open(dirname(destination), 'r');
-      try {
-        await directory.sync();
-      } finally {
-        await directory.close();
-      }
     } catch (error) {
       if ((error as NodeJS.ErrnoException).code !== 'EEXIST') throw error;
-      const previous = await this.get(operation.envelope.operationId);
+      let previous: SavedOperation | undefined;
+      try {
+        previous = await this.get(operation.envelope.operationId);
+      } catch (corrupt) {
+        if (!(corrupt instanceof CorruptEnvelopeError) || retried)
+          throw corrupt;
+        // The occupant was unreadable and has been set aside; publish again.
+        return this.publish(temporary, destination, operation, true);
+      }
       if (!previous || !sameOperation(previous, operation)) {
         throw new ArgumentError(
           'operationId уже принадлежит другому сохранённому запросу; конверт не заменён',
         );
       }
+      return;
+    }
+    const directory = await open(dirname(destination), 'r');
+    try {
+      await directory.sync();
     } finally {
-      await unlink(temporary).catch(() => undefined);
+      await directory.close();
     }
   }
 
@@ -138,9 +265,4 @@ export class Outbox {
       if (!isMissing(error)) throw error;
     }
   }
-}
-
-// A nonsecret server identifier is useful in diagnostics without writing tokens.
-export function serverId(baseUrl: string): string {
-  return createHash('sha256').update(baseUrl).digest('hex').slice(0, 12);
 }
