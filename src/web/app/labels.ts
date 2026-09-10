@@ -17,6 +17,7 @@ export const commandLabels: Record<string, string> = {
   'checklist.update': 'Изменён шаг',
   'checklist.remove': 'Удалён шаг',
   'checklist.reorder': 'Переставлены шаги',
+  'appearance.update': 'Изменено оформление',
 };
 export const commandLabel = (command: string) =>
   commandLabels[command] || command;

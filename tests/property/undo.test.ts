@@ -31,6 +31,7 @@ import type {
   WorkspaceState,
 } from '../../src/shared/model.js';
 import { agent, owner } from '../api/helpers.js';
+import { defaultAppearance } from '../../src/shared/domain-schemas.js';
 export const UNDO_SUBJECT_FIELDS = [
   'area',
   'projectId',
@@ -60,7 +61,12 @@ function clock() {
 // A workspace driven by applyCommand with the event history an executor would
 // keep; the property checks live outside of it.
 function workspace() {
-  let state: WorkspaceState = { tasks: [], projects: [], comments: [] };
+  let state: WorkspaceState = {
+    tasks: [],
+    projects: [],
+    comments: [],
+    appearance: [defaultAppearance()],
+  };
   const history: DomainEvent[] = [];
   const now = clock();
   let ids = 0;

@@ -44,6 +44,7 @@ export type Project = z.infer<typeof contracts.projectSchema>;
 export type Task = z.infer<typeof contracts.taskSchema>;
 export type Comment = z.infer<typeof contracts.commentSchema>;
 export type Agent = z.infer<typeof contracts.agentSchema>;
+export type Appearance = z.infer<typeof contracts.appearanceSchema>;
 export type Entity = z.infer<typeof contracts.entitySchema>;
 export type Changes = z.infer<typeof contracts.changesSchema>;
 export type DomainEvent = z.infer<typeof contracts.eventSchema>;
@@ -70,6 +71,9 @@ export type WorkspaceState = {
   projects: Project[];
   tasks: Task[];
   comments: Comment[];
+  // One record (id `owner`), kept in an array so it travels the same record
+  // paths as tasks and projects: `records`, `applyEvent`, export, replay.
+  appearance: Appearance[];
 };
 export type Command = import('./schemas.js').Command;
 export type CommandEnvelope = import('./schemas.js').CommandEnvelope;
@@ -90,6 +94,7 @@ export type FocusGroup = {
   title: string;
   tasks: Task[];
 };
-// Export format: 2 adds operationSeq to operations (2026-09-10); format 1
-// exports are still imported, see exportSchemaV1.
-export const FORMAT_VERSION = 2;
+// Export format: 2 adds operationSeq to operations, 3 adds the appearance
+// preference (2026-09-10); formats 1 and 2 are still imported, see
+// exportSchemaV1 and exportSchemaV2.
+export const FORMAT_VERSION = 3;

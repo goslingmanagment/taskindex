@@ -10,6 +10,12 @@ import {
   commandNames,
 } from './schemas.js';
 import { LIMITS } from './limits.js';
+import {
+  appearanceModeSchema,
+  DEFAULT_APPEARANCE_ID,
+  DEFAULT_APPEARANCE_MODE,
+  DEFAULT_SKIN_ID,
+} from './appearance.js';
 // Every entity and response schema carries `.meta({ id })`: the OpenAPI
 // document then lists it once under components.schemas and refers to it from
 // each route. `.extend()` drops the id, so derived schemas set their own.
@@ -132,9 +138,38 @@ export const agentSchema = z
   })
   .strict()
   .meta({ id: 'Agent' });
+// The owner's appearance preference: one record with a stable id. `skinId` is
+// a plain string on the way out so a client of an older build can fall back to
+// Classic instead of failing to parse the response; writes accept only an id
+// of the current catalogue (skinIdSchema in schemas.ts).
+export const appearanceSchema = z
+  .object({
+    id: idSchema.describe('Всегда owner: предпочтение одно на пространство'),
+    mode: appearanceModeSchema,
+    skinId: z.string().min(1).max(LIMITS.id).describe('Выбранный скин'),
+    revision,
+    updatedAt: nullableStamp.describe('Когда владелец менял оформление'),
+  })
+  .strict()
+  .meta({ id: 'Appearance' });
+
+// The preference exists from the first read: an untouched workspace has no row
+// and answers this record, so revision 1 is a valid baseRevision right away.
+export const defaultAppearance = (): z.infer<typeof appearanceSchema> => ({
+  id: DEFAULT_APPEARANCE_ID,
+  mode: DEFAULT_APPEARANCE_MODE,
+  skinId: DEFAULT_SKIN_ID,
+  revision: 1,
+  updatedAt: null,
+});
+
+export const entityKindSchema = z
+  .enum(['task', 'project', 'comment', 'appearance'])
+  .describe('Вид записи');
+
 export const entitySchema = z
-  .union([taskSchema, projectSchema, commentSchema])
-  .describe('Задача, проект или комментарий')
+  .union([taskSchema, projectSchema, commentSchema, appearanceSchema])
+  .describe('Задача, проект, комментарий или оформление')
   .meta({ id: 'Entity' });
 export const changesSchema = z
   .record(
@@ -156,7 +191,7 @@ export const eventSchema = z
     actorId: z.string().describe('Актор'),
     actorLabel: z.string().describe('Имя актора в момент события'),
     operationId: idSchema,
-    entityKind: z.enum(['task', 'project', 'comment']).describe('Вид записи'),
+    entityKind: entityKindSchema,
     entityId: idSchema,
     taskId: idSchema.optional().describe('Задача события комментария'),
     command: commandNameSchema.describe('Команда'),
@@ -187,6 +222,11 @@ export const snapshotSchema = z
     timezone: z.string().describe('Часовой пояс IANA'),
     projects: z.array(projectSchema).describe('Проекты'),
     tasks: z.array(taskSchema).describe('Все задачи, включая архив'),
+    // Optional in the schema until the web tests (owner C) add the field to
+    // their Snapshot literals; the server always sends it (2026-09-10).
+    appearance: appearanceSchema
+      .optional()
+      .describe('Предпочтение оформления владельца'),
   })
   .strict()
   .meta({ id: 'Snapshot' });
@@ -279,7 +319,7 @@ export const operationErrorSchema = z
     conflicts: z
       .array(
         z.object({
-          entityKind: z.enum(['task', 'project', 'comment']),
+          entityKind: entityKindSchema,
           entityId: idSchema,
           fields: z.array(z.string()),
         }),
@@ -371,9 +411,12 @@ const exportFields = {
 };
 export const exportSchema = z
   .object({
-    formatVersion: z.literal(2),
+    formatVersion: z.literal(3),
     ...exportFields,
     operations: z.array(exportedOperationSchema),
+    appearance: z
+      .array(appearanceSchema)
+      .describe('Предпочтение оформления владельца (одна запись)'),
   })
   .strict()
   .meta({ id: 'Export' });
@@ -385,6 +428,15 @@ export const exportSchemaV1 = z
     formatVersion: z.literal(1),
     ...exportFields,
     operations: z.array(exportedOperationSchema.omit({ operationSeq: true })),
+  })
+  .strict();
+// Format 2 (schema versions 3): no appearance record. Import adds the default
+// preference, exactly what a database without an `appearance` row answers.
+export const exportSchemaV2 = z
+  .object({
+    formatVersion: z.literal(2),
+    ...exportFields,
+    operations: z.array(exportedOperationSchema),
   })
   .strict();
 export const focusGroupSchema = z

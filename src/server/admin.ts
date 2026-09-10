@@ -24,7 +24,13 @@ import { canonicalJson } from '../shared/canonical-json.js';
 import { fail } from '../shared/errors.js';
 import { idSchema, RESERVED_IDS, z } from '../shared/schemas.js';
 import { compareStrings } from '../shared/queries.js';
-import { exportSchema, exportSchemaV1 } from '../shared/domain-schemas.js';
+import {
+  defaultAppearance,
+  exportSchema,
+  exportSchemaV1,
+  exportSchemaV2,
+} from '../shared/domain-schemas.js';
+import { DEFAULT_APPEARANCE_ID } from '../shared/appearance.js';
 import { LIMITS } from '../shared/limits.js';
 export { migrate } from './db.js';
 export function initialize(
@@ -177,15 +183,23 @@ export function exportWorkspace(db: DatabaseHandle): ExportData {
     };
   })();
 }
-// Reads an export of the current format or of format 1 (schema versions 1-2,
-// operations without operationSeq). Format 1 gets positions in (createdAt, id)
-// order, exactly what 0002_operation_seq.sql does to an existing database, so
-// both paths agree; see drizzle/v2/README.md for the data migration rule.
+// Reads an export of the current format, of format 2 (schema version 3, no
+// appearance record) or of format 1 (schema versions 1-2, operations without
+// operationSeq). Format 1 gets positions in (createdAt, id) order, exactly
+// what 0002_operation_seq.sql does to an existing database; format 2 gets the
+// default preference, exactly what a database without an `appearance` row
+// answers. See drizzle/v2/README.md for the data migration rule.
 export function upgradeExport(raw: unknown): ExportData {
   const version = z
     .object({ formatVersion: z.unknown() })
     .loose()
     .parse(raw).formatVersion;
+  if (version === 2)
+    return {
+      ...exportSchemaV2.parse(raw),
+      formatVersion: FORMAT_VERSION,
+      appearance: [defaultAppearance()],
+    };
   if (version !== 1) return exportSchema.parse(raw);
   const legacy = exportSchemaV1.parse(raw);
   const ordered = [...legacy.operations].sort(
@@ -196,6 +210,7 @@ export function upgradeExport(raw: unknown): ExportData {
   return {
     ...legacy,
     formatVersion: FORMAT_VERSION,
+    appearance: [defaultAppearance()],
     operations: legacy.operations.map((o) => ({
       ...o,
       operationSeq: positions.get(o.id)!,
@@ -230,6 +245,11 @@ export function validateExport(data: ExportData) {
   );
   if (!same(sorted(expectedItems), sorted(data.checklistItems)))
     invalid('таблица шагов не совпадает с чеклистами задач.');
+  if (
+    data.appearance.length !== 1 ||
+    data.appearance[0]!.id !== DEFAULT_APPEARANCE_ID
+  )
+    invalid('оформление должно быть одной записью owner.');
   if (data.settings.generation !== data.generation)
     invalid('поколение настроек не совпадает с экспортом.');
   if (!data.settings.timezone) invalid('часовой пояс отсутствует.');
@@ -253,7 +273,12 @@ export function validateExport(data: ExportData) {
     invalid('нарушена непрерывная последовательность событий.');
   const operations = new Map(data.operations.map((o) => [o.id, o]));
   const byOperation = new Map<string, typeof data.events>();
-  let replay: WorkspaceState = { projects: [], tasks: [], comments: [] };
+  let replay: WorkspaceState = {
+    projects: [],
+    tasks: [],
+    comments: [],
+    appearance: [defaultAppearance()],
+  };
   for (const e of data.events) {
     const op =
       operations.get(e.operationId) ?? invalid('событие без операции.');
@@ -266,12 +291,14 @@ export function validateExport(data: ExportData) {
       e.seq > e.lastSeq
     )
       invalid('границы или актор события не совпадают с операцией.');
-    const list =
+    const list: { id: string; revision: number }[] =
       e.entityKind === 'task'
         ? replay.tasks
         : e.entityKind === 'project'
           ? replay.projects
-          : replay.comments;
+          : e.entityKind === 'appearance'
+            ? replay.appearance
+            : replay.comments;
     const before = list.find((r) => r.id === e.entityId);
     if (e.recordRevision !== (before?.revision ?? 0) + 1)
       invalid('нарушена версия записи.');
@@ -329,6 +356,7 @@ export function validateExport(data: ExportData) {
     tasks: sorted(state.tasks),
     projects: sorted(state.projects),
     comments: sorted(state.comments),
+    appearance: sorted(state.appearance),
   });
   if (!same(normalized(replay), normalized(data)))
     invalid('состояние записей не совпадает с журналом событий.');
@@ -366,6 +394,7 @@ export function importWorkspace(
           schema.agentKeys,
           schema.passkey,
           schema.agents,
+          schema.appearance,
           schema.projects,
           schema.tasks,
           schema.checklistItems,
@@ -393,6 +422,7 @@ export function importWorkspace(
         schema.account,
         schema.verification,
         schema.user,
+        schema.appearance,
         schema.comments,
         schema.checklistItems,
         schema.tasks,

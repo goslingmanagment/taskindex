@@ -10,6 +10,7 @@ import type {
   WorkspaceState,
 } from '@shared/model';
 import { applyEvent, applyCommand } from '@shared/commands';
+import { defaultAppearance } from '@shared/domain-schemas';
 import { ApiError, request } from './api';
 import { browserStorage, type StorageLike } from './drafts';
 export type PendingOperation = {
@@ -49,7 +50,12 @@ export const FALLBACK_ACTOR: Actor = {
 export const STORAGE_UNAVAILABLE_MESSAGE =
   'Хранилище браузера недоступно: изменения не отправляются. Скопируйте текст и повторите в обычном окне.';
 type Transport = <T>(path: string, init?: RequestInit) => Promise<T>;
-const empty = (): WorkspaceState => ({ projects: [], tasks: [], comments: [] });
+const empty = (): WorkspaceState => ({
+  projects: [],
+  tasks: [],
+  comments: [],
+  appearance: [defaultAppearance()],
+});
 const opKey = (id: string) => `taskindex/ops/${id}`;
 export class WorkspaceStore {
   private state: StoreState = {
@@ -191,6 +197,7 @@ export class WorkspaceStore {
         tasks: snapshot.tasks,
         projects: snapshot.projects,
         comments: [],
+        appearance: [snapshot.appearance ?? defaultAppearance()],
       },
       loading: false,
       error: '',

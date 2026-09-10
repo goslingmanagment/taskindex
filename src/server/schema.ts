@@ -7,11 +7,22 @@ import {
 } from 'drizzle-orm/sqlite-core';
 import type { Changes, OperationResponse } from '../shared/model.js';
 import { commandNames } from '../shared/schemas.js';
+import { APPEARANCE_MODES } from '../shared/appearance.js';
 const commandColumn = [...commandNames, 'batch'] as const;
 const time = (name: string) => integer(name, { mode: 'timestamp_ms' });
 export const settings = sqliteTable('settings', {
   key: text('key').primaryKey(),
   value: text('value').notNull(),
+});
+// One row (id `owner`): the appearance preference of the workspace owner.
+// `skin_id` stays free text so an id written by a newer build still reads back
+// and falls back to Classic in the client (astra-26).
+export const appearance = sqliteTable('appearance', {
+  id: text('id').primaryKey(),
+  mode: text('mode', { enum: APPEARANCE_MODES }).notNull(),
+  skinId: text('skin_id').notNull(),
+  revision: integer('revision').notNull(),
+  updatedAt: text('updated_at'),
 });
 export const projects = sqliteTable(
   'projects',

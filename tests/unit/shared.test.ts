@@ -28,6 +28,11 @@ import type {
 import { owner } from '../api/helpers.js';
 import { commandLabel, commandLabels } from '../../src/web/app/labels.js';
 import { WRITES } from '../../src/cli/spec.js';
+import {
+  appearanceSchema,
+  defaultAppearance,
+} from '../../src/shared/domain-schemas.js';
+import { SKINS, skinIds, skinIdSchema } from '../../src/shared/appearance.js';
 // The explicit shape the generated unions must have (plan 04, §3.4): a
 // discriminated union over the payload registry. Both assignments fail `tsc`
 // if the generated `Command` drifts from it in either direction.
@@ -87,13 +92,53 @@ describe('command unions are generated from the payload registry (TI-019)', () =
     expect(commandLabels.batch).toBeTypeOf('string');
     expect(commandLabel('task.nope')).toBe('task.nope');
   });
+  // TI-025, TI-026: the appearance registry and its schemas.
+  it('registers unique skins whose default preference validates', () => {
+    expect(new Set(SKINS.map((skin) => skin.id)).size).toBe(SKINS.length);
+    expect(skinIds).toContain('classic');
+    for (const skin of SKINS) {
+      expect(skin.label.trim()).not.toBe('');
+      expect(Object.keys(skin.preview).sort()).toEqual([
+        'accent',
+        'background',
+        'foreground',
+        'surface',
+      ]);
+    }
+    const preference = defaultAppearance();
+    expect(appearanceSchema.parse(preference)).toEqual(preference);
+    expect(skinIds).toContain(preference.skinId);
+    // Read stays lenient about an unknown skin, write does not.
+    expect(
+      appearanceSchema.safeParse({ ...preference, skinId: 'graphite' }).success,
+    ).toBe(true);
+    expect(skinIdSchema.safeParse('graphite').success).toBe(false);
+  });
+  it('requires a mode or a skin in appearance.update', () => {
+    const payload = commandPayloadSchemas['appearance.update'];
+    expect(payload.safeParse({ baseRevision: 1 }).success).toBe(false);
+    expect(payload.safeParse({ baseRevision: 1, mode: 'dark' }).success).toBe(
+      true,
+    );
+    expect(payload.safeParse({ baseRevision: 1, mode: 'sepia' }).success).toBe(
+      false,
+    );
+    expect(payload.safeParse({ baseRevision: 0, mode: 'dark' }).success).toBe(
+      false,
+    );
+  });
   it('keeps shared free of the OpenAPI package', () => {
     expect(z.locales.ru).toBeTypeOf('function');
   });
 });
 const create = (id: string, patch: Partial<Task> = {}): Task => {
   const result = applyCommand(
-    { tasks: [], projects: [], comments: [] },
+    {
+      tasks: [],
+      projects: [],
+      comments: [],
+      appearance: [defaultAppearance()],
+    },
     { command: 'task.create', payload: { id, area: 'agency', title: id } },
     { actor: owner, now: '2026-09-08T00:00:00.000Z', ids: () => id },
   );
@@ -245,6 +290,7 @@ describe('shared queries and validation', () => {
       tasks: [create('t')],
       projects: [],
       comments: [],
+      appearance: [defaultAppearance()],
     };
     const copy = structuredClone(state);
     applyCommand(

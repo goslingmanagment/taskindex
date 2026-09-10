@@ -41,6 +41,7 @@ import {
   digestSchema,
   focusResponseSchema,
   projectsResponseSchema,
+  appearanceSchema,
 } from '../shared/domain-schemas.js';
 import {
   DomainError,
@@ -554,10 +555,24 @@ export function createApp(options: AppOptions) {
               timezone: timezone(),
               projects: state.projects,
               tasks: state.tasks,
+              appearance: state.appearance[0],
             };
           })(),
           200,
         ),
+    )
+    .openapi(
+      createRoute({
+        method: 'get',
+        path: '/api/appearance',
+        operationId: 'getAppearance',
+        summary: 'Предпочтение оформления владельца',
+        description:
+          'Режим (system, light, dark), выбранный скин и revision для appearance.update. Пространство без выбора отвечает значением по умолчанию с revision 1.',
+        tags: ['context'],
+        responses: { 200: json(appearanceSchema), ...readErrors },
+      }),
+      (c) => c.json(readState(db).appearance[0]!, 200),
     )
     .openapi(
       createRoute({

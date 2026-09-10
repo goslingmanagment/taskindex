@@ -16,6 +16,7 @@ import {
 } from '../../src/server/admin.js';
 import { applyEvent } from '../../src/shared/commands.js';
 import { snapshotSchema } from '../../src/shared/domain-schemas.js';
+import { defaultAppearance } from '../../src/shared/domain-schemas.js';
 import type { Task, WorkspaceState } from '../../src/shared/model.js';
 const cleanups: (() => void)[] = [];
 function setup(mode: 'held' | 'open' = 'open') {
@@ -711,6 +712,7 @@ describe('comments, snapshots, export and stream', () => {
       tasks: [],
       projects: [],
       comments: [],
+      appearance: [defaultAppearance()],
     } as WorkspaceState);
     expect(projection).toEqual(f.state());
     const response = await f.app.request('/api/snapshot');
@@ -769,7 +771,7 @@ describe('comments, snapshots, export and stream', () => {
     expect(response.status).toBe(200);
     const document = await response.json();
     // Entities and envelopes are components referenced from the routes.
-    expect(document.components.schemas.CommandEnvelope.oneOf).toHaveLength(16);
+    expect(document.components.schemas.CommandEnvelope.oneOf).toHaveLength(17);
     expect(
       document.paths['/api/commands'].post.requestBody.content[
         'application/json'

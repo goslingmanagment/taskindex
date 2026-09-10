@@ -11,9 +11,12 @@ import type {
   WorkspaceState,
   Task,
   Project,
+  Appearance,
   StoredOperation,
 } from '../shared/model.js';
 import { fail } from '../shared/errors.js';
+import { defaultAppearance } from '../shared/domain-schemas.js';
+import { DEFAULT_APPEARANCE_ID } from '../shared/appearance.js';
 export function openDatabase(path: string) {
   if (path !== ':memory:')
     mkdirSync(dirname(resolve(path)), { recursive: true });
@@ -240,7 +243,14 @@ export function readState(db: DatabaseHandle): WorkspaceState {
           ).length,
         }) as Task,
     );
-  return { projects, tasks, comments };
+  // A workspace whose owner never chose anything has no row: the default
+  // preference is what every reader sees, and revision 1 is its baseRevision.
+  const appearance = (db.orm
+    .select()
+    .from(schema.appearance)
+    .where(eq(schema.appearance.id, DEFAULT_APPEARANCE_ID))
+    .get() ?? defaultAppearance()) as Appearance;
+  return { projects, tasks, comments, appearance: [appearance] };
 }
 export function readEvents(
   db: DatabaseHandle,
@@ -317,6 +327,16 @@ export function writeState(
         .values({ ...item, taskId: t.id, position })
         .run();
   }
+  const appearance = state.appearance[0];
+  if (
+    appearance &&
+    JSON.stringify(previous?.appearance[0]) !== JSON.stringify(appearance)
+  )
+    db.orm
+      .insert(schema.appearance)
+      .values(appearance)
+      .onConflictDoUpdate({ target: schema.appearance.id, set: appearance })
+      .run();
   for (const c of state.comments.filter(
     (c) =>
       !previous ||

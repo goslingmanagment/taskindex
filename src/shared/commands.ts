@@ -14,10 +14,12 @@ import type {
   Task,
   Project,
   Comment,
+  Appearance,
 } from './model.js';
 import { byOrder } from './queries.js';
 import { assertNever, fail } from './errors.js';
 import { LIMITS } from './limits.js';
+import { DEFAULT_APPEARANCE_ID } from './appearance.js';
 export type ChangeEffect = {
   entityKind: EntityKind;
   entityId: string;
@@ -67,6 +69,10 @@ export const projectFields: ReadonlySet<string> = new Set<keyof Project>([
   'color',
   'description',
 ]);
+export const appearanceFields: ReadonlySet<string> = new Set<keyof Appearance>([
+  'mode',
+  'skinId',
+]);
 export function isSubjectField(kind: EntityKind, key: string): boolean {
   switch (kind) {
     case 'task':
@@ -75,6 +81,8 @@ export function isSubjectField(kind: EntityKind, key: string): boolean {
       return projectFields.has(key);
     case 'comment':
       return key === 'deletedAt';
+    case 'appearance':
+      return appearanceFields.has(key);
     default:
       return assertNever(kind);
   }
@@ -86,6 +94,13 @@ const equal = (a: unknown, b: unknown) =>
 const isTask = (record: Entity): record is Task => 'checklist' in record;
 const isComment = (record: Entity): record is Comment => 'taskId' in record;
 export function requireScope(actor: Actor, kind: EntityKind) {
+  // Appearance is the owner's own preference: no agent scope reaches it, and
+  // task.sync never touches it (TI-025).
+  if (kind === 'appearance') {
+    if (actor.kind !== 'owner')
+      fail('forbidden', 'Оформление меняет только владелец.');
+    return;
+  }
   if (actor.scope === 'read' || (kind === 'project' && actor.scope !== 'write'))
     fail('forbidden', 'У ключа недостаточно прав.');
 }
@@ -137,6 +152,7 @@ function changesBetween(before: Entity | undefined, after: Entity): Changes {
 function records(state: WorkspaceState, kind: 'task'): Task[];
 function records(state: WorkspaceState, kind: 'project'): Project[];
 function records(state: WorkspaceState, kind: 'comment'): Comment[];
+function records(state: WorkspaceState, kind: 'appearance'): Appearance[];
 function records(state: WorkspaceState, kind: EntityKind): Entity[];
 function records(state: WorkspaceState, kind: EntityKind): Entity[] {
   switch (kind) {
@@ -146,6 +162,8 @@ function records(state: WorkspaceState, kind: EntityKind): Entity[] {
       return state.projects;
     case 'comment':
       return state.comments;
+    case 'appearance':
+      return state.appearance;
     default:
       return assertNever(kind);
   }
@@ -153,6 +171,7 @@ function records(state: WorkspaceState, kind: EntityKind): Entity[] {
 function get(state: WorkspaceState, kind: 'task', id: string): Task;
 function get(state: WorkspaceState, kind: 'project', id: string): Project;
 function get(state: WorkspaceState, kind: 'comment', id: string): Comment;
+function get(state: WorkspaceState, kind: 'appearance', id: string): Appearance;
 function get(state: WorkspaceState, kind: EntityKind, id: string): Entity;
 function get(state: WorkspaceState, kind: EntityKind, id: string): Entity {
   return (
@@ -451,6 +470,26 @@ function applyProjectUpdate(
   assertMerge('project', record, p.baseRevision, Object.keys(patch), s.history);
   Object.assign(record, patch);
   return { record, changes: s.emit('project', before, record) };
+}
+function applyAppearanceUpdate(
+  s: Session,
+  p: CommandOf<'appearance.update'>['payload'],
+): CommandResult {
+  const record = get(s.state, 'appearance', DEFAULT_APPEARANCE_ID);
+  const before = structuredClone(record);
+  const patch: Partial<Pick<Appearance, 'mode' | 'skinId'>> = {
+    ...(p.mode !== undefined ? { mode: p.mode } : {}),
+    ...(p.skinId !== undefined ? { skinId: p.skinId } : {}),
+  };
+  assertMerge(
+    'appearance',
+    record,
+    p.baseRevision,
+    Object.keys(patch),
+    s.history,
+  );
+  Object.assign(record, patch);
+  return { record, changes: s.emit('appearance', before, record) };
 }
 function applyCommentAdd(
   s: Session,
@@ -872,6 +911,10 @@ export function applyCommand(
     case 'comment.remove':
       requireScope(ctx.actor, 'comment');
       result = applyCommentRemove(s, command.payload);
+      break;
+    case 'appearance.update':
+      requireScope(ctx.actor, 'appearance');
+      result = applyAppearanceUpdate(s, command.payload);
       break;
     case 'task.create':
       requireScope(ctx.actor, 'task');

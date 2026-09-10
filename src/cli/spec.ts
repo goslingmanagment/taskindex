@@ -145,6 +145,14 @@ export const READS: ReadSpec[] = [
     example: 'taskindex context',
   },
   {
+    group: 'appearance',
+    action: 'get',
+    route: '/api/appearance',
+    query: [],
+    summary: 'Оформление владельца: режим, скин и revision для appearance set',
+    example: 'taskindex appearance get',
+  },
+  {
     group: 'snapshot',
     route: '/api/snapshot',
     query: [],
@@ -493,6 +501,14 @@ const WRITE_COMMANDS: Record<CommandName, Omit<WriteSpec, 'command'>> = {
     positional: [id('COMMENT_ID', 'commentId', 'Идентификатор комментария')],
     summary: 'Удалить свой комментарий',
     example: 'taskindex comment remove c1',
+  },
+  'appearance.update': {
+    group: 'appearance',
+    action: 'set',
+    positional: [],
+    summary: 'Выбрать режим оформления и скин (только владелец)',
+    example:
+      'taskindex appearance set --base-revision 1 --mode dark --skin-id focus',
   },
   undo: {
     group: 'undo',

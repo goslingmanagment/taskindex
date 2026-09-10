@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { LIMITS } from './limits.js';
+import { appearanceModeSchema, skinIdSchema } from './appearance.js';
 /** @deprecated import `z` from 'zod' directly; the re-export is kept until plan 10 removes the last consumers. */
 export { z };
 export const idSchema = z
@@ -234,6 +235,17 @@ const schemas = {
     })
     .strict(),
   'comment.remove': z.object({ commentId: idSchema }).strict(),
+  'appearance.update': z
+    .object({
+      baseRevision: revisionSchema,
+      mode: appearanceModeSchema.optional(),
+      skinId: skinIdSchema.optional(),
+    })
+    .strict()
+    .refine(
+      (v) => v.mode !== undefined || v.skinId !== undefined,
+      'Укажите режим или скин',
+    ),
   undo: z.union([
     z
       .object({

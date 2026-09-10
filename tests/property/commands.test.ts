@@ -13,6 +13,7 @@ import type {
   WorkspaceState,
 } from '../../src/shared/model.js';
 import { agent, owner } from '../api/helpers.js';
+import { defaultAppearance } from '../../src/shared/domain-schemas.js';
 const actors: Actor[] = [owner, agent, { ...agent, scope: 'tasks' }];
 it('random command sequences by owner and agents preserve invariants, the event projection and the owner-only policy', () => {
   fc.assert(
@@ -28,11 +29,17 @@ it('random command sequences by owner and agents preserve invariants, the event 
         { minLength: 1, maxLength: 60 },
       ),
       (actions) => {
-        let state: WorkspaceState = { projects: [], tasks: [], comments: [] };
+        let state: WorkspaceState = {
+          projects: [],
+          tasks: [],
+          comments: [],
+          appearance: [defaultAppearance()],
+        };
         let projection: WorkspaceState = {
           projects: [],
           tasks: [],
           comments: [],
+          appearance: [defaultAppearance()],
         };
         const history: DomainEvent[] = [];
         let ids = 0;

@@ -3,6 +3,9 @@
 // The fixture tests/fixtures/export-schema-2.json was produced on the code of
 // schema version 2 (format 1) by export-schema-2.seed.mts; when a new schema
 // version becomes the previous one, regenerate it there and rename both.
+// 2026-09-10: schema version 4 (0003_appearance) keeps this fixture instead of
+// a version-3 one: an older export exercises a strictly longer upgrade chain
+// (format 1 -> operationSeq -> appearance) than the immediately previous one.
 import { cpSync, mkdtempSync, readFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -27,7 +30,11 @@ import {
   validateExport,
 } from '../../src/server/admin.js';
 import { createApp } from '../../src/server/app.js';
-import { exportSchemaV1 } from '../../src/shared/domain-schemas.js';
+import {
+  defaultAppearance,
+  exportSchemaV1,
+} from '../../src/shared/domain-schemas.js';
+import { FORMAT_VERSION } from '../../src/shared/model.js';
 import { owner } from './helpers.js';
 type LegacyExport = z.infer<typeof exportSchemaV1>;
 const FIXTURE_SCHEMA_VERSION = 2;
@@ -59,6 +66,7 @@ function loadLegacy(db: ReturnType<typeof openDatabase>, data: LegacyExport) {
       projects: data.projects,
       tasks: data.tasks,
       comments: data.comments,
+      appearance: [],
     });
     const agent = db.sqlite.prepare(
       'INSERT INTO agents(id, label, created_at, disabled_at) VALUES (?, ?, ?, ?)',
@@ -170,7 +178,8 @@ describe('migration compatibility of the previous schema version (TI-014)', () =
       }),
     );
     const exported = exportWorkspace(db);
-    expect(exported.formatVersion).toBe(2);
+    expect(exported.formatVersion).toBe(FORMAT_VERSION);
+    expect(exported.appearance).toEqual([defaultAppearance()]);
     expect(exported.seq).toBe(fixture.seq);
     expect(() => validateExport(exported)).not.toThrow();
     const target = openDatabase(':memory:');
@@ -233,7 +242,7 @@ describe('migration compatibility of the previous schema version (TI-014)', () =
     );
     expect(getSetting(db, 'schema_version')).toBe(String(schemaVersion()));
     const exported = exportWorkspace(db);
-    expect(exported.formatVersion).toBe(2);
+    expect(exported.formatVersion).toBe(FORMAT_VERSION);
     expect(() => validateExport(exported)).not.toThrow();
     expect(exported.tasks).toEqual(fixture.tasks);
     expect(exported.events).toHaveLength(fixture.events.length);
