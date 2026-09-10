@@ -22,6 +22,7 @@ export class DomainError extends Error {
       generation_changed: 409,
       not_undoable: 409,
       unavailable: 503,
+      internal: 500,
     }[code];
   }
   toJSON(): OperationError {

@@ -206,6 +206,7 @@ export const errorCodeSchema = z.enum([
   'generation_changed',
   'not_undoable',
   'unavailable',
+  'internal',
 ]);
 export const operationErrorSchema = z
   .object({

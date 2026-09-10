@@ -1,4 +1,5 @@
 import { OpenAPIHono, createRoute } from '@hono/zod-openapi';
+import type { Context } from 'hono';
 import type { ContentfulStatusCode } from 'hono/utils/http-status';
 import { bodyLimit } from 'hono/body-limit';
 import { eq } from 'drizzle-orm';
@@ -48,7 +49,9 @@ import { authorizeRequest, staticAuthorization } from './auth.js';
 import { exportWorkspace, writesAreOpen } from './admin.js';
 import { executeOperation } from './operations.js';
 import { createEventHub, SSE_HEARTBEAT_MS } from './sse.js';
-import type { Subscriber } from './sse.js';
+import type { EventHub, Subscriber } from './sse.js';
+import { createLogger, errorFields } from './log.js';
+import type { Logger } from './log.js';
 export type AppOptions = {
   db: DatabaseHandle;
   auth?: Auth;
@@ -63,6 +66,8 @@ export type AppOptions = {
   deploymentId?: string;
   migrationsDir?: string;
   sseHeartbeatMs?: number;
+  logger?: Logger;
+  hub?: EventHub;
   now?: () => string;
   ids?: () => string;
 };
@@ -70,10 +75,36 @@ type Env = {
   Variables: {
     actor: Actor;
     auth: Authorized;
+    requestId: string;
     operationId?: string;
     commandName?: string;
   };
 };
+// Clients may supply their own correlation id; anything else gets a fresh one
+// so arbitrary strings never reach the log.
+const requestIdPattern = /^[A-Za-z0-9_-]{1,128}$/;
+const unavailableCodes = [
+  'SQLITE_BUSY',
+  'SQLITE_READONLY',
+  'SQLITE_IOERR',
+  'SQLITE_FULL',
+  'SQLITE_CANTOPEN',
+];
+const sqliteUnavailable = (error: unknown) => {
+  const code = (error as { code?: unknown }).code;
+  return (
+    typeof code === 'string' && unavailableCodes.some((c) => code.startsWith(c))
+  );
+};
+const healthSchema = z.object({
+  ok: z.boolean(),
+  generation: idSchema,
+  seq: z.number(),
+  dbWritable: z.boolean(),
+  schemaVersion: z.number(),
+  build: z.string(),
+  writes: z.enum(['held', 'open']),
+});
 const json = <T extends z.ZodType>(
   schema: T,
   description = 'Ответ приложения',
@@ -183,7 +214,8 @@ export function createApp(options: AppOptions) {
     .run();
   const baseURL = options.baseURL ?? 'http://localhost:3001';
   const origins = options.trustedOrigins ?? [baseURL, 'http://localhost:5173'];
-  const hub = createEventHub();
+  const hub = options.hub ?? createEventHub();
+  const logger = options.logger ?? createLogger('info');
   const heartbeatMs = options.sseHeartbeatMs ?? SSE_HEARTBEAT_MS;
   const now = () => options.now?.() ?? new Date().toISOString();
   const timezone = () => getSetting(db, 'timezone') ?? 'Europe/Moscow';
@@ -248,55 +280,49 @@ export function createApp(options: AppOptions) {
     defaultHook: (result, c) => {
       if (!result.success)
         return c.json(
-          {
-            ok: false,
-            code: 'invalid',
-            message: 'Проверьте параметры запроса.',
-            retryable: false,
-          },
+          new DomainError('invalid', 'Проверьте параметры запроса.').toJSON(),
           400,
         );
     },
   });
+  // Errors reaching this boundary were thrown before or inside
+  // executeOperation, so the transaction rolled back and the outcome is
+  // known: `internal` is final (retryable: false). Only SQLite availability
+  // errors stay retryable.
   app.onError((error, c) => {
-    if (error instanceof DomainError)
-      return c.json(error.toJSON(), error.status as ContentfulStatusCode);
-    if (error instanceof z.ZodError)
-      return c.json(
-        {
-          ok: false,
-          code: 'invalid',
-          message: 'Проверьте поля запроса.',
-          retryable: false,
-        },
-        400,
-      );
-    if (
-      (error as { code?: string }).code?.startsWith('SQLITE_BUSY') ||
-      (error as { code?: string }).code?.startsWith('SQLITE_READONLY')
-    )
-      return c.json(
-        {
-          ok: false,
-          code: 'unavailable',
-          message: 'База временно недоступна.',
-          retryable: true,
-        },
-        503,
-      );
-    console.error(JSON.stringify({ code: 'internal', error: error.name }));
-    return c.json(
-      {
-        ok: false,
-        code: 'unavailable',
-        message: 'Запрос не выполнен. Повторите с прежним operationId.',
-        retryable: true,
-      },
-      503,
+    const domain =
+      error instanceof DomainError
+        ? error
+        : error instanceof z.ZodError
+          ? new DomainError('invalid', 'Проверьте поля запроса.')
+          : sqliteUnavailable(error)
+            ? new DomainError('unavailable', 'База временно недоступна.')
+            : undefined;
+    if (domain)
+      return c.json(domain.toJSON(), domain.status as ContentfulStatusCode);
+    logger.error({
+      event: 'internal_error',
+      requestId: c.get('requestId'),
+      method: c.req.method,
+      path: c.req.path,
+      actor: c.get('actor')?.id,
+      operationId: c.get('operationId'),
+      command: c.get('commandName'),
+      ...errorFields(error),
+    });
+    const internal = new DomainError(
+      'internal',
+      'Внутренняя ошибка сервера. Операция не выполнена.',
     );
+    return c.json(internal.toJSON(), 500);
   });
   app.use('/api/*', async (c, next) => {
     const started = Date.now();
+    const given = c.req.header('x-request-id');
+    const requestId =
+      given && requestIdPattern.test(given) ? given : randomUUID();
+    c.set('requestId', requestId);
+    c.header('x-request-id', requestId);
     let rejectedStatus: number | undefined;
     try {
       if (c.req.path.startsWith('/api/auth/')) {
@@ -334,52 +360,47 @@ export function createApp(options: AppOptions) {
       }
       await next();
     } catch (error) {
-      rejectedStatus = error instanceof DomainError ? error.status : 503;
+      rejectedStatus =
+        error instanceof DomainError
+          ? error.status
+          : sqliteUnavailable(error)
+            ? 503
+            : 500;
       throw error;
     } finally {
-      if (c.req.path.startsWith('/api/commands'))
-        console.info(
-          JSON.stringify({
-            requestId: c.req.header('x-request-id') ?? randomUUID(),
-            operationId: c.get('operationId'),
-            command: c.get('commandName'),
-            actor: c.get('actor')?.id,
-            code: rejectedStatus ?? c.res.status,
-            durationMs: Date.now() - started,
-          }),
-        );
+      // Rejections are warnings, commands are info, everything else is debug:
+      // LOG_LEVEL=debug shows every /api/* request, warn only refusals.
+      const code = rejectedStatus ?? c.res.status;
+      const entry = {
+        event: 'request',
+        requestId,
+        method: c.req.method,
+        path: c.req.path,
+        operationId: c.get('operationId'),
+        command: c.get('commandName'),
+        actor: c.get('actor')?.id,
+        code,
+        durationMs: Date.now() - started,
+      };
+      if (code >= 400) logger.warn(entry);
+      else if (c.req.path.startsWith('/api/commands')) logger.info(entry);
+      else logger.debug(entry);
     }
   });
+  const tooLarge = (message: string) => (c: Context) =>
+    c.json(new DomainError('invalid', message).toJSON(), 400);
   app.use(
     '/api/commands',
     bodyLimit({
       maxSize: 1024 * 1024,
-      onError: (c) =>
-        c.json(
-          {
-            ok: false,
-            code: 'invalid',
-            message: 'Слишком большой запрос.',
-            retryable: false,
-          },
-          400,
-        ),
+      onError: tooLarge('Слишком большой запрос.'),
     }),
   );
   app.use(
     '/api/commands/batch',
     bodyLimit({
       maxSize: 4 * 1024 * 1024,
-      onError: (c) =>
-        c.json(
-          {
-            ok: false,
-            code: 'invalid',
-            message: 'Слишком большой пакет.',
-            retryable: false,
-          },
-          400,
-        ),
+      onError: tooLarge('Слишком большой пакет.'),
     }),
   );
   app.on(
@@ -389,52 +410,82 @@ export function createApp(options: AppOptions) {
       options.auth
         ? options.auth.handler(c.req.raw)
         : c.json(
-            {
-              ok: false,
-              code: 'unauthorized',
-              message: 'Авторизация не настроена.',
-              retryable: false,
-            },
+            new DomainError(
+              'unauthorized',
+              'Авторизация не настроена.',
+            ).toJSON(),
             401,
           ),
   );
+  // executeOperation commits inside itself. Anything that fails afterwards
+  // (fan-out, serialisation) must not change the answer: the outcome is
+  // already durable, so it is logged and the stored result is returned.
+  const runOperation = (
+    c: Context<Env>,
+    input: Parameters<typeof executeOperation>[1],
+    commandName: string,
+  ) => {
+    c.set('operationId', input.operationId);
+    c.set('commandName', commandName);
+    const result = executeOperation(db, input, c.get('actor'), {
+      now: now(),
+      ids: options.ids,
+    });
+    try {
+      hub.publish(result.freshEvents);
+      if (result.freshOperation) hub.notifyOperations();
+    } catch (error) {
+      logger.error({
+        event: 'post_commit_error',
+        requestId: c.get('requestId'),
+        operationId: input.operationId,
+        command: commandName,
+        actor: c.get('actor').id,
+        ...errorFields(error),
+      });
+    }
+    return c.json(result.body, result.status as 200);
+  };
   const api = app
     .openapi(
       createRoute({
         method: 'get',
         path: '/health',
         responses: {
-          200: json(
-            z.object({
-              ok: z.boolean(),
-              generation: idSchema,
-              seq: z.number(),
-              dbWritable: z.boolean(),
-              schemaVersion: z.number(),
-              build: z.string(),
-              writes: z.enum(['held', 'open']),
-            }),
-          ),
-          503: json(operationErrorSchema),
+          200: json(healthSchema),
+          503: json(z.union([healthSchema, operationErrorSchema])),
         },
       }),
       (c) => {
         assertSchema(db, options.migrationsDir);
-        db.sqlite
-          .prepare("UPDATE settings SET value=value WHERE key='generation'")
-          .run();
-        return c.json(
-          {
-            ok: true,
-            generation: generation(db),
-            seq: latestSeq(db),
-            dbWritable: true,
-            schemaVersion: version,
-            build: options.build ?? 'development',
-            writes: opened() ? ('open' as const) : ('held' as const),
-          },
-          200,
-        );
+        // Write probe. UPDATE without changed pages produces no commit and no
+        // WAL frames (measured 2026-09-08: WAL size and PRAGMA data_version
+        // unchanged after 20 calls), but still raises SQLITE_READONLY on a
+        // read-only file.
+        let dbWritable = true;
+        try {
+          db.sqlite
+            .prepare("UPDATE settings SET value=value WHERE key='generation'")
+            .run();
+        } catch (error) {
+          if (
+            !String((error as { code?: unknown }).code).startsWith(
+              'SQLITE_READONLY',
+            )
+          )
+            throw error;
+          dbWritable = false;
+        }
+        const body = {
+          ok: dbWritable,
+          generation: generation(db),
+          seq: latestSeq(db),
+          dbWritable,
+          schemaVersion: version,
+          build: options.build ?? 'development',
+          writes: opened() ? ('open' as const) : ('held' as const),
+        };
+        return dbWritable ? c.json(body, 200) : c.json(body, 503);
       },
     )
     .openapi(
@@ -481,15 +532,7 @@ export function createApp(options: AppOptions) {
       }),
       (c) => {
         const input = c.req.valid('json');
-        c.set('operationId', input.operationId);
-        c.set('commandName', input.command);
-        const result = executeOperation(db, input, c.get('actor'), {
-          now: now(),
-          ids: options.ids,
-        });
-        hub.publish(result.freshEvents);
-        if (result.freshOperation) hub.notifyOperations();
-        return c.json(result.body, result.status as 200);
+        return runOperation(c, input, input.command);
       },
     )
     .openapi(
@@ -504,18 +547,7 @@ export function createApp(options: AppOptions) {
         },
         responses: { 200: json(operationResponseSchema), ...readErrors },
       }),
-      (c) => {
-        const input = c.req.valid('json');
-        c.set('operationId', input.operationId);
-        c.set('commandName', 'batch');
-        const result = executeOperation(db, input, c.get('actor'), {
-          now: now(),
-          ids: options.ids,
-        });
-        hub.publish(result.freshEvents);
-        if (result.freshOperation) hub.notifyOperations();
-        return c.json(result.body, result.status as 200);
-      },
+      (c) => runOperation(c, c.req.valid('json'), 'batch'),
     )
     .openapi(
       createRoute({
@@ -877,6 +909,7 @@ export function createApp(options: AppOptions) {
       });
       return new Response(body, {
         headers: {
+          'x-request-id': c.get('requestId'),
           'content-type': 'text/event-stream',
           'cache-control': 'no-cache, no-transform',
           connection: 'keep-alive',

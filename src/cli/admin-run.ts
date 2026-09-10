@@ -3,6 +3,7 @@ import { access, writeFile } from 'node:fs/promises';
 import { promisify } from 'node:util';
 import { assertSchema, openDatabase } from '../server/db.js';
 import * as admin from '../server/admin.js';
+import { loadAdminConfig } from '../server/config.js';
 import type { ExportData, Scope } from '../shared/model.js';
 import {
   ArgumentError,
@@ -76,18 +77,19 @@ export async function runAdmin(
       return value.replace(/\r?\n$/, '');
     };
     // Do not silently create a database in an arbitrary working directory.
-    const databasePath = required(env.DATABASE_PATH, 'DATABASE_PATH');
+    const config = loadAdminConfig(env);
+    const { databasePath } = config;
     if (command !== 'migrate' && databasePath !== ':memory:')
       await access(databasePath);
     db = openDatabase(databasePath);
-    if (command !== 'migrate') assertSchema(db, env.TASKINDEX_MIGRATIONS_DIR);
+    if (command !== 'migrate') assertSchema(db, config.migrationsDir);
     let result: unknown;
     switch (command) {
       case 'migrate':
         result = admin.initialize(db, {
-          ...(env.TIMEZONE ? { timezone: env.TIMEZONE } : {}),
-          ...(env.TASKINDEX_MIGRATIONS_DIR
-            ? { migrationsDir: env.TASKINDEX_MIGRATIONS_DIR }
+          ...(config.timezone ? { timezone: config.timezone } : {}),
+          ...(config.migrationsDir
+            ? { migrationsDir: config.migrationsDir }
             : {}),
         });
         break;
@@ -168,8 +170,8 @@ export async function runAdmin(
           ) as ExportData,
           {
             replace: flagBoolean(args.flags, 'replace'),
-            ...(env.TASKINDEX_MIGRATIONS_DIR
-              ? { migrationsDir: env.TASKINDEX_MIGRATIONS_DIR }
+            ...(config.migrationsDir
+              ? { migrationsDir: config.migrationsDir }
               : {}),
           },
         );
@@ -191,12 +193,12 @@ export async function runAdmin(
         break;
       }
       case 'mark-restored':
-        result = admin.markRestored(db, env.TASKINDEX_MIGRATIONS_DIR);
+        result = admin.markRestored(db, config.migrationsDir);
         break;
       case 'open-writes':
         result = admin.openWrites(
           db,
-          required(env.TASKINDEX_DEPLOYMENT, 'TASKINDEX_DEPLOYMENT'),
+          required(config.deploymentId, 'TASKINDEX_DEPLOYMENT'),
         );
         break;
       default:
