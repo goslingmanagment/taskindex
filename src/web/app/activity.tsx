@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, useSyncExternalStore } from 'react';
+import { LIMITS } from '@shared/limits';
 import type {
   Comment,
   Context,
@@ -23,6 +24,14 @@ import {
   SelectValue,
 } from '../ui/select';
 import { toast } from '../ui/toast';
+import {
+  commentSchema,
+  contextSchema,
+  eventSchema,
+  operationSummarySchema,
+  pageSchema,
+  storedOperationSchema,
+} from '@shared/domain-schemas';
 import { request } from './api';
 import { workspaceStore } from './store';
 import { commandLabels, taskCount } from './labels';
@@ -133,7 +142,7 @@ export function Activity({
     loadedActor = useRef(actor);
   useEffect(() => {
     let active = true;
-    void request<Context>('/api/context')
+    void request('/api/context', contextSchema)
       .then((value) => {
         if (active) setAgents(value.agents);
       })
@@ -153,15 +162,17 @@ export function Activity({
     const flight = { active: true };
     requestVersion.current = flight;
     const load = async () => {
-      let next = await request<Page<OperationSummary>>(
+      let next = await request(
         `/api/operations?limit=50${query}`,
+        pageSchema(operationSummarySchema),
       );
       const items = [...next.items];
       // Preserve the depth the owner has opened, using fresh cursors throughout.
       while (next.nextCursor && items.length < loadedCount.current) {
         if (!flight.active) return null;
-        next = await request<Page<OperationSummary>>(
+        next = await request(
           `/api/operations?limit=50${query}&cursor=${encodeURIComponent(next.nextCursor)}`,
+          pageSchema(operationSummarySchema),
         );
         items.push(...next.items);
       }
@@ -192,8 +203,9 @@ export function Activity({
     setBusy(true);
     const flight = requestVersion.current;
     try {
-      const next = await request<Page<OperationSummary>>(
+      const next = await request(
         `/api/operations?limit=50${query}&cursor=${encodeURIComponent(page.nextCursor)}`,
+        pageSchema(operationSummarySchema),
       );
       if (flight.active) {
         const items = [...page.items, ...next.items];
@@ -274,8 +286,9 @@ function OperationRow({ operation }: { operation: OperationSummary }) {
   useEffect(() => {
     if (!open || detail) return;
     let active = true;
-    void request<StoredOperation>(
+    void request(
       `/api/operations/${encodeURIComponent(operation.id)}`,
+      storedOperationSchema,
     )
       .then((value) => {
         if (active) setDetail(value);
@@ -386,14 +399,16 @@ export function TaskDiscussion({ task }: { task: Task }) {
     const load = async () => {
       try {
         if (commentsOpen) {
-          const value = await request<Page<Comment>>(
+          const value = await request(
             `/api/tasks/${task.id}/comments?limit=100`,
+            pageSchema(commentSchema),
           );
           if (active) setComments(value);
         }
         if (historyOpen) {
-          const value = await request<Page<DomainEvent>>(
+          const value = await request(
             `/api/tasks/${task.id}/history?limit=100`,
+            pageSchema(eventSchema),
           );
           if (active) setHistory(value);
         }
@@ -441,23 +456,26 @@ export function TaskDiscussion({ task }: { task: Task }) {
       setError(e instanceof Error ? e.message : 'Не удалось удалить.');
     }
   }
+  // Каждая страница проверяется своей схемой: комментарии и события — разные
+  // контракты, общий каст между ними больше не нужен (план 07, шаг 8).
   async function loadMore(kind: 'comments' | 'history') {
     const current = kind === 'comments' ? comments : history;
     if (!current?.nextCursor) return;
+    const path = `/api/tasks/${task.id}/${kind}?limit=100&cursor=${encodeURIComponent(current.nextCursor)}`;
     try {
-      const next = await request<Page<Comment | DomainEvent>>(
-        `/api/tasks/${task.id}/${kind}?limit=100&cursor=${encodeURIComponent(current.nextCursor)}`,
-      );
-      if (kind === 'comments')
+      if (kind === 'comments') {
+        const next = await request(path, pageSchema(commentSchema));
         setComments({
           ...next,
-          items: [...(comments?.items ?? []), ...(next.items as Comment[])],
+          items: [...(comments?.items ?? []), ...next.items],
         });
-      else
+      } else {
+        const next = await request(path, pageSchema(eventSchema));
         setHistory({
           ...next,
-          items: [...(history?.items ?? []), ...(next.items as DomainEvent[])],
+          items: [...(history?.items ?? []), ...next.items],
         });
+      }
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Не удалось загрузить.');
     }
@@ -503,7 +521,7 @@ export function TaskDiscussion({ task }: { task: Task }) {
           <Textarea
             aria-label="Новый комментарий"
             placeholder="Комментарий или поручение…"
-            maxLength={4000}
+            maxLength={LIMITS.commentText}
             value={text}
             onChange={(e) => setText(e.target.value)}
             disabled={busy}

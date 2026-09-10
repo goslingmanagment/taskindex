@@ -21,6 +21,27 @@ export type Draft<T> = {
   operationId?: string;
 };
 const scopePrefix = 'taskindex/draft-scope/';
+// План 04, доп. 16: испорченная запись не выбрасывается и не роняет загрузку.
+// Она переносится под служебный префикс, чтобы владелец мог достать из неё
+// текст, и один раз попадает в консоль. Повторно её уже не читают.
+export const CORRUPT_PREFIX = 'taskindex/corrupt/';
+export function quarantine(
+  storage: StorageLike | undefined,
+  key: string,
+  reason: string,
+) {
+  try {
+    const raw = storage?.getItem(key);
+    if (raw === null || raw === undefined) return;
+    storage?.setItem(`${CORRUPT_PREFIX}${key}`, raw);
+    storage?.removeItem(key);
+    console.warn(
+      `Запись «${key}» не прочитана (${reason}); перенесена в ${CORRUPT_PREFIX}${key}`,
+    );
+  } catch {
+    /* Хранилище может быть недоступно: тогда запись просто пропускается. */
+  }
+}
 const tabKey = 'taskindex/draft-tab';
 const prefix = (scope: string) =>
   scope === 'legacy' ? 'taskindex/draft/' : `taskindex/drafts/${scope}/`;
@@ -33,13 +54,39 @@ export class DraftStorage {
   ) {}
   read<T>(id: string): Draft<T> | null {
     if (this.values.has(id)) return this.values.get(id) as Draft<T> | null;
+    const key = `${prefix(this.scope)}${id}`;
+    let raw: string | null | undefined;
     try {
-      const raw = this.storage?.getItem(`${prefix(this.scope)}${id}`);
-      const draft = raw ? JSON.parse(raw) : null;
-      return draft?.formatVersion === 1 ? draft : null;
+      raw = this.storage?.getItem(key);
     } catch {
       return null;
     }
+    if (!raw) return null;
+    let value: unknown;
+    try {
+      value = JSON.parse(raw);
+    } catch {
+      quarantine(this.storage, key, 'не разбирается как JSON');
+      return null;
+    }
+    const draft = value as Partial<Draft<T>> | null;
+    if (!draft || typeof draft !== 'object') {
+      quarantine(this.storage, key, 'не объект');
+      return null;
+    }
+    if (draft.formatVersion !== 1) {
+      quarantine(
+        this.storage,
+        key,
+        `неизвестный formatVersion ${String(draft.formatVersion)}`,
+      );
+      return null;
+    }
+    if (draft.fields === null || draft.fields === undefined) {
+      quarantine(this.storage, key, 'нет полей');
+      return null;
+    }
+    return draft as Draft<T>;
   }
   write<T>(id: string, draft: Draft<T>) {
     this.values.set(id, draft);

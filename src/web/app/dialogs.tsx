@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { LIMITS } from '@shared/limits';
 import { Plus } from 'lucide-react';
 import {
   Dialog,
@@ -139,7 +140,7 @@ export function QuickCreate({
             <Input
               aria-label="Что нужно сделать?"
               placeholder="Что нужно сделать?"
-              maxLength={240}
+              maxLength={LIMITS.taskTitle}
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               className="quick-title"
@@ -233,7 +234,7 @@ export function ProjectDialog({
       project?.color ??
       AREAS.find((a) => a.id === area)!.color,
   );
-  const [id] = useState(project?.id ?? valid?.id ?? crypto.randomUUID()),
+  const [id, setId] = useState(project?.id ?? valid?.id ?? crypto.randomUUID()),
     [operationId, setOperationId] = useState<string>(
       valid?.operationId ?? crypto.randomUUID(),
     );
@@ -260,6 +261,11 @@ export function ProjectDialog({
     operationId,
   ]);
   const title = area === 'development' ? 'проект' : 'направление';
+  // TI-040: после перехода на существующую запись диалог продолжает работать
+  // как переименование, в том числе после перезагрузки — id лежит в черновике.
+  const editing = Boolean(project ?? base);
+  // Создание упёрлось в занятое имя: сервер прислал ту самую запись.
+  const duplicate = !editing && conflict !== null;
   async function submit() {
     if (busy || conflict || !name.trim()) return;
     setBusy(true);
@@ -300,7 +306,7 @@ export function ProjectDialog({
       <DialogContent className="create-dialog project-dialog">
         <DialogHeader>
           <DialogTitle>
-            {project ? 'Переименовать' : 'Добавить'} {title}
+            {editing ? 'Переименовать' : 'Добавить'} {title}
           </DialogTitle>
           <DialogDescription>
             {AREAS.find((a) => a.id === area)?.name}
@@ -320,7 +326,7 @@ export function ProjectDialog({
                   ? 'Например, новый продукт'
                   : 'Название направления'
               }
-              maxLength={60}
+              maxLength={LIMITS.projectName}
               value={name}
               onChange={(e) => setName(e.target.value)}
             />
@@ -332,7 +338,7 @@ export function ProjectDialog({
               <Textarea
                 id="project-description"
                 aria-label="Описание направления"
-                maxLength={500}
+                maxLength={LIMITS.projectDescription}
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
               />
@@ -352,7 +358,34 @@ export function ProjectDialog({
                 {error}
               </p>
             )}
-            {conflict && (
+            {duplicate && (
+              <div className="conflict-box project-conflict">
+                <strong>
+                  Такое {title} уже есть: {conflict.name}
+                </strong>
+                <p>
+                  Можно открыть существующее и переименовать его, не создавая
+                  второе с тем же именем.
+                </p>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => {
+                    setBase(conflict);
+                    setId(conflict.id);
+                    setName(conflict.name);
+                    setDescription(conflict.description);
+                    setColor(conflict.color);
+                    setConflict(null);
+                    setOperationId(crypto.randomUUID());
+                    setError('');
+                  }}
+                >
+                  Открыть существующее
+                </Button>
+              </div>
+            )}
+            {conflict && !duplicate && (
               <div className="conflict-box project-conflict">
                 <strong>Актуальная версия</strong>
                 <dl>

@@ -1,5 +1,6 @@
 'use client';
 import { useEffect, useRef, useState } from 'react';
+import { LIMITS } from '@shared/limits';
 import { ApiError } from '../lib/use-workspace';
 import { workspaceStore } from './store';
 import { readDraft, writeDraft, clearDraft } from './drafts';
@@ -337,7 +338,7 @@ export function TaskEditor({
             <textarea
               ref={titleRef}
               aria-label="Название задачи"
-              maxLength={240}
+              maxLength={LIMITS.taskTitle}
               className="editor-title"
               rows={2}
               value={draft.title}
@@ -407,7 +408,7 @@ export function TaskEditor({
                 <Input
                   aria-label="От кого или чего ждём"
                   placeholder="Например, ответ дизайнера"
-                  maxLength={240}
+                  maxLength={LIMITS.taskTitle}
                   value={draft.waitingFor}
                   onChange={(e) => patch({ waitingFor: e.target.value })}
                 />
@@ -463,7 +464,7 @@ export function TaskEditor({
                 <Textarea
                   aria-label="Заметка к задаче"
                   placeholder="Контекст, ссылки или мысли…"
-                  maxLength={16000}
+                  maxLength={LIMITS.taskNote}
                   value={draft.note}
                   onChange={(e) => patch({ note: e.target.value })}
                   className="note-input"
@@ -531,7 +532,7 @@ export function TaskEditor({
                     />
                     <Input
                       aria-label="Название шага"
-                      maxLength={500}
+                      maxLength={LIMITS.checklistText}
                       value={c.text}
                       className={c.done ? 'step-done' : ''}
                       onChange={(e) =>
@@ -581,14 +582,17 @@ export function TaskEditor({
                     placeholder="Добавить шаг…"
                     aria-label="Новый шаг"
                     value={step}
-                    maxLength={500}
+                    maxLength={LIMITS.checklistText}
                     onChange={(e) => setStep(e.target.value)}
                   />
                   <Button
                     type="submit"
                     variant="ghost"
                     aria-label="Добавить шаг"
-                    disabled={!step.trim() || draft.checklist.length >= 100}
+                    disabled={
+                      !step.trim() ||
+                      draft.checklist.length >= LIMITS.checklistItems
+                    }
                   >
                     <Plus />
                   </Button>

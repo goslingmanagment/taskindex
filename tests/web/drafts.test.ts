@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import {
   DraftStorage,
   DRAFT_SCOPE_TTL_MS,
@@ -196,5 +196,49 @@ describe('TI-041 draft scope garbage collection with Web Locks', () => {
       draft('Shared text'),
     );
     expect(session.getItem('taskindex/draft-tab')).toBe(chosen.scope);
+  });
+});
+
+describe('план 04, доп. 16: битый черновик уходит в карантин', () => {
+  const cases: [string, string, string][] = [
+    ['битый JSON', 'draft-json', '{"formatVersion":1,'],
+    [
+      'нет полей',
+      'draft-fields',
+      JSON.stringify({ formatVersion: 1, generation: 'g', fields: null }),
+    ],
+    [
+      'неизвестный formatVersion',
+      'draft-version',
+      JSON.stringify({ formatVersion: 7, generation: 'g', fields: { a: 1 } }),
+    ],
+  ];
+  for (const [name, id, raw] of cases)
+    it(`пропускает запись: ${name}`, () => {
+      const storage = new MemoryStorage();
+      const key = `taskindex/drafts/scope/${id}`;
+      storage.setItem(key, raw);
+      const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+      const drafts = new DraftStorage(storage, 'scope');
+      expect(drafts.read(id)).toBeNull();
+      expect(storage.getItem(`taskindex/corrupt/${key}`)).toBe(raw);
+      expect(storage.getItem(key)).toBeNull();
+      expect(warn).toHaveBeenCalledTimes(1);
+      warn.mockRestore();
+    });
+  it('валидная запись читается как прежде', () => {
+    const storage = new MemoryStorage();
+    const draft = {
+      formatVersion: 1,
+      generation: 'g',
+      baseRevision: 2,
+      fields: { title: 'Черновик' },
+    };
+    storage.setItem('taskindex/drafts/scope/task1', JSON.stringify(draft));
+    const drafts = new DraftStorage(storage, 'scope');
+    expect(drafts.read('task1')).toEqual(draft);
+    expect(
+      storage.getItem('taskindex/corrupt/taskindex/drafts/scope/task1'),
+    ).toBeNull();
   });
 });

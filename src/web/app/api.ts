@@ -1,3 +1,4 @@
+import type { z } from 'zod';
 import type { OperationError } from '@shared/model';
 export class ApiError extends Error {
   constructor(
@@ -10,8 +11,12 @@ export class ApiError extends Error {
     return this.detail.current;
   }
 }
+// TI-005: every answer of the server is parsed by the shared schema before the
+// store sees it. A body that does not match the contract is a failure of the
+// request, not data: the client must not build state out of it.
 export async function request<T>(
   path: string,
+  schema: z.ZodType<T>,
   init: RequestInit = {},
 ): Promise<T> {
   let response: Response;
@@ -71,5 +76,16 @@ export async function request<T>(
       response.status,
     );
   }
-  return value as T;
+  const parsed = schema.safeParse(value);
+  if (!parsed.success)
+    throw new ApiError(
+      {
+        ok: false,
+        code: 'unavailable',
+        retryable: false,
+        message: 'Ответ сервера не соответствует контракту.',
+      },
+      response.status,
+    );
+  return parsed.data;
 }

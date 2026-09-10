@@ -2,17 +2,25 @@ import type {
   Actor,
   Command,
   DomainEvent,
-  EventsPage,
   OperationEnvelope,
   OperationSuccess,
   Snapshot,
-  StoredOperation,
   WorkspaceState,
 } from '@shared/model';
 import { applyEvent, applyCommand } from '@shared/commands';
-import { defaultAppearance } from '@shared/domain-schemas';
+import {
+  actorSchema,
+  defaultAppearance,
+  eventsPageSchema,
+  operationSuccessSchema,
+  snapshotSchema,
+  storedOperationSchema,
+} from '@shared/domain-schemas';
+import { z } from 'zod';
+import { batchEnvelopeSchema, commandEnvelopeSchema } from '@shared/schemas';
+const envelopeSchema = z.union([commandEnvelopeSchema, batchEnvelopeSchema]);
 import { ApiError, request } from './api';
-import { browserStorage, type StorageLike } from './drafts';
+import { browserStorage, quarantine, type StorageLike } from './drafts';
 export type PendingOperation = {
   envelope: OperationEnvelope;
   status: 'sending' | 'unknown' | 'acked';
@@ -38,6 +46,13 @@ export type StoreState = {
   storageAvailable: boolean;
   /** TI-043: the server revoked this session or key; the stream is not reopened. */
   revoked: boolean;
+  /**
+   * TI-025 (план 04, доп. 15): снимок пришёл с другой версией схемы сервера.
+   * Клиент этой сборки больше не понимает контракт: отправка команд
+   * останавливается, черновики и pending не трогаются, владелец перезагружает
+   * страницу и получает свежий бандл.
+   */
+  incompatible: boolean;
   /** TI-074: who this client acts as (`GET /api/me`); previews are attributed to it. */
   actor: Actor | null;
 };
@@ -47,9 +62,17 @@ export const FALLBACK_ACTOR: Actor = {
   kind: 'owner',
   scope: 'write',
 };
+export const SERVER_UPDATED_MESSAGE =
+  'Сервер обновлён. Перезагрузите страницу, чтобы продолжить.';
 export const STORAGE_UNAVAILABLE_MESSAGE =
   'Хранилище браузера недоступно: изменения не отправляются. Скопируйте текст и повторите в обычном окне.';
-type Transport = <T>(path: string, init?: RequestInit) => Promise<T>;
+// TI-005: транспорт получает схему ответа вместе с путём, поэтому в состояние
+// не может попасть тело, которое не проходит контракт (план 07, шаг 8).
+export type Transport = <T>(
+  path: string,
+  schema: z.ZodType<T>,
+  init?: RequestInit,
+) => Promise<T>;
 const empty = (): WorkspaceState => ({
   projects: [],
   tasks: [],
@@ -57,6 +80,12 @@ const empty = (): WorkspaceState => ({
   appearance: [defaultAppearance()],
 });
 const opKey = (id: string) => `taskindex/ops/${id}`;
+/** План 04, доп. 14: ответ не относится к отправленному конверту. */
+class MismatchedResponse extends Error {
+  constructor() {
+    super('Ответ относится к другой операции.');
+  }
+}
 export class WorkspaceStore {
   private state: StoreState = {
     confirmed: empty(),
@@ -74,6 +103,7 @@ export class WorkspaceStore {
     operationsVersion: 0,
     storageAvailable: true,
     revoked: false,
+    incompatible: false,
     actor: null,
   };
   private listeners = new Set<() => void>();
@@ -177,7 +207,17 @@ export class WorkspaceStore {
   setToday(today: string) {
     if (today !== this.state.today) this.publish({ today });
   }
+  private schemaVersion: number | null = null;
   loadSnapshot(snapshot: Snapshot) {
+    // План 04, доп. 15: версия схемы первого снимка запоминается. Другое
+    // значение означает, что сервер обновился под работающей вкладкой: команды
+    // этой сборки больше не гарантированы, поэтому отправка останавливается.
+    if (snapshot.schemaVersion !== undefined) {
+      if (this.schemaVersion === null)
+        this.schemaVersion = snapshot.schemaVersion;
+      else if (this.schemaVersion !== snapshot.schemaVersion)
+        this.publish({ incompatible: true });
+    }
     // TI-003: within one generation the confirmed position never moves backwards.
     // A snapshot older than what live events already delivered is ignored and the
     // journal is caught up from the current position instead.
@@ -215,8 +255,8 @@ export class WorkspaceStore {
       this.publish({ loading: true, error: '' });
       try {
         const [snapshot, actor] = await Promise.all([
-          this.transport<Snapshot>('/api/snapshot'),
-          this.transport<Actor>('/api/me').catch(() => null),
+          this.transport('/api/snapshot', snapshotSchema),
+          this.transport('/api/me', actorSchema).catch(() => null),
         ]);
         if (epoch !== this.refreshEpoch) return;
         if (
@@ -300,8 +340,9 @@ export class WorkspaceStore {
       while (more && epoch === this.epoch) {
         let received = this.state.seq;
         while (this.buffer.has(received + 1)) received++;
-        const page = await this.transport<EventsPage>(
+        const page = await this.transport(
           `/api/events?generation=${encodeURIComponent(generation)}&since=${received}&limit=500`,
+          eventsPageSchema,
         );
         if (epoch !== this.epoch) return;
         this.ingest(page.events);
@@ -343,6 +384,8 @@ export class WorkspaceStore {
       return Promise.reject(new Error('Дождитесь загрузки пространства.'));
     if (!this.state.storageAvailable)
       return Promise.reject(new Error(STORAGE_UNAVAILABLE_MESSAGE));
+    if (this.state.incompatible)
+      return Promise.reject(new Error(SERVER_UPDATED_MESSAGE));
     const envelope: OperationEnvelope = {
       ...command,
       operationId,
@@ -403,13 +446,27 @@ export class WorkspaceStore {
       for (let attempt = 0; ; attempt++) {
         this.status(id, 'sending');
         try {
-          const result = await this.transport<OperationSuccess>(
+          const result = await this.transport(
             'commands' in envelope ? '/api/commands/batch' : '/api/commands',
+            operationSuccessSchema,
             { method: 'POST', body: JSON.stringify(envelope) },
           );
+          // Доп. 14 плана 04: ответ обязан относиться к этому конверту и к
+          // этому поколению. Чужой ответ не подтверждает ничего: конверт
+          // остаётся в pending, и владелец видит «не подтверждено».
+          if (
+            result.operationId !== id ||
+            result.generation !== this.state.generation
+          ) {
+            this.status(id, 'unknown', 'Ответ относится к другой операции');
+            throw new MismatchedResponse();
+          }
           this.acknowledge(result);
           return result;
         } catch (error) {
+          // Конверт уже помечен «не подтверждено» и остаётся в pending: его
+          // судьбу решит recover, а не повтор с тем же телом.
+          if (error instanceof MismatchedResponse) throw error;
           if (error instanceof ApiError && !error.detail.retryable) {
             this.finish(id);
             if (error.detail.code === 'generation_changed')
@@ -420,8 +477,9 @@ export class WorkspaceStore {
           if (attempt >= 3) throw error;
           await this.delay(500 * 2 ** attempt);
           if (!this.state.pending.some((p) => p.envelope.operationId === id)) {
-            const resolved = await this.transport<StoredOperation>(
+            const resolved = await this.transport(
               `/api/operations/${encodeURIComponent(id)}`,
+              storedOperationSchema,
             );
             if (resolved.result.ok) return resolved.result;
             throw new ApiError(resolved.result, resolved.status);
@@ -436,13 +494,24 @@ export class WorkspaceStore {
   }
   async recover() {
     const saved: OperationEnvelope[] = [];
+    // Ключи снимаются заранее: карантин удаляет и добавляет записи, поэтому
+    // обход по индексам пропустил бы следующую строку.
+    const keys: string[] = [];
     for (let i = 0; i < (this.storage?.length ?? 0); i++) {
       const key = this.storage?.key(i);
-      if (!key?.startsWith('taskindex/ops/')) continue;
+      if (key) keys.push(key);
+    }
+    for (const key of keys) {
+      if (!key.startsWith('taskindex/ops/')) continue;
       try {
-        const value = JSON.parse(this.storage!.getItem(key)!);
-        if (value.operationId && value.generation) saved.push(value);
+        const value: unknown = JSON.parse(this.storage!.getItem(key) ?? '');
+        // План 04, доп. 16: конверт проверяется схемой, а не двумя полями.
+        // Непонятная строка уезжает в карантин, а не роняет восстановление.
+        const parsed = envelopeSchema.safeParse(value);
+        if (parsed.success) saved.push(parsed.data);
+        else quarantine(this.storage, key, 'не соответствует схеме конверта');
       } catch {
+        quarantine(this.storage, key, 'не разбирается как JSON');
         /* An invalid outbox row is not executable. */
       }
     }
@@ -470,8 +539,9 @@ export class WorkspaceStore {
         });
       if (envelope.generation !== this.state.generation) continue;
       try {
-        const operation = await this.transport<StoredOperation>(
+        const operation = await this.transport(
           `/api/operations/${encodeURIComponent(envelope.operationId)}`,
+          storedOperationSchema,
         );
         if (operation.result.ok) this.acknowledge(operation.result);
         else if (!operation.result.retryable) this.finish(envelope.operationId);

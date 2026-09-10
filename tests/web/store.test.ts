@@ -190,7 +190,11 @@ describe('ordered operation store', () => {
     const storage = new MemoryStorage(),
       bodies: string[] = [];
     const store = new WorkspaceStore(
-      async <T>(_path: string, init?: RequestInit): Promise<T> => {
+      async <T>(
+        _path: string,
+        _schema: unknown,
+        init?: RequestInit,
+      ): Promise<T> => {
         bodies.push(typeof init?.body === 'string' ? init.body : '');
         throw unavailable();
       },
@@ -484,5 +488,66 @@ describe('ordered operation store', () => {
       status: 'waiting',
       checklist: [{ id: 'step', text: 'Шаг', done: false }],
     });
+  });
+});
+
+describe('план 04: связность ответа и версия схемы сервера', () => {
+  it('не подтверждает конверт ответом от другой операции', async () => {
+    const storage = new MemoryStorage();
+    const store = new WorkspaceStore(
+      async <T>(path: string) =>
+        path === '/api/commands'
+          ? (success([event(1)], 'чужой-id') as T)
+          : (noopPage as T),
+      storage,
+    );
+    store.loadSnapshot(snapshot());
+    await expect(
+      store.submit(
+        {
+          command: 'task.update',
+          payload: { id: 'task1', baseRevision: 1, title: 'Мой текст' },
+        },
+        'op1',
+      ),
+    ).rejects.toThrow('Ответ относится к другой операции.');
+    const pending = store.getSnapshot().pending;
+    expect(pending).toHaveLength(1);
+    expect(pending[0]!.status).toBe('unknown');
+    expect(pending[0]!.message).toBe('Ответ относится к другой операции');
+    // Конверт остаётся в outbox: операция могла дойти до сервера.
+    expect(storage.getItem('taskindex/ops/op1')).not.toBeNull();
+  });
+  it('останавливает отправку, когда сервер сменил версию схемы', async () => {
+    const storage = new MemoryStorage();
+    const store = new WorkspaceStore(async <T>() => noopPage as T, storage);
+    store.loadSnapshot(snapshot());
+    expect(store.getSnapshot().incompatible).toBe(false);
+    store.loadSnapshot({ ...snapshot(), seq: 5, schemaVersion: 5 });
+    expect(store.getSnapshot().incompatible).toBe(true);
+    await expect(
+      store.submit({
+        command: 'task.update',
+        payload: { id: 'task1', baseRevision: 1, title: 'Не уйдёт' },
+      }),
+    ).rejects.toThrow('Сервер обновлён');
+    expect(storage.length).toBe(0);
+    expect(store.getSnapshot().pending).toHaveLength(0);
+  });
+  it('уносит нечитаемый конверт в карантин вместо падения восстановления', async () => {
+    const storage = new MemoryStorage();
+    storage.setItem('taskindex/ops/broken', '{не json');
+    storage.setItem('taskindex/ops/alien', JSON.stringify({ hello: 'world' }));
+    const store = new WorkspaceStore(async <T>() => noopPage as T, storage);
+    store.loadSnapshot(snapshot());
+    await store.recover();
+    expect(store.getSnapshot().pending).toHaveLength(0);
+    expect(storage.getItem('taskindex/corrupt/taskindex/ops/broken')).toBe(
+      '{не json',
+    );
+    expect(storage.getItem('taskindex/corrupt/taskindex/ops/alien')).toBe(
+      JSON.stringify({ hello: 'world' }),
+    );
+    expect(storage.getItem('taskindex/ops/broken')).toBeNull();
   });
 });

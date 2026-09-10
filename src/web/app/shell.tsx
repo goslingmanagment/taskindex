@@ -304,7 +304,8 @@ function WorkspaceBody() {
   };
   const renderTask = (task: Task) => renderCard(task);
   // TI-006: without durable browser storage no command may be sent.
-  const disabled = loading || !!error || !state.storageAvailable;
+  const disabled =
+    loading || !!error || !state.storageAvailable || state.incompatible;
   return (
     <>
       <WorkspaceSidebar

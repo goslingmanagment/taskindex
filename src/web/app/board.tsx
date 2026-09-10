@@ -1,4 +1,5 @@
 import { type ReactNode, useEffect, useRef, useState } from 'react';
+import { LIMITS } from '@shared/limits';
 import {
   DndContext,
   DragOverlay,
@@ -226,7 +227,7 @@ function InlineCreate({
         disabled={busy}
         aria-label="Название новой задачи"
         placeholder="Что нужно сделать?"
-        maxLength={240}
+        maxLength={LIMITS.taskTitle}
         value={title}
         onKeyDown={(e) => {
           if (e.key === 'Escape' && !busy) setOpen(false);

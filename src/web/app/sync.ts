@@ -1,5 +1,7 @@
 import { todayInTimezone } from '@shared/queries';
+import { actorSchema } from '@shared/domain-schemas';
 import { ApiError, request } from './api';
+import type { Transport } from './store';
 import { workspaceStore, type WorkspaceStore } from './store';
 export const SSE_RECONNECT_MIN_MS = 1000;
 export const SSE_RECONNECT_MAX_MS = 30000;
@@ -12,7 +14,7 @@ export type SyncDeps = {
   clearInterval: (id: unknown) => void;
   addEventListener: (type: 'online', fn: () => void) => void;
   removeEventListener: (type: 'online', fn: () => void) => void;
-  request: <T>(path: string) => Promise<T>;
+  request: Transport;
 };
 const browserSyncDeps = (): SyncDeps => ({
   EventSource,
@@ -108,7 +110,7 @@ export function startSync(
     reconnect = deps.setTimeout(() => {
       reconnect = null;
       void deps
-        .request('/api/me')
+        .request('/api/me', actorSchema)
         .then(connect)
         .catch((error: unknown) => {
           if (
