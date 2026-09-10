@@ -4,7 +4,7 @@
 
 Это основное место для ID, актуального статуса, приоритета и критерия закрытия. Отчёты объясняют, откуда взялась находка и как её проверяли; планы описывают последовательность реализации. Вопросы тёмной темы и скинов включены отдельными записями, а подробные планы остаются в общей папке.
 
-Текущий состав (2026-09-11, после исполнения): **67 исправлено, 6 отложено, 1 снятая гипотеза, 4 предложения в работе** (TI-024, TI-059, TI-065, TI-066 — финальный коммит; пересчёт ниже в журнале). У каждой исправленной карточки абзац «Закрытие (дата)»: коммит в `v2-fixes`, тест, результат исходного сценария, оговорки. Отложены с причиной: TI-018, TI-023, TI-063, TI-070 (UI/UX передан Astra по решению владельца 2026-09-11), TI-034 (реальная инфраструктура), TI-077 (нет решения). Сводка исполнения: [EXECUTION-REPORT.md](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/EXECUTION-REPORT.md); реестр регрессий и передача Astra: [docs/acceptance/test-debt.md](/Users/dmitriy/code/taskindex/docs/acceptance/test-debt.md).
+Текущий состав (2026-09-11, после исполнения): **71 исправлено, 6 отложено, 1 снятая гипотеза**. У каждой исправленной карточки абзац «Закрытие (дата)»: коммит в `v2-fixes`, тест, результат исходного сценария, оговорки. Отложены с причиной: TI-018, TI-023, TI-063, TI-070 (UI/UX передан Astra по решению владельца 2026-09-11), TI-034 (реальная инфраструктура), TI-077 (нет решения). Сводка исполнения: [EXECUTION-REPORT.md](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/EXECUTION-REPORT.md); реестр регрессий и передача Astra: [docs/acceptance/test-debt.md](/Users/dmitriy/code/taskindex/docs/acceptance/test-debt.md).
 
 Быстрый переход: [индекс](#issue-index) · [карточки](#issue-cards) · [покрытие исходных отчётов](#source-coverage) · [правила обновления](#maintenance).
 
@@ -96,7 +96,7 @@
 | [TI-021](#ti-021) | P2 | ИСПРАВЛЕНО | Независимые свойства команд и Undo |
 | [TI-022](#ti-022) | P3 | ИСПРАВЛЕНО | Проверка формата сохранённых черновиков и outbox |
 | [TI-023](#ti-023) | P3 | ОТЛОЖЕНО | Общий жизненный цикл намерения в формах |
-| [TI-024](#ti-024) | P3 | ПРЕДЛОЖЕНО | Зависимости и измеримая загрузка интерфейса |
+| [TI-024](#ti-024) | P3 | ИСПРАВЛЕНО | Зависимости и измеримая загрузка интерфейса |
 | [TI-025](#ti-025) | P2 | ИСПРАВЛЕНО | Полноценная тёмная тема и общая основа оформления |
 | [TI-026](#ti-026) | P2 | ИСПРАВЛЕНО | Система скинов поверх общей темы |
 | [TI-027](#ti-027) | P1 | ИСПРАВЛЕНО | Граница самостоятельных правок агента и решений владельца |
@@ -131,14 +131,14 @@
 | [TI-056](#ti-056) | P2 | ИСПРАВЛЕНО | Публичный health и HTTP-защиты требуют явного контракта |
 | [TI-057](#ti-057) | P2 | ИСПРАВЛЕНО | Dev backend слушает 0.0.0.0 по умолчанию |
 | [TI-058](#ti-058) | P2 | ИСПРАВЛЕНО | E2E по умолчанию перезаписывает reference-артефакты в docs |
-| [TI-059](#ti-059) | P2 | ПРЕДЛОЖЕНО | Большие server/CLI/UI модули смешивают независимые обязанности |
+| [TI-059](#ti-059) | P2 | ИСПРАВЛЕНО | Большие server/CLI/UI модули смешивают независимые обязанности |
 | [TI-060](#ti-060) | P2 | ИСПРАВЛЕНО | Лимиты повторяются в схемах, командах и JSX |
 | [TI-061](#ti-061) | P2 | ИСПРАВЛЕНО | Несколько canonical() могут разойтись в хешировании |
 | [TI-062](#ti-062) | P2 | ИСПРАВЛЕНО | Конфигурация разбросана, часть переменных не отражает runtime |
 | [TI-063](#ti-063) | P3 | ОТЛОЖЕНО | Комментарии дублируются в store и отдельной загрузке по любому seq |
 | [TI-064](#ti-064) | P3 | ИСПРАВЛЕНО | Выбор Drizzle/better-sqlite3 требует измерения, замена не обоснована |
-| [TI-065](#ti-065) | P3 | ПРЕДЛОЖЕНО | CSS shadcn привязан к пакету генератора и его транзитивным зависимостям |
-| [TI-066](#ti-066) | P3 | ПРЕДЛОЖЕНО | Dev/build конфигурация содержит лишнюю работу и широкое наблюдение |
+| [TI-065](#ti-065) | P3 | ИСПРАВЛЕНО | CSS shadcn привязан к пакету генератора и его транзитивным зависимостям |
+| [TI-066](#ti-066) | P3 | ИСПРАВЛЕНО | Dev/build конфигурация содержит лишнюю работу и широкое наблюдение |
 | [TI-067](#ti-067) | P2 | ИСПРАВЛЕНО | Пути runtime/migrations/static зависят от текущего каталога |
 | [TI-068](#ti-068) | P3 | ИСПРАВЛЕНО | Место сборки и состав production image можно упростить |
 | [TI-069](#ti-069) | P2 | ИСПРАВЛЕНО | E2E проверяет Vite dev, но не production static serving |
@@ -1005,7 +1005,7 @@
 
 ### TI-024 — Зависимости и измеримая загрузка интерфейса
 
-**Тип:** Оптимизация. **Статус:** ПРЕДЛОЖЕНО. **Приоритет:** P3.
+**Тип:** Оптимизация. **Статус:** ИСПРАВЛЕНО. **Приоритет:** P3.
 
 **Источники:** [Astra:S-07](/Users/dmitriy/code/taskindex/docs/audits/2026-09-08-multiside-review/01-stack.md:138); [FS:F3](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/review-1-stack.md:108); [FS:Z2](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/review-1-stack.md:147); [FQ:§10](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/review-4-quality.md:184); [FQ:R9](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/review-4-quality.md:288); [BACKLOG: BL-BUNDLE](/Users/dmitriy/code/taskindex/BACKLOG.md); [FC:compare-stack-arch S-04 и F3](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/compare-stack-arch.md:104); [ASTRA-VS-FABLE §4.5](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/ASTRA-VS-FABLE.md:133); [План 07, доп. шаг 26](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/07-web-client-fixes-and-structure.md:275).
 
@@ -1030,6 +1030,8 @@
 - Удаление transitive-only пакета или разделение node_modules может сломать сборку/адаптеры. Не объявлять задержку доказанной только по gzip-числу. BL-BUNDLE объединён с S-07, отдельной дублирующей задачи нет.
 - Сначала состав production bundle и cold-phone measurements, затем lazy boundaries при доказанном выигрыше. Не удалять клиентскую проверку протокола; не считать gzip-size доказанной задержкой. Runtime image и venue сборки подробно TI-068, build-зависимость shadcn — TI-065.
 - **Решение** (принято 2026-09-10; решение делегировано владельцем Fable): клиентская валидация протокола сохраняется (TI-005); вес снимается переходом `src/shared` на `zod/mini` по замеру `source-map-explorer`; вариант «валидация только на сервере» снят ([план 04, решение владельца](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/04-api-contract-and-schemas.md:295); [README планов, строка «Валидация на клиенте»](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/README.md:160)).
+
+**Закрытие (2026-09-11).** Коммиты `ffafb2d` (`date-fns` снят: grep по `src`/`tests`/`scripts` пуст, страж в `tests/unit/manifest.test.ts`), `d313560` (`shadcn`, `overrides`), `9bf2f21` (замер и решение). Замер `TASKINDEX_SOURCEMAP=1 npm run build` (raw / gzip, Б): до `manualChunks` один `index` 787 045 / 245 929; после — `index` 194 907 / 57 200, `base-ui` 218 672 / 72 066, `react` 178 306 / 55 668, `zod` 88 469 / 24 185, `auth` 50 682 / 17 338, `dnd-kit` 47 606 / 15 504, `icons` 8 192 / 3 204; итого 787 423 / 245 562 (правка кода приложения сбрасывает 57 КБ gzip вместо 246). Решение по Zod записано в план 07 §3.10: вариант A (classic) остаётся, `zod/mini` отклонён — у mini нет `.describe`/`.strict`/`.meta`/`.extend`/`.omit` (≈370 вызовов в `src/shared`), `OpenAPIHono.getOpenAPIDocument()` падает на mini-схемах (`zodSchema.meta is not a function`), выигрыш ≈20 КБ gzip из 246. Ленивые чанки `activity`/`editor` (план 07 шаг 19) — UI, передано Astra.
 
 **Связанные планы:** [astra-24-bundle-and-runtime-dependencies.md](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/astra-24-bundle-and-runtime-dependencies.md); [07-web-client-fixes-and-structure.md](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/07-web-client-fixes-and-structure.md); [11-deploy-and-ops.md](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/11-deploy-and-ops.md).
 
@@ -2174,7 +2176,7 @@
 
 ### TI-059 — Большие server/CLI/UI модули смешивают независимые обязанности
 
-**Тип:** Качество кода. **Статус:** ПРЕДЛОЖЕНО. **Приоритет:** P2.
+**Тип:** Качество кода. **Статус:** ИСПРАВЛЕНО. **Приоритет:** P2.
 
 **Источники:** [FA:V2](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/review-2-architecture.md:72); [FI:B5](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/review-5-ai-ready.md:133); [FQ:§1](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/review-4-quality.md:24); [FQ:§3](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/review-4-quality.md:75); [FQ:§6](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/review-4-quality.md:130); [FQ:§8](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/review-4-quality.md:154); [FQ:R3](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/review-4-quality.md:282); [FQ:R4](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/review-4-quality.md:283); [FQ:R5](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/review-4-quality.md:284); [FQ:R10](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/review-4-quality.md:289).
 
@@ -2198,6 +2200,8 @@
 - Лимит «не больше 400 строк», переименование всех catch и повсеместная замена if/switch не являются критериями закрытия.
 - Дополнительные места того же разреза: server/admin owner/agents/export/restore; shared model с presentation catalog и случайным reexport z; web/lib/workspace с повторным WorkspaceData и command builders в shell/activity/use-workspace. Переименование схем в command/entity допустимо, если оно проясняет границу.
 - Скрытый dispatch change(task, patch) по ключам patch заменить явными предметными действиями при выделении command builders. Повторные request effects с flight.active можно объединить, сохранив отмену/защиту от позднего ответа.
+
+**Закрытие (2026-09-11).** Сервер и CLI разрезаны, web передан Astra. Коммиты `d0867fd` (A: `createApp` 132 строки — только сборка; `src/server/http/{errors,auth-middleware,request-log,pagination,openapi,deps,document}.ts`, `routes/{health,commands,reads,history,operations,stream,context,digest,focus}.ts`, `sse.ts`, `context.ts`, `digest.ts`; `admin.ts` — barrel над `owner/agents/backup/deployment`; `db.ts` → `sqlite.ts`/`migrations.ts`/`db.ts`, позже `events.ts`/`journal.ts`; `withWrite`/`withRead`), `e794b60` (B: `run.ts` 99 строк — argv, справка, `dispatch`; `session.ts`, `reads.ts`, `writes.ts`, `operations.ts`, `cursor.ts`, `errors.ts`, `help.ts`, `spec.ts`; клиент без `hono/client` и типов сервера, `grep -rn "server/" src/cli/*.ts` → только `admin-run.ts`). Тесты: `tests/unit/server-shape.test.ts` (каждый серверный модуль ≤ 400 строк, `createApp` ≤ 150; падал до: `app.ts` 1 391, `admin.ts` 463), `tests/api/durability.test.ts › rolls a failed withWrite back whole…`; поведение, `AppType` и все существующие тесты без изменений. **Остаток — `src/web/app/shell.tsx` (752) и `editor.tsx` (730), план 07 шаги 10–17 (хуки, селекторы, `editor/`), — передан Astra по решению владельца 2026-09-11** (`docs/acceptance/test-debt.md`).
 
 **Связанные планы:** [06-server-structure-config-logging.md](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/06-server-structure-config-logging.md); [07-web-client-fixes-and-structure.md](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/07-web-client-fixes-and-structure.md); [10-code-quality-and-tests.md](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/10-code-quality-and-tests.md).
 
@@ -2363,7 +2367,7 @@
 
 ### TI-065 — CSS shadcn привязан к пакету генератора и его транзитивным зависимостям
 
-**Тип:** Оптимизация зависимостей. **Статус:** ПРЕДЛОЖЕНО. **Приоритет:** P3.
+**Тип:** Оптимизация зависимостей. **Статус:** ИСПРАВЛЕНО. **Приоритет:** P3.
 
 **Источники:** [FS:F2](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/review-1-stack.md:104); [FS:Z2](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/review-1-stack.md:147).
 
@@ -2381,6 +2385,8 @@
 - Lockfile показывает фактически удалённое дерево; генерация UI и provenance описаны.
 - Override удалён только если больше не нужен; theme/dark/animations не регрессируют.
 
+**Закрытие (2026-09-11).** Коммиты `afbf0a5`/`8144d58` (C: базовый CSS shadcn как вендорная копия `src/web/vendor/shadcn-base.css` с версией и sha256 в шапке; импорт в `styles.css`), `d313560` (A: `shadcn` снят с `devDependencies`, блок `overrides.undici` удалён — единственной веткой `undici` был `shadcn → @dotenvx/dotenvx`, в lockfile остался только `undici-types`; lockfile −4 027 строк; `npm ls` чист), `.oxfmtrc.json` игнорирует `src/web/vendor/**`. Тесты: `tests/unit/manifest.test.ts` (страж: манифест не содержит `shadcn` и `overrides`). Проверка: собранный CSS не изменился (116 453 Б / 19 487 gzip, тот же хеш содержимого).
+
 **Связанные планы:** [08-styling-skin-and-dark-theme.md](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/08-styling-skin-and-dark-theme.md); [09-data-layer-and-dependencies.md](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/09-data-layer-and-dependencies.md).
 
 **Связанные записи / зависимости исходного плана:** [TI-024](#ti-024), [TI-025](#ti-025), [TI-052](#ti-052), [TI-071](#ti-071).
@@ -2389,7 +2395,7 @@
 
 ### TI-066 — Dev/build конфигурация содержит лишнюю работу и широкое наблюдение
 
-**Тип:** Инструменты разработки. **Статус:** ПРЕДЛОЖЕНО. **Приоритет:** P3.
+**Тип:** Инструменты разработки. **Статус:** ИСПРАВЛЕНО. **Приоритет:** P3.
 
 **Источники:** [FS:F4](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/review-1-stack.md:113); [FS:T1](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/review-1-stack.md:125); [FQ:§10](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/review-4-quality.md:184).
 
@@ -2406,6 +2412,8 @@
 - HMR реагирует на src/config, не перезапускается из-за DB/WAL/test-results.
 - В проверяемом release workflow typecheck выполнен и относится к тому же исходному состоянию.
 - Время/состав сборки до и после сохранены; CSS output и dev feedback не ухудшились.
+
+**Закрытие (2026-09-11).** Коммит `9bf2f21`. `vite.config.ts`: polling наблюдения только по условию (`CODEX_SANDBOX=seatbelt` или `TASKINDEX_VITE_POLLING=1`) с комментарием «почему» (macOS Seatbelt не отдаёт FSEvents), `useFsEvents: false` убран (в chokidar 4 опции нет), `watch.ignored` дополнен `data/**`, `playwright-report/**`, `coverage/**`; `build.sourcemap` по `TASKINDEX_SOURCEMAP`, `manualChunks` для вендоров. `scripts/dev.mjs`/`package.json` править не потребовалось: `node --watch` следит только за загруженными модулями, повторного typecheck в `build` нет (дубль `oxlint typeCheck` × `tsc` снят в TI-024). Проверка: `npm run build` зелёный, полный e2e 34/34.
 
 **Связанные планы:** [09-data-layer-and-dependencies.md](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/09-data-layer-and-dependencies.md).
 
@@ -3026,7 +3034,7 @@
 
 ### Журнал изменений
 
-**2026-09-10/11 — исполнение реестра (Fable, оркестратор; исполнители по областям server / cli / web / deploy).** Основание: поручение владельца закрыть реестр без его участия по принятым решениям. Ветка `v2-fixes` от базового снимка `63fb04a` (незакоммиченное дерево main на 2026-09-10), 95+ коммитов, `main` не тронут. Гейт каждого коммита: `npm run check` и затронутые e2e; для каждого бага регрессионный тест до исправления. Итог: 67 карточек ИСПРАВЛЕНО (абзац «Закрытие» с коммитом, тестами, результатом сценария), 6 ОТЛОЖЕНО с причиной (TI-018, TI-023, TI-063, TI-070 — UI/UX передан Astra по решению владельца 2026-09-11; TI-034 — реальная инфраструктура; TI-077 — нет решения), TI-075 остаётся СНЯТО. Шапка: состав пересчитан, статусы ИСПРАВЛЕНО/ОТЛОЖЕНО добавлены в таблицу, «С чего начать» помечен историческим. Индекс обновлён построчно. Подробности, числа бенчмарка, известные хвосты — в `docs/plans/2026-09-08-v2-review/EXECUTION-REPORT.md`.
+**2026-09-10/11 — исполнение реестра (Fable, оркестратор; исполнители по областям server / cli / web / deploy).** Основание: поручение владельца закрыть реестр без его участия по принятым решениям. Ветка `v2-fixes` от базового снимка `63fb04a` (незакоммиченное дерево main на 2026-09-10), 95+ коммитов, `main` не тронут. Гейт каждого коммита: `npm run check` и затронутые e2e; для каждого бага регрессионный тест до исправления. Итог: 71 карточка ИСПРАВЛЕНО (абзац «Закрытие» с коммитом, тестами, результатом сценария), 6 ОТЛОЖЕНО с причиной (TI-018, TI-023, TI-063, TI-070 — UI/UX передан Astra по решению владельца 2026-09-11; TI-034 — реальная инфраструктура; TI-077 — нет решения), TI-075 остаётся СНЯТО. Шапка: состав пересчитан, статусы ИСПРАВЛЕНО/ОТЛОЖЕНО добавлены в таблицу, «С чего начать» помечен историческим. Индекс обновлён построчно. Подробности, числа бенчмарка, известные хвосты — в `docs/plans/2026-09-08-v2-review/EXECUTION-REPORT.md`.
 
 - Исправлено побочное изменение первого коммита исполнителя server (`f2781d0` прогнал `oxfmt` по всему дереву): 110 файлов документации и аудитов возвращены к исходному содержимому (`bdcc4ed`), `.oxfmtrc.json` игнорирует `docs/**` и `*.md`, скрипт `format` ограничен путями кода.
 - Планы получили датированные строки-примечания там, где код разошёлся с планом (01–13); README планов не менялся.
