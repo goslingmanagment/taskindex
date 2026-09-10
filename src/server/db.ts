@@ -29,6 +29,13 @@ export function openDatabase(path: string) {
   return { sqlite, orm, close: () => sqlite.close() };
 }
 export type DatabaseHandle = ReturnType<typeof openDatabase>;
+// The two transaction shapes of the server (plan 06, step 6). A write takes
+// the write lock at once (`immediate`), so two writers never collide halfway
+// through; a read stays deferred and does not wait for a writer.
+export const withWrite = <T>(db: DatabaseHandle, fn: () => T): T =>
+  db.sqlite.transaction(fn).immediate();
+export const withRead = <T>(db: DatabaseHandle, fn: () => T): T =>
+  db.sqlite.transaction(fn)();
 export function getSetting(
   db: DatabaseHandle,
   key: string,
@@ -110,66 +117,61 @@ export function migrate(
   const bundled = bundledMigrations(dir);
   const version = bundled.length;
   const logger = options.logger ?? defaultMigrationLogger;
-  db.sqlite
-    .transaction(() => {
-      const hasSettings = db.sqlite
-        .prepare(
-          "SELECT 1 FROM sqlite_master WHERE type='table' AND name='settings'",
-        )
-        .get();
-      if (
-        hasSettings &&
-        Number(getSetting(db, 'schema_version') ?? 0) > version
+  withWrite(db, () => {
+    const hasSettings = db.sqlite
+      .prepare(
+        "SELECT 1 FROM sqlite_master WHERE type='table' AND name='settings'",
       )
+      .get();
+    if (hasSettings && Number(getSetting(db, 'schema_version') ?? 0) > version)
+      fail(
+        'unavailable',
+        'Нельзя применить старый migrator к более новой схеме.',
+      );
+    db.sqlite.exec(
+      'CREATE TABLE IF NOT EXISTS __taskindex_migrations(name TEXT PRIMARY KEY NOT NULL, sha256 TEXT)',
+    );
+    if (!readJournal(db))
+      db.sqlite.exec(
+        'ALTER TABLE __taskindex_migrations ADD COLUMN sha256 TEXT',
+      );
+    const applied = readJournal(db)!;
+    // Verify the whole applied chain before touching anything.
+    const backfill: JournalRow[] = [];
+    for (const row of applied) {
+      const file = bundled.find((m) => m.name === row.name);
+      if (!file)
         fail(
           'unavailable',
-          'Нельзя применить старый migrator к более новой схеме.',
+          `В базе есть неизвестная этому образу миграция ${row.name}.`,
         );
-      db.sqlite.exec(
-        'CREATE TABLE IF NOT EXISTS __taskindex_migrations(name TEXT PRIMARY KEY NOT NULL, sha256 TEXT)',
-      );
-      if (!readJournal(db))
-        db.sqlite.exec(
-          'ALTER TABLE __taskindex_migrations ADD COLUMN sha256 TEXT',
-        );
-      const applied = readJournal(db)!;
-      // Verify the whole applied chain before touching anything.
-      const backfill: JournalRow[] = [];
-      for (const row of applied) {
-        const file = bundled.find((m) => m.name === row.name);
-        if (!file)
-          fail(
-            'unavailable',
-            `В базе есть неизвестная этому образу миграция ${row.name}.`,
-          );
-        if (row.sha256 === null) backfill.push(row);
-        else if (row.sha256 !== file.sha256) changedMigration(row.name);
-      }
-      // Baseline for journals written before checksums existed: trust the
-      // bundled file once and say so in the log.
-      for (const row of backfill) {
-        db.sqlite
-          .prepare('UPDATE __taskindex_migrations SET sha256=? WHERE name=?')
-          .run(bundled.find((m) => m.name === row.name)!.sha256, row.name);
-        logger.warn({ event: 'migration_checksum_backfilled', name: row.name });
-      }
-      for (const file of bundled) {
-        if (applied.some((row) => row.name === file.name)) continue;
-        db.sqlite.exec(readFileSync(resolve(dir, file.name), 'utf8'));
-        db.sqlite
-          .prepare(
-            'INSERT INTO __taskindex_migrations(name, sha256) VALUES(?, ?)',
-          )
-          .run(file.name, file.sha256);
-      }
-      if (!getSetting(db, 'generation'))
-        setSetting(db, 'generation', randomUUID());
-      if (!getSetting(db, 'timezone'))
-        setSetting(db, 'timezone', options.timezone ?? 'Europe/Moscow');
-      if (getSetting(db, 'schema_version') !== String(version))
-        setSetting(db, 'schema_version', String(version));
-    })
-    .immediate();
+      if (row.sha256 === null) backfill.push(row);
+      else if (row.sha256 !== file.sha256) changedMigration(row.name);
+    }
+    // Baseline for journals written before checksums existed: trust the
+    // bundled file once and say so in the log.
+    for (const row of backfill) {
+      db.sqlite
+        .prepare('UPDATE __taskindex_migrations SET sha256=? WHERE name=?')
+        .run(bundled.find((m) => m.name === row.name)!.sha256, row.name);
+      logger.warn({ event: 'migration_checksum_backfilled', name: row.name });
+    }
+    for (const file of bundled) {
+      if (applied.some((row) => row.name === file.name)) continue;
+      db.sqlite.exec(readFileSync(resolve(dir, file.name), 'utf8'));
+      db.sqlite
+        .prepare(
+          'INSERT INTO __taskindex_migrations(name, sha256) VALUES(?, ?)',
+        )
+        .run(file.name, file.sha256);
+    }
+    if (!getSetting(db, 'generation'))
+      setSetting(db, 'generation', randomUUID());
+    if (!getSetting(db, 'timezone'))
+      setSetting(db, 'timezone', options.timezone ?? 'Europe/Moscow');
+    if (getSetting(db, 'schema_version') !== String(version))
+      setSetting(db, 'schema_version', String(version));
+  });
 }
 export const initializeDatabase = migrate;
 // The schema matches the image only when the applied chain has exactly the

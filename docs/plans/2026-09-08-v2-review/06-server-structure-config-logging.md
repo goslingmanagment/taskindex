@@ -156,6 +156,8 @@
 
 12. Документация в объёме плана: `deploy/compose.yml:14` оставить `TIMEZONE` с комментарием «читается только `taskindex-admin migrate` при первой инициализации»; `deploy/.env.example:6-7` те же пояснения; `README.md` («Локальный запуск»: `LOG_LEVEL`, `HOST`, версия схемы); план §12 (`2026-09-08-taskindex-v2.md:754-758`): перечислить `HOST`, `LOG_LEVEL` с уровнями, `TIMEZONE` только для миграции, формат строк лога (`level`, `requestId`, `event`). Остальные документы в `12-…md`.
 
+2026-09-10: шаги 6, 8-11 выполнены. К четырём файлам `http/*` добавлены три без поведения: `http/deps.ts` (`AppOptions`, `Env`, `Deps` — иначе `routes/*` и `app.ts` импортируют друг друга по кругу), `http/openapi.ts` (`json`, `readErrors`, `pageQuery`, `idParam`, `flag`, `truthy`, `stripStored` — повторяются в каждом модуле маршрутов) и `http/document.ts` (`describeApi`: securitySchemes и заголовок документа, вынесены, чтобы `createApp` уложился в 150 строк). `/api/me` и `/api/export` попали в `routes/reads.ts`, `/api/events` — в `routes/history.ts`. `src/server/sse.ts` уже соответствовал шагу 9; `createStreamResponse` отдельной функцией не выделялся — тело потока целиком составляет `routes/stream.ts`. `buildContext(deps, actor)` и `buildDigest(deps, {since, sinceOp})` принимают актора и окно параметрами, а не читают их из `Context`.
+
 ## 5. Тесты
 
 | # | Файл | Сценарий | Ожидание |

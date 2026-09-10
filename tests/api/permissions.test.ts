@@ -751,6 +751,7 @@ it('states the policy in /api/context rules', async () => {
     'focus',
     'confirmOwnerFields',
     'чеклист',
+    'appearance.update',
   ])
     expect(rules).toContain(phrase);
 });
