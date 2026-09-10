@@ -1,4 +1,12 @@
-export class ArgumentError extends Error {}
+export class ArgumentError extends Error {
+  constructor(
+    message: string,
+    readonly hint?: string,
+  ) {
+    super(message);
+    this.name = 'ArgumentError';
+  }
+}
 
 export interface Arguments {
   positional: string[];
@@ -6,7 +14,6 @@ export interface Arguments {
 }
 
 const switches = new Set([
-  'json',
   'dry-run',
   'follow',
   'all',
@@ -37,6 +44,12 @@ export function parseArguments(argv: string[]): Arguments {
     const [name, ...inline] = normalized.slice(2).split('=');
     if (!name || Object.hasOwn(flags, name))
       throw new ArgumentError(`Повторный или пустой флаг: ${token}`);
+    // Output is always JSON; the flag was a no-op and is gone (TI-033).
+    if (name === 'json')
+      throw new ArgumentError(
+        'Флаг --json удалён',
+        'вывод всегда JSON, флаг удалён',
+      );
     if (inline.length) {
       const value = inline.join('=');
       if (switches.has(name)) {

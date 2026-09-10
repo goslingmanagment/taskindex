@@ -67,7 +67,6 @@ export const HELP = {
     'operation resume [operationId]',
   ],
   flags: [
-    '--json',
     '--dry-run',
     '--operation-id ID',
     '--base-revision N',
@@ -101,7 +100,6 @@ export const HELP = {
 };
 
 const controls = new Set([
-  'json',
   'dry-run',
   'operation-id',
   'base-revision',
@@ -178,7 +176,7 @@ function query(
   flags: Arguments['flags'],
   allowed: string[],
 ): string {
-  const supported = new Set([...allowed, 'json', 'all', 'follow', 'help']);
+  const supported = new Set([...allowed, 'all', 'follow', 'help']);
   for (const name of Object.keys(flags))
     if (!supported.has(name))
       throw new ArgumentError(`Флаг --${name} не поддерживается этим запросом`);
@@ -595,6 +593,9 @@ export async function runCli(
       code:
         error instanceof ArgumentError ? 'invalid_arguments' : 'client_error',
       message: error instanceof Error ? error.message : 'Ошибка CLI',
+      ...(error instanceof ArgumentError && error.hint
+        ? { hint: error.hint }
+        : {}),
       ...(error instanceof CorruptEnvelopeError ? error.skipped : {}),
     });
     return error instanceof ArgumentError ? 2 : 1;
