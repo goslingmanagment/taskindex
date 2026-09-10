@@ -39,7 +39,7 @@ import {
   type WriteSpec,
 } from './spec.js';
 import { CliState, type Identity } from './state.js';
-import { buildPayload, dryRunOf } from './writes.js';
+import { buildPayload, envelopeFlags } from './writes.js';
 
 export interface CliOptions {
   env?: NodeJS.ProcessEnv;
@@ -418,11 +418,10 @@ async function runWrite(
       'generation в ответе сервера',
     );
   }
-  const dryRun = dryRunOf(args);
   const envelope = {
     operationId,
     generation,
-    ...(dryRun !== undefined ? { dryRun } : {}),
+    ...envelopeFlags(args),
     ...(commands ? { commands } : { command, payload }),
   };
   const parsedEnvelope = (

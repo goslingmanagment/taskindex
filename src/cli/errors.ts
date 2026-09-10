@@ -113,5 +113,14 @@ export function withHints(
   if (body.code === 'generation_changed' && result.hint === undefined)
     result.hint =
       'Поколение базы сменилось: taskindex cursor reset, затем taskindex digest и новая оценка действия';
+  const message = typeof body.message === 'string' ? body.message : '';
+  if (body.code === 'forbidden' && result.hint === undefined) {
+    if (message.includes('confirmOwnerFields'))
+      result.hint =
+        'Поле защищено ручной правкой владельца (см. conflicts[].fields): если есть поручение владельца, повторите команду с --confirm-owner-fields; иначе сообщите комментарием';
+    else if (message.includes('focus'))
+      result.hint =
+        'focus ставит и снимает только владелец: уберите --focus; в task sync поле пропускается (skipped: owner)';
+  }
   return result;
 }

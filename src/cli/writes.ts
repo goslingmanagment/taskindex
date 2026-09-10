@@ -98,3 +98,17 @@ export async function buildPayload(
 export function dryRunOf(args: Arguments): boolean | undefined {
   return flagBoolean(args.flags, 'dry-run');
 }
+
+// Envelope-level fields besides the payload: present only when given, so
+// the envelope of a plain command stays byte-for-byte what it was.
+export function envelopeFlags(args: Arguments): {
+  dryRun?: boolean;
+  confirmOwnerFields?: boolean;
+} {
+  const dryRun = dryRunOf(args);
+  const confirmOwnerFields = flagBoolean(args.flags, 'confirm-owner-fields');
+  return {
+    ...(dryRun !== undefined ? { dryRun } : {}),
+    ...(confirmOwnerFields !== undefined ? { confirmOwnerFields } : {}),
+  };
+}

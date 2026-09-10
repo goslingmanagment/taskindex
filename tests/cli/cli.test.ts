@@ -3,6 +3,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { runCli } from '../../src/cli/run.js';
+import { renderHelp } from '../../src/cli/help.js';
 import { Outbox } from '../../src/cli/outbox.js';
 import { statePaths } from '../../src/cli/state.js';
 
@@ -193,6 +194,128 @@ describe('CLI argument errors name the field and the fix', () => {
         { path: 'payload.custom', message: 'Лишнее поле' },
       ],
     });
+  });
+});
+
+describe('owner decisions in the CLI (TI-027)', () => {
+  it('--confirm-owner-fields goes into the envelope; a 403 without it explains the flag', async () => {
+    const sent: Record<string, unknown>[] = [];
+    const test = await setup((url, init) => {
+      if (url.pathname === '/api/context')
+        return json({ generation: 'g_first' });
+      const body = JSON.parse(requestBody(init)) as Record<string, unknown>;
+      sent.push(body);
+      if (body.confirmOwnerFields !== true)
+        return json(
+          {
+            ok: false,
+            code: 'forbidden',
+            message:
+              'Поле защищено владельцем: подтвердите поручение флагом confirmOwnerFields: true.',
+            retryable: false,
+            conflicts: [
+              { entityKind: 'task', entityId: 't1', fields: ['title'] },
+            ],
+          },
+          403,
+        );
+      return json(success(init));
+    });
+    const update = (id: string, ...extra: string[]) => [
+      'task',
+      'update',
+      't1',
+      '--base-revision',
+      '3',
+      '--title',
+      'Новое название',
+      '--operation-id',
+      id,
+      ...extra,
+    ];
+    expect(await test.run(update('own1'))).toBe(4);
+    expect(test.output.at(-1)).toMatchObject({
+      code: 'forbidden',
+      conflicts: [{ fields: ['title'] }],
+    });
+    expect(String(test.output.at(-1)!.hint)).toContain(
+      '--confirm-owner-fields',
+    );
+    expect(sent[0]).not.toHaveProperty('confirmOwnerFields');
+    // A definitive rejection: the envelope is gone, the retry is a new decision.
+    expect(await test.outbox.get('own1')).toBeUndefined();
+
+    expect(await test.run(update('own2', '--confirm-owner-fields'))).toBe(0);
+    expect(sent.at(-1)).toMatchObject({
+      operationId: 'own2',
+      confirmOwnerFields: true,
+      command: 'task.update',
+    });
+    expect(sent.at(-1)!.payload).not.toHaveProperty('confirmOwnerFields');
+
+    const batch = await runCli(
+      ['batch', '--file', '-', '--confirm-owner-fields'],
+      {
+        env: test.env,
+        fetch: (async (url: string | URL | Request, init?: RequestInit) => {
+          const u = requestUrl(url);
+          if (u.pathname === '/api/me') return json(actor);
+          if (u.pathname === '/api/context')
+            return json({ generation: 'g_first' });
+          sent.push(JSON.parse(requestBody(init)) as Record<string, unknown>);
+          return json(success(init));
+        }) as typeof fetch,
+        readInput: async () =>
+          JSON.stringify([
+            {
+              command: 'task.archive',
+              payload: { id: 't1', baseRevision: 3 },
+            },
+          ]),
+        stdout: () => undefined,
+        stderr: () => undefined,
+      },
+    );
+    expect(batch).toBe(0);
+    expect(sent.at(-1)).toMatchObject({ confirmOwnerFields: true });
+    expect(sent.at(-1)).toHaveProperty('commands');
+    expect(JSON.stringify(renderHelp('task', 'update'))).toContain(
+      '--confirm-owner-fields',
+    );
+  });
+
+  it('task focus is not a command any more; a 403 on focus explains who sets it', async () => {
+    const test = await setup((url) =>
+      url.pathname === '/api/context'
+        ? json({ generation: 'g_first' })
+        : json(
+            {
+              ok: false,
+              code: 'forbidden',
+              message: 'Поле focus меняет только владелец.',
+              retryable: false,
+            },
+            403,
+          ),
+    );
+    expect(await test.run(['task', 'focus', 't1'])).toBe(2);
+    expect(test.output.at(-1)).toMatchObject({
+      code: 'invalid_arguments',
+      hint: 'taskindex help task',
+    });
+    expect(String(test.output.at(-1)!.message)).toContain('focus');
+    expect(
+      await test.run([
+        'task',
+        'update',
+        't1',
+        '--base-revision',
+        '3',
+        '--focus',
+        'true',
+      ]),
+    ).toBe(4);
+    expect(String(test.output.at(-1)!.hint)).toContain('владелец');
   });
 });
 
