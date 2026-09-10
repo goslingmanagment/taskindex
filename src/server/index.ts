@@ -1,7 +1,7 @@
 import { serve } from '@hono/node-server';
 import { createApp } from './app.js';
 import { serveWeb } from './static.js';
-import { openDatabase } from './db.js';
+import { checkGenerationSidecar, openDatabase } from './db.js';
 import { createAuth } from './auth.js';
 import { ConfigError, loadServerConfig, webDirectory } from './config.js';
 import { createLogger } from './log.js';
@@ -17,6 +17,7 @@ try {
 const logger = createLogger(config.logLevel);
 const { baseURL, port } = config;
 const db = openDatabase(config.databasePath);
+checkGenerationSidecar(db, logger);
 const trustedOrigins = config.production
   ? [baseURL]
   : [baseURL, 'http://localhost:5173'];

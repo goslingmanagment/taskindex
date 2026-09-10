@@ -11,6 +11,7 @@ import {
   readEvents,
   readOperations,
   writeState,
+  writeGenerationSidecar,
   assertSchema,
   schemaVersion,
 } from './db.js';
@@ -29,6 +30,7 @@ import {
   exportSchemaV2,
 } from '../shared/domain-schemas.js';
 import { DEFAULT_APPEARANCE_ID } from '../shared/appearance.js';
+import { ENTITIES } from '../shared/entities.js';
 import { listAgents } from './agents.js';
 
 export function exportWorkspace(db: DatabaseHandle): ExportData {
@@ -164,13 +166,7 @@ export function validateExport(data: ExportData) {
     )
       invalid('границы или актор события не совпадают с операцией.');
     const list: { id: string; revision: number }[] =
-      e.entityKind === 'task'
-        ? replay.tasks
-        : e.entityKind === 'project'
-          ? replay.projects
-          : e.entityKind === 'appearance'
-            ? replay.appearance
-            : replay.comments;
+      replay[ENTITIES[e.entityKind].collection];
     const before = list.find((r) => r.id === e.entityId);
     if (e.recordRevision !== (before?.revision ?? 0) + 1)
       invalid('нарушена версия записи.');
@@ -337,5 +333,6 @@ export function markRestored(db: DatabaseHandle, migrationsDir?: string) {
       .where(eq(schema.settings.key, 'approved_deployment'))
       .run();
   });
+  writeGenerationSidecar(db);
   return { generation: next, seq: latestSeq(db) };
 }

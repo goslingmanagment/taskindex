@@ -3,7 +3,12 @@ import { resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { createHash, randomUUID } from 'node:crypto';
 import type { DatabaseHandle } from './sqlite.js';
-import { getSetting, setSetting, withWrite } from './sqlite.js';
+import {
+  getSetting,
+  setSetting,
+  withWrite,
+  writeGenerationSidecar,
+} from './sqlite.js';
 import { fail } from '../shared/errors.js';
 
 export type MigrationLogger = {
@@ -125,6 +130,7 @@ export function migrate(
     if (getSetting(db, 'schema_version') !== String(version))
       setSetting(db, 'schema_version', String(version));
   });
+  writeGenerationSidecar(db);
 }
 export const initializeDatabase = migrate;
 // The schema matches the image only when the applied chain has exactly the

@@ -10,6 +10,7 @@ import {
   commandNames,
 } from './schemas.js';
 import { LIMITS } from './limits.js';
+import { ENTITY_KINDS } from './entities.js';
 import {
   appearanceModeSchema,
   DEFAULT_APPEARANCE_ID,
@@ -163,9 +164,7 @@ export const defaultAppearance = (): z.infer<typeof appearanceSchema> => ({
   updatedAt: null,
 });
 
-export const entityKindSchema = z
-  .enum(['task', 'project', 'comment', 'appearance'])
-  .describe('Вид записи');
+export const entityKindSchema = z.enum(ENTITY_KINDS).describe('Вид записи');
 
 export const entitySchema = z
   .union([taskSchema, projectSchema, commentSchema, appearanceSchema])

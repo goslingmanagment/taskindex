@@ -2,7 +2,9 @@ import { describe, it, expect } from 'vitest';
 import {
   compareOriginVersion,
   applyCommand,
+  isSubjectField,
 } from '../../src/shared/commands.js';
+import { ENTITIES, ENTITY_KINDS } from '../../src/shared/entities.js';
 import {
   focusGroups,
   searchTasks,
@@ -31,6 +33,7 @@ import { WRITES } from '../../src/cli/spec.js';
 import {
   appearanceSchema,
   defaultAppearance,
+  eventSchema,
 } from '../../src/shared/domain-schemas.js';
 import { SKINS, skinIds, skinIdSchema } from '../../src/shared/appearance.js';
 // The explicit shape the generated unions must have (plan 04, §3.4): a
@@ -126,6 +129,40 @@ describe('command unions are generated from the payload registry (TI-019)', () =
     expect(payload.safeParse({ baseRevision: 0, mode: 'dark' }).success).toBe(
       false,
     );
+  });
+  // Ж11 (plan 09, step 8): one registry behind every dispatch over kinds.
+  it('covers every entity kind with a collection and its subject fields', () => {
+    expect(Object.keys(ENTITIES)).toEqual([...ENTITY_KINDS]);
+    expect(eventSchema.shape.entityKind.options).toEqual([...ENTITY_KINDS]);
+    const state: WorkspaceState = {
+      tasks: [],
+      projects: [],
+      comments: [],
+      appearance: [defaultAppearance()],
+    };
+    // Every kind names a collection that exists in the state, and no two
+    // kinds share one.
+    const collections = ENTITY_KINDS.map((kind) => ENTITIES[kind].collection);
+    expect(new Set(collections).size).toBe(ENTITY_KINDS.length);
+    for (const kind of ENTITY_KINDS) {
+      expect(Array.isArray(state[ENTITIES[kind].collection]), kind).toBe(true);
+      expect(ENTITIES[kind].subjectFields.size, kind).toBeGreaterThan(0);
+    }
+    expect([...ENTITIES.task.subjectFields]).toContain('orderKey');
+    expect([...ENTITIES.project.subjectFields].sort()).toEqual([
+      'color',
+      'description',
+      'name',
+    ]);
+    expect([...ENTITIES.comment.subjectFields]).toEqual(['deletedAt']);
+    expect([...ENTITIES.appearance.subjectFields].sort()).toEqual([
+      'mode',
+      'skinId',
+    ]);
+    for (const kind of ENTITY_KINDS)
+      for (const field of ENTITIES[kind].subjectFields)
+        expect(isSubjectField(kind, field), `${kind}.${field}`).toBe(true);
+    expect(isSubjectField('task', 'revision')).toBe(false);
   });
   it('keeps shared free of the OpenAPI package', () => {
     expect(z.locales.ru).toBeTypeOf('function');

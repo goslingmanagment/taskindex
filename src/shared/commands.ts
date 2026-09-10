@@ -20,6 +20,7 @@ import { byOrder } from './queries.js';
 import { assertNever, fail } from './errors.js';
 import { LIMITS } from './limits.js';
 import { DEFAULT_APPEARANCE_ID } from './appearance.js';
+import { ENTITIES } from './entities.js';
 export type ChangeEffect = {
   entityKind: EntityKind;
   entityId: string;
@@ -46,46 +47,14 @@ export type CommandApplication = {
   result: CommandResult;
   effects: ChangeEffect[];
 };
-// Subject fields: what undo restores, what conflicts are detected on and what
-// the owner's touch protects. Declared over the record keys so a renamed field
-// fails `tsc`; exported for the independent oracle in tests/property/undo.test.ts.
-export const taskFields: ReadonlySet<string> = new Set<keyof Task>([
-  'area',
-  'projectId',
-  'title',
-  'status',
-  'note',
-  'due',
-  'waitingFor',
-  'followUp',
-  'orderKey',
-  'focus',
-  'archived',
-  'checklist',
-  'originUrl',
-]);
-export const projectFields: ReadonlySet<string> = new Set<keyof Project>([
-  'name',
-  'color',
-  'description',
-]);
-export const appearanceFields: ReadonlySet<string> = new Set<keyof Appearance>([
-  'mode',
-  'skinId',
-]);
+// The record kinds, their collections and their subject fields come from the
+// shared registry (Ж11). `taskFields` and `projectFields` stay exported for
+// the independent oracle in tests/property/undo.test.ts.
+export const taskFields = ENTITIES.task.subjectFields;
+export const projectFields = ENTITIES.project.subjectFields;
+export const appearanceFields = ENTITIES.appearance.subjectFields;
 export function isSubjectField(kind: EntityKind, key: string): boolean {
-  switch (kind) {
-    case 'task':
-      return taskFields.has(key);
-    case 'project':
-      return projectFields.has(key);
-    case 'comment':
-      return key === 'deletedAt';
-    case 'appearance':
-      return appearanceFields.has(key);
-    default:
-      return assertNever(kind);
-  }
+  return ENTITIES[kind].subjectFields.has(key);
 }
 const equal = (a: unknown, b: unknown) =>
   JSON.stringify(a) === JSON.stringify(b);
@@ -155,18 +124,7 @@ function records(state: WorkspaceState, kind: 'comment'): Comment[];
 function records(state: WorkspaceState, kind: 'appearance'): Appearance[];
 function records(state: WorkspaceState, kind: EntityKind): Entity[];
 function records(state: WorkspaceState, kind: EntityKind): Entity[] {
-  switch (kind) {
-    case 'task':
-      return state.tasks;
-    case 'project':
-      return state.projects;
-    case 'comment':
-      return state.comments;
-    case 'appearance':
-      return state.appearance;
-    default:
-      return assertNever(kind);
-  }
+  return state[ENTITIES[kind].collection];
 }
 function get(state: WorkspaceState, kind: 'task', id: string): Task;
 function get(state: WorkspaceState, kind: 'project', id: string): Project;
