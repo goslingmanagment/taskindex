@@ -1,10 +1,4 @@
 import { ArgumentError } from './arguments.js';
-import { hc } from 'hono/client';
-import type { AppType } from '../server/app.js';
-import {
-  batchEnvelopeSchema,
-  commandEnvelopeSchema,
-} from '../shared/schemas.js';
 import { storedOperationSchema } from '../shared/domain-schemas.js';
 import {
   acknowledge,
@@ -40,10 +34,13 @@ export function exitCode(reply: ApiReply): number {
   return rejectionExit(reply.body.code, reply.status);
 }
 
+// One transport for every request: plain `fetch` against this API origin.
+// The envelopes are validated by the shared schemas before they are sent,
+// and every reply is classified by `acknowledge`, so no typed RPC client is
+// needed and the CLI does not depend on the server's types.
 export class ApiClient {
   readonly baseUrl: string;
   private readonly requestFetch: typeof fetch;
-  private readonly rpc: ReturnType<typeof hc<AppType>>;
   constructor(readonly options: ClientOptions) {
     const url = new URL(options.baseUrl);
     if (
@@ -58,7 +55,6 @@ export class ApiClient {
       );
     this.baseUrl = url.toString().replace(/\/$/, '');
     this.requestFetch = options.fetch ?? fetch;
-    this.rpc = hc<AppType>(this.baseUrl, { fetch: this.requestFetch });
   }
 
   async request(path: string, envelope?: unknown): Promise<ApiReply> {
@@ -79,25 +75,7 @@ export class ApiClient {
       signal: AbortSignal.timeout(this.options.timeoutMs ?? 15_000),
       redirect: 'error',
     };
-    const rpcOptions = {
-      headers: {
-        authorization: `Bearer ${this.options.token}`,
-        accept: 'application/json',
-      },
-      init: { signal: request.signal, redirect: 'error' as const },
-    };
-    const response =
-      envelope !== undefined && path === '/api/commands'
-        ? await this.rpc.api.commands.$post(
-            { json: commandEnvelopeSchema.parse(envelope) },
-            rpcOptions,
-          )
-        : envelope !== undefined && path === '/api/commands/batch'
-          ? await this.rpc.api.commands.batch.$post(
-              { json: batchEnvelopeSchema.parse(envelope) },
-              rpcOptions,
-            )
-          : await this.requestFetch(target, request);
+    const response = await this.requestFetch(target, request);
     const text = await response.text();
     let body: unknown;
     try {

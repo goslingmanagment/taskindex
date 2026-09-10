@@ -118,12 +118,21 @@
   (Drizzle), `sse.ts`, `config.ts` (окружение на Zod: `BUILD`, `LOG_LEVEL`,
   `HOST`, пути), `log.ts` (структурный лог), `static.ts`, `index.ts`
   (`serve`, SIGTERM).
-- `src/cli`: `run.ts` (диспетчер и справка `HELP`), `client.ts` (запросы,
-  повторы, коды выхода), `acknowledge.ts` (одно правило «исход → код выхода
-  → конверт»), `outbox.ts` (конверты, карантин `*.corrupt`), `state.ts`
-  (каталог по серверу и агенту, кэш идентичности по хешу ключа),
-  `arguments.ts`, `admin-run.ts` (`taskindex-admin`, прямой доступ к базе).
-  Спецификация команд `spec.ts` и курсор появятся после плана 03 (шаги 7-10).
+- `src/cli`: `spec.ts` (единственный источник команд: `READS`, `WRITES`,
+  `SERVICE`, флаги; флаги записи выводятся из `commandPayloadSchemas`),
+  `help.ts` (`renderHelp`: обзор, группа, команда), `run.ts` (разбор argv и
+  `dispatch`), `session.ts` (клиент, состояние, очередь, `currentGeneration`),
+  `reads.ts` (путь чтения, `--all` с перезапуском при 409, `--since last`,
+  `--commit`, `events --follow`), `writes.ts` (payload из флагов, конверт,
+  `--confirm-owner-fields`), `operations.ts` (`operation list|resume`),
+  `cursor.ts` (`cursor show|commit|reset`), `errors.ts` (русские `issues`,
+  `HINTS`, `withHints`), `client.ts` (один транспорт `fetch`, повторы, коды
+  выхода; не импортирует `src/server`), `acknowledge.ts` (одно правило
+  «исход → код выхода → конверт»), `outbox.ts` (конверты, карантин
+  `*.corrupt`), `state.ts` (каталог по серверу и агенту, кэш идентичности по
+  хешу ключа, `cursor.json`), `arguments.ts`, `admin-run.ts`
+  (`taskindex-admin`, прямой доступ к базе; единственный файл CLI с
+  импортами из `src/server`).
 - `src/web/app`: `store.ts` (единый store, очередь операций), `sync.ts`
   (SSE), `drafts.ts`, `api.ts`, `url.ts`, компоненты `shell`, `board`,
   `card`, `editor`, `dialogs`, `activity`, `sidebar`, `overview`;
@@ -138,8 +147,9 @@
 Полный чек-лист: `docs/plans/2026-09-08-v2-review/04-api-contract-and-schemas.md`,
 раздел 3.8. Кратко: payload в `src/shared/schemas.ts` (union и имена команд
 собираются сами) → ветка в `applyCommand` с правами и правилами undo/sync →
-подписи и описания (`tsc` не пройдёт без них) → `HELP` в `src/cli/run.ts`
-(после плана 03: запись в `src/cli/spec.ts`) → SKILL.md → тесты
+подписи и описания (`tsc` не пройдёт без них) → запись в `WRITE_COMMANDS`
+в `src/cli/spec.ts` (`tsc` требует её для каждого `CommandName`; флаги и
+справка строятся из схемы сами) → SKILL.md → тесты
 `tests/api/commands.test.ts`, `tests/property`, `tests/cli` → строка в плане v2
 §5 → `npm run check`.
 
@@ -158,9 +168,10 @@
 
 `createRoute` в `src/server/app.ts` (после плана 06: `src/server/routes/*`) с
 `.describe()` на каждом query-параметре; схема ответа в
-`src/shared/domain-schemas.ts`; пагинация через `page()`; путь и allow-list
-флагов в `src/cli/run.ts` (после плана 03: `READS` в `src/cli/spec.ts`);
-SKILL.md при необходимости.
+`src/shared/domain-schemas.ts`; пагинация через `page()`; запись в `READS`
+в `src/cli/spec.ts` (`route` в форме OpenAPI, `query` с каждым параметром:
+тест `tests/cli/help.test.ts` сверяет их с `/api/openapi.json`); SKILL.md при
+необходимости.
 
 ## Соглашения
 
@@ -168,7 +179,7 @@ SKILL.md при необходимости.
   `.describe()`, документация и сообщения коммитов на русском.
 - Ошибки только через `fail()`/`DomainError`; конверт ответа
   `{ok:false, code, message, retryable}`.
-- CLI всегда печатает JSON (флаг `--json` удаляется по TI-033); коды выхода
+- CLI всегда печатает JSON (флаг `--json` удалён, TI-033); коды выхода
   0/1/2/3/4; `operationId` обязателен и повторяется без изменений; конверт
   не переписывается; конверт удаляется только после подтверждённого исхода
   своей операции (`src/cli/acknowledge.ts`).

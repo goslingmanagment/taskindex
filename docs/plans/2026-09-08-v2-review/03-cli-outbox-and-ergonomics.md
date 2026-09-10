@@ -205,6 +205,8 @@ src/shared/canonical-json.ts   canonicalJson(value)
 
 13. **Декомпозиция** по разделу 3.8; `ApiClient` без `hc`; удалить `import type { AppType }`; `runCli` до 120 строк. Проверка: `npm run check`, `wc -l src/cli/run.ts`, `grep -rn "server/" src/cli/*.ts`.
 
+    2026-09-10: выполнено (TI-059, CLI-часть). Раскладка отличается от 3.8 в деталях: `session.ts` (`CliOptions`, `Session`, `openSession`, `currentGeneration`, `ReplyExit` — ответ сервера, завершающий команду до её собственного запроса), `reads.ts` (`readPath`, `resolveSince`, `walkPages`, `commitRead`, `runRead`), `writes.ts` (`buildPayload`, `envelopeFlags`, `runWrite`), `operations.ts` (`operation list|resume`; отдельного `resume.ts` нет), `cursor.ts` (`runCursor`), `errors.ts`, `help.ts`, `spec.ts`; `run.ts` — разбор argv, справка, `dispatch`, 101 строка. `client.ts` без `hono/client` и `AppType`, один транспорт `fetch`; `grep -rn "server/" src/cli/*.ts` показывает только `admin-run.ts`. `src/shared/canonical-json.ts` (шаг 2) — область владельца `src/shared`, здесь не делалось; `outbox.ts` по-прежнему со своей `canonical()`.
+
 14. **Документы.** `README.md:75` (`npm run cli -- --help`) описать `help <group>`; `skills/taskindex/SKILL.md`: путь outbox `$XDG_STATE_HOME/taskindex/servers/<server>/agents/<agent>/ops`, `--since last`, `cursor commit`, `inbox`, `me`, удаление `--json` (текст в плане 12); `docs/plans/2026-09-08-taskindex-v2.md` §10: отметить отклонение по `--json` и путь outbox (список дрейфа в плане 12).
 
 15. **Проверка.** `npm run check`; ручной прогон по транскрипту ревью готовности с двумя ключами и общим `XDG_STATE_HOME` на sandbox (план 12): B не видит `leak-op-1`, `taskindex task` печатает действия, `taskindex tasks --today true` работает, `| head -c 1` тихо.
