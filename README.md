@@ -143,7 +143,9 @@ bash deploy/local-drill.sh
 ```
 
 `check` проверяет активное дерево v2: типы, lint, формат и unit/API/property/store/CLI
-тесты. E2E запускает изолированные настоящие SQLite и Better Auth в `/tmp` на
+тесты. Приёмка агентского цикла: `npm run agent-cycle` поверх sandbox
+выполняет автоматизируемые шаги, ручные описаны в
+[docs/acceptance/agent-cycle.md](docs/acceptance/agent-cycle.md). E2E запускает изолированные настоящие SQLite и Better Auth в `/tmp` на
 портах 4173 и 4001 и пишет артефакты в `test-results/e2e-artifacts/`; эталон в
 `docs/reference/v2-validation/` обновляется только явно через
 `TASKINDEX_E2E_ARTIFACT_DIR`. Последняя команда создаёт отдельный Docker
