@@ -112,10 +112,10 @@
 | [TI-041](#ti-041) | P2 | ИСПРАВЛЕНО | Fallback без Web Locks накапливает scope черновиков при reload |
 | [TI-042](#ti-042) | P2 | ИСПРАВЛЕНО | Back закрытого редактора не возвращает исходный URL фильтра |
 | [TI-043](#ti-043) | P2 | ИСПРАВЛЕНО | CLOSED EventSource не создаётся заново |
-| [TI-044](#ti-044) | P2 | ОТКРЫТО | CLI не предоставляет доступные API-фильтры и проверку своей личности |
-| [TI-045](#ti-045) | P2 | ОТКРЫТО | CLI help и parser не дают полный исполнимый контракт |
+| [TI-044](#ti-044) | P2 | ИСПРАВЛЕНО | CLI не предоставляет доступные API-фильтры и проверку своей личности |
+| [TI-045](#ti-045) | P2 | ИСПРАВЛЕНО | CLI help и parser не дают полный исполнимый контракт |
 | [TI-046](#ti-046) | P2 | ОТКРЫТО | Ошибки CLI/API не объясняют, какое поле и как исправить |
-| [TI-047](#ti-047) | P2 | ПРЕДЛОЖЕНО | У агента нет штатного сохранения cursor после полного чтения |
+| [TI-047](#ti-047) | P2 | ИСПРАВЛЕНО | У агента нет штатного сохранения cursor после полного чтения |
 | [TI-048](#ti-048) | P2 | ПРЕДЛОЖЕНО | Нет удобного входящего контекста для конкретного агента |
 | [TI-049](#ti-049) | P2 | ОТКРЫТО | OpenAPI громоздок и слабо описывает операции и авторизацию |
 | [TI-050](#ti-050) | P3 | ИСПРАВЛЕНО | Закрытый stdout вызывает EPIPE со stack trace |
@@ -1659,7 +1659,7 @@
 
 ### TI-044 — CLI не предоставляет доступные API-фильтры и проверку своей личности
 
-**Тип:** Неполный интерфейс. **Статус:** ОТКРЫТО. **Приоритет:** P2.
+**Тип:** Неполный интерфейс. **Статус:** ИСПРАВЛЕНО. **Приоритет:** P2.
 
 **Источники:** [FI:A4](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/review-5-ai-ready.md:74); [FI:A5](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/review-5-ai-ready.md:78); [FQ:§8](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/review-4-quality.md:154); [FQ:R10](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/review-4-quality.md:289); [Повторная проверка координатора](/Users/dmitriy/code/taskindex/docs/audits/2026-09-08-astra-fable-comparison/probes.json); [План 03, шаг 8](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/03-cli-outbox-and-ergonomics.md:186); [План 03, шаг 4](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/03-cli-outbox-and-ergonomics.md:171).
 
@@ -1677,6 +1677,8 @@
 - me показывает actor/scope без секрета; неверные аргументы дают понятную справку.
 - Новая read-возможность одновременно попадает в help и контрактный тест.
 
+**Закрытие (2026-09-10).** Коммит `9dd6608` (вместе с TI-045). Команды `me` и `openapi`; `tasks --today true`, `--has-follow-up true|false`; тест сверяет каждый query-параметр GET из `/api/openapi.json` (через `fixture()` из `tests/api/helpers.ts`) с флагами READS — паритет CLI и HTTP по фильтрам. Тесты: `tests/cli/help.test.ts` (до исправления `taskindex me` → «me.undefined», `--today` → «Флаг --today не поддерживается»).
+
 **Связанные планы:** [03-cli-outbox-and-ergonomics.md](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/03-cli-outbox-and-ergonomics.md); [04-api-contract-and-schemas.md](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/04-api-contract-and-schemas.md).
 
 **Связанные записи / зависимости исходного плана:** [TI-045](#ti-045), [TI-048](#ti-048), [TI-049](#ti-049).
@@ -1685,7 +1687,7 @@
 
 ### TI-045 — CLI help и parser не дают полный исполнимый контракт
 
-**Тип:** UX CLI. **Статус:** ОТКРЫТО. **Приоритет:** P2.
+**Тип:** UX CLI. **Статус:** ИСПРАВЛЕНО. **Приоритет:** P2.
 
 **Источники:** [FI:A2](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/review-5-ai-ready.md:66); [FI:A4](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/review-5-ai-ready.md:74); [FI:B6](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/review-5-ai-ready.md:137); [FQ:§8](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/review-4-quality.md:154); [FQ:R10](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/review-4-quality.md:289); [План 03, шаги 7–8](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/03-cli-outbox-and-ergonomics.md:177); [План 12, шаг 5](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/12-ai-readiness-and-docs.md:340); [План 04 §3.7](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/04-api-contract-and-schemas.md:158).
 
@@ -1707,6 +1709,8 @@
 
 - Автогенерация JSON Schema не заменяет сценарные примеры. Не требовать буквального UI/CLI совпадения всех служебных действий.
 - **Решение** (принято 2026-09-10; решение делегировано владельцем Fable): судьба `--json` — удалить no-op флаг из парсера, справки и документации по плану 03 (критерий 9; шаг 8: `--json` становится неизвестным флагом → `invalid_arguments` с `hint: "вывод всегда JSON, флаг удалён"`; шаг 14 — документы); CLI флаг нигде не читает (grep по `src/cli`, §1.3), вывод без флага не меняется (всегда JSON), вызов с `--json` после удаления даёт `invalid_arguments` с подсказкой. Записано согласованно с [TI-033](#ti-033) ([план 03 §1.3](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/03-cli-outbox-and-ergonomics.md:25); [критерий 9](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/03-cli-outbox-and-ergonomics.md:67); [шаг 8](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/03-cli-outbox-and-ergonomics.md:186)).
+
+**Закрытие (2026-09-10).** Коммиты `9dd6608`, `e794b60`, `61ba79e`. `src/cli/spec.ts` — единственный источник команд и флагов (флаги записи выводятся из `z.toJSONSchema(commandPayloadSchemas[cmd])`), `src/cli/help.ts` — `help`, `help <group>`, `help <group> <action>`, `<cmd> --help` печатают JSON с `usage`, `flags` (тип, `required`), `globalFlags`, `example`, `exitCodes`, `errorCodes`; `parseArguments(argv, switches)` берёт булевы флаги из спецификации; группа без действия → список действий с `hint`; неизвестный флаг → `invalid_arguments` со справкой команды; `--json` удалён. Тесты: `tests/cli/help.test.ts` (7; до исправления `taskindex task` → «Неизвестная команда: task.undefined»), `tests/cli/docs.test.ts` (SKILL.md и README сверяются со спецификацией). Примечание 2026-09-10 в плане 03 после шага 8.
 
 **Связанные планы:** [03-cli-outbox-and-ergonomics.md](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/03-cli-outbox-and-ergonomics.md); [12-ai-readiness-and-docs.md](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/12-ai-readiness-and-docs.md).
 
@@ -1746,7 +1750,7 @@
 
 ### TI-047 — У агента нет штатного сохранения cursor после полного чтения
 
-**Тип:** Новая функция. **Статус:** ПРЕДЛОЖЕНО. **Приоритет:** P2.
+**Тип:** Новая функция. **Статус:** ИСПРАВЛЕНО. **Приоритет:** P2.
 
 **Источники:** [FI:A6](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/review-5-ai-ready.md:82); [План 03, шаг 10](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/03-cli-outbox-and-ergonomics.md:190); [План 03, доп. шаг 17](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/03-cli-outbox-and-ergonomics.md:292).
 
@@ -1763,6 +1767,8 @@
 - Прерывание на середине страниц не продвигает сохранённую позицию.
 - Повтор сессии получает все ещё не подтверждённые изменения, включая eventless outcomes по соответствующей ленте.
 - Смена generation объясняется и требует нового baseline; курсоры разных серверов/агентов не пересекаются.
+
+**Закрытие (2026-09-10).** Коммит `710a4d8`. Курсор `agents/<agent>/cursor.json` `{formatVersion:1, generation, seq, operationSeq?, committedAt}` (0600); команды `cursor show|commit|reset`; `digest|activity|events --since last`; `--commit` двигает курсор только после полного обхода (`more: false`), иначе stderr `cursor_not_committed`; `events --follow --commit` фиксирует после каждой полной страницы; `409 generation_changed` печатается с `hint` «taskindex cursor reset, затем digest». Тесты: `tests/cli/cursor.test.ts` (5; до исправления `cursor show` → «Неизвестная команда: cursor», `--since last` уходил в URL буквально). SKILL.md описывает цикл «прочитать → зафиксировать»; примечание об операциях без событий до курсора `operationSeq` записано (снимется после плана 04).
 
 **Связанные планы:** [03-cli-outbox-and-ergonomics.md](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/03-cli-outbox-and-ergonomics.md); [12-ai-readiness-and-docs.md](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/12-ai-readiness-and-docs.md).
 
