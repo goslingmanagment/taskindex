@@ -77,19 +77,19 @@
 | [TI-006](#ti-006) | P2 | ИСПРАВЛЕНО | Обязательное сохранение web-операции до отправки |
 | [TI-007](#ti-007) | P2 | ИСПРАВЛЕНО | Редактор и зависимые операции используют подтверждённую revision |
 | [TI-008](#ti-008) | P2 | ОТКРЫТО | Курсор операций, включающий отказы и команды без изменений |
-| [TI-009](#ti-009) | P2 | ОТКРЫТО | Сохранение окончательных доменных отказов |
-| [TI-010](#ti-010) | P2 | ОТКРЫТО | Разделение ID проекта и служебных фильтров |
-| [TI-011](#ti-011) | P2 | ОТКРЫТО | Устранение коллизии маршрута задачи by-origin |
+| [TI-009](#ti-009) | P2 | ИСПРАВЛЕНО | Сохранение окончательных доменных отказов |
+| [TI-010](#ti-010) | P2 | ИСПРАВЛЕНО | Разделение ID проекта и служебных фильтров |
+| [TI-011](#ti-011) | P2 | ИСПРАВЛЕНО | Устранение коллизии маршрута задачи by-origin |
 | [TI-012](#ti-012) | P2 | ОТКРЫТО | Стоимость команд, истории и пагинации |
 | [TI-013](#ti-013) | P2 | ИСПРАВЛЕНО | Неизменность применённых SQL-миграций |
-| [TI-014](#ti-014) | P2 | ОТКРЫТО | Совместимость таблиц, событий, результатов и клиентов |
+| [TI-014](#ti-014) | P2 | ИСПРАВЛЕНО | Совместимость таблиц, событий, результатов и клиентов |
 | [TI-015](#ti-015) | P2 | ИСПРАВЛЕНО | Неизменяемая конфигурация выпуска для отката |
 | [TI-016](#ti-016) | P2 | ИСПРАВЛЕНО | Обязательная проверка конкретного выпуска |
 | [TI-017](#ti-017) | P2 | ИСПРАВЛЕНО | Испытания deploy.sh и его аварийных ветвей |
 | [TI-018](#ti-018) | P2 | ОТКРЫТО | WebKit и приёмка на настоящем телефоне |
-| [TI-019](#ti-019) | P2 | ОТКРЫТО | Сохранение точных типов команд до обработчика |
+| [TI-019](#ti-019) | P2 | ИСПРАВЛЕНО | Сохранение точных типов команд до обработчика |
 | [TI-020](#ti-020) | P2 | ИСПРАВЛЕНО | Диагностируемые ошибки и корреляция запросов |
-| [TI-021](#ti-021) | P2 | ОТКРЫТО | Независимые свойства команд и Undo |
+| [TI-021](#ti-021) | P2 | ИСПРАВЛЕНО | Независимые свойства команд и Undo |
 | [TI-022](#ti-022) | P3 | ОТКРЫТО | Проверка формата сохранённых черновиков и outbox |
 | [TI-023](#ti-023) | P3 | ПРЕДЛОЖЕНО | Общий жизненный цикл намерения в формах |
 | [TI-024](#ti-024) | P3 | ПРЕДЛОЖЕНО | Зависимости и измеримая загрузка интерфейса |
@@ -114,10 +114,10 @@
 | [TI-043](#ti-043) | P2 | ИСПРАВЛЕНО | CLOSED EventSource не создаётся заново |
 | [TI-044](#ti-044) | P2 | ИСПРАВЛЕНО | CLI не предоставляет доступные API-фильтры и проверку своей личности |
 | [TI-045](#ti-045) | P2 | ИСПРАВЛЕНО | CLI help и parser не дают полный исполнимый контракт |
-| [TI-046](#ti-046) | P2 | ОТКРЫТО | Ошибки CLI/API не объясняют, какое поле и как исправить |
+| [TI-046](#ti-046) | P2 | ИСПРАВЛЕНО | Ошибки CLI/API не объясняют, какое поле и как исправить |
 | [TI-047](#ti-047) | P2 | ИСПРАВЛЕНО | У агента нет штатного сохранения cursor после полного чтения |
 | [TI-048](#ti-048) | P2 | ПРЕДЛОЖЕНО | Нет удобного входящего контекста для конкретного агента |
-| [TI-049](#ti-049) | P2 | ОТКРЫТО | OpenAPI громоздок и слабо описывает операции и авторизацию |
+| [TI-049](#ti-049) | P2 | ИСПРАВЛЕНО | OpenAPI громоздок и слабо описывает операции и авторизацию |
 | [TI-050](#ti-050) | P3 | ИСПРАВЛЕНО | Закрытый stdout вызывает EPIPE со stack trace |
 | [TI-051](#ti-051) | P3 | ИСПРАВЛЕНО | events --follow печатает пустые страницы каждую секунду |
 | [TI-052](#ti-052) | P2 | ИСПРАВЛЕНО | Инструкции подключения и работы агента с репозиторием неполны |
@@ -445,7 +445,7 @@
 
 ### TI-009 — Сохранение окончательных доменных отказов
 
-**Тип:** Баг. **Статус:** ОТКРЫТО. **Приоритет:** P2.
+**Тип:** Баг. **Статус:** ИСПРАВЛЕНО. **Приоритет:** P2.
 
 **Источники:** [Astra:B-05](/Users/dmitriy/code/taskindex/docs/audits/2026-09-08-multiside-review/03-bugs.md:121); [Сохранённое воспроизведение](/Users/dmitriy/code/taskindex/docs/audits/2026-09-08-multiside-review/03-probe-results.json); [FC:compare-bugs «Их B-05»](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/compare-bugs.md:81); [extra-probes.mts (a)](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/probes/compare/extra-probes.mts); [План 04, доп. шаг 12](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/04-api-contract-and-schemas.md:289).
 
@@ -470,6 +470,8 @@
 - Нельзя сохранять заведомо окончательный отказ после частично закоммиченного эффекта. Нормализацию делать в пределах существующей транзакционной границы; журналы не должны содержать лишний пользовательский текст.
 - Сверка Fable: исправление — в `assertInvariants` заменить `checklistSchema.parse` ([src/shared/commands.ts:217](/Users/dmitriy/code/taskindex/src/shared/commands.ts:217)) на явные `fail('invalid', …)` для длины и дублей; executor (`operations.ts:124`) не меняется, `DomainError` сохраняется; тесты на 101-й шаг, дубль id и `operation_mismatch` при другом payload ([план 04, доп. шаг 12](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/04-api-contract-and-schemas.md:289)).
 
+**Закрытие (2026-09-10).** Коммит `95f33e9`. `assertInvariants` проверяет лимит и дубли id шагов явными `DomainError`, без `ZodError` мимо ветки исполнителя; доменный отказ после принятия конверта записывается как операция: повтор того же `operationId` отдаёт тот же ответ, другой payload — 409 `operation_mismatch`, нарушение во второй команде пакета — `commandIndex: 1` без изменения состояния. Тесты: `tests/api/operations-journal.test.ts › TI-009 domain rejections after the envelope is accepted are stored` (3). Probe Astra `invariant-rejection-is-not-idempotently-recorded` закрыт.
+
 **Связанные планы:** [astra-09-persist-domain-rejections.md](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/astra-09-persist-domain-rejections.md); [04-api-contract-and-schemas.md](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/04-api-contract-and-schemas.md).
 
 Исходная оценка в плане: P2.
@@ -478,7 +480,7 @@
 
 ### TI-010 — Разделение ID проекта и служебных фильтров
 
-**Тип:** Баг. **Статус:** ОТКРЫТО. **Приоритет:** P2.
+**Тип:** Баг. **Статус:** ИСПРАВЛЕНО. **Приоритет:** P2.
 
 **Источники:** [Astra:B-06](/Users/dmitriy/code/taskindex/docs/audits/2026-09-08-multiside-review/03-bugs.md:146); [FQ:§2](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/review-4-quality.md:49); [Сохранённое воспроизведение](/Users/dmitriy/code/taskindex/docs/audits/2026-09-08-multiside-review/03-id-probe-results.json); [FC:compare-bugs «Их B-06 и B-07»](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/compare-bugs.md:87); [FC:compare-quality-method, sentinel](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/compare-quality-method.md:64); [План 04, доп. шаг 13](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/04-api-contract-and-schemas.md:290); [План 10, шаг 7](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/10-code-quality-and-tests.md:228).
 
@@ -504,6 +506,8 @@
 - Fable описал слабую модель sentinel; Astra воспроизвёл допустимый ID none. Константы ALL/NONE сами по себе коллизию не исправляют. Предпочесть различимый тип фильтра и явный API-параметр, сохранив существующие ID.
 - Сверка Fable: до переключения нет пользовательских id, которые нужно защищать, поэтому выбран резерв слов `RESERVED_IDS = {all, none, by-origin, lookup}` через `refine` в `task.create`/`task.sync`/`project.create` и в `importWorkspace`, без смены семантики фильтра; тест «каждый статический сегмент маршрута входит в `RESERVED_IDS`» ([план 04, доп. шаг 13](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/04-api-contract-and-schemas.md:290)). Константы `ALL_PROJECTS`/`NO_PROJECT` и тип `ProjectFilter` остаются защитой на уровне типов ([план 10, шаг 7](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/10-code-quality-and-tests.md:228)). Если владелец позже захочет буквальные id `none`/`all`, путь описан в `astra-10`.
 
+**Закрытие (2026-09-10).** Коммит `95f33e9`. `RESERVED_IDS` (`all`, `none`, `by-origin`, `lookup`) в `newIdSchema` для `task.create`, `task.sync`, `project.create` и в импорте; служебные фильтры больше не делят пространство с id. Тесты: `tests/api/contract.test.ts › none, all, by-origin and lookup are refused as new identifiers with the field in issues`, `› import refuses reserved identifiers before replaying history`. Сценарий: `project.create {id:'none'}` → 400, `issues[0].path === 'payload.id'`.
+
 **Связанные планы:** [astra-10-project-id-filter-separation.md](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/astra-10-project-id-filter-separation.md); [04-api-contract-and-schemas.md](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/04-api-contract-and-schemas.md); [10-code-quality-and-tests.md](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/10-code-quality-and-tests.md).
 
 Исходная оценка в плане: P2.
@@ -512,7 +516,7 @@
 
 ### TI-011 — Устранение коллизии маршрута задачи by-origin
 
-**Тип:** Баг. **Статус:** ОТКРЫТО. **Приоритет:** P2.
+**Тип:** Баг. **Статус:** ИСПРАВЛЕНО. **Приоритет:** P2.
 
 **Источники:** [Astra:B-07](/Users/dmitriy/code/taskindex/docs/audits/2026-09-08-multiside-review/03-bugs.md:168); [Сохранённое воспроизведение](/Users/dmitriy/code/taskindex/docs/audits/2026-09-08-multiside-review/03-id-probe-results.json); [FC:compare-bugs «Их B-06 и B-07»](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/compare-bugs.md:87); [extra-probes.mts (d)](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/probes/compare/extra-probes.mts); [План 04, доп. шаг 13](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/04-api-contract-and-schemas.md:290).
 
@@ -536,6 +540,8 @@
 
 - Простое переставление маршрутов местами сломает старый lookup. Совместимость должна определяться явно, а не случайным порядком регистрации.
 - Сверка Fable: перенос поиска на `/api/tasks/lookup/by-origin` без legacy-алиаса (до переключения совместимость старого адреса не нужна; `astra-11` шаг 2 не применяется) плюс резерв `by-origin`/`lookup` в `RESERVED_IDS` — одно исправление на TI-010 и TI-011 ([план 04, доп. шаг 13](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/04-api-contract-and-schemas.md:290)).
+
+**Закрытие (2026-09-10).** Коммиты `95f33e9`, `2996bf0`. Поиск по источнику перенесён на `/api/tasks/lookup/by-origin`; `GET /api/tasks/{id}` не затеняется; legacy-алиас не оставлен (решение плана 04, шаг 13); CLI `find-origin` переведён на новый путь. Тесты: `tests/api/contract.test.ts › the origin lookup lives under /api/tasks/lookup/by-origin and does not shadow task ids`, `tests/api/openapi.test.ts › every static segment … is a reserved identifier`. Сценарий: `/api/tasks/lookup/by-origin?system=x&ref=y` → 200/404, `/api/tasks/by-origin` теперь читается как id и даёт 404 `not_found` (в аудите — 400 из-за затенения).
 
 **Связанные планы:** [astra-11-task-lookup-route-separation.md](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/astra-11-task-lookup-route-separation.md); [04-api-contract-and-schemas.md](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/04-api-contract-and-schemas.md).
 
@@ -619,7 +625,7 @@
 
 ### TI-014 — Совместимость таблиц, событий, результатов и клиентов
 
-**Тип:** Риск миграций. **Статус:** ОТКРЫТО. **Приоритет:** P2.
+**Тип:** Риск миграций. **Статус:** ИСПРАВЛЕНО. **Приоритет:** P2.
 
 **Источники:** [Astra:A-03](/Users/dmitriy/code/taskindex/docs/audits/2026-09-08-multiside-review/02-architecture.md:88); [FA:Ж11](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/review-2-architecture.md:107); [FC:compare-stack-arch A-03](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/compare-stack-arch.md:81); [compare/astra-arch-probes-rerun.json](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/probes/compare/astra-arch-probes-rerun.json); [План 09, доп. шаг 12](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/09-data-layer-and-dependencies.md:214); [План 04, доп. шаг 15](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/04-api-contract-and-schemas.md:292).
 
@@ -646,6 +652,8 @@
 - Исходный synthetic probe с преобразованием только row намеренно оставляет events/result старого формата: он демонстрирует незавершённость такого подхода к будущей миграции, а не текущую порчу валидной базы.
 - Сверка Fable: достаточный минимум вместо versioned codecs/upcasters — правило миграций данных «либо события системной операции `migration:<name>`, либо правка `applyEvent`/`validateExport`, чтобы replay применял схемные значения по умолчанию», фикстура экспорта предыдущей версии `tests/fixtures/export-schema-<N>.json` и тест `migration-compat` (`migrate → export → validateExport → import → operation get → повтор конверта`) ([план 09, доп. шаг 12](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/09-data-layer-and-dependencies.md:214)); `schemaVersion` в `snapshotSchema` и режим несовместимого клиента с сохранением черновиков ([план 04, доп. шаг 15](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/04-api-contract-and-schemas.md:292)). Версия кодека событий не вводится до первой реальной нужды.
 - **Решение** (принято 2026-09-10; решение делегировано владельцем Fable): правило миграций данных «либо через события системной операции, либо `validateExport` применяет default по схеме» с фикстурой экспорта прежней версии и тестом `migration-compat` принято как достаточный минимум; versioned codecs/upcasters не вводятся до первой реальной нужды. Плановое применение — поля `focus_key`/`focus_left_at` плана 13 (TI-078, шаг 1: `validateExport` применяет default `null`) ([план 09, решение владельца](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/09-data-layer-and-dependencies.md:217); [README планов, строка «Миграции»](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/README.md:166)).
+
+**Закрытие (2026-09-10).** Коммит `c2bff29`. Правило миграции данных записано в `drizzle/v2/README.md` (либо события системной операции, либо `validateExport`/`applyEvent` применяют схемные значения по умолчанию; versioned codecs не вводятся); фикстура экспорта прежней версии `tests/fixtures/export-schema-2.json`; тест `tests/api/migration-compat.test.ts` (4): фикстура покрывает таблицы, события, результаты и клиентов; база прежней версии → `migrate` → экспорт → `validateExport` → импорт → ответ на каждую сохранённую операцию; импорт формата 1; отказ на экспорте более новой версии. Правило применено к миграциям `0001_agent_keys` и `0002_operation_seq`. Отклонение записано в план 09: повтор конверта проверяется на мигрированной базе, а не после импорта (импорт меняет `generation`).
 
 **Связанные планы:** [astra-14-domain-contract-evolution.md](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/astra-14-domain-contract-evolution.md); [09-data-layer-and-dependencies.md](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/09-data-layer-and-dependencies.md); [04-api-contract-and-schemas.md](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/04-api-contract-and-schemas.md).
 
@@ -801,7 +809,7 @@
 
 ### TI-019 — Сохранение точных типов команд до обработчика
 
-**Тип:** Качество кода. **Статус:** ОТКРЫТО. **Приоритет:** P2.
+**Тип:** Качество кода. **Статус:** ИСПРАВЛЕНО. **Приоритет:** P2.
 
 **Источники:** [Astra:Q-01](/Users/dmitriy/code/taskindex/docs/audits/2026-09-08-multiside-review/04-code-quality.md:31); [Astra:A-05](/Users/dmitriy/code/taskindex/docs/audits/2026-09-08-multiside-review/02-architecture.md:114); [FS:S4](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/review-1-stack.md:93); [FQ:§3](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/review-4-quality.md:75); [FQ:§4](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/review-4-quality.md:100); [FQ:R1](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/review-4-quality.md:280); [FQ:R2](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/review-4-quality.md:281); [FI:B3](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/review-5-ai-ready.md:125); [FC:compare-quality-method, строка 1 матрицы](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/compare-quality-method.md:21); [План 10, доп. шаг 25](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/10-code-quality-and-tests.md:346).
 
@@ -825,6 +833,8 @@
 
 - Не начинать универсальный command framework с динамической регистрацией. Для текущего набора достаточно типизированного switch/map. Разницу приоритетов двух ревьюеров сохраняем, одну задачу дважды не считаем.
 - Объединить commandSchema/commandEnvelopeSchema из payload registry, исчерпывающие labels/handlers и typed get по EntityKind. Расширение enum исторических events/results согласовать с TI-014; не ломать старую историю ради текущего closed union.
+
+**Закрытие (2026-09-10).** Коммиты `95f33e9`, `b22a77b`. Union команд генерируется из `commandPayloadSchemas` (`commandNames`, `commandNameSchema`, `operationEnvelopeSchema`); `applyCommand` — `switch` по union с `default: assertNever`, без кастов на входе; `isSubjectField`/`records` через `switch` с `assertNever(kind)`; `parseCommand` удалён. Контроль плана 10: временный ключ `task.pin` в реестре роняет `tsc` в `commands.ts` (`assertNever`) и в `src/cli/spec.ts` (`Record<CommandName, …>`). Тесты: `tests/unit/shared.test.ts › command unions are generated from the payload registry (TI-019)`, `› every command name has a web label and a CLI write`. Попутно исправлена регрессия: ветка создания в `task.sync` собирала запись из исходного payload, а не из очищенного от owner-only полей (поймано `tests/api/permissions.test.ts`).
 
 **Связанные планы:** [astra-19-exhaustive-command-dispatch.md](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/astra-19-exhaustive-command-dispatch.md); [04-api-contract-and-schemas.md](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/04-api-contract-and-schemas.md); [10-code-quality-and-tests.md](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/10-code-quality-and-tests.md).
 
@@ -871,7 +881,7 @@
 
 ### TI-021 — Независимые свойства команд и Undo
 
-**Тип:** Качество тестов. **Статус:** ОТКРЫТО. **Приоритет:** P2.
+**Тип:** Качество тестов. **Статус:** ИСПРАВЛЕНО. **Приоритет:** P2.
 
 **Источники:** [Astra:Q-03](/Users/dmitriy/code/taskindex/docs/audits/2026-09-08-multiside-review/04-code-quality.md:63); [FQ:§9](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/review-4-quality.md:166); [FC:compare-quality-method Q-03](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/compare-quality-method.md:54); [План 10, доп. шаг 19](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/10-code-quality-and-tests.md:340); [План 02, доп. шаг 18](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/02-agent-permissions-and-sync-semantics.md:304).
 
@@ -896,6 +906,8 @@
 - Полная вторая реализация продукта станет таким же источником ошибок. Reference model должна быть маленькой, с явно ограниченным набором правил. Политику owner/agent после решения плана 27 проверять отдельно.
 - Fable тоже отмечает узость генераторов. Astra отдельно доказал слепую зону oracle через production isSubjectField; это не устраняется простым увеличением numRuns.
 - Сверка Fable: реализация — явный список `UNDO_SUBJECT_FIELDS` в тесте плюс страж `expect([...taskFields].sort()).toEqual(...)`, маленькая эталонная модель `Map<taskId, Record<field, unknown>>` без `applyCommand`, движущееся время (`now` = база + счётчик) со строгим ростом `revision`/`updatedAt`, генераторы с отклонённым пакетом, устаревшей `baseRevision`, `task.sync` и агентскими акторами; контрольная мутация «удалить `note`» описана в шапке теста ([план 10, доп. шаг 19](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/10-code-quality-and-tests.md:340); ожидания для агентов из табличных `cases`, не из `requireScope` — [план 02, доп. шаг 18](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/02-agent-permissions-and-sync-semantics.md:304)).
+
+**Закрытие (2026-09-10).** Коммит `dd77211`. Оракул `tests/property/undo.test.ts` независим от `isSubjectField`: явный список `UNDO_SUBJECT_FIELDS` со стражем на боевой `taskFields`, модель намерений, движущееся время, конфликт по пересечению полей, undo задачи из `task.sync`; `tests/property/commands.test.ts` — случайные последовательности владельца и агентов с инвариантами прав; проверка атомарности пакета в исполнителе. Контрольная мутация классификатора ловится (продемонстрировано при реализации). Прогон: 5 файлов, 38 тестов зелёные.
 
 **Связанные планы:** [astra-21-independent-property-model.md](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/astra-21-independent-property-model.md); [10-code-quality-and-tests.md](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/10-code-quality-and-tests.md); [02-agent-permissions-and-sync-semantics.md](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/02-agent-permissions-and-sync-semantics.md).
 
@@ -1728,7 +1740,7 @@
 
 ### TI-046 — Ошибки CLI/API не объясняют, какое поле и как исправить
 
-**Тип:** Диагностика. **Статус:** ОТКРЫТО. **Приоритет:** P2.
+**Тип:** Диагностика. **Статус:** ИСПРАВЛЕНО. **Приоритет:** P2.
 
 **Источники:** [FI:A3](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/review-5-ai-ready.md:70); [FI:A8](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/review-5-ai-ready.md:90); [FI:B9](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/review-5-ai-ready.md:151); [FQ:§5](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/review-4-quality.md:118); [FQ:§3](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/review-4-quality.md:75); [План 04, шаг 6](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/04-api-contract-and-schemas.md:188); [План 03, шаг 9](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/03-cli-outbox-and-ergonomics.md:188).
 
@@ -1749,6 +1761,8 @@
 **Детали и оговорки:**
 
 - Повторные transport-ошибки можно строить общим helper, но network error, доменный stored outcome и post-commit unknown имеют разную семантику. Не сводить их к одной окончательной ошибке.
+
+**Закрытие (2026-09-10).** Коммиты `95f33e9` (API), `f227d4f` (CLI). Ошибки валидации несут `issues[].path` вида `payload.title`, `query.ref`, `commands[1].payload` с русским текстом (локаль Zod); CLI печатает `issues` сервера как есть и добавляет `hint` по известным полям, для локальных ошибок аргументов — свои `issues` с `path`/`message`/`hint` (`src/cli/errors.ts`). Тесты: `tests/api/contract.test.ts › TI-046 validation errors carry issues with paths` (3), `tests/cli/cli.test.ts › TI-046: a missing baseRevision is reported in Russian…` (падал до: `path` массивом, английский текст, без hint). Сценарий: `GET /api/tasks/lookup/by-origin?system=tg` → 400 `issues:[{path:'query.ref',…}]`; `task move t1 --status doing` без `--base-revision` → код 2, `issues[0].path === 'baseRevision'`, hint про `task get`.
 
 **Связанные планы:** [03-cli-outbox-and-ergonomics.md](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/03-cli-outbox-and-ergonomics.md); [04-api-contract-and-schemas.md](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/04-api-contract-and-schemas.md).
 
@@ -1812,7 +1826,7 @@
 
 ### TI-049 — OpenAPI громоздок и слабо описывает операции и авторизацию
 
-**Тип:** Качество контракта. **Статус:** ОТКРЫТО. **Приоритет:** P2.
+**Тип:** Качество контракта. **Статус:** ИСПРАВЛЕНО. **Приоритет:** P2.
 
 **Источники:** [FS:S3](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/review-1-stack.md:87); [FI:A9](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/review-5-ai-ready.md:94); [FQ:R3](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/review-4-quality.md:282); [Независимая сверка Astra/Fable](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/ASTRA-VS-FABLE.md); [FC:compare-stack-arch S3](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/compare-stack-arch.md:123); [ASTRA-VS-FABLE §4.4](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/ASTRA-VS-FABLE.md:127); [openapi-probe.mts](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/probes/openapi-probe.mts); [План 04, сверка](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/04-api-contract-and-schemas.md:264); [README планов, расхождение 7](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/README.md:100).
 
@@ -1836,6 +1850,8 @@
 - Удаление OpenAPI не следует автоматически из его текущего размера.
 - Сверка Fable: решение обеих сторон — оставить и сделать полезным (`operationId`/`summary`/`tags`, `components/$ref` через `.meta({id})`, `securitySchemes`, `.describe()` на query); публичность без ключа — отдельное необязательное решение, достаточно компактной схемы для аутентифицированного CLI (`taskindex openapi`) ([план 04, шаг 7](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/04-api-contract-and-schemas.md:190); [README планов, расхождение 7](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/README.md:100)). Проба плана 04 на Zod 4.5.4: `.meta({id})` на корневой схеме меняет вывод `z.toJSONSchema` на `{$ref:'#/$defs/X', $defs}` вместо инлайн-объекта, `.extend()` сбрасывает `id`; поэтому `/api/context.fields` строится хелпером `inlineJsonSchema`, чтобы контракт `fields` не изменился ([план 04 §1](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/04-api-contract-and-schemas.md:32), [шаг 5](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/04-api-contract-and-schemas.md:186)).
 - **Решение** (принято 2026-09-10; решение делегировано владельцем Fable): OpenAPI остаётся и становится компактным контрактом для агентов — `components/$ref` через `.meta({id})`, `operationId`/`summary`/`tags`, `securitySchemes`; доступ по ключу (`taskindex openapi`), публичный без ключа не делается; вариант «убрать OpenAPI» (FS:S3) снят ([план 04, решение владельца](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/04-api-contract-and-schemas.md:295); [README планов, строка «OpenAPI»](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/README.md:159)).
+
+**Закрытие (2026-09-10).** Коммит `95f33e9`. OpenAPI как компактный контракт для агентов: `.meta({ id })` на схемах сущностей и конвертов (34 компонента, `$ref` из маршрутов), `operationId`/`summary`/`tags`/`description` на всех 19 маршрутах, `.describe()` на query-параметрах, `securitySchemes` и `security`; документ отдаётся только по ключу (`/api/openapi.json` без ключа → 401). Замер: 129 572 байта против 970 600 в аудите, 19 `operationId` против 0. Тесты: `tests/api/openapi.test.ts › is served with a key, stays under 150 KB and names every operation with summary, tags and security`, `› lists the entities and envelopes once as components and refers to them from the routes`, `› every static segment addressing /api/tasks or /api/projects is a reserved identifier`. CLI `taskindex openapi` (TI-044) читает этот же документ.
 
 **Связанные планы:** [04-api-contract-and-schemas.md](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/04-api-contract-and-schemas.md).
 
