@@ -51,6 +51,8 @@ const HINTS: Record<string, string> = {
   followUp: 'Календарная дата YYYY-MM-DD или null',
   color: 'Цвет в форме #rrggbb',
   focus: 'focus ставит только владелец; агент это поле не передаёт',
+  focusPosition:
+    'Позицию на столе Focus ставит только владелец; агент это поле не передаёт',
   mode: 'Режим оформления: system, light или dark',
   skinId: 'Идентификатор скина из каталога: taskindex context',
 };

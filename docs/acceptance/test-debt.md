@@ -25,7 +25,7 @@
 | Astra B-06, B-07 | [TI-010](../../issues.md#ti-010), [TI-011](../../issues.md#ti-011) | `tests/api/contract.test.ts` › «none, all, by-origin and lookup are refused as new identifiers», «the origin lookup lives under /api/tasks/lookup/by-origin and does not shadow task ids», «import refuses reserved identifiers before replaying history» | 04 |
 | — (TI-004) | [TI-004](../../issues.md#ti-004) | `tests/cli/acknowledgement.test.ts` › «resume: an unrecognised stored-operation body keeps the envelope and does not resend», «get: a stored result of a different operation or generation leaves the envelope alone»; `tests/cli/canonical-envelope.test.ts` | 03 |
 | FA:V1, FB:B-09 | [TI-037](../../issues.md#ti-037) | `tests/cli/reads.test.ts` › «restarts from the first page after 409 conflict», «gives up after three restarts», «warns when the list changed between the first and the last page», «forwards a keyset cursor of the server (v: 2) verbatim»; `tests/api/pagination.test.ts` | 01, 03 |
-| FB:B-04 | [TI-038](../../issues.md#ti-038) | `tests/web/store.test.ts` › «does not replay outbox envelopes across database generations and lets the owner dismiss them (TI-038)`»; `tests/web/pending.test.ts` | 07 |
+| FB:B-04 | [TI-038](../../issues.md#ti-038) | `tests/web/store.test.ts` › «does not replay outbox envelopes across database generations and lets the owner dismiss them (TI-038)»; `tests/web/pending.test.ts` | 07 |
 | FB:B-06 | [TI-040](../../issues.md#ti-040) | `tests/api/contract.test.ts` › «project.create with an existing name returns the existing project as current», «renaming a project into a taken name points at the other project» | 04 |
 | FB:B-07 | [TI-041](../../issues.md#ti-041) | `tests/web/drafts.test.ts` | 07 |
 | FB:B-08 | [TI-042](../../issues.md#ti-042) | `tests/web/url.test.ts` | 07 |
@@ -51,12 +51,12 @@
 | Astra 26 | [TI-026](../../issues.md#ti-026) | `tests/api/appearance.test.ts`, `tests/cli/cli.test.ts` › «оформление владельца в CLI (TI-026)» | 08 |
 | Astra 30 | [TI-030](../../issues.md#ti-030) | `tests/web/strings.test.ts`, `tests/web/auth-errors.test.ts`, `tests/e2e/localization.spec.ts` | 07 |
 | Astra 32 | [TI-032](../../issues.md#ti-032) | `tests/web/history.test.ts` | 07 |
+| Astra 31 | [TI-031](../../issues.md#ti-031) | `tests/web/labels.test.ts` › «TI-031 taskCount declines «задача» by the Russian rules» (0, 1, 2, 4, 5, 11, 12, 14, 21, 22, 25) | 07 |
 
 Открытые строки (теста нет):
 
 | ID Astra/Fable | TI | Чего не хватает | План |
 |---|---|---|---|
-| Astra 31 | [TI-031](../../issues.md#ti-031) | единого правила склонения нет: `tests/web/labels.test.ts` и `tests/e2e/workspace.spec.ts` держат текущие подписи, но не общий склонятель | 07 |
 | Astra S-05 | [TI-018](../../issues.md#ti-018) | проекта `webkit` в `tests/e2e/playwright.config.ts` нет; спека писалась и откачена (см. ниже) | 10, шаг 21 |
 | Astra 34 | [TI-034](../../issues.md#ti-034) | физическая приёмка: [phone.md](phone.md), отчёта ещё нет | — |
 | Astra 23 | [TI-023](../../issues.md#ti-023) | общий жизненный цикл намерения в формах не выделен, тестов нет | 07 |

@@ -107,7 +107,14 @@ taskindex task sync --payload '{"origin":{"system":"telegram","ref":"chat:messag
 агента отменяет в рамках scope, чужой комментарий — нет. Ошибку владельца не
 исправляй отменой: сообщи комментарием. `focus` ставит и снимает только владелец:
 в командах его не передавай (403), в `task sync` поле пропускается
-(`skipped: owner`); команды `task focus` в CLI нет, `focus` — чтение групп Focus.
+(`skipped: owner`); команды `task focus` в CLI нет, `focus` — чтение стола.
+`taskindex focus` печатает стол владельца одной строкой JSON: `current` (одна
+задача или null), `next` (до двух следующих), `waiting` (ожидания, сначала с
+наступившей датой возврата), `recent` (до трёх ушедших со стола за 14 дней),
+`counts` (`focus`, `parked`, `waiting`) и `groups` — прежние группы Focus;
+`taskindex focus --group ГРУППА --all` читает одну группу постранично, а
+`taskindex digest` несёт `current` и `next` того же стола. Фокус и порядок на
+столе ставит только владелец; агент стол читает и планирует по нему работу.
 Оформление доски (`taskindex appearance get` — режим, скин, `revision`) меняет
 только владелец командой `taskindex appearance set --mode system|light|dark
 --skin-id ID` (без `--base-revision` CLI берёт revision из `appearance get`);

@@ -793,3 +793,59 @@ describe('оформление владельца в CLI (TI-026)', () => {
     expect(help.usage).toContain('[--base-revision N]');
   });
 });
+
+// TI-078, plan 13 step 7: the desk is a read. The CLI prints what /api/focus
+// answers, so a new field of the desk reaches an agent without a CLI release;
+// setting the focus stays with the owner, `task focus` is not a command.
+describe('стол Focus в CLI (TI-078)', () => {
+  const desk = {
+    generation: 'g_first',
+    seq: 42,
+    current: { id: 't1', title: 'Текущая', focusKey: 'a0' },
+    next: [
+      { id: 't2', title: 'Следующая', focusKey: 'a1' },
+      { id: 't3', title: 'Третья', focusKey: 'a2' },
+    ],
+    waiting: [{ id: 't4', title: 'Ждём ответа', followUp: '2026-09-11' }],
+    recent: [{ id: 't5', title: 'Ушла со стола', focusLeftAt: '2026-09-09' }],
+    counts: { focus: 3, parked: 7, waiting: 1 },
+    groups: [{ id: 'selected', items: [], more: false, nextCursor: null }],
+  };
+
+  it('focus печатает стол целиком, как его отдаёт /api/focus', async () => {
+    const test = await setup((url) =>
+      url.pathname === '/api/focus'
+        ? json(desk)
+        : json({ ok: false, code: 'not_found' }, 404),
+    );
+    expect(await test.run(['focus'])).toBe(0);
+    expect(test.output.at(-1)).toEqual(desk);
+    // Setting the focus is not a CLI command: the group lists only the read.
+    expect(await test.run(['task', 'focus', 't1'])).toBe(2);
+    expect(test.output.at(-1)).toMatchObject({
+      code: 'invalid_arguments',
+      hint: 'taskindex help task',
+    });
+  });
+
+  it('digest несёт current и next того же стола', async () => {
+    const test = await setup((url) =>
+      url.pathname === '/api/digest'
+        ? json({
+            generation: 'g_first',
+            seq: 42,
+            operationSeq: 7,
+            current: desk.current,
+            next: desk.next,
+            counts: desk.counts,
+          })
+        : json({ ok: false, code: 'not_found' }, 404),
+    );
+    expect(await test.run(['digest'])).toBe(0);
+    expect(test.output.at(-1)).toMatchObject({
+      current: { id: 't1' },
+      next: [{ id: 't2' }, { id: 't3' }],
+      counts: { focus: 3 },
+    });
+  });
+});

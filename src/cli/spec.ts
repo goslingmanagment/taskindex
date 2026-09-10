@@ -267,7 +267,7 @@ export const READS: ReadSpec[] = [
     ],
     flags: [commitFlag],
     summary:
-      'Сводка: Focus, ожидание, счётчики, комментарии владельца и операции после since (по событиям) или --since-op (по журналу операций, с отказами)',
+      'Сводка: current и next стола Focus, ожидание, счётчики, комментарии владельца и операции после since (по событиям) или --since-op (по журналу операций, с отказами)',
     example: 'taskindex digest --since last',
   },
   {
@@ -296,7 +296,8 @@ export const READS: ReadSpec[] = [
         values: ['selected', 'new', 'due', 'follow-ups'],
       }),
     ],
-    summary: 'Группы Focus',
+    summary:
+      'Стол Focus: current, next, waiting, recent, counts и groups; с --group — страница одной группы',
     example: 'taskindex focus --group due --all',
   },
   {
