@@ -1,0 +1,307 @@
+/* Лист редактора: поля, шаги, ожидание, конфликт. Файл подключается со слоем skin из styles.css. */
+.editor-header > div {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.editor-title:focus {
+  box-shadow: 0 2px 0 #bdcdf1;
+}
+.editor-fields label,
+.waiting-editor label {
+  font-size: 13px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  color: #7b899d;
+}
+.full-field {
+  grid-column: 1/-1;
+}
+.waiting-editor h3,
+.detail-section h3 {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  font-size: 14px;
+  font-weight: 600;
+  margin-bottom: 12px;
+}
+.waiting-editor label {
+  margin-top: 16px;
+}
+.waiting-editor input[type='date'],
+.date-row input[type='date'] {
+  border: 1px solid #d9e1eb;
+  border-radius: 6px;
+  padding: 8px 10px;
+  color: #52647c;
+  font-family: inherit;
+  background: #fff;
+  font-size: 14px;
+  min-width: 0;
+  max-width: 100%;
+}
+.add-details:empty {
+  display: none;
+}
+.detail-section h3 > span {
+  margin-left: auto;
+  font-size: 12px;
+  color: #8995a8;
+  font-weight: 400;
+}
+.checklist-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 5px;
+}
+.checklist-row input {
+  border: 0;
+  box-shadow: none;
+  min-height: 37px;
+  padding: 6px;
+  font-size: 16px;
+  background: transparent;
+}
+.checklist-row .step-done {
+  text-decoration: line-through;
+  color: #879a8f;
+}
+.checklist-row button {
+  color: #8d9aad;
+}
+.checklist-progress {
+  margin-bottom: 15px;
+}
+.new-step {
+  display: flex;
+  gap: 8px;
+  margin-top: 11px;
+}
+.new-step input {
+  font-size: 14px;
+  border-style: dashed;
+}
+.new-step button {
+  color: #8395ac;
+}
+.secondary-actions button {
+  color: #8492a6;
+  font-size: 13px;
+}
+.editor-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+}
+.editor-footer button {
+  height: 38px;
+  padding: 0 13px;
+  font-size: 14px;
+}
+@media (max-width: 767px) {
+  .save-hint {
+    display: none;
+  }
+  .secondary-actions button {
+    font-size: 12px;
+  }
+}
+.editor-conflict {
+  min-width: 0;
+  max-height: 35dvh;
+  overflow: auto;
+  overflow-wrap: anywhere;
+}
+.editor-conflict details {
+  margin-bottom: 10px;
+}
+.editor-conflict button {
+  max-width: 100%;
+  height: auto;
+  min-height: 38px;
+  white-space: normal;
+}
+.task-sheet {
+  max-width: calc(100vw - 18px);
+  gap: 0;
+  width: 520px;
+  background: var(--card);
+  box-shadow: -8px 0 32px #1d253a0b;
+}
+.editor-header {
+  border-bottom: 1px solid #e8ecf3;
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: center;
+  padding: 17px 25px;
+  border-color: var(--border);
+}
+.editor-eyebrow {
+  font-size: 12px;
+  letter-spacing: 0.04em;
+  font-weight: 500;
+  color: var(--muted-foreground);
+}
+.editor-body {
+  overflow-y: auto;
+  flex: 1;
+  padding: 25px 28px;
+}
+.editor-title {
+  width: 100%;
+  border: 0;
+  background: transparent;
+  resize: vertical;
+  outline: none;
+  font-size: 24px;
+  line-height: 1.4;
+  font-weight: 600;
+  letter-spacing: -0.4px;
+  min-height: 68px;
+  margin-bottom: 18px;
+}
+.editor-fields {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px 18px;
+}
+.editor-fields label {
+  font-size: 13px;
+  color: var(--muted-foreground);
+}
+.editor-location {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  margin-top: 17px;
+  padding-bottom: 15px;
+  border-bottom: 1px solid var(--border);
+  font-size: 13px;
+  color: var(--muted-foreground);
+}
+.editor-location button {
+  font-size: 13px;
+  color: var(--muted-foreground);
+}
+.editor-move {
+  margin-top: 16px;
+}
+.editor-state {
+  max-width: 225px;
+}
+.waiting-editor {
+  background: var(--muted);
+  border: 0;
+  border-radius: 7px;
+  padding: 16px;
+  margin-top: 23px;
+}
+.waiting-editor h3 {
+  color: #896a36;
+}
+.waiting-editor input {
+  min-height: 39px;
+  font-size: 14px;
+  background: var(--card);
+}
+.waiting-editor p {
+  font-size: 12px;
+  margin: 8px 0 0;
+  color: var(--muted-foreground);
+}
+.add-details {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+  margin-top: 23px;
+}
+.add-details button {
+  font-size: 13px;
+  border-color: #e3e8f0;
+  border: 0;
+  background: transparent;
+  padding: 0 2px;
+  height: 30px;
+  color: var(--muted-foreground);
+}
+.detail-section {
+  margin-top: 24px;
+}
+.detail-section h3 {
+  color: var(--foreground);
+}
+.note-input {
+  font-size: 16px;
+  line-height: 1.6;
+  min-height: 115px;
+  border: 1px solid #e2e7f0;
+  padding: 12px;
+  resize: vertical;
+  background: var(--card);
+  border-color: var(--border);
+}
+.editor-footer {
+  border-top: 1px solid #e5eaf2;
+  background: var(--card);
+  border-color: var(--border);
+  padding: 16px 24px;
+}
+.save-hint {
+  font-size: 12px;
+  margin-right: auto;
+  color: var(--muted-foreground);
+}
+.secondary-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 30px;
+  padding-top: 14px;
+  border-top: 1px solid #e8ecf2;
+  gap: 10px;
+  border-color: var(--border);
+}
+@media (max-width: 767px) {
+  .task-sheet {
+    max-width: 100vw;
+    width: 100vw;
+  }
+  .editor-body {
+    padding: 23px 21px;
+  }
+  .editor-title {
+    font-size: 23px;
+  }
+  .editor-header {
+    padding: 15px 19px;
+  }
+  .editor-location {
+    gap: 8px;
+  }
+  .editor-fields {
+    gap: 15px;
+    grid-template-columns: 1fr;
+  }
+  .editor-state {
+    max-width: none;
+  }
+  .editor-footer {
+    padding: 14px 16px;
+  }
+  .editor-footer button {
+    height: 42px;
+  }
+}
+.editor-state > label {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--muted-foreground);
+}

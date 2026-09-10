@@ -1,0 +1,154 @@
+/* Активность и обсуждение задачи. Файл подключается со слоем skin из styles.css. */
+.activity-view {
+  max-width: 1180px;
+  padding: 8px 2px 36px;
+}
+.activity-filter {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin: 12px 0 16px;
+}
+.activity-filter .field-select {
+  max-width: 260px;
+}
+.operation-list {
+  display: grid;
+  gap: 12px;
+}
+.operation-row {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--card);
+  padding: 16px;
+}
+.operation-heading {
+  display: flex;
+  align-items: start;
+  justify-content: space-between;
+  gap: 12px;
+}
+.operation-heading > button:first-child {
+  display: flex;
+  flex-wrap: wrap;
+  text-align: left;
+  align-items: center;
+  gap: 8px 14px;
+  flex: 1;
+}
+.operation-heading span,
+.operation-heading small,
+.operation-titles {
+  font-size: 13px;
+  color: var(--muted-foreground);
+}
+.operation-titles {
+  margin-top: 8px;
+}
+.event-list,
+.comment-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+.event-row {
+  border-top: 1px solid var(--border);
+  padding: 16px 0;
+  font-size: 13px;
+}
+.event-row > div:first-child {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+.event-row span,
+.comment-list time {
+  color: var(--muted-foreground);
+}
+.event-row dl {
+  display: grid;
+  gap: 8px;
+  margin: 12px 0;
+}
+.event-row dt {
+  font-weight: 600;
+}
+.event-row dd {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.event-note {
+  color: var(--muted-foreground);
+  margin-inline-start: 6px;
+}
+.event-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+}
+.event-raw-trigger {
+  color: var(--muted-foreground);
+  font-size: 12px;
+}
+.event-raw {
+  margin-top: 8px;
+  padding: 8px;
+  border-radius: 8px;
+  background: var(--muted);
+  color: var(--muted-foreground);
+  font-size: 12px;
+  overflow-x: auto;
+}
+.task-discussion {
+  border-top: 1px solid var(--border);
+  margin-top: 24px;
+  padding-top: 8px;
+}
+.discussion-heading {
+  display: flex;
+  gap: 12px;
+  font-weight: 600;
+  width: 100%;
+  text-align: left;
+  padding: 16px 0;
+}
+.discussion-heading span {
+  color: var(--muted-foreground);
+  font-weight: 400;
+}
+.task-discussion textarea {
+  margin: 12px 0;
+}
+.comment-list li {
+  border-top: 1px solid var(--border);
+  padding: 12px 0;
+}
+.comment-list li > div {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 12px;
+}
+.comment-list p {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  margin-top: 8px;
+  font-size: 14px;
+}
+@media (max-width: 767px) {
+  .operation-heading {
+    gap: 4px;
+  }
+  .operation-heading > button:first-child {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  .operation-row {
+    padding: 12px;
+  }
+  .task-discussion .comment-list li > div {
+    flex-direction: column;
+  }
+}
