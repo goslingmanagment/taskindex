@@ -1,9 +1,10 @@
+import { join } from 'node:path';
 import { serve } from '@hono/node-server';
 import { serveStatic } from '@hono/node-server/serve-static';
 import { createApp } from './app.js';
 import { openDatabase } from './db.js';
 import { createAuth } from './auth.js';
-import { ConfigError, loadServerConfig } from './config.js';
+import { ConfigError, loadServerConfig, webDirectory } from './config.js';
 import { createLogger } from './log.js';
 import { DomainError } from '../shared/errors.js';
 let config;
@@ -35,12 +36,13 @@ const app = createApp({
 app.all('/api/*', (c) =>
   c.json(new DomainError('not_found', 'Метод API не найден.').toJSON(), 404),
 );
-app.use('*', serveStatic({ root: './dist/web' }));
-app.get('*', serveStatic({ path: './dist/web/index.html' }));
-const server = serve({ fetch: app.fetch, port, hostname: '0.0.0.0' });
+const webRoot = webDirectory(config.webDir);
+app.use('*', serveStatic({ root: webRoot }));
+app.get('*', serveStatic({ path: join(webRoot, 'index.html') }));
+const server = serve({ fetch: app.fetch, port, hostname: config.host });
 logger.info({
   event: 'listening',
-  host: '0.0.0.0',
+  host: config.host,
   port,
   build: config.build,
   writes: config.writes,

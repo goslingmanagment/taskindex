@@ -1,5 +1,14 @@
+import { resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { z } from 'zod';
 import type { LogLevel } from './log.js';
+// The built client ships next to the server: <root>/dist/web both from
+// src/server and from dist/server, whatever the working directory is.
+export function webDirectory(override?: string): string {
+  return resolve(
+    override ?? fileURLToPath(new URL('../../dist/web', import.meta.url)),
+  );
+}
 const level = z.enum(['debug', 'info', 'warn', 'error']);
 const path = z.string().min(1);
 const serverSchema = z.object({
