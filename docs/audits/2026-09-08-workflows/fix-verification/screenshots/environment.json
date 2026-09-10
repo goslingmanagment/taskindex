@@ -1,0 +1,16 @@
+{
+  "capturedAt": "2026-09-08T16:52:34.035Z",
+  "node": "v24.20.0",
+  "browser": "151.0.7922.34",
+  "playwright": "1.63.0",
+  "desktop": {
+    "width": 1440,
+    "height": 1000
+  },
+  "mobile": {
+    "width": 390,
+    "height": 844
+  },
+  "origin": "http://localhost:4173",
+  "data": "tests/e2e/reference-data.json via real /api/commands/batch"
+}

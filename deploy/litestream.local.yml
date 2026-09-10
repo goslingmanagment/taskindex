@@ -1,0 +1,16 @@
+logging:
+  type: json
+  stderr: true
+snapshot:
+  interval: 1h
+  retention: 720h
+socket:
+  enabled: true
+  path: /data/litestream.sock
+  permissions: 0600
+dbs:
+  - path: /data/taskindex.db
+    meta-path: /data/.taskindex.db-litestream
+    replica:
+      url: ${LITESTREAM_REPLICA_URL}
+      auto-recover: false

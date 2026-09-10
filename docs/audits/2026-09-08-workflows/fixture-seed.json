@@ -1,0 +1,1757 @@
+{
+  "ok": true,
+  "operationId": "b050e986-9863-4daa-a998-b0895aa6a689",
+  "generation": "1c00af79-fc39-42c8-ae4d-0f812d1f4028",
+  "firstSeq": 15,
+  "lastSeq": 22,
+  "results": [
+    {
+      "record": {
+        "id": "qa-dev",
+        "area": "development",
+        "name": "QA Продукт",
+        "color": "#3465df",
+        "description": "",
+        "revision": 1,
+        "createdAt": "2026-09-08T14:27:31.748Z",
+        "updatedAt": "2026-09-08T14:27:31.748Z"
+      },
+      "changes": {
+        "id": {
+          "from": null,
+          "to": "qa-dev"
+        },
+        "area": {
+          "from": null,
+          "to": "development"
+        },
+        "name": {
+          "from": null,
+          "to": "QA Продукт"
+        },
+        "color": {
+          "from": null,
+          "to": "#3465df"
+        },
+        "description": {
+          "from": null,
+          "to": ""
+        },
+        "createdAt": {
+          "from": null,
+          "to": "2026-09-08T14:27:31.748Z"
+        }
+      }
+    },
+    {
+      "record": {
+        "id": "qa-home",
+        "area": "personal",
+        "name": "QA Дом",
+        "color": "#3465df",
+        "description": "",
+        "revision": 1,
+        "createdAt": "2026-09-08T14:27:31.748Z",
+        "updatedAt": "2026-09-08T14:27:31.748Z"
+      },
+      "changes": {
+        "id": {
+          "from": null,
+          "to": "qa-home"
+        },
+        "area": {
+          "from": null,
+          "to": "personal"
+        },
+        "name": {
+          "from": null,
+          "to": "QA Дом"
+        },
+        "color": {
+          "from": null,
+          "to": "#3465df"
+        },
+        "description": {
+          "from": null,
+          "to": ""
+        },
+        "createdAt": {
+          "from": null,
+          "to": "2026-09-08T14:27:31.748Z"
+        }
+      }
+    },
+    {
+      "record": {
+        "id": "qa-today",
+        "area": "development",
+        "projectId": "qa-dev",
+        "title": "QA Сегодня проверить сборку",
+        "status": "todo",
+        "note": "",
+        "due": "2026-09-08",
+        "waitingFor": "",
+        "followUp": null,
+        "orderKey": "a0",
+        "focus": false,
+        "archived": false,
+        "checklist": [],
+        "commentCount": 0,
+        "originSystem": null,
+        "originRef": null,
+        "originUrl": null,
+        "originVersion": null,
+        "createdBy": "owner",
+        "createdByLabel": "Дмитрий",
+        "ownerTouchedAt": "2026-09-08T14:27:31.748Z",
+        "ownerFields": [
+          "archived",
+          "area",
+          "checklist",
+          "due",
+          "focus",
+          "followUp",
+          "note",
+          "orderKey",
+          "originUrl",
+          "projectId",
+          "status",
+          "title",
+          "waitingFor"
+        ],
+        "revision": 1,
+        "createdAt": "2026-09-08T14:27:31.748Z",
+        "updatedAt": "2026-09-08T14:27:31.748Z"
+      },
+      "changes": {
+        "id": {
+          "from": null,
+          "to": "qa-today"
+        },
+        "area": {
+          "from": null,
+          "to": "development"
+        },
+        "projectId": {
+          "from": null,
+          "to": "qa-dev"
+        },
+        "title": {
+          "from": null,
+          "to": "QA Сегодня проверить сборку"
+        },
+        "status": {
+          "from": null,
+          "to": "todo"
+        },
+        "note": {
+          "from": null,
+          "to": ""
+        },
+        "due": {
+          "from": null,
+          "to": "2026-09-08"
+        },
+        "waitingFor": {
+          "from": null,
+          "to": ""
+        },
+        "followUp": {
+          "from": null,
+          "to": null
+        },
+        "orderKey": {
+          "from": null,
+          "to": "a0"
+        },
+        "focus": {
+          "from": null,
+          "to": false
+        },
+        "archived": {
+          "from": null,
+          "to": false
+        },
+        "checklist": {
+          "from": null,
+          "to": []
+        },
+        "originSystem": {
+          "from": null,
+          "to": null
+        },
+        "originRef": {
+          "from": null,
+          "to": null
+        },
+        "originUrl": {
+          "from": null,
+          "to": null
+        },
+        "originVersion": {
+          "from": null,
+          "to": null
+        },
+        "createdBy": {
+          "from": null,
+          "to": "owner"
+        },
+        "createdByLabel": {
+          "from": null,
+          "to": "Дмитрий"
+        },
+        "ownerTouchedAt": {
+          "from": null,
+          "to": "2026-09-08T14:27:31.748Z"
+        },
+        "ownerFields": {
+          "from": null,
+          "to": [
+            "archived",
+            "area",
+            "checklist",
+            "due",
+            "focus",
+            "followUp",
+            "note",
+            "orderKey",
+            "originUrl",
+            "projectId",
+            "status",
+            "title",
+            "waitingFor"
+          ]
+        },
+        "createdAt": {
+          "from": null,
+          "to": "2026-09-08T14:27:31.748Z"
+        }
+      }
+    },
+    {
+      "record": {
+        "id": "qa-later",
+        "area": "development",
+        "projectId": "qa-dev",
+        "title": "QA Потом проверить импорт",
+        "status": "todo",
+        "note": "",
+        "due": "2026-09-15",
+        "waitingFor": "",
+        "followUp": null,
+        "orderKey": "a1",
+        "focus": false,
+        "archived": false,
+        "checklist": [],
+        "commentCount": 0,
+        "originSystem": null,
+        "originRef": null,
+        "originUrl": null,
+        "originVersion": null,
+        "createdBy": "owner",
+        "createdByLabel": "Дмитрий",
+        "ownerTouchedAt": "2026-09-08T14:27:31.748Z",
+        "ownerFields": [
+          "archived",
+          "area",
+          "checklist",
+          "due",
+          "focus",
+          "followUp",
+          "note",
+          "orderKey",
+          "originUrl",
+          "projectId",
+          "status",
+          "title",
+          "waitingFor"
+        ],
+        "revision": 1,
+        "createdAt": "2026-09-08T14:27:31.748Z",
+        "updatedAt": "2026-09-08T14:27:31.748Z"
+      },
+      "changes": {
+        "id": {
+          "from": null,
+          "to": "qa-later"
+        },
+        "area": {
+          "from": null,
+          "to": "development"
+        },
+        "projectId": {
+          "from": null,
+          "to": "qa-dev"
+        },
+        "title": {
+          "from": null,
+          "to": "QA Потом проверить импорт"
+        },
+        "status": {
+          "from": null,
+          "to": "todo"
+        },
+        "note": {
+          "from": null,
+          "to": ""
+        },
+        "due": {
+          "from": null,
+          "to": "2026-09-15"
+        },
+        "waitingFor": {
+          "from": null,
+          "to": ""
+        },
+        "followUp": {
+          "from": null,
+          "to": null
+        },
+        "orderKey": {
+          "from": null,
+          "to": "a1"
+        },
+        "focus": {
+          "from": null,
+          "to": false
+        },
+        "archived": {
+          "from": null,
+          "to": false
+        },
+        "checklist": {
+          "from": null,
+          "to": []
+        },
+        "originSystem": {
+          "from": null,
+          "to": null
+        },
+        "originRef": {
+          "from": null,
+          "to": null
+        },
+        "originUrl": {
+          "from": null,
+          "to": null
+        },
+        "originVersion": {
+          "from": null,
+          "to": null
+        },
+        "createdBy": {
+          "from": null,
+          "to": "owner"
+        },
+        "createdByLabel": {
+          "from": null,
+          "to": "Дмитрий"
+        },
+        "ownerTouchedAt": {
+          "from": null,
+          "to": "2026-09-08T14:27:31.748Z"
+        },
+        "ownerFields": {
+          "from": null,
+          "to": [
+            "archived",
+            "area",
+            "checklist",
+            "due",
+            "focus",
+            "followUp",
+            "note",
+            "orderKey",
+            "originUrl",
+            "projectId",
+            "status",
+            "title",
+            "waitingFor"
+          ]
+        },
+        "createdAt": {
+          "from": null,
+          "to": "2026-09-08T14:27:31.748Z"
+        }
+      }
+    },
+    {
+      "record": {
+        "id": "qa-doing",
+        "area": "development",
+        "projectId": "qa-dev",
+        "title": "QA В работе документация",
+        "status": "doing",
+        "note": "",
+        "due": null,
+        "waitingFor": "",
+        "followUp": null,
+        "orderKey": "a0",
+        "focus": false,
+        "archived": false,
+        "checklist": [],
+        "commentCount": 0,
+        "originSystem": null,
+        "originRef": null,
+        "originUrl": null,
+        "originVersion": null,
+        "createdBy": "owner",
+        "createdByLabel": "Дмитрий",
+        "ownerTouchedAt": "2026-09-08T14:27:31.748Z",
+        "ownerFields": [
+          "archived",
+          "area",
+          "checklist",
+          "due",
+          "focus",
+          "followUp",
+          "note",
+          "orderKey",
+          "originUrl",
+          "projectId",
+          "status",
+          "title",
+          "waitingFor"
+        ],
+        "revision": 1,
+        "createdAt": "2026-09-08T14:27:31.748Z",
+        "updatedAt": "2026-09-08T14:27:31.748Z"
+      },
+      "changes": {
+        "id": {
+          "from": null,
+          "to": "qa-doing"
+        },
+        "area": {
+          "from": null,
+          "to": "development"
+        },
+        "projectId": {
+          "from": null,
+          "to": "qa-dev"
+        },
+        "title": {
+          "from": null,
+          "to": "QA В работе документация"
+        },
+        "status": {
+          "from": null,
+          "to": "doing"
+        },
+        "note": {
+          "from": null,
+          "to": ""
+        },
+        "due": {
+          "from": null,
+          "to": null
+        },
+        "waitingFor": {
+          "from": null,
+          "to": ""
+        },
+        "followUp": {
+          "from": null,
+          "to": null
+        },
+        "orderKey": {
+          "from": null,
+          "to": "a0"
+        },
+        "focus": {
+          "from": null,
+          "to": false
+        },
+        "archived": {
+          "from": null,
+          "to": false
+        },
+        "checklist": {
+          "from": null,
+          "to": []
+        },
+        "originSystem": {
+          "from": null,
+          "to": null
+        },
+        "originRef": {
+          "from": null,
+          "to": null
+        },
+        "originUrl": {
+          "from": null,
+          "to": null
+        },
+        "originVersion": {
+          "from": null,
+          "to": null
+        },
+        "createdBy": {
+          "from": null,
+          "to": "owner"
+        },
+        "createdByLabel": {
+          "from": null,
+          "to": "Дмитрий"
+        },
+        "ownerTouchedAt": {
+          "from": null,
+          "to": "2026-09-08T14:27:31.748Z"
+        },
+        "ownerFields": {
+          "from": null,
+          "to": [
+            "archived",
+            "area",
+            "checklist",
+            "due",
+            "focus",
+            "followUp",
+            "note",
+            "orderKey",
+            "originUrl",
+            "projectId",
+            "status",
+            "title",
+            "waitingFor"
+          ]
+        },
+        "createdAt": {
+          "from": null,
+          "to": "2026-09-08T14:27:31.748Z"
+        }
+      }
+    },
+    {
+      "record": {
+        "id": "qa-done",
+        "area": "development",
+        "projectId": "qa-dev",
+        "title": "QA Готовая задача",
+        "status": "done",
+        "note": "",
+        "due": null,
+        "waitingFor": "",
+        "followUp": null,
+        "orderKey": "a0",
+        "focus": false,
+        "archived": false,
+        "checklist": [],
+        "commentCount": 0,
+        "originSystem": null,
+        "originRef": null,
+        "originUrl": null,
+        "originVersion": null,
+        "createdBy": "owner",
+        "createdByLabel": "Дмитрий",
+        "ownerTouchedAt": "2026-09-08T14:27:31.748Z",
+        "ownerFields": [
+          "archived",
+          "area",
+          "checklist",
+          "due",
+          "focus",
+          "followUp",
+          "note",
+          "orderKey",
+          "originUrl",
+          "projectId",
+          "status",
+          "title",
+          "waitingFor"
+        ],
+        "revision": 1,
+        "createdAt": "2026-09-08T14:27:31.748Z",
+        "updatedAt": "2026-09-08T14:27:31.748Z"
+      },
+      "changes": {
+        "id": {
+          "from": null,
+          "to": "qa-done"
+        },
+        "area": {
+          "from": null,
+          "to": "development"
+        },
+        "projectId": {
+          "from": null,
+          "to": "qa-dev"
+        },
+        "title": {
+          "from": null,
+          "to": "QA Готовая задача"
+        },
+        "status": {
+          "from": null,
+          "to": "done"
+        },
+        "note": {
+          "from": null,
+          "to": ""
+        },
+        "due": {
+          "from": null,
+          "to": null
+        },
+        "waitingFor": {
+          "from": null,
+          "to": ""
+        },
+        "followUp": {
+          "from": null,
+          "to": null
+        },
+        "orderKey": {
+          "from": null,
+          "to": "a0"
+        },
+        "focus": {
+          "from": null,
+          "to": false
+        },
+        "archived": {
+          "from": null,
+          "to": false
+        },
+        "checklist": {
+          "from": null,
+          "to": []
+        },
+        "originSystem": {
+          "from": null,
+          "to": null
+        },
+        "originRef": {
+          "from": null,
+          "to": null
+        },
+        "originUrl": {
+          "from": null,
+          "to": null
+        },
+        "originVersion": {
+          "from": null,
+          "to": null
+        },
+        "createdBy": {
+          "from": null,
+          "to": "owner"
+        },
+        "createdByLabel": {
+          "from": null,
+          "to": "Дмитрий"
+        },
+        "ownerTouchedAt": {
+          "from": null,
+          "to": "2026-09-08T14:27:31.748Z"
+        },
+        "ownerFields": {
+          "from": null,
+          "to": [
+            "archived",
+            "area",
+            "checklist",
+            "due",
+            "focus",
+            "followUp",
+            "note",
+            "orderKey",
+            "originUrl",
+            "projectId",
+            "status",
+            "title",
+            "waitingFor"
+          ]
+        },
+        "createdAt": {
+          "from": null,
+          "to": "2026-09-08T14:27:31.748Z"
+        }
+      }
+    },
+    {
+      "record": {
+        "id": "qa-personal",
+        "area": "personal",
+        "projectId": "qa-home",
+        "title": "QA Проверить лампу",
+        "status": "todo",
+        "note": "маркер поиска фотометрия",
+        "due": null,
+        "waitingFor": "",
+        "followUp": null,
+        "orderKey": "a0",
+        "focus": true,
+        "archived": false,
+        "checklist": [],
+        "commentCount": 0,
+        "originSystem": null,
+        "originRef": null,
+        "originUrl": null,
+        "originVersion": null,
+        "createdBy": "owner",
+        "createdByLabel": "Дмитрий",
+        "ownerTouchedAt": "2026-09-08T14:27:31.748Z",
+        "ownerFields": [
+          "archived",
+          "area",
+          "checklist",
+          "due",
+          "focus",
+          "followUp",
+          "note",
+          "orderKey",
+          "originUrl",
+          "projectId",
+          "status",
+          "title",
+          "waitingFor"
+        ],
+        "revision": 1,
+        "createdAt": "2026-09-08T14:27:31.748Z",
+        "updatedAt": "2026-09-08T14:27:31.748Z"
+      },
+      "changes": {
+        "id": {
+          "from": null,
+          "to": "qa-personal"
+        },
+        "area": {
+          "from": null,
+          "to": "personal"
+        },
+        "projectId": {
+          "from": null,
+          "to": "qa-home"
+        },
+        "title": {
+          "from": null,
+          "to": "QA Проверить лампу"
+        },
+        "status": {
+          "from": null,
+          "to": "todo"
+        },
+        "note": {
+          "from": null,
+          "to": "маркер поиска фотометрия"
+        },
+        "due": {
+          "from": null,
+          "to": null
+        },
+        "waitingFor": {
+          "from": null,
+          "to": ""
+        },
+        "followUp": {
+          "from": null,
+          "to": null
+        },
+        "orderKey": {
+          "from": null,
+          "to": "a0"
+        },
+        "focus": {
+          "from": null,
+          "to": true
+        },
+        "archived": {
+          "from": null,
+          "to": false
+        },
+        "checklist": {
+          "from": null,
+          "to": []
+        },
+        "originSystem": {
+          "from": null,
+          "to": null
+        },
+        "originRef": {
+          "from": null,
+          "to": null
+        },
+        "originUrl": {
+          "from": null,
+          "to": null
+        },
+        "originVersion": {
+          "from": null,
+          "to": null
+        },
+        "createdBy": {
+          "from": null,
+          "to": "owner"
+        },
+        "createdByLabel": {
+          "from": null,
+          "to": "Дмитрий"
+        },
+        "ownerTouchedAt": {
+          "from": null,
+          "to": "2026-09-08T14:27:31.748Z"
+        },
+        "ownerFields": {
+          "from": null,
+          "to": [
+            "archived",
+            "area",
+            "checklist",
+            "due",
+            "focus",
+            "followUp",
+            "note",
+            "orderKey",
+            "originUrl",
+            "projectId",
+            "status",
+            "title",
+            "waitingFor"
+          ]
+        },
+        "createdAt": {
+          "from": null,
+          "to": "2026-09-08T14:27:31.748Z"
+        }
+      }
+    },
+    {
+      "record": {
+        "id": "qa-agency",
+        "area": "agency",
+        "projectId": null,
+        "title": "QA Задача без направления",
+        "status": "todo",
+        "note": "",
+        "due": null,
+        "waitingFor": "",
+        "followUp": null,
+        "orderKey": "a0",
+        "focus": false,
+        "archived": false,
+        "checklist": [],
+        "commentCount": 0,
+        "originSystem": null,
+        "originRef": null,
+        "originUrl": null,
+        "originVersion": null,
+        "createdBy": "owner",
+        "createdByLabel": "Дмитрий",
+        "ownerTouchedAt": "2026-09-08T14:27:31.748Z",
+        "ownerFields": [
+          "archived",
+          "area",
+          "checklist",
+          "due",
+          "focus",
+          "followUp",
+          "note",
+          "orderKey",
+          "originUrl",
+          "projectId",
+          "status",
+          "title",
+          "waitingFor"
+        ],
+        "revision": 1,
+        "createdAt": "2026-09-08T14:27:31.748Z",
+        "updatedAt": "2026-09-08T14:27:31.748Z"
+      },
+      "changes": {
+        "id": {
+          "from": null,
+          "to": "qa-agency"
+        },
+        "area": {
+          "from": null,
+          "to": "agency"
+        },
+        "projectId": {
+          "from": null,
+          "to": null
+        },
+        "title": {
+          "from": null,
+          "to": "QA Задача без направления"
+        },
+        "status": {
+          "from": null,
+          "to": "todo"
+        },
+        "note": {
+          "from": null,
+          "to": ""
+        },
+        "due": {
+          "from": null,
+          "to": null
+        },
+        "waitingFor": {
+          "from": null,
+          "to": ""
+        },
+        "followUp": {
+          "from": null,
+          "to": null
+        },
+        "orderKey": {
+          "from": null,
+          "to": "a0"
+        },
+        "focus": {
+          "from": null,
+          "to": false
+        },
+        "archived": {
+          "from": null,
+          "to": false
+        },
+        "checklist": {
+          "from": null,
+          "to": []
+        },
+        "originSystem": {
+          "from": null,
+          "to": null
+        },
+        "originRef": {
+          "from": null,
+          "to": null
+        },
+        "originUrl": {
+          "from": null,
+          "to": null
+        },
+        "originVersion": {
+          "from": null,
+          "to": null
+        },
+        "createdBy": {
+          "from": null,
+          "to": "owner"
+        },
+        "createdByLabel": {
+          "from": null,
+          "to": "Дмитрий"
+        },
+        "ownerTouchedAt": {
+          "from": null,
+          "to": "2026-09-08T14:27:31.748Z"
+        },
+        "ownerFields": {
+          "from": null,
+          "to": [
+            "archived",
+            "area",
+            "checklist",
+            "due",
+            "focus",
+            "followUp",
+            "note",
+            "orderKey",
+            "originUrl",
+            "projectId",
+            "status",
+            "title",
+            "waitingFor"
+          ]
+        },
+        "createdAt": {
+          "from": null,
+          "to": "2026-09-08T14:27:31.748Z"
+        }
+      }
+    }
+  ],
+  "events": [
+    {
+      "entityKind": "project",
+      "entityId": "qa-dev",
+      "command": "project.create",
+      "changes": {
+        "id": {
+          "from": null,
+          "to": "qa-dev"
+        },
+        "area": {
+          "from": null,
+          "to": "development"
+        },
+        "name": {
+          "from": null,
+          "to": "QA Продукт"
+        },
+        "color": {
+          "from": null,
+          "to": "#3465df"
+        },
+        "description": {
+          "from": null,
+          "to": ""
+        },
+        "createdAt": {
+          "from": null,
+          "to": "2026-09-08T14:27:31.748Z"
+        }
+      },
+      "recordRevision": 1,
+      "generation": "1c00af79-fc39-42c8-ae4d-0f812d1f4028",
+      "seq": 15,
+      "at": "2026-09-08T14:27:31.748Z",
+      "actorId": "owner",
+      "actorLabel": "Дмитрий",
+      "operationId": "b050e986-9863-4daa-a998-b0895aa6a689",
+      "firstSeq": 15,
+      "lastSeq": 22
+    },
+    {
+      "entityKind": "project",
+      "entityId": "qa-home",
+      "command": "project.create",
+      "changes": {
+        "id": {
+          "from": null,
+          "to": "qa-home"
+        },
+        "area": {
+          "from": null,
+          "to": "personal"
+        },
+        "name": {
+          "from": null,
+          "to": "QA Дом"
+        },
+        "color": {
+          "from": null,
+          "to": "#3465df"
+        },
+        "description": {
+          "from": null,
+          "to": ""
+        },
+        "createdAt": {
+          "from": null,
+          "to": "2026-09-08T14:27:31.748Z"
+        }
+      },
+      "recordRevision": 1,
+      "generation": "1c00af79-fc39-42c8-ae4d-0f812d1f4028",
+      "seq": 16,
+      "at": "2026-09-08T14:27:31.748Z",
+      "actorId": "owner",
+      "actorLabel": "Дмитрий",
+      "operationId": "b050e986-9863-4daa-a998-b0895aa6a689",
+      "firstSeq": 15,
+      "lastSeq": 22
+    },
+    {
+      "entityKind": "task",
+      "entityId": "qa-today",
+      "command": "task.create",
+      "changes": {
+        "id": {
+          "from": null,
+          "to": "qa-today"
+        },
+        "area": {
+          "from": null,
+          "to": "development"
+        },
+        "projectId": {
+          "from": null,
+          "to": "qa-dev"
+        },
+        "title": {
+          "from": null,
+          "to": "QA Сегодня проверить сборку"
+        },
+        "status": {
+          "from": null,
+          "to": "todo"
+        },
+        "note": {
+          "from": null,
+          "to": ""
+        },
+        "due": {
+          "from": null,
+          "to": "2026-09-08"
+        },
+        "waitingFor": {
+          "from": null,
+          "to": ""
+        },
+        "followUp": {
+          "from": null,
+          "to": null
+        },
+        "orderKey": {
+          "from": null,
+          "to": "a0"
+        },
+        "focus": {
+          "from": null,
+          "to": false
+        },
+        "archived": {
+          "from": null,
+          "to": false
+        },
+        "checklist": {
+          "from": null,
+          "to": []
+        },
+        "originSystem": {
+          "from": null,
+          "to": null
+        },
+        "originRef": {
+          "from": null,
+          "to": null
+        },
+        "originUrl": {
+          "from": null,
+          "to": null
+        },
+        "originVersion": {
+          "from": null,
+          "to": null
+        },
+        "createdBy": {
+          "from": null,
+          "to": "owner"
+        },
+        "createdByLabel": {
+          "from": null,
+          "to": "Дмитрий"
+        },
+        "ownerTouchedAt": {
+          "from": null,
+          "to": "2026-09-08T14:27:31.748Z"
+        },
+        "ownerFields": {
+          "from": null,
+          "to": [
+            "archived",
+            "area",
+            "checklist",
+            "due",
+            "focus",
+            "followUp",
+            "note",
+            "orderKey",
+            "originUrl",
+            "projectId",
+            "status",
+            "title",
+            "waitingFor"
+          ]
+        },
+        "createdAt": {
+          "from": null,
+          "to": "2026-09-08T14:27:31.748Z"
+        }
+      },
+      "recordRevision": 1,
+      "generation": "1c00af79-fc39-42c8-ae4d-0f812d1f4028",
+      "seq": 17,
+      "at": "2026-09-08T14:27:31.748Z",
+      "actorId": "owner",
+      "actorLabel": "Дмитрий",
+      "operationId": "b050e986-9863-4daa-a998-b0895aa6a689",
+      "firstSeq": 15,
+      "lastSeq": 22
+    },
+    {
+      "entityKind": "task",
+      "entityId": "qa-later",
+      "command": "task.create",
+      "changes": {
+        "id": {
+          "from": null,
+          "to": "qa-later"
+        },
+        "area": {
+          "from": null,
+          "to": "development"
+        },
+        "projectId": {
+          "from": null,
+          "to": "qa-dev"
+        },
+        "title": {
+          "from": null,
+          "to": "QA Потом проверить импорт"
+        },
+        "status": {
+          "from": null,
+          "to": "todo"
+        },
+        "note": {
+          "from": null,
+          "to": ""
+        },
+        "due": {
+          "from": null,
+          "to": "2026-09-15"
+        },
+        "waitingFor": {
+          "from": null,
+          "to": ""
+        },
+        "followUp": {
+          "from": null,
+          "to": null
+        },
+        "orderKey": {
+          "from": null,
+          "to": "a1"
+        },
+        "focus": {
+          "from": null,
+          "to": false
+        },
+        "archived": {
+          "from": null,
+          "to": false
+        },
+        "checklist": {
+          "from": null,
+          "to": []
+        },
+        "originSystem": {
+          "from": null,
+          "to": null
+        },
+        "originRef": {
+          "from": null,
+          "to": null
+        },
+        "originUrl": {
+          "from": null,
+          "to": null
+        },
+        "originVersion": {
+          "from": null,
+          "to": null
+        },
+        "createdBy": {
+          "from": null,
+          "to": "owner"
+        },
+        "createdByLabel": {
+          "from": null,
+          "to": "Дмитрий"
+        },
+        "ownerTouchedAt": {
+          "from": null,
+          "to": "2026-09-08T14:27:31.748Z"
+        },
+        "ownerFields": {
+          "from": null,
+          "to": [
+            "archived",
+            "area",
+            "checklist",
+            "due",
+            "focus",
+            "followUp",
+            "note",
+            "orderKey",
+            "originUrl",
+            "projectId",
+            "status",
+            "title",
+            "waitingFor"
+          ]
+        },
+        "createdAt": {
+          "from": null,
+          "to": "2026-09-08T14:27:31.748Z"
+        }
+      },
+      "recordRevision": 1,
+      "generation": "1c00af79-fc39-42c8-ae4d-0f812d1f4028",
+      "seq": 18,
+      "at": "2026-09-08T14:27:31.748Z",
+      "actorId": "owner",
+      "actorLabel": "Дмитрий",
+      "operationId": "b050e986-9863-4daa-a998-b0895aa6a689",
+      "firstSeq": 15,
+      "lastSeq": 22
+    },
+    {
+      "entityKind": "task",
+      "entityId": "qa-doing",
+      "command": "task.create",
+      "changes": {
+        "id": {
+          "from": null,
+          "to": "qa-doing"
+        },
+        "area": {
+          "from": null,
+          "to": "development"
+        },
+        "projectId": {
+          "from": null,
+          "to": "qa-dev"
+        },
+        "title": {
+          "from": null,
+          "to": "QA В работе документация"
+        },
+        "status": {
+          "from": null,
+          "to": "doing"
+        },
+        "note": {
+          "from": null,
+          "to": ""
+        },
+        "due": {
+          "from": null,
+          "to": null
+        },
+        "waitingFor": {
+          "from": null,
+          "to": ""
+        },
+        "followUp": {
+          "from": null,
+          "to": null
+        },
+        "orderKey": {
+          "from": null,
+          "to": "a0"
+        },
+        "focus": {
+          "from": null,
+          "to": false
+        },
+        "archived": {
+          "from": null,
+          "to": false
+        },
+        "checklist": {
+          "from": null,
+          "to": []
+        },
+        "originSystem": {
+          "from": null,
+          "to": null
+        },
+        "originRef": {
+          "from": null,
+          "to": null
+        },
+        "originUrl": {
+          "from": null,
+          "to": null
+        },
+        "originVersion": {
+          "from": null,
+          "to": null
+        },
+        "createdBy": {
+          "from": null,
+          "to": "owner"
+        },
+        "createdByLabel": {
+          "from": null,
+          "to": "Дмитрий"
+        },
+        "ownerTouchedAt": {
+          "from": null,
+          "to": "2026-09-08T14:27:31.748Z"
+        },
+        "ownerFields": {
+          "from": null,
+          "to": [
+            "archived",
+            "area",
+            "checklist",
+            "due",
+            "focus",
+            "followUp",
+            "note",
+            "orderKey",
+            "originUrl",
+            "projectId",
+            "status",
+            "title",
+            "waitingFor"
+          ]
+        },
+        "createdAt": {
+          "from": null,
+          "to": "2026-09-08T14:27:31.748Z"
+        }
+      },
+      "recordRevision": 1,
+      "generation": "1c00af79-fc39-42c8-ae4d-0f812d1f4028",
+      "seq": 19,
+      "at": "2026-09-08T14:27:31.748Z",
+      "actorId": "owner",
+      "actorLabel": "Дмитрий",
+      "operationId": "b050e986-9863-4daa-a998-b0895aa6a689",
+      "firstSeq": 15,
+      "lastSeq": 22
+    },
+    {
+      "entityKind": "task",
+      "entityId": "qa-done",
+      "command": "task.create",
+      "changes": {
+        "id": {
+          "from": null,
+          "to": "qa-done"
+        },
+        "area": {
+          "from": null,
+          "to": "development"
+        },
+        "projectId": {
+          "from": null,
+          "to": "qa-dev"
+        },
+        "title": {
+          "from": null,
+          "to": "QA Готовая задача"
+        },
+        "status": {
+          "from": null,
+          "to": "done"
+        },
+        "note": {
+          "from": null,
+          "to": ""
+        },
+        "due": {
+          "from": null,
+          "to": null
+        },
+        "waitingFor": {
+          "from": null,
+          "to": ""
+        },
+        "followUp": {
+          "from": null,
+          "to": null
+        },
+        "orderKey": {
+          "from": null,
+          "to": "a0"
+        },
+        "focus": {
+          "from": null,
+          "to": false
+        },
+        "archived": {
+          "from": null,
+          "to": false
+        },
+        "checklist": {
+          "from": null,
+          "to": []
+        },
+        "originSystem": {
+          "from": null,
+          "to": null
+        },
+        "originRef": {
+          "from": null,
+          "to": null
+        },
+        "originUrl": {
+          "from": null,
+          "to": null
+        },
+        "originVersion": {
+          "from": null,
+          "to": null
+        },
+        "createdBy": {
+          "from": null,
+          "to": "owner"
+        },
+        "createdByLabel": {
+          "from": null,
+          "to": "Дмитрий"
+        },
+        "ownerTouchedAt": {
+          "from": null,
+          "to": "2026-09-08T14:27:31.748Z"
+        },
+        "ownerFields": {
+          "from": null,
+          "to": [
+            "archived",
+            "area",
+            "checklist",
+            "due",
+            "focus",
+            "followUp",
+            "note",
+            "orderKey",
+            "originUrl",
+            "projectId",
+            "status",
+            "title",
+            "waitingFor"
+          ]
+        },
+        "createdAt": {
+          "from": null,
+          "to": "2026-09-08T14:27:31.748Z"
+        }
+      },
+      "recordRevision": 1,
+      "generation": "1c00af79-fc39-42c8-ae4d-0f812d1f4028",
+      "seq": 20,
+      "at": "2026-09-08T14:27:31.748Z",
+      "actorId": "owner",
+      "actorLabel": "Дмитрий",
+      "operationId": "b050e986-9863-4daa-a998-b0895aa6a689",
+      "firstSeq": 15,
+      "lastSeq": 22
+    },
+    {
+      "entityKind": "task",
+      "entityId": "qa-personal",
+      "command": "task.create",
+      "changes": {
+        "id": {
+          "from": null,
+          "to": "qa-personal"
+        },
+        "area": {
+          "from": null,
+          "to": "personal"
+        },
+        "projectId": {
+          "from": null,
+          "to": "qa-home"
+        },
+        "title": {
+          "from": null,
+          "to": "QA Проверить лампу"
+        },
+        "status": {
+          "from": null,
+          "to": "todo"
+        },
+        "note": {
+          "from": null,
+          "to": "маркер поиска фотометрия"
+        },
+        "due": {
+          "from": null,
+          "to": null
+        },
+        "waitingFor": {
+          "from": null,
+          "to": ""
+        },
+        "followUp": {
+          "from": null,
+          "to": null
+        },
+        "orderKey": {
+          "from": null,
+          "to": "a0"
+        },
+        "focus": {
+          "from": null,
+          "to": true
+        },
+        "archived": {
+          "from": null,
+          "to": false
+        },
+        "checklist": {
+          "from": null,
+          "to": []
+        },
+        "originSystem": {
+          "from": null,
+          "to": null
+        },
+        "originRef": {
+          "from": null,
+          "to": null
+        },
+        "originUrl": {
+          "from": null,
+          "to": null
+        },
+        "originVersion": {
+          "from": null,
+          "to": null
+        },
+        "createdBy": {
+          "from": null,
+          "to": "owner"
+        },
+        "createdByLabel": {
+          "from": null,
+          "to": "Дмитрий"
+        },
+        "ownerTouchedAt": {
+          "from": null,
+          "to": "2026-09-08T14:27:31.748Z"
+        },
+        "ownerFields": {
+          "from": null,
+          "to": [
+            "archived",
+            "area",
+            "checklist",
+            "due",
+            "focus",
+            "followUp",
+            "note",
+            "orderKey",
+            "originUrl",
+            "projectId",
+            "status",
+            "title",
+            "waitingFor"
+          ]
+        },
+        "createdAt": {
+          "from": null,
+          "to": "2026-09-08T14:27:31.748Z"
+        }
+      },
+      "recordRevision": 1,
+      "generation": "1c00af79-fc39-42c8-ae4d-0f812d1f4028",
+      "seq": 21,
+      "at": "2026-09-08T14:27:31.748Z",
+      "actorId": "owner",
+      "actorLabel": "Дмитрий",
+      "operationId": "b050e986-9863-4daa-a998-b0895aa6a689",
+      "firstSeq": 15,
+      "lastSeq": 22
+    },
+    {
+      "entityKind": "task",
+      "entityId": "qa-agency",
+      "command": "task.create",
+      "changes": {
+        "id": {
+          "from": null,
+          "to": "qa-agency"
+        },
+        "area": {
+          "from": null,
+          "to": "agency"
+        },
+        "projectId": {
+          "from": null,
+          "to": null
+        },
+        "title": {
+          "from": null,
+          "to": "QA Задача без направления"
+        },
+        "status": {
+          "from": null,
+          "to": "todo"
+        },
+        "note": {
+          "from": null,
+          "to": ""
+        },
+        "due": {
+          "from": null,
+          "to": null
+        },
+        "waitingFor": {
+          "from": null,
+          "to": ""
+        },
+        "followUp": {
+          "from": null,
+          "to": null
+        },
+        "orderKey": {
+          "from": null,
+          "to": "a0"
+        },
+        "focus": {
+          "from": null,
+          "to": false
+        },
+        "archived": {
+          "from": null,
+          "to": false
+        },
+        "checklist": {
+          "from": null,
+          "to": []
+        },
+        "originSystem": {
+          "from": null,
+          "to": null
+        },
+        "originRef": {
+          "from": null,
+          "to": null
+        },
+        "originUrl": {
+          "from": null,
+          "to": null
+        },
+        "originVersion": {
+          "from": null,
+          "to": null
+        },
+        "createdBy": {
+          "from": null,
+          "to": "owner"
+        },
+        "createdByLabel": {
+          "from": null,
+          "to": "Дмитрий"
+        },
+        "ownerTouchedAt": {
+          "from": null,
+          "to": "2026-09-08T14:27:31.748Z"
+        },
+        "ownerFields": {
+          "from": null,
+          "to": [
+            "archived",
+            "area",
+            "checklist",
+            "due",
+            "focus",
+            "followUp",
+            "note",
+            "orderKey",
+            "originUrl",
+            "projectId",
+            "status",
+            "title",
+            "waitingFor"
+          ]
+        },
+        "createdAt": {
+          "from": null,
+          "to": "2026-09-08T14:27:31.748Z"
+        }
+      },
+      "recordRevision": 1,
+      "generation": "1c00af79-fc39-42c8-ae4d-0f812d1f4028",
+      "seq": 22,
+      "at": "2026-09-08T14:27:31.748Z",
+      "actorId": "owner",
+      "actorLabel": "Дмитрий",
+      "operationId": "b050e986-9863-4daa-a998-b0895aa6a689",
+      "firstSeq": 15,
+      "lastSeq": 22
+    }
+  ]
+}

@@ -1,56 +1,122 @@
-# TaskIndex backlog
+# TaskIndex: оставшаяся приёмка и отложенные решения
 
-## Interface decision — 2026-09-08
+Единый реестр находок и их актуальных статусов —
+[issues.md](/Users/dmitriy/code/taskindex/issues.md). Пункты ниже сохранены как
+исходное основание приёмки и продуктовых решений; дальнейшие изменения статуса
+фиксируются в реестре по стабильному ID, со ссылкой на проверку закрытия.
 
-Keep the existing sidebar: «Все задачи» followed by the area's projects with
-colored dots (for example Hub, ChatGoose, ContentOps, tg-assistant, psyflow).
-The owner reaffirmed this layout with a screenshot. The existing status board
-and project filtering stay in place; the proposal to replace them with columns
-by direction/project is withdrawn.
+Актуальный объём новой версии закреплён в
+[плане v2](docs/plans/2026-09-08-taskindex-v2.md). Статус реализации и независимого
+ревью — [в отчёте](docs/plans/2026-09-08-taskindex-v2-review.md).
 
-The earlier preference for «Просторно» concerned density in the comparison
-mockup only. It did not approve replacing the sidebar or a broader redesign.
-Global search and Focus remain approved. Structured card history remains a
-separate proposal awaiting a decision.
+## Актуальные существенные проблемы — 2026-09-08
 
-## Later — full AI access and context
+- [ ] **Агент может пересмотреть решение владельца прямой командой или Undo.**
+  Подтверждено: ключ `tasks` повторно открывает завершённую владельцем задачу
+  через `undo` и `task.move` с актуальной revision; ключ `write` также отменяет
+  переименование проекта владельцем. Это открытый вопрос политики прав:
+  сервер защищает решения владельца при `task.sync`, но не запрещает такие
+  прямые изменения. Определить границу самостоятельных правок и исполнения
+  нового поручения владельца, затем закрепить её в серверных проверках и тестах
+  всех затронутых команд. Один запрет Undo вопрос не закрывает.
+  [Проверенные сценарии и результаты](docs/audits/2026-09-08-workflows/claude-review/REPORT.md).
 
-Owner request, 2026-09-08: every part of TaskIndex must be available to an AI
-agent with enough context to work correctly. Deliberately deferred; this is a
-product requirement, not a decision to add a specific SDK, protocol, or service.
+- [ ] **Обычный локальный запуск использует несовместимый Node 26.**
+  `node` и Homebrew-путь `node@24` на этом Mac фактически запускают 26.7.0;
+  нативный модуль SQLite с ним не загружается. Рабочий Node 24.20.0 есть только
+  в используемом временном каталоге `/tmp/taskindex-v2-tools/`, поэтому текущие
+  команды требуют ручной подстановки PATH. Настроить постоянный Node 24 для
+  проекта и проверить запуск из нового терминала, `npm run check` и сборку
+  без зависимости от `/tmp`. Пересборка SQLite под 26 не выполняет контракт
+  проекта `>=24.11.0 <25`.
+  [Проверка окружения](docs/audits/2026-09-08-workflows/claude-review/environment.json).
 
-- One source of truth and the same operations for the owner and agent. The agent
-  can discover and read every supported entity, field, relationship, view and
-  action: areas, projects, tasks, status/order, Focus, dates, waiting contacts,
-  checklists, archives, and future history, links, attachments and settings.
-- Context must explain the data model and meaning of fields, current selection,
-  task relationships, current state versus history, sources and their freshness,
-  unknowns, pending edits, conflicts and the next action. Search and exports must
-  be complete or explicitly paginated, never silently truncated.
-- Support reading, searching, creating, editing, moving, completing, archiving,
-  restoring and all future user operations through a documented, discoverable
-  interface. Access parity is a requirement for each future feature.
-- Use stable identifiers, validated input, idempotent retries, record revisions,
-  safe conflict resolution and attribution for human/agent changes. Independent
-  history events must not overwrite concurrent entries.
-- The board reflects agent changes while preserving open owner drafts. The agent
-  receives actionable results, including current records on conflicts, rather
-  than an ambiguous success message. Imports/exports retain all supported data.
-- Define explicit authorization and confirmation for consequential operations.
-  Full application access does not automatically authorize sending messages,
-  payments, production changes or writes to connected operational systems.
-- Before implementation, choose the simplest transport and context contract with
-  a worked human/agent scenario and an end-to-end capability coverage check.
-  Existing WebMCP is partial; do not present it as fulfilling this requirement.
+## P2 — остальные актуальные замечания
 
-## Awaiting visual review
+- [ ] **P2 — счётчик «Фокус» не соответствует прежнему смыслу раздела.**
+  Сейчас он считает только незавершённые неархивные задачи от агентов, которых
+  ещё не касался владелец, вместо суммы задач всех групп Focus. При непустом
+  Focus число может отсутствовать. Согласовать смысл индикатора и привести
+  расчёт и подпись к нему; проверить ручные и агентские задачи, касание
+  владельцем, завершение и архив.
+  [Разбор поведения](docs/audits/2026-09-08-workflows/claude-review/REPORT.md).
 
-- A compact current summary and next step with expandable dated history and
-  source links. Show the same example before and after before changing the editor.
+- [ ] **P2 — неполная локализация сообщений и доступных имён.**
+  Неверный пароль показывает `Invalid email or password`; у мобильного меню,
+  закрытия диалогов и уведомлений встречаются английские доступные имена.
+  Перевести пользовательские ошибки и подписи для средств доступности;
+  проверить вход, мобильную навигацию, диалоги и уведомления.
+  [Примеры из аудита](docs/audits/2026-09-08-workflows/REPORT.md).
 
-## Consider later
+- [ ] **P2 — неверное склонение количества задач в Focus и поиске.**
+  Встречаются `1 задач`, `3 задач`, `4 задач`. Использовать корректные русские
+  формы и проверить 0, 1, 2, 4, 5, 11, 21 и 22. В «Активности» склонение уже
+  работает; сохранить единообразие между экранами.
+  [Примеры из аудита](docs/audits/2026-09-08-workflows/REPORT.md).
 
-- Optimistic edits with safe rollback. Dragging and a server-backed Undo action
-  already exist; do not list them as missing features.
-- Address the 20 existing full-repository lint errors in template components,
-  `hooks/use-mobile.ts` and the old API check script. Changed-file lint passes.
+- [ ] **P2 — история изменений показывает внутренние значения.**
+  `agency`, `todo`, `done`, ключи порядка `a0`/`a1` и JSON чеклиста затрудняют
+  понимание правки. Показывать русские названия областей и статусов, изменения
+  шагов словами и понятное описание переноса вместо внутреннего ключа.
+  Проверить историю изменения статуса, области, позиции и чеклиста.
+  [Наблюдаемый пример](docs/audits/2026-09-08-workflows/agent-owner-history.txt).
+
+- [ ] **P2 — план не полностью отражает реализованные контракты.**
+  Дописать участие архивных соседей в порядке, отключение лимита агентских
+  ключей, проверку привязки ключа при доступе, `approved_deployment`, fingerprint
+  курсора страниц и фактический backup через better-sqlite3. Уточнить права
+  `tasks`/`write` и отличие `task.sync` от прямых команд после решения политики.
+  Сверить каждый пункт с кодом; уже описанные уведомления `event: operations`
+  не считать отсутствующей возможностью.
+  [Подтверждённые расхождения](docs/audits/2026-09-08-workflows/claude-review/REPORT.md).
+
+- [ ] **P2 — проверить влияние большого JS bundle на запуск с телефона.**
+  Vite предупреждает о размере chunk. Измерить холодную загрузку и готовность
+  интерфейса на реальном телефоне с ограниченной сетью; по результатам решить,
+  нужны ли разделение кода и отложенная загрузка тяжёлых экранов. Это открытая
+  проверка производительности: фактическая задержка аудитом не доказана.
+  [Наблюдение и границы проверки](docs/audits/2026-09-08-workflows/REPORT.md).
+
+## Перед рабочим переключением
+
+- Владелец проверяет сохранённый внешний вид и удобство «Активности» на понятных
+  ему операциях. Доска остаётся стартовым экраном; история и комментарии добавлены
+  в сворачиваемые блоки редактора.
+- Проверить вход по passkey и перетаскивание на физическом телефоне. Эмуляция
+  касаний в Chromium не заменяет эту проверку.
+- Пройти полный [агентский цикл](tests/e2e/agent-cycle.md) из Claude Code и Codex
+  с ключами выбранной тестовой установки; установить скилл в обе среды.
+- Задать домен, VPS и S3 backend/prefix, проверить секреты через 1Password.
+  Подтвердить часовой пояс рабочей установки; в локальной разработке Europe/Moscow.
+- На выбранной инфраструктуре повторить восстановление и откат из
+  [deploy/README.md](deploy/README.md), проверить Nginx/TLS, продовый health и CLI.
+- Коммит выполняется по слову владельца; развёртывание согласуется для выбранного
+  рабочего сервера. Локальная v2 уже перенесена в `main`, временная ветка и
+  worktree удалены по явному поручению. Прежний код удалён, данные и макеты
+  сохранены вне проекта в архиве, указанном в `README.md`.
+
+## Уже принятые продуктовые решения
+
+- Сайдбар: «Все задачи» и проекты текущей области с цветными точками.
+  Статусные колонки доски сохранены. Предложение заменить их направлениями
+  отклонено; прежняя симпатия к варианту плотности «Просторно» не была согласием
+  на редизайн.
+- Глобальный поиск, Focus и существующие ограничения полей переносятся.
+- Полный API/CLI, объяснение контекста, комментарии, история, активность и
+  безопасные повторы агента входят в v2. Старое решение отложить полный доступ
+  агента и ждать отдельного решения по истории заменено этим планом.
+- Равный доступ к операциям приложения не даёт агенту разрешения отправлять
+  сообщения, проводить платежи или менять подключённые внешние системы.
+- В новой рабочей базе нет импорта прежних задач и автоматического demo-сида.
+
+## За пределами первой версии
+
+- Вложения, отдельная модель ссылок и их визуальное представление.
+- Назначение исполнителя и занятие задачи агентом — после решения, будут ли
+  агенты исполнять задачи или только вести их.
+- Планировщик запусков агентов, MCP-адаптер и автономная офлайн-работа.
+- Полнотекстовый индекс, отдельные сервисы или многопроцессный сервер — только
+  при подтверждённой необходимости; для текущего объёма не закладываются.
+
+Исторические сравнения интерфейса вынесены в архив вне проекта. Согласованный
+план и снимки исходного интерфейса в `docs/reference` остаются в репозитории.

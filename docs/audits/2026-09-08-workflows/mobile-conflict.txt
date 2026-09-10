@@ -1,0 +1,129 @@
+- main:
+  - button:
+    - generic: Toggle Sidebar
+  - heading [level=1]: Разработка
+  - button:
+  - button:
+  - tablist:
+    - tab:
+      - text: Доска
+    - tab [selected]:
+      - text: Список
+  - tabpanel: Задачи списком
+  - checkbox
+  - checkbox
+  - generic: На сегодня
+  - button:
+  - heading [level=2]: Очередь
+  - generic: "4"
+  - article:
+    - button
+    - button:
+    - heading [level=3]: QA Новая серверная версия
+    - generic: QA Имя другой сессии
+    - text: Сегодня
+    - button: ···
+    - button:
+  - article:
+    - button
+    - button:
+    - heading [level=3]: QA Потом проверить импорт
+    - generic: QA Имя другой сессии
+    - text: 15 сент
+    - button: ···
+    - button:
+  - article:
+    - button
+    - button:
+    - heading [level=3]: QA Один раз
+    - generic: QA Имя другой сессии
+    - button: ···
+    - button:
+  - article:
+    - button
+    - button:
+    - heading [level=3]: QA Один раз
+    - generic: QA Имя другой сессии
+    - button: ···
+    - button:
+  - button:
+    - text: Добавить задачу
+  - heading [level=2]: В работе
+  - generic: "1"
+  - article:
+    - button
+    - button:
+    - heading [level=3]: QA В работе документация
+    - generic: QA Имя другой сессии
+    - button: ···
+    - button:
+  - button:
+    - text: Добавить задачу
+  - heading [level=2]: Жду
+  - generic: "1"
+  - article:
+    - button
+    - button:
+    - heading [level=3]: QA Версия А
+    - paragraph:
+      - text: Проверки команды
+    - text: В фокусе
+    - text: Завтра
+    - text: Вернуться сегодня
+    - text: 1/2
+    - button: ···
+    - button:
+  - button:
+    - text: Добавить задачу
+  - heading [level=2]: Готово
+  - generic: "1"
+  - article:
+    - button
+    - button:
+    - heading [level=3]: QA Готовая задача
+    - generic: QA Имя другой сессии
+    - button: ···
+    - button:
+  - button:
+    - text: Добавить задачу
+  - status
+- region "Notifications"
+- dialog "Редактирование задачи":
+  - generic: ЗАДАЧА
+  - button "Закрыть карточку":
+  - heading "Редактирование задачи" [level=2]
+  - paragraph: Задача, состояние, заметки и шаги
+  - textbox "Название задачи":
+    - /placeholder: Что нужно сделать?
+    - text: QA Мобильные правки
+  - text: Состояние
+  - combobox "Состояние задачи":
+    - generic: Очередь
+    - img: ▼
+  - textbox: todo
+  - generic: Разработка / QA Имя другой сессии
+  - button "Переместить"
+  - button "Заметка":
+    - text: Заметка
+  - button "Шаги":
+    - text: Шаги
+  - heading "Срок" [level=3]:
+    - text: Срок
+  - textbox "Срок задачи": 2026-09-08
+  - button "Убрать срок"
+  - button "В начало очереди" [disabled]:
+    - text: В начало очереди
+  - button "В архив" [disabled]:
+    - text: В архив
+  - button "Комментарии 0":
+    - text: Комментарии
+    - generic: "0"
+  - button "История"
+  - contentinfo:
+    - alert: Запись изменилась. Ваш текст остался в форме.
+    - generic "Актуальная версия"
+    - paragraph: "Совместим версии: оставим изменённые тобой поля, остальные возьмём из последней версии."
+    - button "Совместить и проверить"
+    - button "Закрыть"
+    - button "Сохранить":
+      - text: Сохранить

@@ -1,0 +1,123 @@
+- generic: TaskIndex
+- list:
+  - button:
+    - generic: Фокус
+  - button:
+    - generic: Активность
+  - button:
+    - generic: Агентство
+  - button:
+    - generic: Разработка
+  - button:
+    - generic: Личное
+- generic: Направления
+- list:
+  - button:
+    - generic: Все задачи
+  - button:
+    - generic: QA Запуск
+- button:
+  - text: Добавить направление
+- button:
+  - text: Архив
+- button: Дмитрий
+- generic: Приватно
+- main:
+  - heading [level=1]: Фокус
+  - button:
+  - textbox:
+    - /placeholder: Найти во всех областях…
+  - generic: ⌘ K
+  - button:
+    - generic: Задача
+  - status: Все области · 1 задач
+  - button:
+  - region:
+    - heading [level=2]:
+      - text: Выбрано мной
+      - generic: "1"
+    - article:
+      - button
+      - button:
+      - heading [level=3]: QA Версия А
+      - paragraph:
+        - text: Проверки команды
+      - generic: Агентство · Жду
+      - text: В фокусе
+      - generic: QA Запуск
+      - text: Завтра
+      - text: Вернуться сегодня
+      - text: 1/2
+      - button: ···
+  - status
+- region "Notifications"
+- dialog "Редактирование задачи":
+  - generic: ЗАДАЧА
+  - button "Закрыть карточку":
+  - heading "Редактирование задачи" [level=2]
+  - paragraph: Задача, состояние, заметки и шаги
+  - textbox "Название задачи":
+    - /placeholder: Что нужно сделать?
+    - text: QA Версия А
+  - text: Состояние
+  - combobox "Состояние задачи":
+    - generic: Жду
+    - img: ▼
+  - textbox: waiting
+  - generic: Агентство / QA Запуск
+  - button "Переместить" [expanded] [active]
+  - text: Область
+  - combobox "Область задачи":
+    - generic: Агентство
+    - img: ▼
+  - textbox: agency
+  - text: Направление
+  - combobox "Проект задачи":
+    - generic: QA Запуск
+    - img: ▼
+  - textbox: 91901f42-b81d-4344-9ad6-3612e8588f30
+  - heading "Чего ждём?" [level=3]:
+    - text: Чего ждём?
+  - textbox "От кого или чего ждём":
+    - /placeholder: Например, ответ дизайнера
+    - text: Проверки команды
+  - text: Когда вернуться к задаче
+  - textbox "Когда вернуться к задаче": 2026-09-08
+  - paragraph: Это дата проверки, а не дедлайн.
+  - heading "Заметка" [level=3]:
+    - text: Заметка
+  - textbox "Заметка к задаче":
+    - /placeholder: Контекст, ссылки или мысли…
+    - text: Изменение заметки из вкладки Б
+  - heading "Срок" [level=3]:
+    - text: Срок
+  - textbox "Срок задачи": 2026-09-09
+  - button "Убрать срок"
+  - heading "Шаги 1 / 2" [level=3]:
+    - text: Шаги
+    - generic: 1 / 2
+  - progressbar "Выполненные шаги": x
+  - 'checkbox "Выполнено: Проверить форму" [checked]':
+  - checkbox [checked]
+  - textbox "Название шага": Проверить форму
+  - button "Убрать шаг Проверить форму":
+  - 'checkbox "Выполнено: Проверить уведомления"'
+  - checkbox
+  - textbox "Название шага": Проверить уведомления
+  - button "Убрать шаг Проверить уведомления":
+  - textbox "Новый шаг":
+    - /placeholder: Добавить шаг…
+  - button "Добавить шаг" [disabled]:
+  - button "В начало очереди":
+    - text: В начало очереди
+  - button "В архив":
+    - text: В архив
+  - button "Комментарии 1":
+    - text: Комментарии
+    - generic: "1"
+  - button "История"
+  - contentinfo:
+    - generic: Всё сохранено
+    - button "Закрыть"
+    - button "Сохранить" [disabled]:
+      - text: Сохранить

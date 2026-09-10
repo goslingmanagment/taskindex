@@ -1,0 +1,235 @@
+# Astra и Fable: что совпало, что добавилось, где выводы расходятся
+
+Дата: 8 сентября 2026. Сравнение четырёх исходных ревью Astra xhigh и пяти исходных ревью Fable, дополненное проверкой спорных цепочек в коде и изолированными воспроизведениями.
+
+**Ревью согласны по основной архитектуре и главным направлениям качества, но существенно дополняют друг друга по конкретным отказам. У Fable есть важные новые находки, прежде всего общий outbox агентов и побочные записи при проверке ключа. У Astra остаются подтверждённые дефекты доступа, синхронизации и подтверждения операций, которых Fable не перечислил. Общий вывод Fable «высоких багов нет» нельзя переносить на объединённый результат.**
+
+Сравнивается содержание исходных отчётов, а не позднее написанные планы: в планы уже попадали идеи из BACKLOG и пересечения с соседними документами. Появление одной идеи в двух планах само по себе не доказывает независимое обнаружение двумя моделями.
+
+## Источники и обозначения
+
+| Обозначение | Документ |
+|---|---|
+| Astra S-xx | [Стек Astra](/Users/dmitriy/code/taskindex/docs/audits/2026-09-08-multiside-review/01-stack.md) |
+| Astra A-xx | [Архитектура Astra](/Users/dmitriy/code/taskindex/docs/audits/2026-09-08-multiside-review/02-architecture.md) |
+| Astra B-xx | [Баги Astra](/Users/dmitriy/code/taskindex/docs/audits/2026-09-08-multiside-review/03-bugs.md) |
+| Astra Q-xx | [Качество Astra](/Users/dmitriy/code/taskindex/docs/audits/2026-09-08-multiside-review/04-code-quality.md) |
+| FS: D/S/F/Y/T/P/Z/Q | [Стек Fable](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/review-1-stack.md) |
+| FA: K/V/Ж | [Архитектура Fable](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/review-2-architecture.md) |
+| FB: B-01…B-12 | [Баги Fable](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/review-3-bugs.md) |
+| FQ: §1…§11, R1…R10 | [Качество Fable](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/review-4-quality.md); R — номер в итоговой таблице рефакторингов |
+| FI: A1…A15 / B1…B10 | [AI-readiness Fable](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/review-5-ai-ready.md) |
+
+Одинаковые `B-01` в двух наборах означают разные находки. «Нет у Fable/Astra» ниже означает «не найдено в данном исходном наборе отчётов», а не «опровергнуто» и не «никто никогда не замечал».
+
+Исходники всё ещё совпадают по SHA-256 со всеми 112 файлами контрольного списка Astra-аудита. Fable описывает тот же незакоммиченный v2; у него нет сопоставимого полного manifest исходников, поэтому точную идентичность всех входов двух запусков не утверждаем. Различающиеся микробенчмарки выполнены на разных fixtures и не являются соревнованием скорости моделей или приложения.
+
+## 1. Совпало по существу
+
+| Тема | Astra | Fable | Общий вывод |
+|---|---|---|---|
+| Основной стек и модель | Сводный отчёт, S/A | Вердикты FS/FA | React/Vite, Hono, SQLite, Better Auth owner/passkey, SSE и единый command executor подходят продукту. Срочная смена стека не обоснована. |
+| Полное чтение state/history, N+1, стоимость страниц | S-01 / A-02 | FS:D1, FA:K1, FB:B-03, FQ:§7 | Один и тот же корень с разными замерами. Нужны индексные выборки и ограниченный объём работы, сохранение транзакционных гарантий. |
+| Неограниченный SSE backlog | Часть S-01 | FA:Ж5, FB:B-11 | Одна и та же проблема роста памяти/синхронной работы, не новый независимый баг поверх стоимости журнала. |
+| Потеря точного типа команды и отсутствие исчерпывающего dispatch | Q-01 / A-05 | FS:S4, FQ:§3–4/R1–2, FI:B3 | Использовать общий schema registry и типизированный switch/map; не восстанавливать validated payload множеством кастов. |
+| Непроверенные HTTP/SSE-ответы | S-04 | FQ:§4/R8 | runtime parse на границе до изменения store. TypeScript и Hono RPC сами не проверяют входящие bytes. |
+| Непроверенные persisted draft/outbox | Q-04 | FQ:§4/R8 | Общая проблема. FB:B-05 добавляет отдельное последствие: один файл останавливает даже CLI-чтения. |
+| Логи без message/stack и неработающий LOG_LEVEL | Q-02 | FA:V4/Ж6, FQ:§5, FI:B6 | Диагностику улучшить; рекомендация о retryable требует отдельной оговорки ниже. |
+| Узкие property-генераторы | Q-03 | FQ:§9 | Не хватает сочетаний ролей/конфликтов/sync. Astra дополнительно показал зависимость oracle от production predicate. |
+| Повторяемый lifecycle форм | Q-06 | FQ:§3/§6/R5 | Общие draft/intent/retry правила можно выделить; это не повод создавать универсальный form engine. |
+| Лишний date-fns и крупный начальный chunk | S-07 | FS:F3/Z2, FQ:§10/R9 | Cleanup после проверки imports; разделение кода — по измерению загрузки. Предложение убрать клиентскую валидацию совпадением не является. |
+| Статические проверки deploy-кода неполны | Часть Q-05 | FS:T2, FQ:§10 | Проверить shell и deployment JS. Astra отдельно заметил, что сам deploy.sh не исполняется текущим drill. |
+
+Частичное совпадение: FQ:§2 видит опасные sentinel `all/none`; Astra B-06 доводит это до воспроизведённого случая допустимого project ID `none`. У Fable это сформулировано главным образом как проблема типа/именования, у Astra — как неправильный результат запроса.
+
+## 2. Важное, что Fable добавил к четырём Astra-отчётам
+
+**Наиболее существенная новая находка — FI:A1, общий outbox.** Я независимо повторил её с настоящим Better Auth, двумя ключами и одним XDG_STATE_HOME: сохранённый A, но ещё не отправленный envelope выполняется при `operation resume` агента B; `createdBy = agent:agent-b`, exit 0, envelope удалён. Контроль: если A уже закоммитил операцию, её автор остаётся A. Это ошибка изоляции локальных намерений, не возможность подделать серверную идентичность через произвольный actor в HTTP. [src/cli/outbox.ts](/Users/dmitriy/code/taskindex/src/cli/outbox.ts:47), [src/cli/run.ts](/Users/dmitriy/code/taskindex/src/cli/run.ts:232), [новая проверка](/Users/dmitriy/code/taskindex/docs/audits/2026-09-08-astra-fable-comparison/probes.json).
+
+| Находка Fable | Отношение к Astra и результат сверки |
+|---|---|
+| **FI:A1 — outbox не разделён по агенту** | Новая конкретная проблема. Подтверждена заново; отсутствие actor binding в SavedOperation и фильтр только baseUrl видны в коде. Ротация ключа должна сохранять идентичность агента; изоляция только по token hash требует продуманного перехода. |
+| **FS:S1 / FA:V3 — проверка ключа пишет на GET** | Новая конкретная проблема. На одном GET /snapshot при writes=held получил две UPDATE apikey и 8 272 байта WAL; event seq остался 2. Записи auth-метаданных доказаны, число системных fsync напрямую не трассировалось. |
+| **FB:B-09 / FA:V1 — пагинация 409 после посторонней записи** | Новая ошибка пользовательского сценария, хотя Astra тоже критиковал стоимость страниц. Воспроизведено: первая страница more=true, запись другой задачи, следующая страница 409. Это **не** Astra B-04 про пропуск noop/rejection. |
+| **FB:B-04 — pending старой generation нельзя разобрать/убрать** | Новое конкретное последствие. В Fable есть probe; код recover/retry и панель подтверждают отсутствие нормального действия восстановления/удаления. Сохранность старого envelope полезна, но нужен доступ к его тексту и осознанное завершение. |
+| **FB:B-05 — битый файл блокирует все CLI-команды** | Общая граница с Q-04, но новое доказанное последствие. Заново получил exit 2 на context из-за `bad name.json` до обращения к API. |
+| **FB:B-06 — conflict.current у дубликата проекта указывает на отвергнутую запись** | Новая конкретная ошибка. Повторено: currentId=rejected-project, в БД существует только existing-project. Это не project ID sentinel и не generic response validation. |
+| **FB:B-07 — без Web Locks копятся scope черновиков** | Новая ветка. Код и probe Fable показывают линейное накопление копий при фиксированном наборе: 3→6→9→12→15. Слово «удваивает» в тексте отчёта неточно. |
+| **FB:B-08 — Back на начальный URL читает последнее localStorage-состояние** | Новая конкретная ошибка. Причинная цепочка подтверждается read/popstate/update в url.ts. В этой сверке отдельно в браузере не запускалась. |
+| **FA:V5 — CLOSED EventSource остаётся в переменной stream** | Новый сценарий, отличный от snapshot race Astra. Код не пересоздаёт CLOSED object; остаётся минутный catch-up. Сверен с моделью EventSource, browser replay здесь не выполнялся. |
+| **FI:A5 — CLI не поддерживает today/hasFollowUp; FI:A4 — нет me** | Новые конкретные разрывы API/CLI. `tasks --today true` и `me` заново дали exit 2; наличие API-фильтров/маршрута и отсутствие CLI allow-list видно в коде. |
+| **FI:A2/A3/A8/A9 — help, hints, issues, OpenAPI** | Новая группа AI-эргономики: статическая неполная справка, английские Zod errors, слишком общая ошибка HTTP, инлайн-схемы OpenAPI без навигационных метаданных. Это не тот же баг, что ложное command ACK у Astra. |
+| **FI:A6/A7/A14 — сохранённый курсор, inbox, me/agents в context** | Новые предложения к удобству агента. Чтение комментариев уже возможно через task/comments и events; отсутствует удобный агрегированный канал/адресация. Нельзя описывать это как полную невозможность прочитать владельца. |
+| **FI:A10/A11 — EPIPE и пустые страницы events --follow** | Новые CLI-краевые случаи/шум. Основание — транскрипт Fable и код; здесь stdout pipe не воспроизводился повторно. |
+| **FI:B1/B2/A13/B8 — repo instructions, одноразовая среда, подключение skill, generated files** | Новое отдельное направление developer readiness. Проблема Node 26 уже была в BACKLOG/окружении Astra; one-command sandbox и repo instructions — дополнительные предложения Fable. |
+| **FA:V6 / FI:B4 — миграция без bump SCHEMA_VERSION** | Новая точная форма риска в общей области миграций. Это отличается от checksum старого SQL (Astra S-03) и совместимости events/results/clients (Astra A-03). Нужны все три проверки, а не один общий checkbox «миграции». |
+| **FA:V8 — HTTP-маршруты api-key плагина доступны владельцу** | Новое расхождение с идеей local-only admin. Повторено: без сессии create=401; с owner cookie create=200; созданный без agent binding ключ получает 403 на предметном API. Это не неавторизованная выдача рабочего агентского ключа. |
+| **FB:B-10/B-12, FA:Ж10, FS:P3 — health/заголовки/dev bind** | Новые рекомендации по ограничению поверхности. Исходный план сам обещает health без auth; публичный endpoint — вопрос hardening. Nginx-файл подтверждает маршрут, но реальный VPS/домен не проверялся. 0.0.0.0 не отменяет auth и само по себе не даёт чужому человеку данные. |
+| **FQ:§9/R10 — E2E пишет reference screenshots по умолчанию** | Новая конкретная проблема тестового процесса; код подтверждён. Сообщение об уже перезаписанных девяти PNG принадлежит Fable; возможность восстановления прежних bytes я не проверял. Свой новый E2E не запускал. |
+| **FA:V2/V9/Ж3, FQ:R3–7 — крупные модули, owner label, комментарии** | Более широкий список качества: разрез app/shell/editor/run, hardcoded owner name, запросы discussion при любом seq, общие config/LIMITS/helpers. Astra не делал отдельными findings каждую из этих тем. |
+| **FS:S5/F2/F4/T1/P1/P2/Q2 — build/dev/ops** | Дополнительные темы: cwd-relative paths, CSS import из shadcn CLI, polling-watch, дублирующий typecheck, сборка на VPS, omit=optional, E2E через Vite вместо production static server. Это преимущественно улучшения, не доказанные потери данных. |
+
+Семантика владельца — особый случай: FB:B-01/B-02 и FI:A12 действительно описывают существующие возможности undo/direct edit/focus. Undo/move решений владельца уже был в BACKLOG и [Astra-план 27](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/astra-27-agent-owner-authority-policy.md). При этом «это обязательно нарушение прав» и «запретить всю такую работу» — продуктовый вывод Fable, который не следует автоматически из факта исполнения. `tasks` ограничивает вид команд, но пока не различает самостоятельную инициативу и новое поручение владельца.
+
+## 3. Что осталось отдельными находками Astra
+
+Таблица охватывает все 26 исходных ID, включая две пары дублей. «Частично» означает общую подсистему/идею, но не одинаковый отказ.
+
+| Astra | Сценарий / вопрос | Соответствие Fable |
+|---|---|---|
+| S-01 | Стоимость state/history, N+1, backlog | Совпало: FS:D1, FA:K1/Ж5, FB:B-03/B-11, FQ:§7. |
+| S-02 | Нет постоянного внешнего контроля прогресса backup | Отдельно у Astra. FS:P5 положительно оценивает Litestream, но постоянный внешний сигнал не разбирает. |
+| S-03 | Нет checksum применённого SQL | Частично: FS:D2, FA:V6, FI:B4 о миграциях. Конкретная неизменность уже применённого SQL у Astra разобрана отдельно. |
+| S-04 | request<T> и SSE без runtime parse | Совпало: FQ:§4/R8. |
+| S-05 | Нет WebKit и физической мобильной приёмки | WebKit как пробел — отдельно Astra. FS:Q2 про production-раздачу является другой осью; физический телефон уже был в BACKLOG. |
+| S-06 | Релиз не требует check/test для того же immutable image | Отдельно Astra. FS:P1 предлагает CI как место сборки, это ещё не обязательный validation gate. |
+| S-07 | date-fns, bundle и runtime install | Совпало по cleanup/измерениям: FS:F3/Z2, FQ:§10. По способу оптимизации есть разногласия. |
+| A-01 | Редактор берёт optimistic revision как серверную базу | Отдельно Astra: второй save получает «версия из будущего». Крупный editor у Fable не является этим сценарием. |
+| A-02 | Рост стоимости исполнения | Дубль S-01, совпало; второй раз не считать. |
+| A-03 | Эволюция rows + events + saved results + старые клиенты | Частичная соседняя тема FA:V6/Ж11. Строгий replay/import и старые envelope как единый контракт подробно только Astra. |
+| A-04 | Rollback использует compose/helpers checkout кандидата | Отдельно Astra. Положительная оценка deploy Fable этот будущий риск не опровергает. |
+| A-05 | Типы/исчерпывающий command dispatch | Дубль Q-01, совпало; сохранить расхождение приоритета P3/P2, не считать дважды. |
+| B-01 | Отозванный ключ продолжает получать новые SSE-данные | Отдельно Astra, P1, воспроизведено. FS:Y1 «SSE корректен» слишком широкий вывод. |
+| B-02 | Старый snapshot откатывает уже применённый SSE | Отдельно Astra. FA:V5 про CLOSED reconnect — другая гонка/состояние. |
+| B-03 | JSON 200 без command-result удаляет CLI outbox | Отдельно Astra. FI:A1 про чужой actor и FB:B-05 про плохой файл — два других дефекта того же outbox. |
+| B-04 | digest/since теряют noop и rejection без event seq | Отдельно Astra. FA:V1/FB:B-09 про 409 между страницами не являются дублем. |
+| B-05 | Доменно невалидное итоговое состояние даёт несохранённый definitive отказ | Отдельно Astra: checklist item 101 → 400, operation get=404, ID принимает другой payload. FI:A8 про отсутствие issues не закрывает гарантию результата. |
+| B-06 | Допустимые project ID none/all конфликтуют с фильтром | Частично совпало: FQ:§2 видит sentinel-дизайн; воспроизведённый неправильный запрос дан Astra. |
+| B-07 | Задача id=by-origin перекрыта статическим маршрутом | Отдельно Astra. У Fable такого сценария нет. |
+| B-08 | Недоступен getter localStorage, но write уходит без durable envelope | Отдельно Astra. Q-04/FQ:§4 — форма уже сохранённых данных; FB:B-07 — накопление scope. Это три разных вопроса. |
+| Q-01 | Record/casts после validated union | Совпало: FQ:R1/R2, FS:S4, FI:B3; вместе с A-05. |
+| Q-02 | Недостаточная диагностика внутренних ошибок | Совпало: FA:V4/Ж6, FQ:§5, FI:B6. |
+| Q-03 | Узкие generators и oracle на production isSubjectField | Узость совпала с FQ:§9; конкретная зависимость oracle отдельно у Astra. |
+| Q-04 | Форма persisted draft/outbox не проверена | Совпало: FQ:§4/R8; Fable дополнительно показал отказ всех CLI-чтений. |
+| Q-05 | Drill не запускает deploy.sh/ERR trap/opened decision | Конкретный пробел отдельно Astra; lint deployment JS/shell совпал с FS:T2/FQ:§10. |
+| Q-06 | Дублирование intent lifecycle форм | Совпало с FQ:§3/R5; подход Astra уже и осторожнее общей декомпозиции UI. |
+
+## 4. Где выводы или предлагаемые решения расходятся
+
+### 4.1. «Высоких багов нет» и «SSE корректен»
+
+Это слишком широкие заключения Fable. Astra B-01 показывает новые данные после отзыва ключа; B-02 — rollback состояния клиента после задержанного snapshot. Существование правильных Last-Event-ID, heartbeat и batch buffer не доказывает эти две границы. И наоборот, эти баги не означают, что нужно заменить SSE на WebSocket. [исходные воспроизведения Astra](/Users/dmitriy/code/taskindex/docs/audits/2026-09-08-multiside-review/03-probe-results.json).
+
+Внутри самого набора Fable есть разница оценок: FS:Y1 объявляет SSE корректным, FA:V5 видит CLOSED reconnect, FB:B-11 — неограниченный backlog. Итоговая формулировка должна перечислять проверенные гарантии и найденные исключения.
+
+### 4.2. Better Auth сохранить; API-key-плагин пересмотреть по новым данным
+
+Astra рекомендовал сохранить Better Auth с плагинами; FS:S1 предлагает заменить api-key своей таблицей, FA:V3 — кэшировать проверку на 30–60 секунд. Новая проверка подтверждает цену текущего verifyApiKey: две UPDATE и WAL при чтении. Это повод пересмотреть именно путь проверки ключа; owner password/passkey не затронут.
+
+Не переношу автоматически рекомендацию «своя auth-таблица за 30–50 строк». Нужно сохранить hashing, безопасную выдачу, rotation, связь agent/scope, выключение агента, отзыв, миграцию уже выданных ключей и защиту долгоживущих соединений. Кэш разрешения на 30–60 секунд меняет гарантию отзыва; это не согласованный допустимый интервал. Сперва зафиксировать требуемую семантику и сравнить способы устранить побочные записи, затем выбирать замену.
+
+Уточнение `writes: held`: в принятом плане закрыты **предметные команды**, а чтение/SSE/health остаются доступны. В probe auth-метаданные менялись, но event seq не менялся. Значит доказаны скрытые записи/цена репликации, а не успешное изменение задачи через held. Нельзя превращать это наблюдение в неподтверждённый обход предметного запрета. [docs/plans/2026-09-08-taskindex-v2.md](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-taskindex-v2.md:780).
+
+### 4.3. Drizzle: использование слабое, обязательная замена не доказана
+
+FS:D2 допускает raw SQL вместо ORM или отказ от Drizzle; Astra предлагает оставить и использовать точные запросы. Оба видят один плохой путь чтения, но разные решения. Drizzle реально используется для схемы, запросов/записей и auth adapter; отсутствие JOIN в горячем пути не делает его фиктивным. Я бы сначала исправил выборки на существующем стеке и измерил результат. Переход на node:sqlite у Fable — возможная последующая альтернатива, не обязательное исправление Node 26/ABI.
+
+### 4.4. OpenAPI: Fable спорит и внутри собственного набора
+
+FS:S3 предлагает убрать OpenAPI, если его не используют; FI:A9 предлагает сделать его удобным для агента: компоненты/$ref, operationId, descriptions, examples, security metadata. Astra поддерживает REST/OpenAPI как доступный внешний контракт. Для принятого полного доступа агента второе направление последовательнее; само существование документа 970 КБ не доказывает необходимость удаления.
+
+При этом публичность OpenAPI без ключа — отдельное решение, не обязательное условие пригодности для LLM. Можно сделать компактную схему доступной аутентифицированному CLI/context. Сокращение повторов и улучшение справки не требуют заранее обещать конкретный предел 150 КБ.
+
+### 4.5. Размер bundle и клиентская валидация — разные границы
+
+FS:F3 предлагает zod/mini либо валидацию только на сервере. Astra S-04 и FQ:§4 требуют runtime-проверять ответы и SSE. Эти рекомендации нельзя механически применить вместе как «выкинуть клиентский Zod целиком»: надо разделить ввод команды, optimistic reducer и недоверенный HTTP/SSE-ответ.
+
+Сначала уменьшить неиспользуемую/редко загружаемую часть и измерить. Если менять библиотечную форму валидации, сохранить эквивалентные контракты и конкретные regression tests. Устранение runtime boundary ради числа килобайт не закрывает найденные баги.
+
+### 4.6. Пагинация: заменить 409 молчаливыми пропусками нельзя
+
+FA:V1 предлагает keyset по `(orderKey,id)` и допускает пропуск/дубль при перемещении как меньшую проблему, чем 409. FB:B-09 предлагает ограниченный restart обхода. Проблема 409 подтверждена, но `orderKey` изменяемый; keyset сам по себе не даёт полного непротиворечивого списка.
+
+Нужна явная семантика по видам лент: для неизменяемого append-only журнала — монотонная позиция/верхняя граница; для редактируемого списка задач — оговорённый snapshot или распознаваемое изменение с контролируемым повтором. Не называть обход полным, если элементы могли исчезнуть между страницами. Astra B-04 дополнительно требует независимой позиции **операций**, чтобы noop/rejection вообще попадали в ленту.
+
+### 4.7. Внутренний Error нельзя всегда делать definitive
+
+В FA:V4 есть предложение для не-SQLite исключений отвечать retryable:false, чтобы клиент завершал pending. Это опасное правило по классу исключения: ошибка может возникнуть после commit при рассылке или формировании ответа. В текущем route executor возвращается до SSE listeners и c.json. [src/server/app.ts](/Users/dmitriy/code/taskindex/src/server/app.ts:469).
+
+Правильная граница — известность результата операции. Проверенный доменный отказ до эффекта можно сохранять окончательно; неизвестный outcome требует поиска stored result и сохранения envelope. Улучшение логов совпало, blanket retryable:false — нет.
+
+### 4.8. Права owner/agent требуют решения, а не угадывания поручения
+
+Fable называет undo владельца и установку focus багами политики. Astra-планы сохраняют этот вопрос открытым на основании BACKLOG. Факт поведения совпадает, но установленная семантика direct commands шире защищённого task.sync. Если запретить только undo, останутся move/save; если запретить всё, агент не сможет выполнить законное новое поручение владельца. Нужна единая матрица, включая фокус и отмену чужого агентского действия. [Astra-план 27](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/astra-27-agent-owner-authority-policy.md).
+
+### 4.9. Снятая гипотеза про health и ограничения security-формулировок
+
+FA:V7 ошибочно приписал no-op UPDATE новые WAL-кадры при каждом health. Fable сам снял это в сводке; я повторил: после checkpoint GET /health вернул 200, WAL=0. Сам SQL выполняется и способен проверять допустимость записи, но непрерывный поток новых WAL-кадров здесь не подтверждается. Удалять проверку на этом основании не следует.
+
+HTTP API-key routes не являются анонимной выдачей рабочего доступа: измерено 401 без сессии, 200 для owner, 403 на business API для непривязанного ключа. Публичный health и dev bind требуют обоснованной настройки поверхности, но не доказывают утечку текста задач. `seq` — число предметных событий, не точный счётчик команд: noop/rejection событий не создают.
+
+### 4.10. Тесты хорошие, но конкретные слепые зоны остаются
+
+Fable справедливо отмечает настоящую SQLite/Auth и хорошие assertions. Это совместимо с Astra Q-03: production isSubjectField одновременно определяет, что Undo восстанавливает и что property-test сравнивает. Сужение этого predicate может скрыть регрессию. Увеличить numRuns или разбить длинный тест недостаточно; нужен независимый oracle.
+
+То же с deploy: правильные helpers и прошедший drill не доказывают вызов нужной ветви самим deploy.sh. FS:Q2 добавляет третью независимую ось: production static server против Vite dev. WebKit, production build, real phone и deployment entrypoint нельзя закрыть одним зелёным E2E-счётчиком.
+
+## 5. Дополнительные рекомендации Fable, не равные найденному багу
+
+| Fable | Что добавлено | Как учитывать |
+|---|---|---|
+| FA:Ж1 | События продублированы в events и сохранённом result | Сознательная цена точного повтора ответа; сокращать только с сохранением старых результатов и политики A-03. |
+| FA:Ж2 | CLI тянет тяжёлый context за generation | Совпадает с направлением оптимизации S-01, но это отдельный вызов. Лучше лёгкое аутентифицированное metadata/me; не привязывать CLI к публичности health, которую другой Fable-ревьюер предлагает убрать. |
+| FA:Ж3 | Comments приходят в store, UI отдельно перечитывает их при любом seq | Уточнить источник истины и invalidation по taskId; отдельное замечание Fable. |
+| FA:Ж4 | dryRun меняет hash envelope | Не считать багом автоматически: иной envelope под тем же ID по контракту может быть mismatch. Документировать или менять семантику явно. |
+| FA:Ж6 | TIMEZONE читается при migrate, а не меняет работающую базу | Реальная документационная неоднозначность; работающий timezone хранится в settings. LOG_LEVEL — отдельное совпавшее замечание. |
+| FA:Ж7 | Owner защищает checklist целиком | Принятая гранулярность, а не сломанный алгоритм. Поэлементная защита — изменение продукта. |
+| FA:Ж8 | Первое пустое owner save пишет ownerTouchedAt | Отмечает реальное действие «владелец просмотрел/коснулся», соответствующее плану. Улучшить подпись истории; не удалять событие без решения о смысле touch. |
+| FA:Ж9 | Обязательный area в sync даёт locked noise | Предложение упростить ответы/контракт, не потеря корректности sync. |
+| FA:Ж11 | EntityKind вручную поддерживается во многих местах | Полезная тема расширения, частично соседняя A-03/Q-01. Реестр не заменяет codec/import/backward-compatibility. |
+| FA:Ж12 | Домен ISO, auth integer milliseconds | Допустимые разные модели времени; описать при экспорте/аналитике, не затевать миграцию без причины. |
+| FA:Ж13 | Ручная подмена файла без mark-restored сохраняет generation | Сценарий обхода предусмотренного runbook, прямо так назван у Fable; не доказанный дефект штатного восстановления. |
+| FQ:§1–3/R3–5 | Разрез модулей, имена, LIMITS, canonical(), aliases, request/draft helpers | Реальные места облегчения сопровождения. Лимиты «не более 400 строк» и переименование всех catch/лямбд не считать критерием correctness. |
+| FQ:§6 | React effects, navigation context, button type/ID/доступность | Проверять реальные DOM-сценарии. Незаданное type не даёт submit само по себе, если кнопка не связана с form; human-readable ID и output нуждаются в семантической оценке. |
+| FQ:§9/R10 | Общие E2E fixtures, fixed waits, cookies, helper duplication | Улучшение изоляции тестов. Текущее переписывание reference artifacts важнее механического разбиения всех тестов. |
+| FQ:§10/R9, FI:B7/B8 | Lint категории, unused exports, generated files | Выбирать правила по сигналу; не добавлять тысячи стилистических предупреждений в обязательный gate. |
+| FS:S2 | Cookie cache для owner session | Необязательная оптимизация; учитывать отзыв сессий. Она не чинит повторную авторизацию SSE. |
+| FS:D3/F2/F4/T1/P1/P2 | node:sqlite, vendored shadcn CSS, Vite plugin/watch, double typecheck, build venue, optional deps | Отдельные варианты упрощения, привязанные к установленным версиям. Не объявлять все обязательными заменами стека. |
+| FI:A6/A7/A13/A14/B2/B10 | Удобный курсор, inbox, инструкции, sandbox, deploy --plan/bootstrap | Полезное развитие AI-оператора. Сохранённый cursor должен учитывать Astra B-04; inbox может начать с существующих comments без новой системы адресации. Sandbox выдаёт только локальные тестовые credentials, не печатает рабочие секреты. |
+
+## 6. Как это соотносится с уже записанными планами
+
+Планы не переписывались и новые исправления не выполнялись. Ниже — маршрут к документам, куда относятся пересечения; исходные ID двух ревью сохраняются.
+
+| Общая работа | Куда относится |
+|---|---|
+| Hot path/history и bounded backlog | [Astra-план 12](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/astra-12-indexed-reads-and-write-cost.md) и план Fable 01; включить отдельную семантику конкурентной пагинации |
+| Все гарантии CLI outbox | [Astra-план 04](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/astra-04-cli-operation-acknowledgement.md), [Astra-план 22](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/astra-22-persisted-drafts-and-outbox-schemas.md) и [Fable-план 03](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/03-cli-outbox-and-ergonomics.md): ACK, actor isolation и corrupt file — три разных regression |
+| Доступ и проверка ключей | [Astra-план 01](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/astra-01-sse-access-revocation.md) и [Fable-план 05](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/05-auth-and-agent-keys.md): отзыв SSE и побочная запись auth должны решаться совместимо |
+| Клиентская синхронизация и восстановление | [Astra-план 03](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/astra-03-snapshot-sse-ordering.md), [Astra-план 06](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/astra-06-browser-storage-write-boundary.md), [Astra-план 07](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/astra-07-confirmed-editor-revisions.md) и [Fable-план 07](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/07-web-client-fixes-and-structure.md): snapshot, storage, optimistic base, old generation, CLOSED stream — разные сценарии |
+| Миграции | [Astra-план 13](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/astra-13-migration-checksums.md), [Astra-план 14](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/astra-14-domain-contract-evolution.md) плюс FA:V6/FI:B4: checksum, связь версии и цепочки, эволюция persisted contracts |
+| Качество | [Astra-план 19](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/astra-19-exhaustive-command-dispatch.md), [Astra-план 20](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/astra-20-structured-error-diagnostics.md), [Astra-план 21](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/astra-21-independent-property-model.md), [Astra-план 23](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/astra-23-form-intent-lifecycle.md) и [Fable-план 10](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/10-code-quality-and-tests.md) |
+| Права агентов | [Astra-план 27](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/astra-27-agent-owner-authority-policy.md) и [Fable-план 02](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/02-agent-permissions-and-sync-semantics.md); сначала согласовать единую матрицу |
+| AI-эргономика | [Fable-план 03](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/03-cli-outbox-and-ergonomics.md), [Fable-план 04](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/04-api-contract-and-schemas.md), [Fable-план 12](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/12-ai-readiness-and-docs.md); часть Node/docs уже в [Astra-план 28](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/astra-28-permanent-node-runtime.md) и [Astra-план 33](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/astra-33-contract-documentation-reconciliation.md) |
+| CSS/оформление | [Astra-план 25](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/astra-25-dark-theme.md), [Astra-план 26](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/astra-26-skins-system.md) и [Fable-план 08](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/08-styling-skin-and-dark-theme.md); выбрать одну основу, не выполнять две миграции каскада |
+
+Скины и тёмная тема были дополнительным запросом после Astra-ревью. Поэтому совпадение CSS-наблюдений Fable с нашими планами оформления не включено задним числом в список «Astra-агент тоже обнаружил».
+
+## 7. Новая независимая проверка при сравнении
+
+[Исполняемый скрипт](/Users/dmitriy/code/taskindex/docs/audits/2026-09-08-astra-fable-comparison/probes.mts), [структурированный результат](/Users/dmitriy/code/taskindex/docs/audits/2026-09-08-astra-fable-comparison/probes.json), [лог](/Users/dmitriy/code/taskindex/docs/audits/2026-09-08-astra-fable-comparison/probes.log).
+
+| Проверка | Результат |
+|---|---|
+| A сохранил envelope, B resume в том же state dir | exit 0, createdBy=agent:agent-b, envelope удалён |
+| A уже закоммитил, затем B resume | Автор A сохранён; новой переатрибуции нет |
+| GET агента с writes=held | 2 UPDATE apikey, WAL 8 272 bytes, event seq 2→2 |
+| GET health после checkpoint | 200, WAL 0 |
+| Пагинация после чужой записи | Следующая страница 409 |
+| Дубликат project name | current.id указывает на отвергнутую запись, отсутствующую в state |
+| Один плохой файл outbox + context | exit 2 до API-чтения |
+| tasks --today true; me | exit 2; сообщения «флаг не поддерживается» и me.undefined |
+| HTTP api-key/create без owner session | 401 |
+| HTTP api-key/create с owner session | 200; полученный unbound key на snapshot → 403 |
+
+Node v24.20.0, искусственные owner/agents/данные, временная файловая SQLite и in-memory fixture, настоящий Hono/Better Auth. Ни app source, ни рабочая база, ни credentials владельца не изменялись. Полный test/build/E2E suite повторно не запускался; приёмочные screenshot artifacts не трогались.
+
+Дополнительно проверено по коду: Back/localStorage, old-generation pending, no-lock draft copying, CLOSED EventSource, отсутствие CLI-флагов, границы migration version, defaults E2E artifacts и Nginx. Это статическая сверка; она не помечена новым browser или production воспроизведением.
+
+Для CLOSED EventSource использован [первичный стандарт WHATWG, processing model](https://html.spec.whatwg.org/multipage/server-sent-events.html#processing-model): сетевой обрыв и окончательный отказ соединения различаются; при fail connection объект не выполняет обычный автоматический reconnect. Поэтому обработка CLOSED в FA:V5 имеет основание. Это не означает, что приложение должно бесконечно повторять отозванную авторизацию.
+
+## Практический вывод
+
+Объединить подтверждённые сценарии обоих наборов и убрать дубли. В первых исправлениях сохранить SSE revoke из Astra и добавить actor-isolated outbox из Fable; затем закрывать остальные различные сценарии сохранения/синхронизации, конкурентное чтение и побочные auth-записи. Не заменять этот список общими рефакторингами или оценками «3/5» и «6/10».
+
+Оценки AI-readiness Fable получены отдельным пятым направлением, которого Astra не имел. Они полезны как рубрика автора отчёта, но не являются калиброванной метрикой качества моделей. `9` и `12` также нельзя складывать механически: Fable включает в свой bug list производительность, hardening и политику, Astra считает текущие функциональные баги отдельно от таких рисков.

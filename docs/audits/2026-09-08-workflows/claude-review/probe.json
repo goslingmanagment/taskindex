@@ -1,0 +1,85 @@
+{
+  "agentTasksCanUndoOwner": {
+    "http": 200,
+    "status": "todo"
+  },
+  "agentTasksCanDirectlyReopen": {
+    "http": 200,
+    "status": "todo"
+  },
+  "projectUndo": {
+    "tasksHttp": 403,
+    "writeHttp": 200,
+    "name": "Project"
+  },
+  "foreignCommentUndo": {
+    "http": 403
+  },
+  "foreignOperationReplay": {
+    "http": 403
+  },
+  "sourceSyncPreservesOwner": {
+    "status": "done",
+    "skipped": [
+      {
+        "field": "area",
+        "reason": "locked"
+      },
+      {
+        "field": "status",
+        "reason": "owner"
+      }
+    ]
+  },
+  "archivedNeighbor": {
+    "http": 200,
+    "keys": [
+      {
+        "id": "a",
+        "key": "a0",
+        "archived": false
+      },
+      {
+        "id": "b",
+        "key": "a1",
+        "archived": true
+      },
+      {
+        "id": "c",
+        "key": "a2",
+        "archived": false
+      },
+      {
+        "id": "d",
+        "key": "a0V",
+        "archived": false
+      }
+    ]
+  },
+  "areaUpdateReorders": {
+    "http": 200,
+    "keys": [
+      {
+        "id": "a",
+        "key": "a1"
+      },
+      {
+        "id": "dest",
+        "key": "a0"
+      }
+    ]
+  },
+  "ownerCreationAndLogin": {
+    "http": 200
+  },
+  "httpUnboundKey": {
+    "createHttp": 200,
+    "useHttp": 403
+  },
+  "agentKeyRequests": {
+    "accepted": 25,
+    "rateLimitEnabled": {
+      "value": 0
+    }
+  }
+}

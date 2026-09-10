@@ -1,82 +1,137 @@
-# TaskIndex
+# TaskIndex v2
 
-A workspace for tasks, projects, and follow-ups.
+Все находки ревью, решения и критерии закрытия собраны в
+[issues.md](/Users/dmitriy/code/taskindex/issues.md). В реестре есть ссылки на
+исходные отчёты Astra/Fable и подробные планы, включая тёмную тему и скины.
 
-TaskIndex keeps agency operations, development projects, and personal tasks in
-separate areas, with clear priorities, waiting states, and the next action.
+Личная доска задач с одинаковыми операциями для владельца и ИИ-агентов.
+Обычная HTTPS-ссылка, вход по паролю или passkey; агенты работают через CLI и API
+при закрытом браузере.
 
-## Application
+В основной папке репозитория на ветке `main` находится новая реализация.
+Решения и границы объёма записаны в
+[плане](docs/plans/2026-09-08-taskindex-v2.md), результаты независимого ревью —
+[в отчёте](docs/plans/2026-09-08-taskindex-v2-review.md).
+Временные ветки и worktree удалены. Развёртывание на рабочем VPS выполняется отдельно.
 
-This repository contains a copy of the Codex implementation: React, TypeScript,
-Vinext, and Cloudflare D1. The existing Russian interface and behavior are
-preserved. The application now uses the TaskIndex product name.
+## Стек и код
 
-- Board and list views with area and project navigation.
-- Tasks with notes, checklists, due dates, waiting contacts, and follow-up dates.
-- Drag-and-drop ordering, completion, reversible archiving, and undo.
-- Project creation and renaming, global search across areas, notes, checklists,
-  and project names; the archive has a separate search switch.
-- Focus across all areas: manually selected tasks, due dates, and follow-ups.
-  Each task appears once. Completed and archived tasks leave Focus automatically.
-  Manual selection is saved with the task; older records need no migration.
-- Server validation, record revisions, and conflict recovery that preserves drafts.
-- Optional WebMCP actions through the same task operations.
+React 19, TypeScript, Vite, Tailwind 4 и используемые компоненты Base UI/shadcn.
+Hono, Zod 4, Drizzle и better-sqlite3 на Node 24; Better Auth с passkey и ключами
+агентов. SQLite работает с WAL и synchronous=FULL. На VPS — один процесс Node,
+Docker Compose, Nginx и Litestream.
 
-## Development
+- `src/shared` — схемы, команды, правила, Focus и поиск.
+- `src/server` — транзакции, API, авторизация, события и SSE.
+- `src/web` — интерфейс, единый store, очередь операций и локальные черновики.
+- `src/cli` — обычный CLI и локальный административный инструмент.
+- `drizzle/v2` — явные миграции новой базы.
+- `skills/taskindex/SKILL.md` — правила работы агента с CLI.
+- `deploy` — контейнер, Nginx, резервирование и процедуры восстановления.
 
-Requires Node.js 22.13 or later and npm.
+Изменение данных, событие и сохранённый ответ операции фиксируются одной
+транзакцией. Идентификатор операции позволяет узнать результат после разрыва
+соединения и безопасно повторить запрос. Клиент применяет весь пакет событий
+целиком. Комментарии отделены от заметки; история и отмена доступны через API
+и в интерфейсе. Повторная синхронизация источника учитывает ручные решения.
+
+## Локальный запуск
+
+Нужны Node **24.20.0** и npm. Проверяйте `node --version`: имя каталога менеджера
+версий само по себе не подтверждает фактическую версию. Для браузерных тестов
+дополнительно нужен Chromium Playwright, для проверки развёртывания — Docker.
 
 ```sh
 npm ci
+npm run setup:dev
+```
+
+`setup:dev` создаёт `.env` с новым локальным секретом, если файла ещё нет, и
+применяет миграции. Новая пустая база находится в `data/dev.db`; существующий
+`.env` сохраняется. Чтобы создать владельца, передайте пароль в stdin команды:
+
+```sh
+op read 'op://VAULT/TaskIndex local/password' | npm run admin -- create-owner --email owner@example.test
 npm run dev
 ```
 
-The application uses the local `DB` D1 binding configured in `vite.config.ts`.
-On a fresh checkout, apply the migrations in `drizzle/` to that local binding
-before first use. Runtime handlers do not create or alter tables.
+Замените ссылку `op://` своей. Пароль не передаётся аргументом процесса и не
+печатается инструментом. Открывайте **http://localhost:5173** — имя хоста должно
+совпадать с `BASE_URL`, иначе проверки входа и Origin отклонят запрос.
+После входа можно зарегистрировать passkey. Для восстановления доступа:
+`npm run admin -- reset-owner-password` с новым паролем через stdin.
+
+В режиме разработки Vite отдаёт интерфейс и проксирует API к Node на 3001.
+`npm run build` создаёт `dist/web`, `dist/server` и `dist/cli`. Для запуска собранной
+версии задайте соответствующий `BASE_URL` и используйте `npm start`.
+
+Следующие миграции создаются через `npm run db:generate`: baseline и журнал
+Drizzle хранятся в `drizzle/v2/meta`. SQL проверяется до применения, вместе с новой
+миграцией повышается `SCHEMA_VERSION` в общем коде и проверяется обновление копии
+предыдущей базы. Уже применённые миграции не редактируются. Обычный запуск
+приложения миграции не выполняет.
+
+## Агенты
 
 ```sh
-npx tsc --noEmit
-node --experimental-strip-types --test tests/*.test.mjs
-npm run build
+npm run admin -- agent create --id codex-local --label 'Codex'
+npm run admin -- agent-key create --agent codex-local --scope write --out /protected/taskindex-key.json
+npm run cli -- --help
 ```
 
-`scripts/verify-api.mjs` checks a running local API, including persistence,
-concurrent edits, validation, and archive state. It creates test records, so run
-it against a disposable local database.
+Ключ сохраняется в новый файл с правами 0600; в выводе только его идентификатор
+и путь. Перенесите ключ в 1Password. Клиент получает `TASKINDEX_URL` и
+`TASKINDEX_TOKEN` из окружения, например через `op run`. Для ограниченного агента
+можно выдать scope `tasks` или `read`; ротация ключа сохраняет идентичность агента.
+Подробности команд, повторов и разрешений — в [скилле](skills/taskindex/SKILL.md).
 
-The focused query/API tests and changed-file lint pass. Full-repository lint
-currently reports 20 pre-existing errors in unchanged template components,
-`hooks/use-mobile.ts`, and `scripts/verify-api.mjs`.
+CLI сохраняет конверт до отправки. При неизвестном исходе используйте
+`operation get` и `operation resume` с прежним идентификатором. `--dry-run`
+показывает эффект, но не заменяет поручение владельца. Сервис не запускает агентов
+по расписанию и не пишет в Telegram, финансы или другие внешние системы.
 
-Deferred product work and the scope of the future AI interface are in
-[`BACKLOG.md`](BACKLOG.md). On 2026-09-08 the owner reaffirmed the existing
-«Все задачи» and project sidebar. Direction-based columns are no longer proposed;
-structured card history remains pending. The earlier comparison is preserved in
-[`docs/proposals/taskindex-comparison.html`](docs/proposals/taskindex-comparison.html)
-as a historical inline HTML fragment, not the accepted navigation design.
-Agency examples are based on the 2026-09-07 snapshot;
-development/personal examples are illustrative. No operational data is changed.
+## Проверки
 
-## Data and hosting
+```sh
+npm run check
+npm run build
+npx playwright install chromium
+npm run e2e
+bash deploy/local-drill.sh
+```
 
-The local working copy received a consistent snapshot of the prototype's D1
-database. This includes the previously populated tasks and projects. That
-snapshot stays in ignored `.wrangler/state/`; it is not included in Git.
+`check` проверяет активное дерево v2: типы, lint, формат и unit/API/property/store/CLI
+тесты. E2E запускает изолированные настоящие SQLite и Better Auth в `/tmp`.
+Последняя команда создаёт отдельный Docker project/volume и локальную реплику,
+проверяет восстановление и сохраняет артефакты. Она не подключается к рабочему VPS
+или S3. Подробнее — [процедуры развёртывания](deploy/README.md).
 
-The source's sample seed remains illustrative. A fresh database is separate
-from the populated local snapshot. The application does not write to /OS,
-Telegram, hiring pipelines, or financial records.
+Исходники первого приложения, его D1/Sites-конфигурация и тестовый загрузчик
+удалены из рабочего дерева. Проверки прежнего поведения перенесены в Vitest.
+Снимки исходного интерфейса и harness, извлекающий исходники из коммита
+`4b780e4`, находятся в [docs/reference](docs/reference/ui-2026-09-08/README.md).
 
-`.openai/hosting.json` retains the original Sites project configuration. Copying
-this repository does not create or deploy a separate hosted site. The application
-relies on the hosting access controls and does not implement per-user tenancy.
+## Данные и переключение
 
-## Provenance
+Импорта прежних задач при переходе нет: рабочая v2 начинает с пустой базы.
+Старая `.wrangler/state` вместе с незакоммиченными макетами и состоянием обеих
+рабочих копий сохранена вне репозитория в проверенном архиве
+`~/Backups/taskindex/before-main-consolidation-20260908-171413.tar.gz`.
+Архив содержит локальные данные и секрет разработки; его права — 0600.
+Старые runtime-каталоги и макеты удалены из проекта.
+JSON export/import относится к резервированию v2; ключи и сессии в JSON не входят.
+Физическая копия SQLite включает их. После физического восстановления обязателен
+`mark-restored` и новый префикс репликации.
 
-Copied on 2026-09-08 from `../os-tools/gosling-space/`, commit
-`37799eea730f74323707bd0dee0b8d489a007d26`. The original checkout remains separate.
+Для рабочего запуска нужны домен, VPS, S3-хранилище и секреты. Деплой начинает
+новую попытку с закрытой записью, проверяет health и реплику, затем открывает
+запись. После этой границы возврат старой базы требует отдельного решения,
+поскольку может потерять уже принятые изменения. Перезапуск контейнера занимает
+время; непрерывная доступность не обещается.
 
-The Fable alternative is at
-`../../fansly/agent-reviews/panels/2026-09-07-kanban-board/board.html`.
-These are local filesystem paths relative to this checkout, not hosted links.
+## Происхождение
+
+Исходный интерфейс скопирован 2026-09-08 из `../os-tools/gosling-space/`, commit
+`37799eea730f74323707bd0dee0b8d489a007d26`. Визуальный эталон v2 снят с TaskIndex
+commit `4b780e4` на искусственных данных. Эталон воспроизводится из этого коммита
+без старого кода в рабочей папке. Локальная v2 перенесена в `main` 2026-09-08.

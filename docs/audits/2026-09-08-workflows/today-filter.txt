@@ -1,0 +1,72 @@
+- generic: TaskIndex
+- list:
+  - button "Фокус":
+    - generic: Фокус
+  - button "Активность":
+    - generic: Активность
+  - button "Агентство":
+    - generic: Агентство
+  - button "Разработка":
+    - generic: Разработка
+  - button "Личное":
+    - generic: Личное
+- generic: Проекты
+- list:
+  - button "Все задачи":
+    - generic: Все задачи
+  - button "QA Продукт":
+    - generic: QA Продукт
+  - button "Без направления":
+    - generic: Без направления
+- button "Добавить проект":
+  - text: Добавить проект
+- button "Архив":
+  - text: Архив
+- button "Дмитрий"
+- generic: Приватно
+- main:
+  - button "Разработка":
+    - text: Разработка
+  - heading "QA Продукт" [level=1]
+  - button "Открыть поиск":
+  - textbox "Найти во всех областях":
+    - /placeholder: Найти во всех областях…
+  - generic: ⌘ K
+  - button "Добавить задачу":
+    - generic: Задача
+  - tablist "Вид задач":
+    - tab "Доска" [selected]:
+      - text: Доска
+    - tab "Список":
+      - text: Список
+  - tabpanel "Доска": Задачи по колонкам
+  - checkbox "На сегодня" [checked] [active]:
+  - checkbox [checked]
+  - generic: На сегодня
+  - button "Настройки доски":
+  - paragraph: Срок или дата проверки — сегодня и раньше
+  - heading "Очередь" [level=2]
+  - generic: "1"
+  - article:
+    - 'button "Открыть: QA Сегодня проверить сборку"'
+    - 'button "Завершить: QA Сегодня проверить сборку"':
+    - heading "QA Сегодня проверить сборку" [level=3]
+    - text: Сегодня
+    - 'button "Действия: QA Сегодня проверить сборку"': ···
+    - 'button "Перетащить: QA Сегодня проверить сборку"':
+  - button "Добавить задачу":
+    - text: Добавить задачу
+  - heading "В работе" [level=2]
+  - generic: "0"
+  - button "Добавить задачу":
+    - text: Добавить задачу
+  - heading "Жду" [level=2]
+  - generic: "0"
+  - button "Добавить задачу":
+    - text: Добавить задачу
+  - heading "Готово" [level=2]
+  - generic: "0"
+  - button "Добавить задачу":
+    - text: Добавить задачу
+  - status
+- region "Notifications"

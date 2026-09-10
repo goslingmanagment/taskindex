@@ -1,0 +1,119 @@
+- generic: TaskIndex
+- list:
+  - button:
+    - generic: Фокус
+  - button:
+    - generic: Активность
+  - button:
+    - generic: Агентство
+  - button:
+    - generic: Разработка
+  - button:
+    - generic: Личное
+- generic: Направления
+- list:
+  - button:
+    - generic: Все задачи
+  - button:
+    - generic: QA Запуск
+  - button:
+    - generic: Без направления
+- button:
+  - text: Добавить направление
+- button:
+  - text: Архив
+- button: Дмитрий
+- generic: Приватно
+- main:
+  - heading [level=1]: Агентство
+  - button:
+  - textbox:
+    - /placeholder: Найти во всех областях…
+  - generic: ⌘ K
+  - button:
+    - generic: Задача
+  - tablist:
+    - tab:
+      - text: Доска
+    - tab [selected]:
+      - text: Список
+  - tabpanel: Задачи списком
+  - checkbox
+  - checkbox
+  - generic: На сегодня
+  - button:
+  - heading [level=2]: Очередь
+  - generic: "1"
+  - article:
+    - button
+    - button:
+    - heading [level=3]: QA Задача без направления
+    - button: ···
+    - button:
+  - button:
+    - text: Добавить задачу
+  - heading [level=2]: В работе
+  - generic: "0"
+  - button:
+    - text: Добавить задачу
+  - heading [level=2]: Жду
+  - generic: "0"
+  - button:
+    - text: Добавить задачу
+  - heading [level=2]: Готово
+  - generic: "1"
+  - article:
+    - button
+    - button:
+    - heading [level=3]: QA Проверить источник агента
+    - button: ···
+    - button:
+  - button:
+    - text: Добавить задачу
+  - status
+- region "Notifications"
+- dialog "Редактирование задачи":
+  - generic: ЗАДАЧА
+  - button "Закрыть карточку":
+  - heading "Редактирование задачи" [level=2]
+  - paragraph: Задача, состояние, заметки и шаги
+  - textbox "Название задачи":
+    - /placeholder: Что нужно сделать?
+    - text: QA Проверить источник агента
+  - text: Состояние
+  - combobox "Состояние задачи":
+    - generic: Готово
+    - img: ▼
+  - textbox: done
+  - generic: Агентство / Без направления
+  - button "Переместить"
+  - button "Срок":
+    - text: Срок
+  - button "Шаги":
+    - text: Шаги
+  - heading "Заметка" [level=3]:
+    - text: Заметка
+  - textbox "Заметка к задаче":
+    - /placeholder: Контекст, ссылки или мысли…
+    - text: Источник версия 2
+  - button "В начало очереди":
+    - text: В начало очереди
+  - button "В архив":
+    - text: В архив
+  - button "Комментарии 1" [expanded] [active]:
+    - text: Комментарии
+    - generic: "1"
+  - list:
+    - strong: Дмитрий
+    - time: 8 сент., 17:40
+    - paragraph: QA Удаление и отмена комментария
+    - button "Удалить"
+  - textbox "Новый комментарий":
+    - /placeholder: Комментарий или поручение…
+  - button "Добавить комментарий" [disabled]
+  - button "История"
+  - contentinfo:
+    - generic: Всё сохранено
+    - button "Закрыть"
+    - button "Сохранить" [disabled]:
+      - text: Сохранить

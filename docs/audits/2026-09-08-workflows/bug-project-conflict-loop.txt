@@ -1,0 +1,118 @@
+- generic: TaskIndex
+- list:
+  - button:
+    - generic: Фокус
+  - button:
+    - generic: Активность
+  - button:
+    - generic: Агентство
+  - button:
+    - generic: Разработка
+  - button:
+    - generic: Личное
+- generic: Проекты
+- list:
+  - button:
+    - generic: Все задачи
+  - button:
+    - generic: QA Имя другой сессии
+  - button:
+    - generic: Без направления
+- button:
+  - text: Добавить проект
+- button:
+  - text: Архив
+- button: Дмитрий
+- generic: Приватно
+- main:
+  - button:
+    - text: Разработка
+  - heading [level=1]: QA Имя другой сессии
+  - button:
+  - textbox:
+    - /placeholder: Найти во всех областях…
+  - generic: ⌘ K
+  - button:
+    - generic: Задача
+  - tablist:
+    - tab [selected]:
+      - text: Доска
+    - tab:
+      - text: Список
+  - tabpanel: Задачи по колонкам
+  - checkbox
+  - checkbox
+  - generic: На сегодня
+  - button:
+  - heading [level=2]: Очередь
+  - generic: "4"
+  - article:
+    - button
+    - button:
+    - heading [level=3]: QA Сегодня проверить сборку
+    - text: Сегодня
+    - button: ···
+    - button:
+  - article:
+    - button
+    - button:
+    - heading [level=3]: QA Потом проверить импорт
+    - text: 15 сент
+    - button: ···
+    - button:
+  - article:
+    - button
+    - button:
+    - heading [level=3]: QA Один раз
+    - button: ···
+    - button:
+  - article:
+    - button
+    - button:
+    - heading [level=3]: QA Один раз
+    - button: ···
+    - button:
+  - button:
+    - text: Добавить задачу
+  - heading [level=2]: В работе
+  - generic: "1"
+  - article:
+    - button
+    - button:
+    - heading [level=3]: QA В работе документация
+    - button: ···
+    - button:
+  - button:
+    - text: Добавить задачу
+  - heading [level=2]: Жду
+  - generic: "0"
+  - generic: Ничего не ждёт ответа
+  - button:
+    - text: Добавить задачу
+  - heading [level=2]: Готово
+  - generic: "1"
+  - article:
+    - button
+    - button:
+    - heading [level=3]: QA Готовая задача
+    - button: ···
+    - button:
+  - button:
+    - text: Добавить задачу
+  - status
+- region "Notifications"
+- dialog "Переименовать проект":
+  - heading "Переименовать проект" [level=2]
+  - paragraph: Разработка
+  - textbox "Название направления":
+    - /placeholder: Например, новый продукт
+    - text: QA Моё новое имя проекта
+  - text: Что относится к направлению
+  - textbox "Описание направления"
+  - text: Цвет
+  - textbox "Цвет направления": "#3465df"
+  - alert: Запись изменилась. Ваш текст остался в форме.
+  - button "Отмена"
+  - button "Сохранить"
+  - button "Close":
+    - generic: Close

@@ -1,0 +1,145 @@
+{
+  "runtime": "v24.20.0",
+  "results": [
+    {
+      "name": "refresh-rolls-back-live-event",
+      "details": {
+        "afterEvent": {
+          "seq": 1,
+          "tasks": 1
+        },
+        "afterSnapshot": {
+          "seq": 0,
+          "tasks": 0,
+          "connected": true
+        },
+        "requests": [
+          "/api/snapshot"
+        ]
+      }
+    },
+    {
+      "name": "cli-deletes-outbox-without-operation-result",
+      "details": {
+        "reply": {
+          "status": 200,
+          "body": {
+            "status": "maintenance"
+          }
+        },
+        "exitCode": 0,
+        "outboxExists": false,
+        "isolatedDirectory": "/var/folders/7y/wmt08_d95vn9dlsf0n6yc8rr0000gn/T/taskindex-review-cli-sB76ka"
+      }
+    },
+    {
+      "name": "digest-and-since-exclude-no-event-operations",
+      "details": {
+        "noop": {
+          "status": 200,
+          "body": {
+            "ok": true,
+            "operationId": "no-effect",
+            "generation": "131fb3a6-9b6b-4278-a47f-d60bcc0b9621",
+            "firstSeq": null,
+            "lastSeq": null,
+            "results": [
+              {
+                "record": {
+                  "id": "existing",
+                  "area": "agency",
+                  "projectId": null,
+                  "title": "Initial",
+                  "status": "todo",
+                  "note": "",
+                  "due": null,
+                  "waitingFor": "",
+                  "followUp": null,
+                  "orderKey": "a0",
+                  "focus": false,
+                  "archived": false,
+                  "originSystem": null,
+                  "originRef": null,
+                  "originUrl": null,
+                  "originVersion": null,
+                  "createdBy": "owner",
+                  "createdByLabel": "Владелец",
+                  "ownerTouchedAt": "2026-09-08T12:00:00.000Z",
+                  "ownerFields": [
+                    "archived",
+                    "area",
+                    "checklist",
+                    "due",
+                    "focus",
+                    "followUp",
+                    "note",
+                    "orderKey",
+                    "originUrl",
+                    "projectId",
+                    "status",
+                    "title",
+                    "waitingFor"
+                  ],
+                  "revision": 1,
+                  "createdAt": "2026-09-08T12:00:00.000Z",
+                  "updatedAt": "2026-09-08T12:00:00.000Z",
+                  "checklist": [],
+                  "commentCount": 0
+                },
+                "changes": {}
+              }
+            ],
+            "events": []
+          }
+        },
+        "rejected": {
+          "status": 409,
+          "body": {
+            "ok": false,
+            "code": "conflict",
+            "message": "Идентификатор задачи уже занят.",
+            "retryable": false,
+            "operationId": "rejected",
+            "generation": "131fb3a6-9b6b-4278-a47f-d60bcc0b9621"
+          }
+        },
+        "activityIds": [
+          "rejected",
+          "no-effect",
+          "initial"
+        ],
+        "filteredIds": [
+          "initial"
+        ],
+        "digestIds": [
+          "initial"
+        ]
+      }
+    },
+    {
+      "name": "invariant-rejection-is-not-idempotently-recorded",
+      "details": {
+        "failed": {
+          "status": 400,
+          "body": {
+            "ok": false,
+            "code": "invalid",
+            "message": "Проверьте поля запроса.",
+            "retryable": false
+          }
+        },
+        "operationGetStatus": 404,
+        "reusedStatus": 200,
+        "reusedOk": true
+      }
+    },
+    {
+      "name": "revoked-key-keeps-live-sse-access",
+      "details": {
+        "freshRequestStatus": 403,
+        "mutationStatus": 200,
+        "receivedPostRevocationTitle": true
+      }
+    }
+  ]
+}

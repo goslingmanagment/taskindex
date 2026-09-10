@@ -1,0 +1,60 @@
+- generic: TaskIndex
+- list:
+  - button "Фокус":
+    - generic: Фокус
+  - button "Активность":
+    - generic: Активность
+  - button "Агентство":
+    - generic: Агентство
+  - button "Разработка":
+    - generic: Разработка
+  - button "Личное":
+    - generic: Личное
+- generic: Направления
+- list:
+  - button "Все задачи":
+    - generic: Все задачи
+  - button "QA Запуск":
+    - generic: QA Запуск
+- button "Добавить направление":
+  - text: Добавить направление
+- button "Архив":
+  - text: Архив
+- button "Дмитрий"
+- generic: Приватно
+- main:
+  - heading "Фокус" [level=1]
+  - button "Открыть поиск":
+  - textbox "Найти во всех областях":
+    - /placeholder: Найти во всех областях…
+  - generic: ⌘ K
+  - button "Добавить задачу":
+    - generic: Задача
+  - status: Все области · 1 задач
+  - button "Настройки доски":
+  - region "Выбрано мной":
+    - heading "Выбрано мной 1" [level=2]:
+      - text: Выбрано мной
+      - generic: "1"
+    - article:
+      - 'button "Открыть: QA Подготовить релиз"'
+      - 'button "Завершить: QA Подготовить релиз"':
+      - heading "QA Подготовить релиз" [level=3]
+      - paragraph:
+        - text: Проверки команды
+      - generic: Агентство · Жду
+      - text: В фокусе
+      - generic: QA Запуск
+      - text: Завтра
+      - text: Вернуться сегодня
+      - text: 1/2
+      - 'button "Действия: QA Подготовить релиз"': ···
+  - status
+- region "Notifications":
+  - dialog "Действие отменено":
+    - heading "Действие отменено" [level=2]
+    - button "Close toast":
+  - dialog "Задача готова":
+    - heading "Задача готова" [level=2]
+    - button "Отменить" [active]
+    - button "Close toast":

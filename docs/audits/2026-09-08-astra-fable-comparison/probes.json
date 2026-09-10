@@ -1,0 +1,95 @@
+{
+  "node": "v24.20.0",
+  "at": "2026-09-08T18:55:16.145Z",
+  "sharedOutbox": {
+    "resumedByBExit": 0,
+    "taskCreatedBy": "agent:agent-b",
+    "bSawPendingA": true,
+    "envelopeRemoved": true
+  },
+  "alreadyCommittedControl": {
+    "bResumeExit": 0,
+    "originalActorPreserved": true
+  },
+  "cliErgonomics": {
+    "today": {
+      "code": 2,
+      "stdout": [
+        {
+          "ok": false,
+          "code": "invalid_arguments",
+          "message": "Флаг --today не поддерживается этим запросом"
+        }
+      ],
+      "stderr": []
+    },
+    "me": {
+      "code": 2,
+      "stdout": [
+        {
+          "ok": false,
+          "code": "invalid_arguments",
+          "message": "Неизвестная команда: me.undefined"
+        }
+      ],
+      "stderr": []
+    }
+  },
+  "corruptOutboxBlocksRead": {
+    "exit": 2,
+    "output": [
+      {
+        "ok": false,
+        "code": "invalid_arguments",
+        "message": "operationId: недопустимый идентификатор"
+      }
+    ]
+  },
+  "agentReadWrites": {
+    "status": 200,
+    "updates": [
+      {
+        "last_changed": 1,
+        "updated_changed": 0
+      },
+      {
+        "last_changed": 0,
+        "updated_changed": 1
+      }
+    ],
+    "walBytes": 8272,
+    "beforeSeq": {
+      "seq": 2
+    },
+    "afterSeq": {
+      "seq": 2
+    },
+    "writes": "held"
+  },
+  "healthNoop": {
+    "status": 200,
+    "walBytes": 0
+  },
+  "apiKeyHttpSurface": {
+    "unauthenticatedCreate": 401,
+    "authenticatedOwnerCreate": 200,
+    "resultingUnboundKeyBusinessAccess": 403
+  },
+  "paginationAfterWrite": {
+    "firstMore": true,
+    "secondStatus": 409,
+    "response": {
+      "ok": false,
+      "code": "conflict",
+      "message": "Данные изменились. Начните чтение страниц заново.",
+      "retryable": false
+    }
+  },
+  "duplicateProjectCurrent": {
+    "status": 409,
+    "currentId": "rejected-project",
+    "existingIds": [
+      "existing-project"
+    ]
+  }
+}

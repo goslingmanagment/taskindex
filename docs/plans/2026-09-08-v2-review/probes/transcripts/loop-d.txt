@@ -1,0 +1,34 @@
+### D1. API supports today= and digest?since without generation (CLI blocks both)
+{"items":[],"more":false}
+{"seq":23,"ops":[{"command":"comment.add","actorId":"owner"},{"command":"task.sync","actorId":"agent:claude-review"},{"command":"task.save","actorId":"owner"}]}
+### D2. digest --since 20 --generation via CLI
+{"seq":23,"ops":[{"command":"comment.add","actorId":"owner","ok":true},{"command":"task.sync","actorId":"agent:claude-review","ok":true},{"command":"task.save","actorId":"owner","ok":true}]}
+[exit=0]
+### D3. telegram task after owner closed it (status done + title)
+{"status":"done","title":"Заголовок владельца","note":"v3","projectId":null,"ownerTouchedAt":"2026-09-08T17:11:17.292Z","ownerFields":["orderKey","status","title"],"originVersion":"3","revision":5}
+### D4. agent sync v3 tries status=todo, projectId, title, note
+{"ok":true,"r":{"applied":null,"skipped":"all","rec":{"status":"done","title":"Заголовок владельца","note":"v3","projectId":null,"originVersion":"3"}}}
+### D5. owner reply discovery: activity --actor owner
+[{"command":"comment.add","titles":["Пакетная задача 1 (кодекс)"],"lastSeq":23,"createdAt":"2026-09-08T17:11:17.618Z"},{"command":"task.save","titles":["Заголовок владельца"],"lastSeq":21,"createdAt":"2026-09-08T17:11:17.292Z"}]
+### D6. owner reply discovery: events filtered client-side
+[{"seq":23,"taskId":"t-batch-1","text":"Клод, перепроверь сроки"}]
+### D7. real same-field conflict: B updates note with base-revision 2 (note changed at rev 3)
+{"ok":false,"code":"conflict","message":"Запись изменилась. Ваш текст остался в форме.","conflicts":[{"entityKind":"task","entityId":"t-batch-1","fields":["note"]}],"currentRev":6,"currentNote":"Правка кодекса"}
+[exit=3]
+### D8. B removes A's fresh comment
+{"ok":false,"code":"forbidden","message":"Нельзя удалить чужой комментарий.","retryable":false,"operationId":"665c3d7a-842d-4d97-b4fb-707ab317f5fc","generation":"95194beb-005f-4f54-84b8-ba46ae3f8c2d"}
+[exit=4]
+### D9. EPIPE: taskindex tasks | head -c 80
+{"generation":"95194beb-005f-4f54-84b8-ba46ae3f8c2d","seq":24,"items":[{"id":"6c
+(stderr of CLI when pipe closes early:)
+### D10. undo by seq of another agent's event (tasks-scope B undoes A's checklist add seq 16)
+{"ok":true,"code":null,"message":null}
+### D11. --json is a no-op? and unknown flag
+{"projects":[{"id":"review-project","area":"agency","name":"
+{"ok":false,"code":"invalid_arguments","message":"Нужно значение --verbose"}
+[exit=2]
+### D12. task update --focus false (unfocus) + ownerFields untouched by agents
+{"focus":true,"revision":2,"ownerFields":[]}
+### D13. server log count & sample
+35
+7

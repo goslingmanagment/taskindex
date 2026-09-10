@@ -1,0 +1,99 @@
+{
+  "at": "2026-09-08T17:45:45.289948+00:00",
+  "runtime": "Node v24.20.0; SQLite 3.53.2",
+  "scope": "Current working tree v2, including untracked src/tests/deploy; not old HEAD",
+  "checks": {
+    "npm run check": {
+      "exit": 0,
+      "files": 14,
+      "testsPassed": 75,
+      "includes": [
+        "TypeScript",
+        "oxlint",
+        "oxfmt",
+        "Vitest"
+      ]
+    },
+    "npm run build": {
+      "exit": 0,
+      "mainJsKB": 1034.22,
+      "mainJsGzipKB": 299.05,
+      "warning": "main chunk over 500 kB"
+    },
+    "npm run e2e": {
+      "exit": 0,
+      "testsPassed": 18,
+      "seconds": 40.8,
+      "fixture": "isolated real SQLite + Better Auth + Chromium"
+    },
+    "bash deploy/local-drill.sh": {
+      "exit": 0,
+      "replica": "isolated local file replica",
+      "project": "taskindex-drill-20260908174123-16695",
+      "stopped": true,
+      "retainedVolume": "taskindex-drill-20260908174123-16695_data",
+      "notChecked": [
+        "production VPS",
+        "production S3",
+        "public domain TLS"
+      ]
+    },
+    "git diff --check": {
+      "exit": 0
+    },
+    "03-probes-root-recheck": {
+      "exit": 0,
+      "confirmedProbes": 5
+    },
+    "02-probes-root-recheck": {
+      "exit": 0,
+      "currentBugProbes": 1,
+      "futureMigrationRiskDemonstrations": 1
+    },
+    "03-id-probes-root-recheck": {
+      "exit": 0,
+      "confirmedProbes": 2
+    },
+    "03-storage-probes-root-recheck": {
+      "exit": 0,
+      "confirmedProbes": 1
+    },
+    "quality-probes-root-recheck": {
+      "exit": 0,
+      "confirmedDiagnosticsProbes": 1,
+      "malformedLocalStateDemonstrations": 1
+    }
+  },
+  "environmentNote": "First check accidentally used Node26 because /opt/homebrew/opt/node@24 points to26. Its SQLite ABI failures are excluded from product findings. Rechecked with the actual Node24 binary.",
+  "independentlyReproducedCurrentBugs": 9,
+  "sourceVerification": {
+    "checkedFiles": 112,
+    "changed": []
+  },
+  "reportLinks": {
+    "checked": 120,
+    "problems": []
+  },
+  "reviewers": [
+    {
+      "task": "review_stack",
+      "model": "gpt-6-astra",
+      "reasoningEffort": "xhigh"
+    },
+    {
+      "task": "review_architecture",
+      "model": "gpt-6-astra",
+      "reasoningEffort": "xhigh"
+    },
+    {
+      "task": "review_bugs",
+      "model": "gpt-6-astra",
+      "reasoningEffort": "xhigh"
+    },
+    {
+      "task": "review_code_quality",
+      "model": "gpt-6-astra",
+      "reasoningEffort": "xhigh"
+    }
+  ]
+}

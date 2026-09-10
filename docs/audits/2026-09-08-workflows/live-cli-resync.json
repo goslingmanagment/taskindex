@@ -1,0 +1,106 @@
+[
+  {
+    "args": [
+      "task",
+      "sync",
+      "--origin",
+      "{\"system\":\"audit\",\"ref\":\"qa-live-source\",\"version\":\"2\"}",
+      "--fields",
+      "{\"area\":\"agency\",\"title\":\"QA Проверить источник агента\",\"status\":\"todo\",\"note\":\"Источник версия 2\"}"
+    ],
+    "code": 0,
+    "output": [
+      {
+        "ok": true,
+        "operationId": "dde99adb-d9de-4449-beb4-8efeb396c09c",
+        "generation": "1c00af79-fc39-42c8-ae4d-0f812d1f4028",
+        "firstSeq": 32,
+        "lastSeq": 32,
+        "results": [
+          {
+            "record": {
+              "id": "950bf2d7-e98c-4077-b033-d803d7db222a",
+              "area": "agency",
+              "projectId": null,
+              "title": "QA Проверить источник агента",
+              "status": "done",
+              "note": "Источник версия 2",
+              "due": null,
+              "waitingFor": "",
+              "followUp": null,
+              "orderKey": "a0",
+              "focus": false,
+              "archived": false,
+              "originSystem": "audit",
+              "originRef": "qa-live-source",
+              "originUrl": null,
+              "originVersion": "2",
+              "createdBy": "agent:qa-live-cli",
+              "createdByLabel": "QA Агент",
+              "ownerTouchedAt": "2026-09-08T14:35:20.315Z",
+              "ownerFields": [
+                "orderKey",
+                "status"
+              ],
+              "revision": 3,
+              "createdAt": "2026-09-08T14:35:03.854Z",
+              "updatedAt": "2026-09-08T14:35:21.348Z",
+              "checklist": [],
+              "commentCount": 0
+            },
+            "changes": {
+              "note": {
+                "from": "Источник версия 1",
+                "to": "Источник версия 2"
+              },
+              "originVersion": {
+                "from": "1",
+                "to": "2"
+              }
+            },
+            "applied": [
+              "title",
+              "note"
+            ],
+            "skipped": [
+              {
+                "field": "area",
+                "reason": "locked"
+              },
+              {
+                "field": "status",
+                "reason": "owner"
+              }
+            ]
+          }
+        ],
+        "events": [
+          {
+            "entityKind": "task",
+            "entityId": "950bf2d7-e98c-4077-b033-d803d7db222a",
+            "command": "task.sync",
+            "changes": {
+              "note": {
+                "from": "Источник версия 1",
+                "to": "Источник версия 2"
+              },
+              "originVersion": {
+                "from": "1",
+                "to": "2"
+              }
+            },
+            "recordRevision": 3,
+            "generation": "1c00af79-fc39-42c8-ae4d-0f812d1f4028",
+            "seq": 32,
+            "at": "2026-09-08T14:35:21.348Z",
+            "actorId": "agent:qa-live-cli",
+            "actorLabel": "QA Агент",
+            "operationId": "dde99adb-d9de-4449-beb4-8efeb396c09c",
+            "firstSeq": 32,
+            "lastSeq": 32
+          }
+        ]
+      }
+    ]
+  }
+]

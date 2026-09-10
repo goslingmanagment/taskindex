@@ -1,0 +1,7 @@
+# Test-only override. No real S3 credentials or production volume are used.
+services:
+  app:
+    ports: !reset []
+  litestream:
+    volumes:
+      - ./litestream.local.yml:/etc/litestream.yml:ro

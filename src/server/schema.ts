@@ -1,0 +1,228 @@
+import {
+  sqliteTable,
+  text,
+  integer,
+  index,
+  uniqueIndex,
+} from 'drizzle-orm/sqlite-core';
+import type { Changes, OperationResponse } from '../shared/model.js';
+const time = (name: string) => integer(name, { mode: 'timestamp_ms' });
+export const settings = sqliteTable('settings', {
+  key: text('key').primaryKey(),
+  value: text('value').notNull(),
+});
+export const projects = sqliteTable(
+  'projects',
+  {
+    id: text('id').primaryKey(),
+    area: text('area').notNull(),
+    name: text('name').notNull(),
+    nameKey: text('name_key').notNull(),
+    description: text('description').notNull(),
+    color: text('color').notNull(),
+    revision: integer('revision').notNull(),
+    createdAt: text('created_at').notNull(),
+    updatedAt: text('updated_at').notNull(),
+  },
+  (t) => [uniqueIndex('projects_area_name').on(t.area, t.nameKey)],
+);
+export const tasks = sqliteTable(
+  'tasks',
+  {
+    id: text('id').primaryKey(),
+    area: text('area').notNull(),
+    projectId: text('project_id').references(() => projects.id),
+    title: text('title').notNull(),
+    status: text('status').notNull(),
+    note: text('note').notNull(),
+    due: text('due'),
+    waitingFor: text('waiting_for').notNull(),
+    followUp: text('follow_up'),
+    orderKey: text('order_key').notNull(),
+    focus: integer('focus', { mode: 'boolean' }).notNull(),
+    archived: integer('archived', { mode: 'boolean' }).notNull(),
+    originSystem: text('origin_system'),
+    originRef: text('origin_ref'),
+    originUrl: text('origin_url'),
+    originVersion: text('origin_version'),
+    createdBy: text('created_by').notNull(),
+    createdByLabel: text('created_by_label').notNull(),
+    ownerTouchedAt: text('owner_touched_at'),
+    ownerFields: text('owner_fields', { mode: 'json' })
+      .$type<string[]>()
+      .notNull(),
+    revision: integer('revision').notNull(),
+    createdAt: text('created_at').notNull(),
+    updatedAt: text('updated_at').notNull(),
+  },
+  (t) => [
+    uniqueIndex('tasks_order').on(t.area, t.status, t.orderKey),
+    uniqueIndex('tasks_origin').on(t.originSystem, t.originRef),
+    index('tasks_area_archive_status').on(t.area, t.archived, t.status),
+    index('tasks_project').on(t.projectId),
+  ],
+);
+export const checklistItems = sqliteTable(
+  'checklist_items',
+  {
+    id: text('id').primaryKey(),
+    taskId: text('task_id')
+      .notNull()
+      .references(() => tasks.id, { onDelete: 'cascade' }),
+    text: text('text').notNull(),
+    done: integer('done', { mode: 'boolean' }).notNull(),
+    position: integer('position').notNull(),
+  },
+  (t) => [uniqueIndex('checklist_position').on(t.taskId, t.position)],
+);
+export const comments = sqliteTable(
+  'comments',
+  {
+    id: text('id').primaryKey(),
+    taskId: text('task_id')
+      .notNull()
+      .references(() => tasks.id, { onDelete: 'cascade' }),
+    actorId: text('actor_id').notNull(),
+    actorLabel: text('actor_label').notNull(),
+    text: text('text').notNull(),
+    revision: integer('revision').notNull(),
+    createdAt: text('created_at').notNull(),
+    deletedAt: text('deleted_at'),
+  },
+  (t) => [index('comments_task_created').on(t.taskId, t.createdAt)],
+);
+export const agents = sqliteTable('agents', {
+  id: text('id').primaryKey(),
+  label: text('label').notNull(),
+  createdAt: text('created_at').notNull(),
+  disabledAt: text('disabled_at'),
+});
+export const operations = sqliteTable(
+  'operations',
+  {
+    id: text('id').primaryKey(),
+    actorId: text('actor_id').notNull(),
+    actorLabel: text('actor_label').notNull(),
+    command: text('command').notNull(),
+    commandHash: text('command_hash').notNull(),
+    status: integer('status').notNull(),
+    result: text('result', { mode: 'json' })
+      .$type<OperationResponse>()
+      .notNull(),
+    firstSeq: integer('first_seq'),
+    lastSeq: integer('last_seq'),
+    createdAt: text('created_at').notNull(),
+  },
+  (t) => [index('operations_created').on(t.createdAt, t.id)],
+);
+export const events = sqliteTable(
+  'events',
+  {
+    seq: integer('seq').primaryKey({ autoIncrement: true }),
+    at: text('at').notNull(),
+    actorId: text('actor_id').notNull(),
+    actorLabel: text('actor_label').notNull(),
+    operationId: text('operation_id').notNull(),
+    entityKind: text('entity_kind').notNull(),
+    entityId: text('entity_id').notNull(),
+    taskId: text('task_id'),
+    command: text('command').notNull(),
+    changes: text('changes', { mode: 'json' }).$type<Changes>().notNull(),
+    recordRevision: integer('record_revision').notNull(),
+    firstSeq: integer('first_seq').notNull(),
+    lastSeq: integer('last_seq').notNull(),
+  },
+  (t) => [
+    index('events_entity_revision').on(t.entityKind, t.entityId, t.seq),
+    index('events_operation').on(t.operationId),
+  ],
+);
+export const user = sqliteTable('user', {
+  id: text('id').primaryKey(),
+  name: text('name').notNull(),
+  email: text('email').notNull().unique(),
+  emailVerified: integer('email_verified', { mode: 'boolean' }).notNull(),
+  image: text('image'),
+  createdAt: time('created_at').notNull(),
+  updatedAt: time('updated_at').notNull(),
+});
+export const session = sqliteTable('session', {
+  id: text('id').primaryKey(),
+  expiresAt: time('expires_at').notNull(),
+  token: text('token').notNull().unique(),
+  createdAt: time('created_at').notNull(),
+  updatedAt: time('updated_at').notNull(),
+  ipAddress: text('ip_address'),
+  userAgent: text('user_agent'),
+  userId: text('user_id')
+    .notNull()
+    .references(() => user.id, { onDelete: 'cascade' }),
+});
+export const account = sqliteTable('account', {
+  id: text('id').primaryKey(),
+  accountId: text('account_id').notNull(),
+  providerId: text('provider_id').notNull(),
+  userId: text('user_id')
+    .notNull()
+    .references(() => user.id, { onDelete: 'cascade' }),
+  accessToken: text('access_token'),
+  refreshToken: text('refresh_token'),
+  idToken: text('id_token'),
+  accessTokenExpiresAt: time('access_token_expires_at'),
+  refreshTokenExpiresAt: time('refresh_token_expires_at'),
+  scope: text('scope'),
+  password: text('password'),
+  createdAt: time('created_at').notNull(),
+  updatedAt: time('updated_at').notNull(),
+});
+export const verification = sqliteTable('verification', {
+  id: text('id').primaryKey(),
+  identifier: text('identifier').notNull(),
+  value: text('value').notNull(),
+  expiresAt: time('expires_at').notNull(),
+  createdAt: time('created_at').notNull(),
+  updatedAt: time('updated_at').notNull(),
+});
+export const passkey = sqliteTable('passkey', {
+  id: text('id').primaryKey(),
+  name: text('name'),
+  publicKey: text('public_key').notNull(),
+  userId: text('user_id')
+    .notNull()
+    .references(() => user.id, { onDelete: 'cascade' }),
+  credentialID: text('credential_id').notNull().unique(),
+  counter: integer('counter').notNull(),
+  deviceType: text('device_type').notNull(),
+  backedUp: integer('backed_up', { mode: 'boolean' }).notNull(),
+  transports: text('transports'),
+  createdAt: time('created_at'),
+  aaguid: text('aaguid'),
+});
+export const apikey = sqliteTable('apikey', {
+  id: text('id').primaryKey(),
+  configId: text('config_id').notNull().default('default'),
+  name: text('name'),
+  start: text('start'),
+  referenceId: text('reference_id').notNull(),
+  prefix: text('prefix'),
+  key: text('key').notNull().unique(),
+  refillInterval: integer('refill_interval'),
+  refillAmount: integer('refill_amount'),
+  lastRefillAt: time('last_refill_at'),
+  enabled: integer('enabled', { mode: 'boolean' }).default(true),
+  rateLimitEnabled: integer('rate_limit_enabled', { mode: 'boolean' }).default(
+    true,
+  ),
+  rateLimitTimeWindow: integer('rate_limit_time_window'),
+  rateLimitMax: integer('rate_limit_max'),
+  requestCount: integer('request_count').default(0),
+  remaining: integer('remaining'),
+  lastRequest: time('last_request'),
+  expiresAt: time('expires_at'),
+  createdAt: time('created_at').notNull(),
+  updatedAt: time('updated_at').notNull(),
+  permissions: text('permissions'),
+  metadata: text('metadata'),
+  agentId: text('agent_id').references(() => agents.id),
+  scope: text('scope'),
+});

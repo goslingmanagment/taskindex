@@ -1,0 +1,234 @@
+### C1. dry-run task save
+
+$ taskindex task save t-batch-1 --base-revision 2 --payload {"fields":{"note":"черновик заметки"},"status":"waiting"} --dry-run
+{"ok":true,"operationId":"23b06fdd-26c3-47ca-a7bb-fcaf9cc3581d","generation":"95194beb-005f-4f54-84b8-ba46ae3f8c2d","firstSeq":null,"lastSeq":null,"results":[{"record":{"id":"t-batch-1","area":"agency","projectId":"review-project","title":"Пакетная задача 1","status":"waiting","note":"черновик заметки","due":null,"waitingFor":"","followUp":null,"orderKey":"a1","focus":false,"archived":false,"originSystem":null,"originRef":null,"originUrl":null,"originVersion":null,"createdBy":"agent:claude-review","createdByLabel":"Клод (ревью)","ownerTouchedAt":null,"ownerFields":[],"revision":3,"createdAt":"2026-09-08T17:09:14.683Z","updatedAt":"2026-09-08T17:11:11.820Z","checklist":[],"commentCount":1},"changes":{"status":{"from":"doing","to":"waiting"},"note":{"from":"","to":"черновик заметки"},"orderKey":{"from":"a0","to":"a1"}}}],"events":[],"dryRun":true}
+[exit=0]
+### C2. real task save with --fields flag
+
+$ taskindex task save t-batch-1 --base-revision 2 --fields {"note":"Заметка агента","waitingFor":"Владельца"} --status waiting
+{"ok":true,"operationId":"88f369eb-247c-4fa1-950e-2ce0619d9107","generation":"95194beb-005f-4f54-84b8-ba46ae3f8c2d","firstSeq":15,"lastSeq":15,"results":[{"record":{"id":"t-batch-1","area":"agency","projectId":"review-project","title":"Пакетная задача 1","status":"waiting","note":"Заметка агента","due":null,"waitingFor":"Владельца","followUp":null,"orderKey":"a1","focus":false,"archived":false,"originSystem":null,"originRef":null,"originUrl":null,"originVersion":null,"createdBy":"agent:claude-review","createdByLabel":"Клод (ревью)","ownerTouchedAt":null,"ownerFields":[],"revision":3,"createdAt":"2026-09-08T17:09:14.683Z","updatedAt":"2026-09-08T17:11:12.005Z","checklist":[],"commentCount":1},"changes":{"status":{"from":"doing","to":"waiting"},"note":{"from":"","to":"Заметка агента"},"waitingFor":{"from":"","to":"Владельца"},"orderKey":{"from":"a0","to":"a1"}}}],"events":[{"entityKind":"task","entityId":"t-batch-1","command":"task.save","changes":{"status":{"from":"doing","to":"waiting"},"note":{"from":"","to":"Заметка агента"},"waitingFor":{"from":"","to":"Владельца"},"orderKey":{"from":"a0","to":"a1"}},"recordRevision":3,"generation":"95194beb-005f-4f54-84b8-ba46ae3f8c2d","seq":15,"at":"2026-09-08T17:11:12.005Z","actorId":"agent:claude-review","actorLabel":"Клод (ревью)","operationId":"88f369eb-247c-4fa1-950e-2ce0619d9107","firstSeq":15,"lastSeq":15}]}
+[exit=0]
+### C3. checklist add
+
+$ taskindex checklist add t-batch-1 --base-revision 3 --text Шаг один
+{"ok":true,"operationId":"9003d7f6-821b-48a4-97b3-b02e5ed3d0e8","generation":"95194beb-005f-4f54-84b8-ba46ae3f8c2d","firstSeq":16,"lastSeq":16,"results":[{"record":{"id":"t-batch-1","area":"agency","projectId":"review-project","title":"Пакетная задача 1","status":"waiting","note":"Заметка агента","due":null,"waitingFor":"Владельца","followUp":null,"orderKey":"a1","focus":false,"archived":false,"originSystem":null,"originRef":null,"originUrl":null,"originVersion":null,"createdBy":"agent:claude-review","createdByLabel":"Клод (ревью)","ownerTouchedAt":null,"ownerFields":[],"revision":4,"createdAt":"2026-09-08T17:09:14.683Z","updatedAt":"2026-09-08T17:11:12.307Z","checklist":[{"id":"a1a78f36-966b-4c7e-8836-f8ca882c7218","text":"Шаг один","done":false}],"commentCount":1},"changes":{"checklist":{"from":[],"to":[{"id":"a1a78f36-966b-4c7e-8836-f8ca882c7218","text":"Шаг один","done":false}]}}}],"events":[{"entityKind":"task","entityId":"t-batch-1","command":"checklist.add","changes":{"checklist":{"from":[],"to":[{"id":"a1a78f36-966b-4c7e-8836-f8ca882c7218","text":"Шаг один","done":false}]}},"recordRevision":4,"generation":"95194beb-005f-4f54-84b8-ba46ae3f8c2d","seq":16,"at":"2026-09-08T17:11:12.307Z","actorId":"agent:claude-review","actorLabel":"Клод (ревью)","operationId":"9003d7f6-821b-48a4-97b3-b02e5ed3d0e8","firstSeq":16,"lastSeq":16}]}
+[exit=0]
+### C4. concurrent edit conflict: B edits note with stale base-revision 3
+
+$ [codex] taskindex task update t-batch-1 --base-revision 3 --note Правка кодекса
+{"ok":true,"operationId":"29206c56-e4b6-4b83-8c45-84379c4ef076","generation":"95194beb-005f-4f54-84b8-ba46ae3f8c2d","firstSeq":17,"lastSeq":17,"results":[{"record":{"id":"t-batch-1","area":"agency","projectId":"review-project","title":"Пакетная задача 1","status":"waiting","note":"Правка кодекса","due":null,"waitingFor":"Владельца","followUp":null,"orderKey":"a1","focus":false,"archived":false,"originSystem":null,"originRef":null,"originUrl":null,"originVersion":null,"createdBy":"agent:claude-review","createdByLabel":"Клод (ревью)","ownerTouchedAt":null,"ownerFields":[],"revision":5,"createdAt":"2026-09-08T17:09:14.683Z","updatedAt":"2026-09-08T17:11:12.511Z","checklist":[{"id":"a1a78f36-966b-4c7e-8836-f8ca882c7218","text":"Шаг один","done":false}],"commentCount":1},"changes":{"note":{"from":"Заметка агента","to":"Правка кодекса"}}}],"events":[{"entityKind":"task","entityId":"t-batch-1","command":"task.update","changes":{"note":{"from":"Заметка агента","to":"Правка кодекса"}},"recordRevision":5,"generation":"95194beb-005f-4f54-84b8-ba46ae3f8c2d","seq":17,"at":"2026-09-08T17:11:12.511Z","actorId":"agent:codex-review","actorLabel":"Кодекс (ревью)","operationId":"29206c56-e4b6-4b83-8c45-84379c4ef076","firstSeq":17,"lastSeq":17}]}
+[exit=0]
+### C5. B edits a DIFFERENT field (title) with the same stale revision -> merge expected
+
+$ [codex] taskindex task update t-batch-1 --base-revision 3 --title Пакетная задача 1 (кодекс)
+{"ok":true,"operationId":"86a8f589-5e41-4d3e-a707-c6b000142f97","generation":"95194beb-005f-4f54-84b8-ba46ae3f8c2d","firstSeq":18,"lastSeq":18,"results":[{"record":{"id":"t-batch-1","area":"agency","projectId":"review-project","title":"Пакетная задача 1 (кодекс)","status":"waiting","note":"Правка кодекса","due":null,"waitingFor":"Владельца","followUp":null,"orderKey":"a1","focus":false,"archived":false,"originSystem":null,"originRef":null,"originUrl":null,"originVersion":null,"createdBy":"agent:claude-review","createdByLabel":"Клод (ревью)","ownerTouchedAt":null,"ownerFields":[],"revision":6,"createdAt":"2026-09-08T17:09:14.683Z","updatedAt":"2026-09-08T17:11:12.728Z","checklist":[{"id":"a1a78f36-966b-4c7e-8836-f8ca882c7218","text":"Шаг один","done":false}],"commentCount":1},"changes":{"title":{"from":"Пакетная задача 1","to":"Пакетная задача 1 (кодекс)"}}}],"events":[{"entityKind":"task","entityId":"t-batch-1","command":"task.update","changes":{"title":{"from":"Пакетная задача 1","to":"Пакетная задача 1 (кодекс)"}},"recordRevision":6,"generation":"95194beb-005f-4f54-84b8-ba46ae3f8c2d","seq":18,"at":"2026-09-08T17:11:12.728Z","actorId":"agent:codex-review","actorLabel":"Кодекс (ревью)","operationId":"86a8f589-5e41-4d3e-a707-c6b000142f97","firstSeq":18,"lastSeq":18}]}
+[exit=0]
+### C6. B removes A's comment -> forbidden?
+comment=7ce0e38b-230f-459c-835c-f81e7272e55b (author?)
+{"id":"e56d8c41-8f71-4255-bfdc-1f7a84ed4daa","actorId":"agent:claude-review","deletedAt":"2026-09-08T17:09:17.600Z"}
+{"id":"7ce0e38b-230f-459c-835c-f81e7272e55b","actorId":"agent:codex-review","deletedAt":null}
+
+$ [codex] taskindex comment remove 7ce0e38b-230f-459c-835c-f81e7272e55b
+{"ok":true,"operationId":"d4d8d4f7-1629-4fc6-a059-e5c8583323d4","generation":"95194beb-005f-4f54-84b8-ba46ae3f8c2d","firstSeq":19,"lastSeq":19,"results":[{"record":{"id":"7ce0e38b-230f-459c-835c-f81e7272e55b","taskId":"t-batch-1","actorId":"agent:codex-review","actorLabel":"Кодекс (ревью)","text":"Конверт агента A, отправленный агентом B","revision":2,"createdAt":"2026-09-08T17:09:29.087Z","deletedAt":"2026-09-08T17:11:13.006Z"},"changes":{"deletedAt":{"from":null,"to":"2026-09-08T17:11:13.006Z"}}}],"events":[{"entityKind":"comment","entityId":"7ce0e38b-230f-459c-835c-f81e7272e55b","taskId":"t-batch-1","command":"comment.remove","changes":{"deletedAt":{"from":null,"to":"2026-09-08T17:11:13.006Z"}},"recordRevision":2,"generation":"95194beb-005f-4f54-84b8-ba46ae3f8c2d","seq":19,"at":"2026-09-08T17:11:13.006Z","actorId":"agent:codex-review","actorLabel":"Кодекс (ревью)","operationId":"d4d8d4f7-1629-4fc6-a059-e5c8583323d4","firstSeq":19,"lastSeq":19}]}
+[exit=0]
+### C7. operation get unknown
+
+$ taskindex operation get does-not-exist
+{"ok":false,"code":"not_found","message":"Операция пока неизвестна серверу.","retryable":false}
+[exit=1]
+### C8. --payload and flag duplication
+
+$ taskindex comment add t-batch-1 --payload {"text":"a"} --text b
+{"ok":false,"code":"invalid_arguments","message":"Поле text задано дважды"}
+[exit=2]
+### C9. tasks --all
+
+$ taskindex tasks --all --limit 2
+{"generation":"95194beb-005f-4f54-84b8-ba46ae3f8c2d","seq":19,"items":[{"id":"6c5f1560-b794-483f-be26-909110a40021","area":"agency","projectId":"review-project","title":"Первая задача через флаги","status":"todo","note":"","due":"2026-09-10","node:events:505
+    throw er; // Unhandled 'error' event
+    ^
+
+Error: write EPIPE
+    at afterWriteDispatched (node:internal/stream_base_commons:159:15)
+    at writeGeneric (node:internal/stream_base_commons:150:3)
+    at Socket._writeGeneric (node:net:1258:11)
+    at Socket._write (node:net:1270:8)
+    at writeOrBuffer (node:internal/streams/writable:574:12)
+    at _write (node:internal/streams/writable:503:10)
+    at Writable.write (node:internal/streams/writable:512:10)
+    at <anonymous> (/Users/dmitriy/code/taskindex/src/cli/run.ts:191:57)
+    at emit (/Users/dmitriy/code/taskindex/src/cli/run.ts:194:36)
+    at runCli (/Users/dmitriy/code/taskindex/src/cli/run.ts:375:16)
+Emitted 'error' event on Socket instance at:
+    at emitErrorNT (node:internal/streams/destroy:170:8)
+    at emitErrorCloseNT (node:internal/streams/destroy:129:3)
+    at process.processTicksAndRejections (node:internal/process/task_queues:90:21) {
+  errno: -32,
+  code: 'EPIPE',
+  syscall: 'write'
+}
+
+Node.js v24.20.0
+
+### C10. digest with data: size & operations section
+bytes=    9825
+{"seq":19,"focus":[{"id":"selected","n":1,"more":false},{"id":"new","n":4,"more":false},{"id":"due","n":0,"more":false},{"id":"follow-ups","n":0,"more":false}],"waiting":1,"ops":18,"opsMore":false,"counts":{"tasks":5,"archived":0,"projects":1}}
+{"command":"comment.remove","actorId":"agent:codex-review","ok":true,"errorCode":null,"titles":["Пакетная задача 1 (кодекс)"]}
+{"command":"task.update","actorId":"agent:codex-review","ok":true,"errorCode":null,"titles":["Пакетная задача 1 (кодекс)"]}
+{"command":"task.update","actorId":"agent:codex-review","ok":true,"errorCode":null,"titles":["Пакетная задача 1 (кодекс)"]}
+### C11. digest --since with generation
+jq: parse error: Invalid numeric literal at line 2, column 2
+node:events:505
+    throw er; // Unhandled 'error' event
+    ^
+
+Error: write EPIPE
+    at afterWriteDispatched (node:internal/stream_base_commons:159:15)
+    at writeGeneric (node:internal/stream_base_commons:150:3)
+    at Socket._writeGeneric (node:net:1258:11)
+    at Socket._write (node:net:1270:8)
+    at writeOrBuffer (node:internal/streams/writable:574:12)
+    at _write (node:internal/streams/writable:503:10)
+    at Writable.write (node:internal/streams/writable:512:10)
+    at <anonymous> (/Users/dmitriy/code/taskindex/src/cli/run.ts:191:57)
+    at emit (/Users/dmitriy/code/taskindex/src/cli/run.ts:194:36)
+    at runCli (/Users/dmitriy/code/taskindex/src/cli/run.ts:375:16)
+Emitted 'error' event on Socket instance at:
+    at emitErrorNT (node:internal/streams/destroy:170:8)
+    at emitErrorCloseNT (node:internal/streams/destroy:129:3)
+    at process.processTicksAndRejections (node:internal/process/task_queues:90:21) {
+  errno: -32,
+  code: 'EPIPE',
+  syscall: 'write'
+}
+
+Node.js v24.20.0
+### C12. events --follow (3s alarm)
+{"generation":"95194beb-005f-4f54-84b8-ba46ae3f8c2d","latestSeq":19,"more":false,"events":[{"seq":15,"at":"2026-09-08T17:11:12.005Z","actorId":"agent:claude-review","actorLabel":"Клод (ревью)
+{"generation":"95194beb-005f-4f54-84b8-ba46ae3f8c2d","latestSeq":19,"more":false,"events":[]}
+{"generation":"95194beb-005f-4f54-84b8-ba46ae3f8c2d","latestSeq":19,"more":false,"events":[]}
+[follow ended]
+### C13. generation mismatch on read
+
+$ taskindex tasks --generation wrong-gen
+{"ok":false,"code":"generation_changed","message":"Поколение базы изменилось.","retryable":false,"generation":"95194beb-005f-4f54-84b8-ba46ae3f8c2d"}
+[exit=3]
+### C14. task create with position after
+
+$ taskindex task create --area agency --title После первой --position {"after":"t-batch-1"} --status waiting
+{"ok":true,"operationId":"f0f49baf-45fc-45e2-88e4-e216445f71ff","generation":"95194beb-005f-4f54-84b8-ba46ae3f8c2d","firstSeq":20,"lastSeq":20,"results":[{"record":{"id":"634cf96a-dcc4-4db3-9eef-71278086edaf","area":"agency","projectId":null,"title":"После первой","status":"waiting","note":"","due":null,"waitingFor":"","followUp":null,"orderKey":"a2","focus":false,"archived":false,"checklist":[],"commentCount":0,"originSystem":null,"originRef":null,"originUrl":null,"originVersion":null,"createdBy":"agent:claude-review","createdByLabel":"Клод (ревью)","ownerTouchedAt":null,"ownerFields":[],"revision":1,"createdAt":"2026-09-08T17:11:17.051Z","updatedAt":"2026-09-08T17:11:17.051Z"},"changes":{"id":{"from":null,"to":"634cf96a-dcc4-4db3-9eef-71278086edaf"},"area":{"from":null,"to":"agency"},"projectId":{"from":null,"to":null},"title":{"from":null,"to":"После первой"},"status":{"from":null,"to":"waiting"},"note":{"from":null,"to":""},"due":{"from":null,"to":null},"waitingFor":{"from":null,"to":""},"followUp":{"from":null,"to":null},"orderKey":{"from":null,"to":"a2"},"focus":{"from":null,"to":false},"archived":{"from":null,"to":false},"checklist":{"from":null,"to":[]},"originSystem":{"from":null,"to":null},"originRef":{"from":null,"to":null},"originUrl":{"from":null,"to":null},"originVersion":{"from":null,"to":null},"createdBy":{"from":null,"to":"agent:claude-review"},"createdByLabel":{"from":null,"to":"Клод (ревью)"},"ownerTouchedAt":{"from":null,"to":null},"ownerFields":{"from":null,"to":[]},"createdAt":{"from":null,"to":"2026-09-08T17:11:17.051Z"}}}],"events":[{"entityKind":"task","entityId":"634cf96a-dcc4-4db3-9eef-71278086edaf","command":"task.create","changes":{"id":{"from":null,"to":"634cf96a-dcc4-4db3-9eef-71278086edaf"},"area":{"from":null,"to":"agency"},"projectId":{"from":null,"to":null},"title":{"from":null,"to":"После первой"},"status":{"from":null,"to":"waiting"},"note":{"from":null,"to":""},"due":{"from":null,"to":null},"waitingFor":{"from":null,"to":""},"followUp":{"from":null,"to":null},"orderKey":{"from":null,"to":"a2"},"focus":{"from":null,"to":false},"archived":{"from":null,"to":false},"checklist":{"from":null,"to":[]},"originSystem":{"from":null,"to":null},"originRef":{"from":null,"to":null},"originUrl":{"from":null,"to":null},"originVersion":{"from":null,"to":null},"createdBy":{"from":null,"to":"agent:claude-review"},"createdByLabel":{"from":null,"to":"Клод (ревью)"},"ownerTouchedAt":{"from":null,"to":null},"ownerFields":{"from":null,"to":[]},"createdAt":{"from":null,"to":"2026-09-08T17:11:17.051Z"}},"recordRevision":1,"generation":"95194beb-005f-4f54-84b8-ba46ae3f8c2d","seq":20,"at":"2026-09-08T17:11:17.051Z","actorId":"agent:claude-review","actorLabel":"Клод (ревью)","operationId":"f0f49baf-45fc-45e2-88e4-e216445f71ff","firstSeq":20,"lastSeq":20}]}
+[exit=0]
+### C15. owner-locked field demo: simulate owner via cookie login and task.save status=done on telegram task, then agent sync v3
+cookie=better-auth.session_token=9AYW...
+{"ok":true,"code":null,"message":null,"ev":1}
+jq: parse error: Invalid numeric literal at line 2, column 2
+node:events:505
+    throw er; // Unhandled 'error' event
+    ^
+
+Error: write EPIPE
+    at afterWriteDispatched (node:internal/stream_base_commons:159:15)
+    at writeGeneric (node:internal/stream_base_commons:150:3)
+    at Socket._writeGeneric (node:net:1258:11)
+    at Socket._write (node:net:1270:8)
+    at writeOrBuffer (node:internal/streams/writable:574:12)
+    at _write (node:internal/streams/writable:503:10)
+    at Writable.write (node:internal/streams/writable:512:10)
+    at <anonymous> (/Users/dmitriy/code/taskindex/src/cli/run.ts:191:57)
+    at emit (/Users/dmitriy/code/taskindex/src/cli/run.ts:194:36)
+    at runCli (/Users/dmitriy/code/taskindex/src/cli/run.ts:375:16)
+Emitted 'error' event on Socket instance at:
+    at emitErrorNT (node:internal/streams/destroy:170:8)
+    at emitErrorCloseNT (node:internal/streams/destroy:129:3)
+    at process.processTicksAndRejections (node:internal/process/task_queues:90:21) {
+  errno: -32,
+  code: 'EPIPE',
+  syscall: 'write'
+}
+
+Node.js v24.20.0
+jq: parse error: Invalid numeric literal at line 2, column 2
+node:events:505
+    throw er; // Unhandled 'error' event
+    ^
+
+Error: write EPIPE
+    at afterWriteDispatched (node:internal/stream_base_commons:159:15)
+    at writeGeneric (node:internal/stream_base_commons:150:3)
+    at Socket._writeGeneric (node:net:1258:11)
+    at Socket._write (node:net:1270:8)
+    at writeOrBuffer (node:internal/streams/writable:574:12)
+    at _write (node:internal/streams/writable:503:10)
+    at Writable.write (node:internal/streams/writable:512:10)
+    at <anonymous> (/Users/dmitriy/code/taskindex/src/cli/run.ts:191:57)
+    at emit (/Users/dmitriy/code/taskindex/src/cli/run.ts:194:36)
+    at runCli (/Users/dmitriy/code/taskindex/src/cli/run.ts:503:5)
+Emitted 'error' event on Socket instance at:
+    at emitErrorNT (node:internal/streams/destroy:170:8)
+    at emitErrorCloseNT (node:internal/streams/destroy:129:3)
+    at process.processTicksAndRejections (node:internal/process/task_queues:90:21) {
+  errno: -32,
+  code: 'EPIPE',
+  syscall: 'write'
+}
+
+Node.js v24.20.0
+### C16. owner comment reply -> how does agent discover it?
+{"ok":true,"seq":23}
+jq: parse error: Invalid numeric literal at line 2, column 2
+node:events:505
+    throw er; // Unhandled 'error' event
+    ^
+
+Error: write EPIPE
+    at afterWriteDispatched (node:internal/stream_base_commons:159:15)
+    at writeGeneric (node:internal/stream_base_commons:150:3)
+    at Socket._writeGeneric (node:net:1258:11)
+    at Socket._write (node:net:1270:8)
+    at writeOrBuffer (node:internal/streams/writable:574:12)
+    at _write (node:internal/streams/writable:503:10)
+    at Writable.write (node:internal/streams/writable:512:10)
+    at <anonymous> (/Users/dmitriy/code/taskindex/src/cli/run.ts:191:57)
+    at emit (/Users/dmitriy/code/taskindex/src/cli/run.ts:194:36)
+    at runCli (/Users/dmitriy/code/taskindex/src/cli/run.ts:375:16)
+Emitted 'error' event on Socket instance at:
+    at emitErrorNT (node:internal/streams/destroy:170:8)
+    at emitErrorCloseNT (node:internal/streams/destroy:129:3)
+    at process.processTicksAndRejections (node:internal/process/task_queues:90:21) {
+  errno: -32,
+  code: 'EPIPE',
+  syscall: 'write'
+}
+
+Node.js v24.20.0
+jq: parse error: Invalid numeric literal at line 2, column 2
+node:events:505
+    throw er; // Unhandled 'error' event
+    ^
+
+Error: write EPIPE
+    at afterWriteDispatched (node:internal/stream_base_commons:159:15)
+    at writeGeneric (node:internal/stream_base_commons:150:3)
+    at Socket._writeGeneric (node:net:1258:11)
+    at Socket._write (node:net:1270:8)
+    at writeOrBuffer (node:internal/streams/writable:574:12)
+    at _write (node:internal/streams/writable:503:10)
+    at Writable.write (node:internal/streams/writable:512:10)
+    at <anonymous> (/Users/dmitriy/code/taskindex/src/cli/run.ts:191:57)
+    at emit (/Users/dmitriy/code/taskindex/src/cli/run.ts:194:36)
+    at runCli (/Users/dmitriy/code/taskindex/src/cli/run.ts:375:16)
+Emitted 'error' event on Socket instance at:
+    at emitErrorNT (node:internal/streams/destroy:170:8)
+    at emitErrorCloseNT (node:internal/streams/destroy:129:3)
+    at process.processTicksAndRejections (node:internal/process/task_queues:90:21) {
+  errno: -32,
+  code: 'EPIPE',
+  syscall: 'write'
+}
+
+Node.js v24.20.0
+### C17. server log sample
+30
+{"requestId":"1e62c7ec-3274-469d-a204-c57ff3728974","operationId":"owner-closes","command":"task.save","actor":"owner","code":200,"durationMs":2}
+{"requestId":"9fb03bd9-9031-4fe6-af8a-704803a87064","operationId":"3bde40dd-174e-4ca6-b75a-97f90c4c7a25","command":"task.sync","actor":"agent:claude-review","code":200,"durationMs":3}
+{"requestId":"d50ece24-be5b-4784-88b0-bcc11757dced","operationId":"owner-reply","command":"comment.add","actor":"owner","code":200,"durationMs":2}

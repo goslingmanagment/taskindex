@@ -1,0 +1,56 @@
+- generic: TaskIndex
+- list:
+  - button "Фокус":
+    - generic: Фокус
+  - button "Активность":
+    - generic: Активность
+  - button "Агентство":
+    - generic: Агентство
+  - button "Разработка":
+    - generic: Разработка
+  - button "Личное":
+    - generic: Личное
+- generic: Направления
+- list:
+  - button "Все задачи":
+    - generic: Все задачи
+  - button "QA Запуск":
+    - generic: QA Запуск
+- button "Добавить направление":
+  - text: Добавить направление
+- button "Архив" [active]:
+  - text: Архив
+- button "Дмитрий"
+- generic: Приватно
+- main:
+  - button "Агентство":
+    - text: Агентство
+  - heading "Архив" [level=1]
+  - button "Открыть поиск":
+  - textbox "Найти во всех областях":
+    - /placeholder: Найти во всех областях…
+  - generic: ⌘ K
+  - button "Добавить задачу":
+    - generic: Задача
+  - tablist "Вид задач":
+    - tab "Доска" [selected]:
+      - text: Доска
+    - tab "Список":
+      - text: Список
+  - tabpanel "Доска": Задачи по колонкам
+  - checkbox "На сегодня"
+  - checkbox
+  - generic: На сегодня
+  - button "Настройки доски":
+  - generic: Архив пуст
+  - generic: Здесь сохраняются задачи, убранные с доски.
+  - status
+- region "Notifications":
+  - dialog "Задача в архиве":
+    - heading "Задача в архиве" [level=2]
+    - button "Отменить"
+    - button:
+  - dialog "Изменения сохранены":
+    - heading "Изменения сохранены" [level=2]
+    - button "Отменить"
+    - button:

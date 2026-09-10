@@ -1,0 +1,188 @@
+- generic: TaskIndex
+- list:
+  - button:
+    - generic: Фокус
+  - button:
+    - generic: Активность
+  - button:
+    - generic: Агентство
+  - button:
+    - generic: Разработка
+  - button:
+    - generic: Личное
+- generic: Направления
+- list:
+  - button:
+    - generic: Все задачи
+  - button:
+    - generic: QA Запуск
+  - button:
+    - generic: Без направления
+- button:
+  - text: Добавить направление
+- button:
+  - text: Архив
+- button: Дмитрий
+- generic: Приватно
+- main:
+  - heading [level=1]: Агентство
+  - button:
+  - textbox:
+    - /placeholder: Найти во всех областях…
+  - generic: ⌘ K
+  - button:
+    - generic: Задача
+  - tablist:
+    - tab:
+      - text: Доска
+    - tab [selected]:
+      - text: Список
+  - tabpanel: Задачи списком
+  - checkbox
+  - checkbox
+  - generic: На сегодня
+  - button:
+  - heading [level=2]: Очередь
+  - generic: "1"
+  - article:
+    - button
+    - button:
+    - heading [level=3]: QA Задача без направления
+    - button: ···
+    - button:
+  - button:
+    - text: Добавить задачу
+  - heading [level=2]: В работе
+  - generic: "0"
+  - button:
+    - text: Добавить задачу
+  - heading [level=2]: Жду
+  - generic: "0"
+  - button:
+    - text: Добавить задачу
+  - heading [level=2]: Готово
+  - generic: "1"
+  - article:
+    - button
+    - button:
+    - heading [level=3]: QA Проверить источник агента
+    - button: ···
+    - button:
+  - button:
+    - text: Добавить задачу
+  - status
+- region "Notifications"
+- dialog "Редактирование задачи" [active]:
+  - generic: ЗАДАЧА
+  - button "Закрыть карточку":
+  - heading "Редактирование задачи" [level=2]
+  - paragraph: Задача, состояние, заметки и шаги
+  - textbox "Название задачи":
+    - /placeholder: Что нужно сделать?
+    - text: QA Проверить источник агента
+  - text: Состояние
+  - combobox "Состояние задачи":
+    - generic: Готово
+    - img: ▼
+  - textbox: done
+  - generic: Агентство / Без направления
+  - button "Переместить"
+  - button "Срок":
+    - text: Срок
+  - button "Шаги":
+    - text: Шаги
+  - heading "Заметка" [level=3]:
+    - text: Заметка
+  - textbox "Заметка к задаче":
+    - /placeholder: Контекст, ссылки или мысли…
+    - text: Источник версия 2
+  - button "В начало очереди":
+    - text: В начало очереди
+  - button "В архив":
+    - text: В архив
+  - button "Комментарии 0" [expanded]:
+    - text: Комментарии
+    - generic: "0"
+  - list:
+    - strong: Дмитрий
+    - time: 8 сент., 17:40
+    - paragraph: Комментарий удалён
+  - textbox "Новый комментарий":
+    - /placeholder: Комментарий или поручение…
+  - button "Добавить комментарий" [disabled]
+  - button "История" [expanded]
+  - list:
+    - strong: Обновлено из источника
+    - generic: QA Агент · 8 сент., 17:35
+    - term: Область
+    - definition:
+      - deletion: —
+      - generic: → agency
+    - term: Направление
+    - definition:
+      - deletion: —
+      - generic: → —
+    - term: Название
+    - definition:
+      - deletion: —
+      - generic: → QA Проверить источник агента
+    - term: Состояние
+    - definition:
+      - deletion: —
+      - generic: → todo
+    - term: Заметка
+    - definition:
+      - deletion: —
+      - generic: → Источник версия 1
+    - term: Срок
+    - definition:
+      - deletion: —
+      - generic: → —
+    - term: Чего ждём
+    - definition:
+      - deletion: —
+      - text: →
+    - term: Дата возврата
+    - definition:
+      - deletion: —
+      - generic: → —
+    - term: Порядок
+    - definition:
+      - deletion: —
+      - generic: → a1
+    - term: Фокус
+    - definition:
+      - deletion: —
+      - generic: → Нет
+    - term: Архив
+    - definition:
+      - deletion: —
+      - generic: → Нет
+    - term: Шаги
+    - definition:
+      - deletion: —
+      - generic: → []
+    - button "Отменить"
+    - strong: Задача перемещена
+    - generic: Дмитрий · 8 сент., 17:35
+    - term: Состояние
+    - definition:
+      - deletion: todo
+      - generic: → done
+    - term: Порядок
+    - definition:
+      - deletion: a1
+      - generic: → a0
+    - button "Отменить"
+    - strong: Обновлено из источника
+    - generic: QA Агент · 8 сент., 17:35
+    - term: Заметка
+    - definition:
+      - deletion: Источник версия 1
+      - generic: → Источник версия 2
+    - button "Отменить"
+  - contentinfo:
+    - generic: Всё сохранено
+    - button "Закрыть"
+    - button "Сохранить" [disabled]:
+      - text: Сохранить

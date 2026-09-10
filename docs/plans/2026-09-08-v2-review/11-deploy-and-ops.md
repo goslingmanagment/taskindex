@@ -1,0 +1,403 @@
+# Деплой и эксплуатация: heartbeat Litestream, неизменяемые релизы, испытание deploy.sh, релизный gate, Nginx, гигиена скриптов
+
+Статус: предложение, 2026-09-08. Источник: сводное ревью v2 (см. `README.md` в этой папке) и сверка с ревью Astra (`ASTRA-VS-FABLE.md`, `astra-*.md`).
+Приоритет: P0 для heartbeat Litestream, allowlist `/health`, HSTS и базовых заголовков (шаги 1..4: до рабочего переключения); P1 для снимка релиза при откате, harness настоящего `deploy.sh`, релизного gate и сборки образа вне VPS (шаги 5..9); P2 для гигиены shell, `deploy/health.mjs`, `--plan`, `bootstrap.sh`, пояснений к env (шаги 10..14). Оценка: M..L, 5..6 дней: P0-часть 1 день, снимок релиза и откат 1 день, harness 1 день (нужен Linux с Docker), CI и перенос образа 1 день, гигиена и `health.mjs` 0.5 дня, `--plan` и `bootstrap.sh` 1 день. Зависимости: `06-server-structure-config-logging.md` (содержимое `/health` не меняется, `HOST`, решение по `LOG_LEVEL` и `TIMEZONE`), `10-code-quality-and-tests.md` (`oxlint .`, `@ts-check` для `deploy/*.mjs`, проект Playwright `static`, который проверит заголовки кэша), `07-web-client-fixes-and-structure.md` (чанки бандла, к которым применяется `immutable`), `09-data-layer-and-dependencies.md` (checksum миграций S-03, сайдкар поколения Ж13), `12-ai-readiness-and-docs.md` (документация, `deploy/README.md:74`), `astra-02-backup-progress-monitoring.md`, `astra-15-immutable-release-rollback.md`, `astra-16-release-validation-gate.md`, `astra-17-deploy-entrypoint-failure-tests.md`, `astra-28-permanent-node-runtime.md` (Node 24 для локального gate), `astra-34-release-and-owner-acceptance.md` (приёмка на реальном S3).
+
+## 1. Проблема
+
+Все ссылки `файл:строка` проверены по рабочему дереву 2026-09-08. Где ревью Astra уже описало шаг, здесь указан файл плана Astra и то, чем этот план отличается или что добавляет.
+
+### 1.1. Репликация без постоянного внешнего сигнала (Astra S-02; наш P5 это пропустил)
+
+- `deploy/litestream.yml:1-20` содержит только `logging` (`:1-3`), `snapshot` (`:4-6`), `shutdown-sync-timeout: 30s` (`:7`), `socket` (`:8-11`) и `dbs` (`:12-20`). Ключей `heartbeat-url`, `heartbeat-interval`, `addr` нет. `deploy/litestream.local.yml:1-16` то же.
+- `deploy/compose.yml:41-59`: у сервиса `litestream` нет `healthcheck`, только `restart: unless-stopped` (`:55`) и ротация логов (`:57-59`). `/health` приложения (`src/server/app.ts:392-423`) о реплике ничего не знает. `confirmed_sync` (`deploy/common.sh:39-50`) вызывается только из `deploy.sh`, `rollback.sh` и drill, то есть только во время релиза.
+- Документация Litestream (`litestream.io/reference/config/`, проверено 2026-09-08): верхнеуровневые ключи `heartbeat-url` и `heartbeat-interval` (минимум `1m`, по умолчанию `5m`, GET, успех по `2xx`); пинг уходит только если все базы успешно синхронизировались в пределах интервала, то есть это сигнал «реплика жива», а не «процесс жив». Ключ `addr` включает Prometheus-метрики. Переменные `${VAR}` в конфиге разворачиваются (уже используется в `litestream.yml:16-19`). Пин `litestream/litestream:0.5.12` (`compose.yml:42`) всё это поддерживает (сверка с `cmd/litestream/main.go` тега v0.5.12 в `compare-stack-arch.md`, раздел (c)).
+- Последствие: истёкшие ключи S3, закрытый bucket или ошибка сети оставляют `/health` зелёным, приложение продолжает принимать записи, а единственная защита от потери VPS молча не работает до аварии. Для продукта, у которого нет другой резервной копии, кроме Litestream, это самый дорогой по последствиям пробел раздела «Развёртывание».
+
+### 1.2. Откат берёт конфигурацию из checkout кандидата, `on_failure` оставляет detached HEAD (Astra A-04)
+
+- `deploy/deploy.sh:40` `git checkout --detach "$target"`, затем `:41` `dc build app`. `dc()` (`deploy/common.sh:15-20`) всегда берёт `$repo/deploy/compose.yml`; `compose.yml:54` монтирует `./litestream.yml` из того же каталога. При ошибке `deploy.sh:51` вызывает `bash "$repo/deploy/rollback.sh"`, а `rollback.sh:4-5` берёт `common.sh` рядом с собой. Итого из checkout кандидата приходят `compose.yml`, `litestream.yml`, `common.sh`, `rollback.sh`.
+- Манифест `last-backup.json` (`deploy.sh:70-72`) хранит image/build/deployment/backup/replicaUrl/database/replication и не хранит ни копий, ни хешей этих четырёх файлов. `current.json` (`common.sh:26-28`) тоже.
+- В пользу текущей реализации: `taskindex-admin` и `deploy/database.mjs` при откате выполняются старым образом, потому что `TASKINDEX_IMAGE` берётся из манифеста (`rollback.sh:38-39`) до `dc run` (`:45-46`).
+- Уточнение, которого нет у Astra: `on_failure` (`deploy.sh:45-61`) не возвращает checkout. После первого же неудачного релиза VPS стоит на detached HEAD кандидата, и `deploy/compose.sh` (`compose.sh:3-6`, обёртка через `common.sh`) при любой ручной операции подставляет compose кандидата под старый образ. Расхождение возникает сразу, а не «в следующих релизах».
+- Drill (`deploy/local-drill.sh`) не проверяет переход между двумя различающимися конфигурациями: кандидат и предыдущий релиз собраны из одного дерева.
+
+### 1.3. Drill не исполняет `deploy.sh` (Astra Q-05)
+
+- `local-drill.sh:79-95` сам создаёт «неудачного кандидата» (инъекция `schema_version = 999`, `:81-86`) и вызывает `rollback.sh` напрямую (`:95`), потом проверяет отказ повторного отката (`:100-103`). Ни одна строка `deploy.sh` при этом не выполняется: фазы `before-stop/stopped/migration/candidate` (`deploy.sh:43, 63, 75, 78`), ERR-trap и `on_failure` (`:45-62`), флаг `opened` (`:94`), проверка кода выхода остановленного контейнера (`:66`), точки инъекции `TASKINDEX_FAIL_AT` (`:77`, `:89`) не покрыты ничем. Комментарий `local-drill.sh:80` «The production deployment error handler invokes exactly the same rollback.sh» верен про `rollback.sh`, но не про обработчик.
+- Прямому запуску `deploy.sh` в изолированном проекте мешают: требование Linux (`:18`), проверки `/health` через host-порт `127.0.0.1:3100` (`:34`, `:84`, `:98`), который `compose.local.yml:4` сбрасывает, требование работающего предыдущего релиза (`:31`) и сборка образа из checkout (`:41`).
+
+### 1.4. Релиз не требует `npm run check`; образ собирается на VPS (Astra S-06; наши P1, S-06 подтверждён)
+
+- `deploy/Dockerfile:9` выполняет только `npm run build`; `deploy.sh:19-41` проверяет чистоту checkout и существование коммита, но не результат `check` (`package.json:13`). `.github/` и другого CI в репозитории нет (проверено `ls .github`). Репозиторий размещён на GitHub (`git remote -v`: `github.com/goslingmanagment/taskindex`), то есть GitHub Actions доступны.
+- P1 (ревью 1): `deploy.sh:41` `dc build app` на VPS, пока старый релиз работает: Vite + tsdown + компиляция `better-sqlite3` (`Dockerfile:3` ставит `python3 make g++`). При неудаче сборки деплой падает до остановки (безопасно), но это память и минуты на маленьком VPS. `TASKINDEX_IMAGE` уже читается compose (`compose.yml:4`), но `deploy.sh:37` жёстко переопределяет его на `taskindex:$target` и всегда собирает.
+- Связка: если образ собирается в CI после зелёного `check`, CI и есть gate. Тогда `deploy.sh` должен уметь принять готовый образ и проверить, что он собран из целевого коммита.
+
+### 1.5. Nginx: нет HTTP/2, HSTS, кэша статики и сжатия; `/health` и заголовки публичны (P3, F3, Ж10, B-10)
+
+- `deploy/nginx/taskindex.conf:12-13` `listen 443 ssl` без HTTP/2; `:17` только `ssl_protocols`; нет `ssl_session_cache`, `ssl_session_tickets`, `add_header Strict-Transport-Security`, `server_tokens off`, `gzip`. `:37` `location /` проксирует всё, включая `/health`.
+- `/health` (`app.ts:392-423`) без авторизации отдаёт `build` (SHA коммита), `generation`, `seq`, `writes`. Все потребители внутри периметра: `deploy.sh:34, 84, 98` (host-порт 3100), `common.sh:34` и `local-drill.sh:37, 91` (внутри контейнера), `compose.yml:32` (healthcheck внутри контейнера). Публичность не нужна ничему. Решение владельца в `README.md` планов: «закрыть по allowlist в Nginx, содержимое не менять»; содержимое и пробная запись остаются за планом 06 (§1.5, §3).
+- Security-заголовков нет ни в nginx, ни в приложении: grep `secureHeaders|X-Content-Type|Strict-Transport|X-Frame` по `src/` пуст; `hono/secure-headers` присутствует в `node_modules/hono/dist/middleware/secure-headers/`.
+- Статика: `src/server/index.ts:37-38` `serveStatic({ root: './dist/web' })` ставит только `Last-Modified` (`node_modules/@hono/node-server/dist/serve-static.mjs:115`); имена файлов хешированы Vite (`dist/web/assets/index-C5sBns2A.js`, `index-vr3rlxsL.css`), `index.html` и `favicon.svg` без хеша. Без `Cache-Control` каждый вход перезапрашивает 1 МБ JS (294 КБ gzip по замеру ревью 1) с условным запросом; без gzip в nginx он идёт несжатым.
+- SSE-локация `:25-36` верна и остаётся как есть: `proxy_http_version 1.1`, пустой `Connection`, `proxy_buffering off`, `proxy_cache off`, `proxy_read_timeout 1h`; приложение шлёт `x-accel-buffering: no` и `cache-control: no-cache, no-transform` (`app.ts:859-862`), heartbeat каждые 25 с (`app.ts:841-845`). Единственное добавление туда: явный `gzip off`, потому что модуль gzip nginx буферизует ответ и не учитывает `no-transform`.
+
+### 1.6. `npm prune --omit=optional` в образе (P2)
+
+`Dockerfile:9` `npm run build && npm prune --omit=dev --omit=optional`. Сегодня это ничего не ломает: замыкание production-зависимостей по `package-lock.json` (118 пакетов, скрипт в scratchpad `prod-closure.mjs`) не содержит ни одного пакета с `optionalDependencies`, drill проходит. Но `--omit=optional` снимает optionalDependencies у всех рантайм-пакетов сразу, и при обновлении зависимости с платформенным модулем в optional (типичный приём для нативных биндингов) образ соберётся, а упадёт при старте. Достаточно `--omit=dev`.
+
+### 1.7. Гигиена shell (ревью 4 §10, T2)
+
+- Health-проба написана четыре раза разными словами: `common.sh:34` (проверяет `ok`, `dbWritable`, `writes`, `build`, `schemaVersion`), `local-drill.sh:37` (`ok`, `writes`), `local-drill.sh:91` (только статус), `compose.yml:32` (`ok`). Плюс три варианта на `curl` + `jq` в `deploy.sh:34-36, 84-85, 98-99`. Любое изменение формы `/health` правится в семи местах.
+- `deploy.sh:17` `for command in docker git curl jq flock; do command -v "$command" ...` затеняет builtin `command` именем переменной; работает, но читается как ошибка. `local-drill.sh:9` уже использует имя `tool`.
+- `local-drill.sh` содержит четыре heredoc-программы Node: `:46-52` (`agent_create`), `:70-78` (сравнение экспортов), `:81-86` (инъекция несовместимой схемы), `:112-118` (проверка новой реплики). Они не проходят ни lint, ни typecheck, ни форматирование.
+- 27 строк длиннее 140 символов в `deploy/*.sh` (`common.sh:34`; `deploy.sh:17, 18, 31, 33, 49, 52, 54, 57, 72, 85`; `local-drill.sh:5, 37, 50, 66, 68, 110, 111, 116, 120`; `rollback.sh:11, 12, 21, 28, 45, 56, 58`), плюс `database.mjs:119` и `compose.yml:32`.
+- `shellcheck` не запускается ни локально (на этом Mac не установлен, `command -v shellcheck` пуст), ни в `npm run check` (`package.json:13-15`), ни в CI (его нет). Около 400 строк bash с `trap ERR`, `flock`, `jq` и файлом границы без статического анализа.
+
+### 1.8. Нет `--plan` и `bootstrap.sh`; `git checkout --detach` не задокументирован как побочный эффект (ревью 5 B10)
+
+- `deploy.sh:8` принимает ровно один аргумент и сразу переходит к действиям; способа увидеть «что будет сделано» без Docker нет. Для агента-оператора это значит либо запуск вслепую, либо чтение 104 строк bash.
+- Первая установка это шесть ручных шагов `deploy/README.md:47-74` с прямыми вызовами `docker compose -f deploy/compose.yml ...`, без проверок, без записи `deploy/.runtime/current.json` (его создаёт только `deploy.sh`, `common.sh:21-30`) и без снимка релиза. Проверочных команд для nginx/TLS в README нет (`:66-70` только «проверить `nginx -t`»).
+- `deploy.sh:40` меняет checkout VPS на detached HEAD; `deploy/README.md:85-97` про это не говорит.
+
+### 1.9. Мёртвые переменные на стороне compose (Ж6)
+
+`compose.yml:14` передаёт `TIMEZONE` в контейнер приложения, но сервер читает пояс только из `settings.timezone` (`app.ts:187`); переменную использует лишь `taskindex-admin migrate` при первой инициализации (`src/cli/admin-run.ts:94`, `src/server/db.ts:91-92`). `compose.yml:15` `LOG_LEVEL` не читается нигде в `src/`. Решение по приложению принято в плане 06 (§3: `LOG_LEVEL` реализовать, `TIMEZONE` оставить как параметр миграции с комментарием; шаг 12 плана 06 правит `compose.yml:14` и `.env.example:6-7`). Здесь только то, что план 06 не покрывает: явный `HOST`, новая переменная heartbeat, порядок правок, чтобы compose и `.env.example` не редактировались дважды.
+
+### 1.10. Смена `generation` только ручная (Ж13)
+
+Поколение меняют только `markRestored` (`src/server/admin.ts:450-463`) и `importWorkspace`. Deploy-скрипты это обеспечивают (`rollback.sh:46`), но если оператор восстановит файл вручную без `mark-restored`, приложение подменённую базу не распознает и клиенты применят события расходящегося журнала под тем же поколением. Решение владельца; варианты и рекомендация в §3.
+
+### 1.11. Что проверено и признано корректным: не «исправлять»
+
+Подтверждено ревью 1 (e), ревью 2 (f), ревью 3 («Проверено») и сегодняшней сверкой по строкам:
+
+- Новая ветка репликации в соседнем prefix без удаления старой: `rollback.sh:42-44` (`LITESTREAM_REPLICA_URL="${previous_replica%/}-$restore_id"`), `auto-recover: false` (`litestream.yml:20`).
+- Подтверждённая точка реплики через `litestream sync -wait -json` с проверкой `replica_txid == txid`: `common.sh:39-50`; вызывается до остановки Litestream (`deploy.sh:67`) и до открытия записи (`:91`).
+- Файл границы пишется до вызова `open-writes`, а не после: `deploy.sh:92-97`, `rollback.sh:60-63`; `rollback.sh:12` отказывает при наличии файла.
+- Gate `held`/`open` переживает перезапуск контейнера: `approved_deployment` в базе (`admin.ts:464-481`), режим из `TASKINDEX_WRITES` (`src/server/index.ts:23`, `compose.yml:18`); новая попытка с новым `TASKINDEX_DEPLOYMENT` стартует `held`.
+- Резервная копия через `db.backup()` с `integrity_check` и `foreign_key_check` до и после копирования: `deploy/database.mjs:26-59`; копия снимается при остановленных `app` и `litestream` (`deploy.sh:64-69`).
+- `flock -n` на `deploy.lock` (`deploy.sh:24-25`), `umask 077` (`deploy.sh:3`, `rollback.sh:3`, `local-drill.sh:3`), `set -Eeuo pipefail` во всех трёх.
+- `stop_grace_period: 20s` для `app` (`compose.yml:25`) больше 10-секундного принудительного таймера `src/server/index.ts:49-53`; `40s` для `litestream` (`compose.yml:56`) больше `shutdown-sync-timeout: 30s` (`litestream.yml:7`). Принудительный выход не считается успешным drain (`deploy.sh:66`).
+- Пробная запись `/health` не создаёт WAL-кадров (замеры в ревью 1 (e), ревью 3, `compare-stack-arch.md` (c)); V7 снят.
+
+## 2. Цель и критерии приёмки
+
+1. **Heartbeat.** В `deploy/litestream.yml` и `deploy/litestream.local.yml` заданы `heartbeat-url: ${LITESTREAM_HEARTBEAT_URL}` и `heartbeat-interval: 1m`; `compose.yml` требует `LITESTREAM_HEARTBEAT_URL` через `:?`; `.env.example` описывает переменную и `op://`-ссылку. На локальном стенде (`deploy/local-drill.sh --heartbeat`): при здоровой репликации получатель видит пинг не позже чем через 90 с; при недоступной реплике и зелёном `/health` приложения пингов нет 90 с; после восстановления пинги возобновляются. `deploy/README.md` содержит раздел с RPO (`sync-interval` по умолчанию 1 с), временем обнаружения (интервал 1 мин плюс grace получателя) и действиями при алерте.
+2. **Снимок релиза.** Каждый успешный `deploy.sh` и `bootstrap.sh` оставляет `deploy/.runtime/releases/<deployment>/{compose.yml,litestream.yml,common.sh,rollback.sh,release.json}`; `current.json` и `last-backup.json` содержат путь к снимку; `rollback.sh` поднимает предыдущий релиз только из его снимка; `on_failure` возвращает checkout на прежний ref во всех ветках до открытия записи. Harness с двумя релизами A и B, различающимися в `compose.yml`, после отказа B показывает работающий контейнер с образом A и без переменной-маркера B.
+3. **Настоящий `deploy.sh` под тестом.** `deploy/drill/deploy-drill.sh` на Linux с Docker прогоняет реальный `deploy/deploy.sh` в изолированном compose-проекте по матрице `before-stop`, `after-migrate`, `health`, `after-open`, без инъекции; каждая строка матрицы имеет ожидаемые `exit code`, образ работающего контейнера, `current.json.status`, checkout и число задач. `TASKINDEX_FAIL_AT` без `TASKINDEX_COMPOSE_PROJECT` отклоняется до любых действий.
+4. **Gate и образ.** Workflow CI на Node 24 выполняет `npm ci`, `npm run check`, `lint:shell`, `npm run build`, e2e и после успеха собирает `linux/amd64` образ с label `org.opencontainers.image.revision=<sha>`. `deploy.sh COMMIT` по умолчанию требует готовый образ `taskindex:<commit>` (или `--image REF`) с совпадающим label и не собирает на VPS; сборка на VPS только с явным `--build-here`.
+5. **Nginx и заголовки.** На production-like HTTPS: `curl -sI --http2 https://D/ | head -1` даёт `HTTP/2 200`; ответ несёт `strict-transport-security: max-age=31536000`; `GET /health` снаружи 403, изнутри VPS (`curl http://127.0.0.1:3100/health`) 200; `GET /assets/<hash>.js` несёт `cache-control: public, max-age=31536000, immutable` и `content-encoding: gzip` при `Accept-Encoding: gzip`; `GET /` и `/index.html` несут `cache-control: no-cache`; `GET /api/events/stream` без `content-encoding`. Все ответы приложения несут `x-content-type-options: nosniff`, `x-frame-options: DENY`, `referrer-policy: no-referrer`; в `tests/api` это закреплено тестом; CSP включена после нулевого счёта нарушений в e2e.
+6. **Dockerfile.** `Dockerfile:9` без `--omit=optional`; `bash deploy/local-drill.sh` зелёный.
+7. **Гигиена.** Одна проба `deploy/health.mjs` в образе используется `compose.yml` healthcheck, `common.sh`, `deploy.sh`, `local-drill.sh`; heredoc-программы вынесены в `deploy/drill/*.mjs` и проходят `oxlint`/`oxfmt`/`@ts-check` (по правилам плана 10); ни одной строки длиннее 120 символов в `deploy/*.sh`; `npm run lint:shell` (`bash -n` + `shellcheck -x`) входит в `npm run check` и в CI; переменная `command` в `deploy.sh:17` переименована.
+8. **`--plan` и `bootstrap.sh`.** `bash deploy/deploy.sh --plan COMMIT` без Docker и без записи на диск печатает JSON с целью, образом, будущим `TASKINDEX_DEPLOYMENT`, текущим релизом из `current.json`, путём копии, списком фаз и предупреждением о смене checkout, код выхода 0. `bash deploy/bootstrap.sh` выполняет шаги 1..4 и 6 `deploy/README.md:47-74` с теми же guard'ами, пишет `current.json` и снимок релиза, печатает чек-лист nginx/TLS с проверочными командами; открывает запись только с флагом `--open-writes`. Harness использует `bootstrap.sh` для релиза A.
+9. **Env.** `compose.yml` и `.env.example` содержат `LITESTREAM_HEARTBEAT_URL`, явный `HOST: 0.0.0.0`; `TIMEZONE` и `LOG_LEVEL` оставлены с комментариями из плана 06 (одна правка, не две).
+10. **Проверено и не тронуто.** Пункты §1.11 в diff не меняются, кроме форматирования строк; `bash deploy/local-drill.sh` проходит все прежние стадии (`local-drill.sh:120`, `scope`), harness добавляет новые.
+
+## 3. Решение
+
+### 3.1. Heartbeat: встроенный механизм Litestream плюс внешний dead-man switch (S-02)
+
+| Вариант | Плюсы | Минусы | Решение |
+|---|---|---|---|
+| `heartbeat-url` Litestream + внешний получатель, который ждёт пинг раз в 1 мин | Две строки конфигурации; сигнал именно о факте успешного sync всех баз, а не о живом процессе; замечает и полное исчезновение VPS | Контейнеру `litestream` нужен исходящий доступ к получателю; URL получателя нужно хранить как секрет; поведение на простое базы без записей проверяется на стенде | Принято |
+| Cron на VPS: `litestream sync -wait` + внешний пинг | Проверяет то же самое | Дублирует то, что Litestream умеет сам; cron на хосте вне compose и вне снимка релиза | Отклонено |
+| Проверка возраста реплики из `/health` приложения | Один endpoint | Приложение начинает зависеть от сокета Litestream; `/health` закрывается allowlist'ом и снаружи всё равно не виден; не замечает гибель VPS | Отклонено |
+| `addr` (Prometheus) | Метрики sync/replica lag | Нужен коллектор; сам по себе не оповещает | Опционально, по умолчанию выключено; без публикации порта на хост |
+
+Получатель: любой сервис dead-man switch с расписанием «период 1 мин, grace 3 мин» и каналом оповещения владельца (Telegram или почта), либо самодельный приёмник на другом хосте владельца. Выбор и подключение это отдельное поручение на эксплуатацию (`astra-02`, шаг 4); здесь конфигурация, стенд и runbook. Оценка «минута и три пропуска» остаётся предложением, как и записано в `astra-02` шаг 3.
+
+Отличия от `astra-02-backup-progress-monitoring.md`: там шаги 1..6 описывают цель и порядок (цепочка, выбор механизма, хранение URL, стенд, fault injection, restore из реального S3). Этот план добавляет конкретику: имена ключей и значений в `litestream.yml`, переменную и `:?`-guard в compose, приёмник в drill (`deploy/drill/heartbeat-receiver.mjs`, сервис `heartbeat` в `compose.local.yml`), три проверяемых утверждения (пинг при здоровой реплике, отсутствие пинга при сломанной реплике и зелёном `/health`, возобновление) и текст раздела RPO для `deploy/README.md`. Restore из реального S3 остаётся в `astra-02` шаг 6 и `astra-34` шаг 6. Правило «не запрещать запись автоматически при потере реплики» (`astra-02`, «Зависимости и границы») сохраняется: heartbeat только сигнализирует.
+
+### 3.2. Снимок релиза и откат из него (A-04)
+
+| Вариант | Плюсы | Минусы | Решение |
+|---|---|---|---|
+| Копия четырёх файлов в `deploy/.runtime/releases/<deployment>/` с `release.json` (sha256, commit, image, imageId); `rollback.sh` работает из снимка; `on_failure` возвращает checkout | Минимальная правка `common.sh`/`deploy.sh`/`rollback.sh`; `name: taskindex` (`compose.yml:1`) сохраняет проект независимо от расположения compose-файла; `./litestream.yml` (`compose.yml:54`) разрешается относительно снимка | Появляется каталог, который надо хранить вместе с копиями (README уже требует хранить пару «образ + копия» неделю, `deploy/README.md:100`) | Принято |
+| Хранить снимок внутри образа | Образ и конфиг неразделимы | Compose-файл не может исполняться из образа без извлечения; секреты и пути volume зависят от хоста | Отклонено |
+| Отдельный git-тег релиза и `git worktree` при откате | Без копий файлов | Требует чистой сети/репозитория во время аварии; `deploy.sh` намеренно не делает git-операций с удалёнными (`deploy/README.md:85`) | Отклонено |
+
+Снимок содержит только `compose.yml`, `litestream.yml`, `common.sh`, `rollback.sh` и `release.json`; секретов там нет (значения приходят из `op run`). Первый релиз после этого изменения: `current.json` без поля `release` означает, что снимок предыдущего релиза делается из дерева до `git checkout --detach` с пометкой `source: "checkout-before-deploy"`, и `deploy.sh` печатает предупреждение, что считает checkout соответствующим работающему релизу.
+
+Отличия от `astra-15-immutable-release-rollback.md`: шаги 1..6 там задают требования (артефакт, неизменяемый каталог, секреты вне манифеста, перевод deploy/rollback, граница open-writes, drill A/B). Здесь конкретно: состав каталога, поля манифеста, переменная `TASKINDEX_COMPOSE_FILE` в `dc()`, поведение `deploy/compose.sh`, возврат checkout в `on_failure` (у Astra отсутствует), режим совместимости для первого релиза и способ отличить конфигурацию A от B в harness (переменная-маркер в `compose.yml`). Не делается: «очистка старых артефактов» (по `astra-15` она не смешивается с исправлением), собственная оркестрация.
+
+### 3.3. Harness настоящего `deploy.sh` (Q-05)
+
+Два уровня проверки, оба обязательны:
+
+- `deploy/local-drill.sh` остаётся быстрым локальным прогоном (macOS, Docker Desktop), проверяет репликацию, backup, restore по TXID, `rollback.sh`, повторный отказ, новую реплику; получает флаг `--heartbeat`.
+- `deploy/drill/deploy-drill.sh` запускает настоящий `deploy/deploy.sh` на Linux (VPS до переключения, CI-runner с Docker или WSL2) в отдельном `git worktree`, отдельном compose-проекте (`TASKINDEX_COMPOSE_PROJECT`, `TASKINDEX_VOLUME`, `TASKINDEX_RUNTIME_DIR`, `TASKINDEX_COMPOSE_OVERRIDE=compose.local.yml`, `file://` реплика) с релизами A (`bootstrap.sh`) и B (коммит поверх A, меняющий `compose.yml`). Инъекции только через уже существующий механизм `TASKINDEX_FAIL_AT` (`deploy.sh:77, 89`) плюс две новые точки `before-stop` и `after-open`; копии алгоритма в тесте нет (требование `astra-17`, «Дублирование production-скрипта в тесте даст ложную уверенность»).
+
+Чтобы `deploy.sh` мог работать в изолированном проекте, все проверки `/health` переводятся с host-порта 3100 на сеть compose (`deploy/health.mjs`, §3.6): host-порт остаётся только для nginx (`compose.yml:20-21`).
+
+Отличия от `astra-17-deploy-entrypoint-failure-tests.md`: там матрица сценариев (сборка/preflight, миграция, health, до checkpoint, после открытия), требования к ERR-trap, коду выхода, повторному запуску, `bash -n` и shell-анализатору. Здесь: конкретный список точек инъекции с ожиданиями (таблица в §5), способ изоляции (переменные `TASKINDEX_*`, которые `common.sh:3, 17-18` уже поддерживает), guard на `TASKINDEX_FAIL_AT` вне тестового проекта, worktree как источник двух коммитов, интеграция с `bootstrap.sh`. Сценарий «отказ сборки» из `astra-17` шаг 3 не реализуется отдельным прогоном: после §3.4 `deploy.sh` по умолчанию не собирает, а отсутствие или неверный label образа проверяется одним негативным вызовом без Docker-сборки.
+
+### 3.4. Релизный gate и сборка вне VPS (S-06, P1; решение владельца: «локально или в CI, перенос образа»)
+
+| Вариант | Плюсы | Минусы | Решение |
+|---|---|---|---|
+| GitHub Actions: `check` → `build` → образ `linux/amd64` в GHCR с label revision; VPS делает `docker pull` по тегу коммита | Gate и сборка в одном месте; native amd64 без эмуляции; образ существует только если `check` прошёл; `deploy.sh` проверяет label | Нужен вход VPS в GHCR (read-токен в защищённом env); приватный пакет | Принято как основной |
+| Локальная сборка `docker buildx --platform linux/amd64` на Mac, перенос `docker save \| zstd \| ssh vps docker load` | Без внешних сервисов | На Apple Silicon это эмуляция QEMU; если prebuilt `better-sqlite3` не скачается, компиляция под эмуляцией занимает минуты; gate выполняется руками | Запасной путь, оформлен скриптом `deploy/release.sh` |
+| Preflight `npm ci && npm run check` в `deploy.sh` на VPS до `dc stop` | Не требует CI | На VPS нужны Node 24 и devDependencies; дублирует CI; удваивает время релиза | Отклонено как умолчание; `bash -n`/`shellcheck` на VPS не нужны, они в CI |
+
+Привязка результата к образу (требование `astra-16`, шаг 3): job `image` зависит от job `check`, собирает из того же `GITHUB_SHA`, ставит label `org.opencontainers.image.revision`; `deploy.sh` отказывает, если label не равен целевому коммиту, и записывает `imageId` (`docker image inspect --format '{{.Id}}'`) в `current.json` и `last-backup.json`. Требование чистого checkout (`deploy.sh:19`) сохраняется: коммит на VPS должен быть тем же, что собран.
+
+Отличия от `astra-16-release-validation-gate.md`: там состав gate (Node 24, `npm ci`, `check`, `build`, browser suite), привязка к commit/digest, запрет засчитывать чужой check, правила расширения. Здесь: конкретный workflow, место сборки (решение P1), способ доставки образа, изменения `deploy.sh` (`--image`, `--build-here`, проверка label), запасной локальный путь. Правило «миграции требуют историческую фикстуру» (`astra-16` шаг 6) относится к плану 09 (S-03/A-03).
+
+### 3.5. Nginx и заголовки: TLS-часть в nginx, остальное в приложении
+
+| Заголовок или настройка | Где | Почему |
+|---|---|---|
+| HTTP/2, `ssl_session_cache`, `ssl_session_tickets off`, `server_tokens off`, HSTS | nginx, только блок 443 | Только терминатор TLS знает, что соединение защищено; HSTS в приложении ушёл бы и на `http://127.0.0.1:3100` |
+| gzip для `text/css`, `application/javascript`, `application/json`, `image/svg+xml`; `gzip off` для SSE | nginx | Один процесс на хосте, Node не тратит CPU; brotli только если `nginx -V` показывает модуль (в стандартных пакетах Debian/Ubuntu его может не быть) |
+| `location = /health { allow 127.0.0.1; allow ::1; deny all; }` | nginx | Решение владельца; внутренние потребители ходят мимо nginx |
+| `Cache-Control` для `/assets/*` (`immutable`) и `index.html` (`no-cache`) | приложение, `serveStatic` `onFound` | Заголовок относится к содержимому, которое знает приложение (хеш в имени); проверяется проектом Playwright `static` (план 10, шаг 16) без nginx; в nginx не появляется `add_header` внутри `location`, который отменил бы наследование HSTS |
+| `X-Content-Type-Options`, `X-Frame-Options: DENY`, `Referrer-Policy`, COOP/CORP, `X-DNS-Prefetch-Control` | приложение, `hono/secure-headers` с `strictTransportSecurity: false` | Одинаково в dev, e2e и prod; тестируется `app.request`; `secureHeaders` принимает строку `'DENY'` (`node_modules/hono/dist/types/middleware/secure-headers/secure-headers.d.ts:54, 69`) |
+| CSP | приложение, сначала `Content-Security-Policy-Report-Only` | Vite-сборка без inline-скриптов (`index.html:13` один `<script type="module">`), но библиотеки могут ставить inline-стили; нулевой счёт нарушений в e2e это условие перехода на enforcing |
+
+`http2 on;` появилась в nginx 1.25.1. На Debian 12 (1.22) и Ubuntu 24.04 (1.24) писать `listen 443 ssl http2;`; на более новых дистрибутивах `http2 on;`. Проверять `nginx -v` при установке (ОС VPS владельцем не выбрана, `deploy/README.md:8`).
+
+### 3.6. `deploy/health.mjs` и гигиена shell
+
+Одна проба `deploy/health.mjs` в образе рядом с `database.mjs` (`Dockerfile:21`, `Dockerfile.dockerignore:17`): `node deploy/health.mjs [--url URL] [--expect writes=held build=SHA schemaVersion=N dbWritable=true]`, код 0 при совпадении всех ожиданий, 1 иначе, без вывода тела наружу кроме `--print`. Потребители: `compose.yml` healthcheck (`node deploy/health.mjs`), `common.sh wait_health` (`dc exec -T app node deploy/health.mjs --expect ...`), `deploy.sh` (три места), `local-drill.sh` (два места). Для проверки *предыдущего* релиза, чей образ может ещё не содержать `health.mjs`, `deploy.sh` использует `dc run --rm --no-deps -T app node deploy/health.mjs --url http://app:3000/health` из образа кандидата: `run` присоединяется к сети compose, где старый контейнер доступен по имени сервиса. После первого рабочего релиза с `health.mjs` этот обход можно свести к `dc exec`.
+
+Heredoc-программы уходят в `deploy/drill/agent-create.mjs`, `compare-exports.mjs`, `inject-schema.mjs`, `verify-new-replica.mjs`; drill запускает их `dc run --rm --no-deps -T -v "$repo/deploy/drill:/drill:ro" app node /drill/<имя>.mjs` (чтобы не пересобирать образ ради тестовых скриптов). `shellcheck` и `bash -n` в `npm run lint:shell`.
+
+### 3.7. `--plan` и `bootstrap.sh`
+
+`deploy.sh --plan COMMIT` печатает и выходит; ничего не пишет (не создаёт `runtime`, не берёт lock дольше проверки `flock -n`). `bootstrap.sh` повторяет шаги README с guard'ами `deploy.sh` (`set -Eeuo pipefail`, `umask 077`, `dc config --quiet`, проверка отсутствия работающего `app` и существующей базы в volume) и заканчивается снимком релиза и `current.json`, чтобы следующий `deploy.sh` работал из состояния, а не из env-файла. README получает предупреждение о смене checkout.
+
+### 3.8. Env на стороне compose (Ж6)
+
+Не удалять ничего. `LOG_LEVEL` план 06 делает рабочим; `TIMEZONE` план 06 (шаг 12) оставляет с комментарием. Этот план правит `compose.yml` и `.env.example` один раз вместе с планом 06 или после него: добавляет `HOST: 0.0.0.0` (явно, после появления `HOST` в конфиге плана 06), `LITESTREAM_HEARTBEAT_URL`, комментарий к `TASKINDEX_IMAGE` («тег готового образа из CI или `deploy/release.sh`»).
+
+### 3.9. Смена `generation` только ручная (Ж13): решение владельца
+
+| Вариант | Плюсы | Минусы |
+|---|---|---|
+| (а) Оставить как есть: процедура `deploy/README.md:137` и `current.json` | Ничего не менять | Ошибка оператора не обнаруживается приложением |
+| (б) Сайдкар `<DATABASE_PATH>.generation`, который пишут `migrate`/`markRestored`/`import`, а сервер сверяет при старте (план 09 §3 Ж13: этап 1 предупреждение в лог, этап 2 отказ старта) | Дёшево; проверка там, где открывается база; `quarantine-and-install` переносит сайдкар вместе с `-wal/-shm` | Правка приложения и `database.mjs:99-105`; этап 2 способен остановить сервис после ручного восстановления без `mark-restored` (это и есть цель) |
+| (в) Маркер деплоя в volume (`/data/.release.json` с `deployment` и `generation`), который пишут только `deploy.sh`/`rollback.sh`/`bootstrap.sh` и сверяют перед `dc up` | Не трогает приложение | Проверка только в момент релиза, не при `docker compose up` руками; дублирует `current.json` |
+
+Рекомендация: (б) в два этапа, как описано в плане 09 (код там, шаг 9 и тест 9); в этом плане только эксплуатационная сторона: drill проверяет, что после `quarantine-and-install` сайдкар в карантине, а после `mark-restored` совпадает с `/health.generation` (план 09, тест 10), и `deploy/README.md` «Восстановление» упоминает файл. Вариант (в) не делать.
+
+## 4. Шаги
+
+Каждый шаг заканчивается `npm run check`; шаги, трогающие `deploy/`, дополнительно `bash deploy/local-drill.sh`; шаги 5..9 и 12..13 дополнительно `deploy/drill/deploy-drill.sh` на Linux. Порядок внутри волны важен: `health.mjs` (шаг 10) удобно сделать до harness (шаг 7), поэтому он вынесен вперёд в волне P1.
+
+**Волна P0 (до рабочего переключения).**
+
+1. **Heartbeat в конфигурации.** `deploy/litestream.yml` после `shutdown-sync-timeout` (`:7`):
+   ```yaml
+   heartbeat-url: ${LITESTREAM_HEARTBEAT_URL}
+   heartbeat-interval: 1m
+   # addr: ":9090"  # Prometheus-метрики; включать только при наличии коллектора, порт на хост не публиковать
+   ```
+   То же в `deploy/litestream.local.yml`. `deploy/compose.yml` сервис `litestream`, `environment` (`:45-51`): `LITESTREAM_HEARTBEAT_URL: ${LITESTREAM_HEARTBEAT_URL:?Set the dead-man switch ping URL}`. `deploy/.env.example` после `:16`: `LITESTREAM_HEARTBEAT_URL=` и `# LITESTREAM_HEARTBEAT_URL=op://VAULT/ITEM/ping-url` (URL даёт право подделывать пинги, хранить как секрет). Проверка: `dc config --quiet` без переменной падает с сообщением; с переменной drill (шаг 2) проходит.
+
+2. **Приёмник heartbeat в drill.** `deploy/drill/heartbeat-receiver.mjs`: HTTP-сервер на `:8787`, каждый `GET /ping` дописывает строку с временем в `/data/test-replica/heartbeat.log` и отвечает 204. `deploy/compose.local.yml`: сервис `heartbeat` (`image: ${TASKINDEX_IMAGE}`, `command: node /drill/heartbeat-receiver.mjs`, `volumes: [data:/data, ./drill:/drill:ro]`, без портов на хост). `local-drill.sh`: `export LITESTREAM_HEARTBEAT_URL=http://heartbeat:8787/ping`; флаг `--heartbeat` включает три проверки после `health open` (`:44`): (а) в течение 90 с в `heartbeat.log` появляется запись; (б) `dc run --rm --no-deps --user root -T app chmod 000 /data/test-replica/$project` делает реплику недоступной, `health open` по-прежнему зелёный, за 90 с новых записей нет; (в) `chmod 755` обратно, за 90 с запись появляется. Отдельно зафиксировать в выводе drill, приходят ли пинги при отсутствии записей в базу 2 мин (документация говорит «успешный sync в пределах интервала»; если холостой sync не считается, это записывается как ограничение в README, а не чинится костылём). Без флага drill не ждёт 4.5 минуты. Проверка: `bash deploy/local-drill.sh --heartbeat` печатает `heartbeat: {healthy:true, broken:false, recovered:true, idle:<bool>}`.
+
+3. **Nginx.** `deploy/nginx/taskindex.conf`, блок 443 (`:11-38`):
+   ```nginx
+   server {
+       listen 443 ssl;
+       listen [::]:443 ssl;
+       http2 on;                       # nginx >= 1.25.1; иначе: listen 443 ssl http2;
+       server_name TASKINDEX_DOMAIN;
+       server_tokens off;
+       ssl_certificate /etc/letsencrypt/live/TASKINDEX_DOMAIN/fullchain.pem;
+       ssl_certificate_key /etc/letsencrypt/live/TASKINDEX_DOMAIN/privkey.pem;
+       ssl_protocols TLSv1.2 TLSv1.3;
+       ssl_prefer_server_ciphers off;
+       ssl_session_cache shared:SSL:10m;
+       ssl_session_timeout 1d;
+       ssl_session_tickets off;
+       add_header Strict-Transport-Security "max-age=31536000" always;
+       client_max_body_size 4m;
+
+       gzip on;
+       gzip_vary on;
+       gzip_proxied any;
+       gzip_min_length 1024;
+       gzip_comp_level 5;
+       gzip_types text/css application/javascript application/json image/svg+xml;
+
+       proxy_set_header Host $host;
+       proxy_set_header X-Real-IP $remote_addr;
+       proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+       proxy_set_header X-Forwarded-Proto $scheme;
+
+       location = /health {
+           allow 127.0.0.1;
+           allow ::1;
+           deny all;
+           proxy_pass http://127.0.0.1:3100;
+       }
+       location = /api/events/stream {
+           gzip off;
+           proxy_pass http://127.0.0.1:3100;
+           proxy_http_version 1.1;
+           proxy_set_header Connection "";
+           proxy_set_header Host $host;
+           proxy_set_header X-Real-IP $remote_addr;
+           proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+           proxy_set_header X-Forwarded-Proto $scheme;
+           proxy_buffering off;
+           proxy_cache off;
+           proxy_read_timeout 1h;
+       }
+       location / { proxy_pass http://127.0.0.1:3100; }
+   }
+   ```
+   Блок 80 (`:3-9`) без изменений. `includeSubDomains` в HSTS не ставить, пока владелец не подтвердит, что на поддоменах выбранного домена нет HTTP-сервисов; `preload` не ставить. Если сертификат получен `certbot --nginx`, вместо строк `ssl_protocols`/`ssl_prefer_server_ciphers`/`ssl_session_*` допустим `include /etc/letsencrypt/options-ssl-nginx.conf;` (он задаёт то же), но HSTS и `http2` остаются явными. `add_header` внутри `location` не добавлять: он отменяет наследование HSTS для этой локации. Проверка: на стенде с самоподписанным сертификатом или на VPS до переключения команды из §5, п. 9.
+
+4. **Заголовки в приложении.** `src/server/app.ts` в `createApp` до middleware `/api/*` (`:296`; после плана 06 в модуле `http/`):
+   ```ts
+   import { secureHeaders } from 'hono/secure-headers';
+   app.use('*', secureHeaders({
+     strictTransportSecurity: false, // HSTS ставит nginx: только он знает про TLS
+     xFrameOptions: 'DENY',
+     contentSecurityPolicyReportOnly: {
+       defaultSrc: ["'self'"], scriptSrc: ["'self'"], styleSrc: ["'self'"],
+       imgSrc: ["'self'", 'data:'], connectSrc: ["'self'"], fontSrc: ["'self'"],
+       frameAncestors: ["'none'"], baseUri: ["'self'"], formAction: ["'self'"], objectSrc: ["'none'"],
+     },
+   }));
+   ```
+   Остальные умолчания `secureHeaders` (`node_modules/hono/dist/middleware/secure-headers/secure-headers.js:3-30`: `nosniff`, `Referrer-Policy: no-referrer`, COOP/CORP `same-origin`, `X-DNS-Prefetch-Control: off`, `X-XSS-Protection: 0`) оставить. CSP: прогнать `npm run e2e` с обработчиком `securitypolicyviolation` в фикстуре (`page.addInitScript` собирает события в `window.__csp`; тест читает и падает при непустом списке); при нуле нарушений заменить `contentSecurityPolicyReportOnly` на `contentSecurityPolicy`; при нарушениях `style-src` добавить `'unsafe-inline'` только для `styleSrc` с комментарием, какая библиотека его требует. Кэш статики в `src/server/index.ts:37-38`:
+   ```ts
+   const cache = (path: string, c: Context) => {
+     if (path.includes('/assets/')) c.header('Cache-Control', 'public, max-age=31536000, immutable');
+     else c.header('Cache-Control', 'no-cache');
+   };
+   app.use('*', serveStatic({ root: './dist/web', onFound: cache }));
+   app.get('*', serveStatic({ path: './dist/web/index.html', onFound: cache }));
+   ```
+   (`onFound` есть в `@hono/node-server/dist/serve-static.mjs:144`.) Проверка: тест §5, п. 5; проект `static` плана 10 (шаг 16) проверяет `cache-control` на `/assets/<hash>.js` и `/`.
+
+**Волна P1.**
+
+5. **Dockerfile и образ.** `Dockerfile:9` → `RUN npm run build && npm prune --omit=dev`. `Dockerfile:21` → `COPY --chown=node:node deploy/database.mjs deploy/health.mjs ./deploy/`; `Dockerfile.dockerignore:17` добавить `!deploy/health.mjs`. Label образа: в `compose.yml` `build` (`:5-9`) добавить `labels: { org.opencontainers.image.revision: '${TASKINDEX_BUILD:-local}' }`; в CI label ставится флагом `--label`. Проверка: `bash deploy/local-drill.sh` зелёный; `docker image inspect taskindex:v2-drill --format '{{index .Config.Labels "org.opencontainers.image.revision"}}'` печатает `local-drill`.
+
+6. **`deploy/health.mjs`.** Реализация по §3.6 (около 40 строк, `// @ts-check`, только `node:` API). Замены: `compose.yml:26-37` `test: ['CMD', 'node', 'deploy/health.mjs']`; `common.sh:31-38` `wait_health` через `dc exec -T app node deploy/health.mjs --expect writes=$1 build=$2 schemaVersion=$3 dbWritable=true`; `deploy.sh:34-36` → `dc run --rm --no-deps -T app node deploy/health.mjs --url http://app:3000/health --expect ok=true writes=open --print` (образ кандидата уже есть после шага 8, порядок: проверить образ, затем предыдущий релиз); `deploy.sh:83-88` → `wait_health held "$target" "$expected_schema"`; `deploy.sh:98-99` → `wait_health open "$target" "$expected_schema"`; `local-drill.sh:34-41` → `wait_health` из `common.sh` с ожиданиями `writes` и `build`; `local-drill.sh:91` → `dc exec -T app node deploy/health.mjs` с инверсией. `previous_build` (`deploy.sh:36`) читать из `--print`-вывода. Проверка: drill; `grep -c '3000/health' deploy/*.sh deploy/compose.yml` даёт 0 (URL только внутри `health.mjs`).
+
+7. **Снимок релиза.** `common.sh`: `dc()` использует `${TASKINDEX_COMPOSE_FILE:-$repo/deploy/compose.yml}`; `load_current_release` экспортирует `TASKINDEX_COMPOSE_FILE="$(jq -r '.release // empty' current.json)/compose.yml"`, если поле есть; `save_current_release` получает аргумент `release_dir` и пишет `release`, `imageId`. Новая функция `snapshot_release DEPLOYMENT SOURCE_DIR` копирует четыре файла в `$(runtime_directory)/releases/DEPLOYMENT/`, пишет `release.json` (`deployment`, `commit`, `image`, `imageId`, `createdAt`, `source`, `files: {name: sha256}`), отказывает, если каталог уже существует. `deploy.sh`: до `:40` запомнить `previous_ref=$(git symbolic-ref -q --short HEAD || git rev-parse HEAD)`; если `current.json` без `release`, снять снимок предыдущего релиза из текущего дерева с `source: "checkout-before-deploy"` и предупреждением; после checkout снять снимок кандидата; `last-backup.json` (`:70-72`) получает `previousRelease`; `save_current_release candidate/opening/open` с каталогом кандидата; `on_failure` в ветках `stopped`, `migration`, `candidate` после восстановления выполняет `git checkout --quiet "$previous_ref"`, в ветке `opened == 1` не трогает checkout (работает кандидат). `on_failure:51` вызывает `bash "$previous_release/rollback.sh" "$runtime/last-backup.json"`. `rollback.sh`: `previous_release=$(jq -er '.previousRelease' "$manifest")`; `source "$previous_release/common.sh"`; `export TASKINDEX_COMPOSE_FILE="$previous_release/compose.yml"`; проверка `sha256` файлов по `release.json` перед использованием; `save_current_release` с этим каталогом. `compose.sh` автоматически получает compose текущего релиза через `load_current_release`. Секция `build:` из `compose.yml` переезжает в `deploy/compose.build.yml` (override, подключается только `deploy.sh --build-here`, `local-drill.sh` и `release.sh`), чтобы в снимке не было `context: ..` с неверным относительным путём. Проверка: `local-drill.sh` (использует `rollback.sh` напрямую: для drill `last-backup.json` получает `previousRelease` через `snapshot_release`); harness шаг 9.
+
+8. **Образ из CI и `deploy.sh --image`.** `.github/workflows/ci.yml`: триггеры `push` и `pull_request`; job `check` на `ubuntu-latest`: `actions/setup-node` с `node-version-file: .node-version`, `npm ci`, `npm run check` (включает `lint:shell`, шаг 11), `npm run build`, `npx playwright install --with-deps chromium`, `npm run e2e` с `TASKINDEX_E2E_ARTIFACT_DIR=test-results/e2e` (пока план 10 не сменил умолчание). Job `image` (`needs: check`, только `push` в `main` или тег): `docker/login-action` в GHCR, `docker/build-push-action` с `file: deploy/Dockerfile`, `platforms: linux/amd64`, `build-args: BUILD=${{ github.sha }}`, `labels: org.opencontainers.image.revision=${{ github.sha }}`, `tags: ghcr.io/goslingmanagment/taskindex:${{ github.sha }}`, `permissions: packages: write`. `deploy.sh`: разбор `[--image REF] [--build-here] [--plan] COMMIT`; по умолчанию `ref=${image:-taskindex:$target}`; если образа нет локально и `ref` содержит `/`, выполнить `docker pull "$ref"`; проверить `docker image inspect "$ref" --format '{{index .Config.Labels "org.opencontainers.image.revision"}}'` равен `$target`, иначе отказ до `dc stop`; `docker tag "$ref" "taskindex:$target"`; `dc build app` только при `--build-here` (с `compose.build.yml`). Вход VPS в GHCR: `docker login ghcr.io` read-токеном из защищённого env (не в git). Запасной путь `deploy/release.sh COMMIT [--push HOST]`: worktree на коммит, `docker buildx build --platform linux/amd64 --label org.opencontainers.image.revision=COMMIT -t taskindex:COMMIT -f deploy/Dockerfile .`, при `--push` `docker save taskindex:COMMIT | zstd -T0 | ssh HOST 'zstd -d | docker load'`. `deploy/README.md` «Следующий релиз» (`:83-119`): новый порядок «CI собрал образ → `deploy.sh COMMIT` на VPS», `--build-here` как аварийный. Проверка: workflow зелёный на PR этого шага; на Linux-стенде `deploy.sh COMMIT` без образа отказывает с понятным сообщением; с образом без label отказывает; с правильным образом проходит.
+
+9. **Harness `deploy/drill/deploy-drill.sh`.** Требует Linux и Docker (`uname -s`, как `deploy.sh:18`). Шаги: `git worktree add "$stand" HEAD` (коммит A); экспорт изолирующих переменных как в `local-drill.sh:10-17`, `TASKINDEX_COMPOSE_OVERRIDE` на `compose.local.yml` плюс `compose.build.yml`; сборка образа A с label; `bash "$stand/deploy/bootstrap.sh" --image taskindex:A --owner-email owner@example.test --open-writes` (пароль через stdin); одна задача через CLI (`deploy/drill/agent-create.mjs`); коммит B в worktree: в `deploy/compose.yml` сервису `app` добавлена строка `TASKINDEX_RELEASE_MARKER: B`; образ B с label; далее матрица §5, п. 3 через `TASKINDEX_FAIL_AT=<точка> bash "$stand/deploy/deploy.sh" B` с проверками через `docker inspect` (образ, env), `jq` по `current.json`, `git -C "$stand" rev-parse HEAD`, число задач через `taskindex-admin export`. Две новые точки инъекции в `deploy.sh`: `before-stop` сразу после `trap on_failure ERR` (`:62`) и `after-open` после финальной проверки `/health` (`:99`), до `save_current_release open`. Guard в `deploy.sh`: `[[ -z ${TASKINDEX_FAIL_AT:-} || -n ${TASKINDEX_COMPOSE_PROJECT:-} ]] || { echo 'TASKINDEX_FAIL_AT допустим только в изолированном проекте' >&2; return 1; }` до любых действий. В конце harness останавливает сервисы, не удаляет volume, печатает JSON матрицы и команду удаления по точным именам (по правилам `astra-17`, шаг 6). Проверка: все строки матрицы `ok`.
+
+**Волна P2.**
+
+10. **Heredoc и длинные строки.** `local-drill.sh:46-52, 70-78, 81-86, 112-118` → `deploy/drill/agent-create.mjs`, `compare-exports.mjs`, `inject-schema.mjs`, `verify-new-replica.mjs` (первая строка `// @ts-check`, включены в `tsconfig.deploy.json` плана 10 и в `oxlint .`); запуск через `-v "$repo/deploy/drill:/drill:ro"`. Разбить 27 длинных строк (`\` и локальные переменные для `jq`-фильтров и сообщений), предел 120 символов; `database.mjs:119` разбить строку сообщения. `deploy.sh:17` `for command in` → `for tool in`. Проверка: `awk 'length > 120' deploy/*.sh deploy/drill/*.sh` пусто; drill зелёный.
+
+11. **`lint:shell`.** `package.json`: `"lint:shell": "bash -n deploy/*.sh deploy/drill/*.sh && shellcheck -x -S warning deploy/*.sh deploy/drill/*.sh"`, добавить в `check` (`:13`). Если `shellcheck` не найден, скрипт печатает `brew install shellcheck` (macOS) / `apt install shellcheck` (Linux) и падает: CI (`ubuntu-latest` содержит shellcheck) всегда проверяет, локально проверка обязательна для тех, кто трогает `deploy/`. Ожидаемые первые срабатывания: SC2154 на `$repo` в `common.sh:3` (файл рассчитан на `source` из entrypoint, `common.sh:2`): заменить на явную проверку `: "${repo:?common.sh requires repo}"` в начале файла; SC1091 на `source` снимается флагом `-x`. Остальное по факту прогона. Проверка: `npm run lint:shell` чистый локально и в CI.
+
+12. **`deploy.sh --plan`.** Ветка в `main` до любых побочных действий: собирает JSON `{repo, previousRef, target, image: {ref, present, label}, deployment: '<sha12>-<UTC>-<rand>', runtimeDir, lock: free|held, current: <current.json или null>, backupPath: '/data/backups/<UTC>-<sha12>.db', phases: [...], willChangeCheckout: true, docker: {available, runningImage, runningDeployment} | 'unavailable'}` и выходит 0. Без Docker поля `docker` и `image.present` помечаются недоступными, остальное печатается. Ничего не пишет: `mkdir -p "$runtime"` (`:23`) выполняется после ветки `--plan`. Проверка: тест §5, п. 8 на Mac без Docker-контекста.
+
+13. **`deploy/bootstrap.sh`.** Аргументы `--image REF | COMMIT [--build-here]`, `--owner-email`, `[--agent ID --label L --scope read|tasks|write --out /data/NAME.json]`, `[--open-writes]`. Порядок: те же проверки инструментов и env, что `deploy.sh:17-28`; отказ, если `dc ps -q app` не пуст («используйте deploy.sh»); отказ, если в volume уже есть `/data/taskindex.db` (`dc run --rm --no-deps -T app test -e /data/taskindex.db`) без `--existing-database`; проверка label образа; `migrate`; `create-owner` с паролем из stdin (`deploy/README.md:54-55`); агент и ключ по флагам; `snapshot_release` и `save_current_release candidate`; `dc up -d app litestream`; `wait_health held`; `confirmed_sync`; печать чек-листа nginx/TLS с командами из §5, п. 9; при `--open-writes` файл границы, `open-writes`, `wait_health open`, `save_current_release open`. `deploy/README.md:47-74` сокращается до вызова `bootstrap.sh` и ручных шагов nginx/certbot (шаг 5 README остаётся ручным). Предупреждение о `git checkout --detach` в разделе «Следующий релиз». Проверка: harness (шаг 9) использует `bootstrap.sh`; повторный запуск на той же базе отказывает.
+
+14. **Env и документация.** Вместе с планом 06 (шаг 12): `compose.yml` `environment` приложения получает `HOST: '0.0.0.0'` и комментарии к `TIMEZONE`/`LOG_LEVEL`; `.env.example` комментарии к `:6-7`, `LITESTREAM_HEARTBEAT_URL`, комментарий к `TASKINDEX_IMAGE`. `deploy/README.md`: новый раздел «Мониторинг репликации и RPO» (текст: при здоровой репликации кадры WAL уходят в реплику каждые `sync-interval`, по умолчанию 1 с, поэтому ожидаемая потеря при внезапной гибели VPS измеряется секундами; heartbeat раз в минуту, получатель ждёт 3 мин, значит отказ репликации виден не позже чем через 4..5 мин; при алерте: `docker compose logs litestream`, `litestream sync -wait`, проверка ключей S3; запись при этом не закрывается автоматически), раздел «Восстановление» упоминает сайдкар поколения (после плана 09), раздел «Следующий релиз» описывает `--plan`, `--image`, `--build-here`, снимки релизов и возврат checkout. Проверка: `tests/unit/docs.test.ts` плана 12 (ссылки не битые); чтение владельцем.
+
+## 5. Тесты
+
+| # | Файл или команда | Сценарий | Ожидание |
+|---|---|---|---|
+| 1 | `bash deploy/local-drill.sh` | прежний полный прогон после каждого шага волн P0..P2 | финальный JSON `{ok:true,...}` (`local-drill.sh:120`), все прежние стадии; `/health` проверяется через `deploy/health.mjs` |
+| 2 | `bash deploy/local-drill.sh --heartbeat` | здоровая реплика; `chmod 000` каталога реплики при зелёном `/health`; восстановление; 2 мин без записей | `heartbeat: {healthy:true, broken:false, recovered:true, idle:<измерено>}`; при `idle:false` в README записано ограничение |
+| 3 | `bash deploy/drill/deploy-drill.sh` (Linux) | `before-stop` | код ≠ 0; работает A; `current.json.status == open`; новой копии в `/data/backups` нет; checkout на A |
+| 3a | то же | `after-migrate` | код ≠ 0; работает образ A без `TASKINDEX_RELEASE_MARKER`; `current.json`: `image` A, `status open`, `replicaUrl` с суффиксом `-restore-`; `generation` изменилось; число задач прежнее; checkout на A |
+| 3b | то же | `health` | как 3a |
+| 3c | то же | `after-open` | код ≠ 0; stderr содержит `Automatic database rollback is forbidden`; работает B с маркером; `writes: open`; `current.json.status == opening`; задачи на месте; checkout остаётся на B |
+| 3d | то же | без инъекции | код 0; работает B с маркером; `current.json.status == open`, `release` указывает на `releases/<B>/` с пятью файлами и верными sha256 |
+| 3e | то же | `TASKINDEX_FAIL_AT=health` при пустом `TASKINDEX_COMPOSE_PROJECT` | отказ до `dc stop`, сервисы не тронуты |
+| 3f | то же | `deploy.sh B` без образа B; с образом, у которого label ≠ B | отказ до `dc stop` с сообщением про образ |
+| 4 | `tests/api/headers.test.ts` (новый) | `GET /api/snapshot` владельцем, `GET /health`, `GET /api/nope` | `x-content-type-options: nosniff`, `x-frame-options: DENY`, `referrer-policy: no-referrer`; `strict-transport-security` отсутствует; CSP (report-only или enforcing по этапу) присутствует |
+| 5 | `tests/e2e` (фикстура) | `securitypolicyviolation` во всех сценариях | `window.__csp` пуст; после этого CSP переводится в enforcing |
+| 6 | проект Playwright `static` (план 10, шаг 16) | `/assets/<hash>.js`, `/`, `/?area=agency` | `cache-control: public, max-age=31536000, immutable` для assets; `no-cache` для HTML |
+| 7 | `npm run lint:shell` | локально и в CI | код 0; в CI выполняется в job `check` |
+| 8 | `tests/cli/deploy-plan.test.ts` (новый) или шаг harness | `bash deploy/deploy.sh --plan <HEAD>` во временном репозитории без Docker-контекста (`DOCKER_HOST=unix:///nonexistent`) | код 0; JSON с `target`, `deployment`, `phases`, `willChangeCheckout: true`, `docker: 'unavailable'`; каталог `deploy/.runtime` не создан |
+| 9 | ручная проверка nginx на стенде или VPS до переключения | `curl -sI --http2 https://D/ \| head -1`; `curl -sI https://D/ \| grep -i strict-transport`; `curl -s -o /dev/null -w '%{http_code}\n' https://D/health`; на VPS `curl -s http://127.0.0.1:3100/health`; `curl -sI -H 'Accept-Encoding: gzip' https://D/assets/<js> \| grep -i content-encoding`; `curl -sI https://D/assets/<js> \| grep -i cache-control`; `curl -sN https://D/api/events/stream -H 'Authorization: Bearer <read-key>' \| head -c 200` | `HTTP/2 200`; HSTS `max-age=31536000`; `403`; `200` с JSON; `gzip`; `immutable`; поток без `content-encoding`, первые байты `: heartbeat` или событие |
+| 10 | `docker image inspect taskindex:<sha> --format '{{index .Config.Labels "org.opencontainers.image.revision"}}'` | образ из CI | равен `<sha>` |
+| 11 | `npm run check`, `npm run e2e` | после каждого шага | зелёные |
+
+Что означает «зелёный» для runbook: п. 1 печатает финальный JSON с `ok:true`; п. 3 печатает матрицу, где у каждой строки `ok:true`; п. 9 даёт ровно перечисленные ответы; п. 11 без ошибок. Любое отклонение это стоп до рабочего переключения.
+
+## 6. Риски и откат
+
+- **Heartbeat при простое.** Если Litestream не шлёт пинг без успешного sync, а холостой sync на базе без записей не засчитывается, получатель будет поднимать ложные тревоги ночью. Проверяется п. 2 (`idle`); при `idle:false` варианты: grace получателя на длину ожидаемого простоя (владелец), либо признать ограничение в README. Не решать этот случай искусственными записями в базу.
+- **`:?` на `LITESTREAM_HEARTBEAT_URL`.** До подключения получателя `dc config` и drill требуют значение; для стенда любое `http://` значение допустимо. Откат: убрать `:?` (тогда пустое значение попадёт в `heartbeat-url`, поведение Litestream на пустой строке не проверено, поэтому это не рекомендуется).
+- **Первый релиз со снимком.** Снимок предыдущего релиза делается из checkout до `git checkout --detach` в предположении, что checkout соответствует работающему релизу. Если это не так, откат поднимет предыдущий образ с чужим compose, как и сегодня. Смягчение: сделать первый такой релиз без изменений `compose.yml`/`litestream.yml`, или заранее один раз запустить `bootstrap.sh --snapshot-only` (снимок текущего дерева с ручным подтверждением). После него режим совместимости не используется.
+- **Возврат checkout в `on_failure`.** `git checkout` внутри обработчика ошибки может сам упасть (например, конфликт файлов после падения `dc build` в `--build-here`). Обработчик выполняет его последним, под `|| printf ... >&2`, чтобы не заслонить исходную ошибку и код выхода (требование `astra-17`, шаг 4).
+- **`add_header` в nginx.** Любой будущий `add_header` внутри `location` отключит HSTS для этой локации. В `taskindex.conf` записан комментарий, а п. 9 тестов проверяет HSTS на трёх путях (`/`, `/assets/...`, `/api/...`).
+- **CSP.** Enforcing без прогона e2e с обработчиком нарушений может сломать интерфейс (inline-стили библиотек). Порядок в шаге 4 обязателен; откат: вернуть `contentSecurityPolicyReportOnly`.
+- **`deny all` для `/health`.** Внешние мониторы доступности не могут использовать `/health`; для проверки «сайт отвечает» использовать `GET /` (200 HTML), для репликации heartbeat. Записано в README.
+- **`--omit=optional`.** Удаление флага увеличит образ, только если у рантайм-зависимостей появятся optional-пакеты; сегодня их нет (§1.6). Откат тривиален.
+- **Перевод проб на сеть compose.** `dc run --rm` для проверки предыдущего релиза создаёт контейнер на каждую попытку; используется только один раз до остановки, в циклах ожидания применяется `dc exec`. Если образ кандидата не скачан, проверка предыдущего релиза не выполняется, и `deploy.sh` останавливается ещё раньше (проверка образа идёт первой).
+- **GHCR и приватность.** Пакет в GHCR приватный по умолчанию; read-токен на VPS это ещё один секрет в защищённом env. Альтернатива без реестра (`release.sh --push`) задокументирована.
+- **Harness только на Linux.** На Mac запускается только `local-drill.sh`; `deploy-drill.sh` выполняется в CI-runner с Docker или на VPS до переключения. Без него шаги 7..9 считаются непроверенными.
+- **Node 24 для локального gate.** `deploy/release.sh` и локальный `npm run check` требуют постоянного Node 24 (`astra-28`); до этого gate выполняется только в CI.
+- Откат плана в целом: правки в `deploy/` независимы от кода приложения, кроме шага 4 (заголовки, кэш) и `health.mjs` в образе; каждая волна откатывается revert'ом своих коммитов, `local-drill.sh` подтверждает состояние.
+
+## 7. Вне объёма
+
+- Содержимое `/health`, вычисляемый `dbWritable`, комментарий к пробной записи, `HOST` в конфиге приложения, реализация `LOG_LEVEL`, комментарии к `TIMEZONE`: `06-server-structure-config-logging.md` (§1.5, §3, шаги 2, 5, 12).
+- Checksum применённых миграций (S-03), правило миграций данных (A-03), сайдкар поколения Ж13 в коде: `09-data-layer-and-dependencies.md` (§3 Ж13, шаг 9), `astra-13-migration-checksums.md`, `astra-14-domain-contract-evolution.md`.
+- `oxlint .`, `oxfmt --check .`, `tsconfig.deploy.json` с `@ts-check` для `deploy/*.mjs`, проект Playwright `static`, изоляция артефактов e2e: `10-code-quality-and-tests.md` (§3.6, §3.7, шаги 1, 2, 16).
+- Разбиение бандла, `manualChunks`, `React.lazy`, source maps, решение по Zod в браузере: `07-web-client-fixes-and-structure.md` (§3.10, шаги 18..20).
+- `CLAUDE.md`/`AGENTS.md`, `preflight` на версию Node, `sandbox.mjs`, дрейф документации README и плана §12, перенос `tests/e2e/agent-cycle.md`: `12-ai-readiness-and-docs.md`.
+- Постоянный Node 24 на Mac владельца: `astra-28-permanent-node-runtime.md`.
+- Выбор VPS, домена, S3 bucket/prefix, получателя heartbeat, канала оповещения, timezone, реальное подключение получателя и restore из реального S3, рабочее переключение: `astra-34-release-and-owner-acceptance.md` (шаги 5..6), `astra-02` (шаги 4, 6). Этот план даёт конфигурацию, стенд и runbook, не выполняет изменений на VPS.
+- Retention и очистка каталога `deploy/.runtime/releases/` и `/data/backups`: не смешивать с этим планом (`astra-15`, «Зависимости и границы»); правило «хранить пару образ + копия не меньше недели» (`deploy/README.md:100`) остаётся ручным.
+- Обновление Litestream с 0.5.12 и изменение процедуры восстановления (`deploy/README.md:174`).
+- Rate limit, WAF, fail2ban на nginx; Better Auth уже ограничивает частоту входа по `X-Real-IP` (`deploy/README.md:43-45`).
+
+## Покрытые находки
+
+| ID | Отчёт (Fable / Astra) | Кратко | Где в плане |
+|---|---|---|---|
+| S-02 | Astra 01-stack; `astra-02` | Litestream без постоянного внешнего сигнала; `heartbeat-url`/`heartbeat-interval`/`addr` не заданы | §1.1, §3.1, шаги 1, 2, 14; тест 2 |
+| A-04 | Astra 02-architecture; `astra-15` | Rollback берёт compose/litestream.yml/common.sh/rollback.sh из checkout кандидата; `on_failure` оставляет detached HEAD (уточнение Fable) | §1.2, §3.2, шаг 7; тесты 3a, 3b, 3d |
+| Q-05 | Astra 04-code-quality; `astra-17` | Drill не исполняет `deploy.sh`, его фазы, ERR-trap и `opened` | §1.3, §3.3, шаг 9; тесты 3..3f |
+| S-06 | Astra 01-stack; `astra-16` | Релиз не требует `check`; нет CI/preflight | §1.4, §3.4, шаги 8, 11; тесты 7, 10 |
+| P1 | Fable 1 (стек) | Сборка образа на VPS; `TASKINDEX_IMAGE` уже поддерживается | §1.4, §3.4, шаг 8; тест 3f |
+| P2 | Fable 1 | `npm prune --omit=optional` в образе | §1.6, шаг 5; тест 1 |
+| P3 | Fable 1 | Nginx без HTTP/2, HSTS, `ssl_session_cache`, `expires`/gzip | §1.5, §3.5, шаг 3; тест 9 |
+| F3 (часть отдачи) | Fable 1 | Нет `Cache-Control`/gzip для статики | §1.5, §3.5, шаги 3, 4; тесты 6, 9 |
+| Ж10 | Fable 2 (архитектура) | Нет CSP/HSTS/`X-Content-Type-Options` ни в nginx, ни в Hono | §1.5, §3.5, шаги 3, 4; тесты 4, 5 |
+| B-10 (nginx-часть) | Fable 3 (баги) | `/health` публичен; нет security-заголовков | §1.5, §3.5, шаги 3, 4; тесты 4, 9; содержимое `/health` в плане 06 |
+| Ж6 (compose-часть) | Fable 2 | `TIMEZONE` только для migrate, `LOG_LEVEL` мёртв | §1.9, §3.8, шаг 14; решение по приложению в плане 06 |
+| Ж13 | Fable 2 | Смена `generation` только ручная | §1.10, §3.9 (решение владельца, рекомендация: сайдкар по плану 09) |
+| §10 shell (ревью качества) | Fable 4 | Проба ×4, `for command in`, heredoc-программы, 27 длинных строк | §1.7, §3.6, шаги 6, 10, 11; тесты 1, 7 |
+| T2 (shell-часть) | Fable 1 | `deploy/*.sh` без shellcheck | §1.7, шаг 11; тест 7; `database.mjs` в плане 10 |
+| B10 | Fable 5 (AI-ready) | Нет `--plan`/`--dry-run`, `bootstrap.sh`; `git checkout --detach` не задокументирован | §1.8, §3.7, шаги 12, 13, 14; тесты 3, 8 |
+| P4, P5 (частично) | Fable 1 | Docker и Litestream оправданы; что не трогать | §1.11 (список проверенного); оценка «готово» P5 снята в пользу S-02 |
+| Q2 (заголовки статики) | Fable 1 | E2E не проверяет production-раздачу | тест 6 здесь проверяет заголовки; сам проект `static` в плане 10 |
+| S-03, A-03 | Astra; `astra-13`, `astra-14` | Checksum миграций, совместимость журнала | не здесь: `09-data-layer-and-dependencies.md` |
+| S-05 | Astra; `astra-18` | WebKit и телефон | не здесь: `10-code-quality-and-tests.md`, `astra-34` |
+
+## Сверка с ревью Astra (2026-09-08)
+
+Кратко: план написан после сверки, поэтому находки Astra по эксплуатации включены в основной текст, а не в отдельное дополнение. Четыре из них у нас отсутствовали и все подтверждены повторно (`reports/compare-stack-arch.md`, раздел (c); `reports/compare-quality-method.md`, Q-05): S-02 heartbeat Litestream, A-04 конфигурация отката из чекаута кандидата, Q-05 drill без настоящего `deploy.sh`, S-06 релиз без гейта `check`. Наш обзор деплоя в `reports/review-1-stack.md` (P4, P5) описывал то, что сделано хорошо, и пропустил то, чего нет; оценка «готово» для Litestream снята (§1.11). У Astra отсутствуют наши пункты по Nginx (HTTP/2, HSTS, кэш и gzip статики), allowlist для `/health`, сборка образа вне VPS, `npm prune --omit=optional`, гигиена shell, `--plan` и `bootstrap.sh`.
+
+### Соответствие планам Astra и реестру
+| Пункт | Источник Astra | Реестр | План Astra | Дельта этого плана |
+|---|---|---|---|---|
+| Heartbeat Litestream с внешним получателем | S-02 | TI-002 | `astra-02-backup-progress-monitoring.md` | конкретные ключи `heartbeat-url`, `heartbeat-interval: 1m`, `addr`; приёмник в drill с тремя инъекциями отказа (§3.1, шаги 1, 2) |
+| Снимок compose, litestream.yml и скриптов на релиз | A-04 | TI-015 | `astra-15-immutable-release-rollback.md` | раскладка `deploy/.runtime/releases/<deployment>/`, `TASKINDEX_COMPOSE_FILE` в `dc()`, возврат чекаута в `on_failure`, чего у Astra нет (§3.2, шаг 7) |
+| Испытание настоящего `deploy.sh` | Q-05 | TI-017 | `astra-17-deploy-entrypoint-failure-tests.md` | матрица `deploy-drill.sh` с двумя новыми точками `TASKINDEX_FAIL_AT` и защитой от запуска вне изолированного compose-проекта (§3.3, шаг 9) |
+| Гейт релиза на `check` | S-06 | TI-016 | `astra-16-release-validation-gate.md` | CI на GitHub Actions собирает образ `linux/amd64` с меткой ревизии, `deploy.sh --image` её проверяет, `--build-here` как аварийный путь (§3.4, шаги 8, 11) |
+| Node 24 для локального гейта | BL-NODE | TI-028 | `astra-28-permanent-node-runtime.md` | только ссылка; решение в плане 12 |
+| Приёмка на реальном S3 и VPS | BL-ACCEPTANCE | TI-034 | `astra-34-release-and-owner-acceptance.md` | только ссылка; здесь runbook «что значит зелёный» (§5) |
+| `/health` публичен, нет заголовков; env-переменные без потребителя | Fable B-10, Ж10, Ж6 | TI-056, TI-062 | нет | шаги 3, 4, 14 |
+
+### Расхождения и решение
+- Приоритет S-02. Astra: P1 эксплуатационной готовности; здесь P0 до рабочего переключения. Расхождения нет по сути, только по шкале: обе стороны требуют получателя сигнала до передачи реальных данных.
+- Место сборки образа. Astra не рассматривала; `ASTRA-VS-FABLE.md` §5 относит сборку вне VPS к вариантам упрощения, не к обязательным. Здесь сборка в CI связана с гейтом S-06: если релиз обязан пройти `check`, CI и есть место сборки. Решение владельца по способу переноса образа записано в §3.4.
+- `/health` и заголовки. `ASTRA-VS-FABLE.md` §4.9: публичный `/health` не доказывает утечку данных, это вопрос настройки поверхности. Согласны; поэтому содержимое `/health` не меняется (план 06), закрывается только доступ извне через Nginx (шаг 3).
+
+## Решение владельца (2026-09-10, делегировано Fable)
+
+- Heartbeat Litestream: получатель healthchecks.io, `heartbeat-interval: 1m`, оповещение владельцу при пропуске трёх интервалов. Первая волна.
+- Сборка образа: GitHub Actions на Node 24.20.0, `npm run check` как гейт релиза, образ `linux/amd64` переносится `docker save | ssh docker load`; `--build-here` только аварийно. Реестр GHCR не заводится.
+- `/health` только с `127.0.0.1` через Nginx, HSTS без `includeSubDomains`, dev на `127.0.0.1`. Первая волна. Приоритет TI-056 в реестре поднимается до P2.
+- Ротация `generation` остаётся ручной через `mark-restored`; сайдкар-маркер поколения делается по плану 09 как страховка, не как замена runbook.

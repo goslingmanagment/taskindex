@@ -1,0 +1,78 @@
+- generic: TaskIndex
+- list:
+  - button "Фокус":
+    - generic: Фокус
+  - button "Активность":
+    - generic: Активность
+  - button "Агентство":
+    - generic: Агентство
+  - button "Разработка":
+    - generic: Разработка
+  - button "Личное":
+    - generic: Личное
+- generic: Направления
+- list:
+  - button "Все задачи":
+    - generic: Все задачи
+  - button "QA Запуск":
+    - generic: QA Запуск
+- button "Добавить направление":
+  - text: Добавить направление
+- button "Архив":
+  - text: Архив
+- button "Дмитрий"
+- generic: Приватно
+- main:
+  - button "Агентство":
+    - text: Агентство
+  - heading "QA Запуск" [level=1]
+  - button "Открыть поиск":
+  - textbox "Найти во всех областях":
+    - /placeholder: Найти во всех областях…
+  - generic: ⌘ K
+  - button "Добавить задачу":
+    - generic: Задача
+  - tablist "Вид задач":
+    - tab "Доска" [selected]:
+      - text: Доска
+    - tab "Список":
+      - text: Список
+  - tabpanel "Доска": Задачи по колонкам
+  - checkbox "На сегодня"
+  - checkbox
+  - generic: На сегодня
+  - button "Настройки доски":
+  - heading "Очередь" [level=2]
+  - generic: "0"
+  - generic: Место для следующего дела
+  - button "Добавить задачу":
+    - text: Добавить задачу
+  - heading "В работе" [level=2]
+  - generic: "0"
+  - generic: Начни с одной задачи
+  - button "Добавить задачу":
+    - text: Добавить задачу
+  - heading "Жду" [level=2]
+  - generic: "1"
+  - article:
+    - 'button "Открыть: QA Подготовить релиз" [active]'
+    - 'button "Завершить: QA Подготовить релиз"':
+    - heading "QA Подготовить релиз" [level=3]
+    - paragraph:
+      - text: Проверки команды
+    - text: 1/2
+    - 'button "Действия: QA Подготовить релиз"': ···
+    - 'button "Перетащить: QA Подготовить релиз"':
+  - button "Добавить задачу":
+    - text: Добавить задачу
+  - heading "Готово" [level=2]
+  - generic: "0"
+  - generic: Здесь будут маленькие победы
+  - button "Добавить задачу":
+    - text: Добавить задачу
+  - status
+- region "Notifications":
+  - dialog "Изменения сохранены":
+    - heading "Изменения сохранены" [level=2]
+    - button "Отменить"
+    - button:

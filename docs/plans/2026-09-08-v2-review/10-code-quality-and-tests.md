@@ -1,0 +1,346 @@
+# Качество кода и тесты: редьюсер без кастов, имена, дублирование, линт, тестовый долг
+
+Статус: предложение, 2026-09-08. Источник: сводное ревью v2 (см. `README.md` в этой папке).
+Приоритет: P2 в целом; шаг 1 (артефакты e2e по умолчанию в `test-results/`) выполнить сразу, он занимает меньше часа и останавливает порчу `docs/reference/`. Оценка: L, 6-9 рабочих дней: R1 `applyCommand` 1.5 дня, имена и константы 1 день, дублирование 0.5 дня, типы и tsconfig 1 день, обработка ошибок 0.5 дня, линт и покрытие инструментов 0.5 дня, тесты 3 дня (артефакты 0.5, property 0.5, юнит-тесты модулей без покрытия 1, перестройка e2e 1). Зависимости: `04-api-contract-and-schemas.md` (генерация union из `commandPayloadSchemas`, `z.enum(commandNames)` в схемах событий, `LIMITS`; делается до этого плана, оба трогают `schemas.ts` и `commands.ts`), `03-cli-outbox-and-ergonomics.md` (`canonical()` в `shared`, CLI-коды ошибок, `runCli`), `06-server-structure-config-logging.md` (разрез `createApp`, `runOperation`, логирование), `07-web-client-fixes-and-structure.md` (декомпозиция web, `useDraft`, `ConflictPanel`, web-тесты `url`/`sync`), `11-deploy-and-ops.md` (`deploy/health.mjs`, shellcheck), `12-ai-readiness-and-docs.md` (исполняемый агентский цикл, `CLAUDE.md`), `02-agent-permissions-and-sync-semantics.md` и `01-performance-history-and-pagination.md` (тестовый долг, перечисленный в 1.7).
+
+Все номера строк и счётчики проверены 2026-09-08 по рабочему дереву: `npx tsc --noEmit`, `npx oxlint … -A all -D <rule>` (с `--type-aware` для правил `typescript/*`), grep. Где отчёт качества считал иначе, приведены обе цифры.
+
+## 1. Проблема
+
+### 1.1 R1: `applyCommand` стирает discriminated union и живёт на кастах
+
+`src/shared/commands.ts:225-657` (433 строки). `:230` `const command = parseCommand(raw);` валидирует union, `:231` `const p = command.payload as Record<string, unknown>;` тут же превращает его в мешок. Дальше 50 вхождений ` as ` в файле (отчёт качества насчитал 48 без служебных; `grep -c ' as ' src/shared/commands.ts` даёт 50): `p.id as string` (`:390,406,425,443,486`), `payload.area as Task['area']` (`:491`), `p.position as {…}` (`:519,592`), `record as Task` (`:314,378,406,425,443,449,534`), `p.itemIds as string[]` (`:612`) и другие.
+
+Диспетчеризация строками: `:268` `name === 'undo'`, `:387` `name.startsWith('project.')`, `:422` `name.startsWith('comment.')`, `:453` `else` для всего остального; внутри задач цепочка `:582` `task.update`, `:586` `task.save`, `:593` `task.move`, `:600` `task.archive || task.restore`, `:602` `else` для чеклиста. Любая новая команда `task.*`, не перечисленная в цепочке, молча попадает в ветку чеклиста (`:603-635`): `items.findIndex((i) => i.id === p.itemId)` даст `-1`, и команда завершится `not_found` «Шаг не найден.» вместо ошибки разработчика. `default: never` отсутствует; `grep -n never src/shared` находит только `fail(): never`.
+
+`get(state, kind, id): Entity` (`:119-124`) и `records()` (`:112-118`) возвращают общий `Entity`, поэтому каждый вызывающий кастует к нужному типу. Тернарии без проверки исчерпывающести: `isSubjectField` (`:55-61`), `records` (`:113-117`), инверсия при `undo` (`:311-321`), причина пропуска sync (`:548-552`).
+
+Сервер валидирует конверт дважды: `src/server/operations.ts:48` (`batchEnvelopeSchema.parse`, внутри `z.array(commandSchema)`) или `:88` (`commandSchema.parse`), затем `applyCommand` снова вызывает `parseCommand` (`commands.ts:230`).
+
+### 1.2 Имена и читаемость
+
+- Sentinel-строки `'all'`/`'none'` для фильтра проекта: около 15 сравнений в 7 файлах (`grep -rnE "=== 'all'|=== 'none'|!== 'all'|!== 'none'|'none' \?" src`): `shell.tsx:124,125,203,204,346,365`, `dialogs.tsx:59,144,158`, `sidebar.tsx:116,143`, `board.tsx:194`, `editor.tsx:365`, `queries.ts:119-120`. Типы не отражают три состояния: `LocationState.project: string` (`url.ts:5`), `TaskCardProps.projectId: string` (`card.tsx:35`), `TaskFilter.project?: string` (`queries.ts:97`).
+- Вводящие в заблуждение имена: `first(task)` (`shell.tsx:248`) переносит в начало очереди; `focusCount` (`shell.tsx:304-312`, проп `sidebar.tsx:35,46,76`) считает только «новое от агентов»; `change(task, patch, message)` (`shell.tsx:229-247`) выбирает команду, инспектируя ключи `patch` (`'archived' in patch` → archive/restore, `patch.status` → move, иначе save); `json()` (`app.ts:75-78`) строит спецификацию ответа OpenAPI; `more` (`editor.tsx:125`) это раскрытые секции, `foreign` (`:113`) это «черновик другого поколения», `saved` (`:118`) это база для diff; CLI-команда `activity` (`run.ts:268`) ходит в `/api/operations`, а UI называет это «Активность»: три имени одной сущности.
+- Две схемы именования актора: `Task.createdBy/createdByLabel` (`src/shared/domain-schemas.ts:81-82`) против `Comment.actorId/actorLabel` (`:96-97`), `Event.actorId/actorLabel` (`:131-132`), `OperationSummary.actorId/actorLabel` (`:242-243`).
+- Вид актора закодирован префиксом id и проверяется строкой в трёх местах: `queries.ts:75`, `card.tsx:173`, `shell.tsx:307` (`task.createdBy.startsWith('agent:')`).
+- Вложенные тернарии: 47 срабатываний `eslint/no-nested-ternary` по `src tests scripts` (44 в `src`): `queries.ts:73-81` (4 уровня), `shell.tsx:355-367` (5 уровней), `shell.tsx:226` (карта статус→имя, дублирует `STATUSES[].name`), `commands.ts:113-117,311-321,548-552`, `card.tsx:115-133`, `tests/api/helpers.ts:38-47`.
+- Магические числа: две политики повтора одного понятия: `store.ts:362-363` (`attempt >= 3`, `500 * 2 ** attempt`) и `client.ts:132-137` (`attempt <= 3`, `250 * 2 ** (attempt - 1)`), план §7 говорит «до трёх раз», реализовано четыре попытки в обоих; `app.ts:845` heartbeat 25000; `app.ts:819,834` `desiredSize < -1000`; `sync.ts:47` 60000; `api.ts:26` и `client.ts:82` 15000; `shell.tsx:70` 6500; `store.ts:231` `.slice(-500)`; лимит 50 в дайджесте шесть раз (`app.ts:966,968,975,983,984,985`); лимиты страниц `app.ts:80` (100/500) и `:518-519` (500).
+- Отсутствуют комментарии «почему» там, где код неочевиден: `app.ts:178-180` и `:410-412` (`UPDATE settings SET value=value WHERE key='generation'`: проба записи для `dbWritable`; измерено ревью стека, что она не порождает кадров WAL и не меняет `data_version`, поэтому это не «запись на каждый health»); `card.tsx:105` `onKeyDown={undefined}` после `{...listeners}`; `shell.tsx:648,666,697,708` `key={state.generation}` (remount как сброс локального состояния при смене поколения); `db.ts:180` `'_'.repeat(61) + p.id` (временный `nameKey`, заведомо длиннее любого реального ключа при `name` до 60 символов, освобождает UNIQUE-слот перед повторной вставкой; комментарий на `:197` объясняет только соседний приём с `orderKey`); `vite.config.ts:20` `usePolling: true`.
+- Языковая политика соблюдается де-факто (идентификаторы, комментарии, названия тестов английские; UI, ошибки, `.describe()` русские), но не записана: в `README.md` нет ни одной фразы о ней.
+
+### 1.3 Дублирование
+
+- Идентичные обработчики `/api/commands` и `/api/commands/batch`: `app.ts:469-482` и `:496-509` отличаются только `c.set('commandName', …)`.
+- 13 инлайн-литералов `{ ok: false, code, message, retryable }` при существующем `DomainError.toJSON()` (`src/shared/errors.ts:27-35`): `app.ts:248-256,263-271,276-284,286-294,344-353,361-370,378-386`, `index.ts:27-35`, `api.ts:30-35,41-49`, `client.ts:110-117,194-205`, `run.ts:345-352`.
+- Три `canonical()`: `operations.ts:27-34` и `admin.ts:231-238` идентичны (`JSON.stringify` с сортировкой ключей через replacer), `outbox.ts:23-32` другой алгоритм (рекурсивная сборка строки с `localeCompare`). Сервер хеширует конверт одним способом, CLI сравнивает конверты другим; сегодня результаты совпадают, но это два источника истины для одного контракта. Первичное исправление в плане `03` (`shared/canonical-json.ts`).
+- `sleep` по умолчанию ×3: `store.ts:65-66`, `client.ts:134-137`, `run.ts:387-390`.
+- Разбор булевых query ×4: `app.ts:565-574` (`q.x === 'true' || q.x === '1'`).
+- Продолжение пагинации ×2: `run.ts:381-383` и `:397-401`; `resultCompleted()` (`run.ts:177-184`) повторяет ветвление `ApiClient.resume` (`client.ts:209-222`). План `03`.
+- Черновики ×7 и панель конфликта ×2: план `07`.
+- Health-проба ×4 (`deploy/common.sh:34`, `deploy/local-drill.sh:37,91`, `deploy/compose.yml:27-33`): план `11`.
+- Блок `alias` продублирован в `vite.config.ts:8-13` и `vitest.config.ts:5-11`.
+- `'Без направления'` ×6 в четырёх файлах (`editor.tsx:334,359`, `dialogs.tsx:148,160`, `sidebar.tsx:147`, `shell.tsx:366`).
+- Тесты: `MemoryStorage` ×2 (`tests/web/store.test.ts:12-29`, `tests/web/drafts.test.ts:4-21`); `setup()`/`cleanup` ×3 (`tests/api/commands.test.ts:19-27`, `tests/api/recovery-and-history.test.ts:15-21`, `tests/api/auth.test.ts:19-20`); `command()`/`snapshot()` в обоих e2e-спеках с разными сигнатурами (`tests/e2e/workspace.spec.ts:64-83`, `tests/e2e/regressions.spec.ts:5-19`).
+
+### 1.4 Типобезопасность
+
+Проверенные счётчики (`src`, без сгенерированных `src/web/ui/*`, если не сказано иное):
+
+- ` as `-касты: 93 (отчёт: 84 при другом способе подсчёта); `commands.ts` 50, `app.ts` 7, `db.ts` 6, `editor.tsx` 5, далее по 4 и меньше.
+- `typescript/no-unsafe-type-assertion`: 94.
+- Non-null `!`: 28 по oxlint во всём `src` (24 строки вне `ui/*`: `drafts.ts` 7 строк, `commands.ts` 8, по одной в `main.tsx`, `shell.tsx`, `store.ts`, `dialogs.tsx`, `operations.ts`, `queries.ts`, `arguments.ts`, `run.ts`); с тестами 95.
+- `typescript/no-unnecessary-type-assertion`: 8 в `src`, 54 с тестами. Восемь избыточных `!` написаны под `noUncheckedIndexedAccess`, которого в `tsconfig.json:2-22` нет (только `strict`). Включение `--noUncheckedIndexedAccess` даёт 11 ошибок `tsc` (проверено сегодня), то есть опция дешёвая.
+- `--noUnusedLocals --noUnusedParameters`: 0 ошибок `tsc` (проверено), опции можно включить без правок.
+- `Record<string, unknown>`: 19 (`commands.ts` 6, `run.ts` 5, `client.ts` 3).
+- `JSON.parse` без валидации схемой: 6 из 7 (`drafts.ts:38`, `sync.ts:25`, `outbox.ts:63`, `client.ts:107`, `store.ts:385`, `arguments.ts:86` возвращает `unknown` и валидируется позже, это допустимо); единственный правильный пример `app.ts:211-212` с `cursorSchema`.
+- `auth.ts:59` проверяет scope через `['read','tasks','write'].includes(key.scope ?? '')`, а `:72` кастует `key.scope as Actor['scope']`; `actorSchema.shape.scope.safeParse` дал бы то же без каста.
+- `app.ts:481,508` `result.status as 200`: обход типизации hono, чтобы RPC-тип ответа оставался типом успешного тела.
+- `db.ts:123,136,162`: строки Drizzle → домен через `as Project/Task/DomainEvent` без маппера (рассинхрон колонок и схемы ловит `tests/api/migrations.test.ts`, поэтому риск ограничен).
+- Нет проверок исчерпывающести по `CommandName`: `ChangeEffect.command: string` (`commands.ts:23`), `eventSchema.command: z.string()` (`domain-schemas.ts:137`), `operationSummarySchema.command: z.string()` (`:244`), `labels: Record<string, string>` (`activity.tsx:21`).
+- `ApiReply.body: Record<string, unknown>` (`client.ts:13`): CLI строково типизирован против собственного API (план `03`).
+
+### 1.5 Обработка ошибок
+
+- `.catch(() => {})` ×10: `store.ts:194,234,260,268,358,418`, `shell.tsx:520,565`, `sync.ts:34,42`. Намерение понятно (ошибка `refresh` уже попадает в `state.error`), но объяснено только у части.
+- `store.ts:371-372` `throw new Error('Версия базы изменилась.')` внутри `catch` теряет причину (`eslint/preserve-caught-error`, 1 срабатывание).
+- Имя переменной в `catch`: `e` 15 раз (web, CLI), `error` 13 раз (сервер); `unicorn/catch-error-name` даёт 20 срабатываний по `src tests scripts`.
+- Логирование `app.ts:285` без сообщения и стека: план `06`.
+
+### 1.6 Линт, форматирование, конфиги
+
+- `.oxlintrc.json:12-14`: только категория `correctness` плюс 19 правил. Что дадут выключенные (проверено сегодня): `eslint/no-shadow` 10 (например `card.tsx:93` `const p = data.projects.find((p) => …)`), `eslint/preserve-caught-error` 1, `eslint/no-nested-ternary` 47, `react/button-has-type` 7, `unicorn/catch-error-name` 20, `typescript/no-non-null-assertion` 28 в `src`, `typescript/no-unnecessary-type-assertion` 8 в `src`, `typescript/prefer-nullish-coalescing` 22, `eslint/no-await-in-loop` 31 (осознанная последовательная пагинация и тесты), `eslint/max-lines-per-function` с порогом по умолчанию 50 отмечает 40 функций в `src`. Категория `suspicious` с включённым `typeAware` (`.oxlintrc.json:20-23`) тянет ещё `typescript/no-unsafe-type-assertion` и подобные: `-D suspicious` даёт 745 срабатываний по `src tests scripts`, из них без type-aware правил 11 (`no-shadow` 10 + `preserve-caught-error` 1). Включать категорию нужно вместе с явным `"typescript/no-unsafe-type-assertion": "off"` до завершения R1.
+- `package.json:15` `lint` и `:17` `format:check` перечисляют пути руками; не покрыты `deploy/database.mjs` (130 строк рантайм-кода образа), `drizzle.config.ts`, `deploy/*.yml`, `*.md`, `.oxlintrc.json`, `components.json`. `.oxlintrc.json:24-32` уже содержит `ignorePatterns`, `.oxfmtrc.json` тоже (`ignorePatterns` только lock-файлы). `tsconfig.json:5` `allowJs: false`, `database.mjs` не проходит типизацию; `drizzle.config.ts` не входит в `include` (`tsconfig.json:23-34`).
+- `tsconfig.json:17-21` объявляет `@/*` и `@web/*` на один каталог `src/web`; в `src` 0 импортов через оба (проверено), `@shared` используется в 13 файлах. `@/` нужен генератору shadcn (`components.json:15-21`), `@web` не нужен никому; тот же блок повторён в `vite.config.ts:9-12` и `vitest.config.ts:6-10`.
+- Стиль импортов расщеплён: `./x.js` 71 раз в `src/shared`, `src/server`, `src/cli`; без расширения 108 раз в `src/web`.
+- `noUnusedLocals` отсутствует; неиспользуемые экспорты по отчёту качества: `initializeDatabase` (`db.ts:97`), `serverId` (`outbox.ts:144`), `requireScope`, `compareStrings`, тип `Agent`, `revisionSchema`/`checklistItemSchema`/`originSchema`/`positionSchema`/`taskFieldsSchema` (экспорт без внешнего потребителя), `PendingOperation.attempts/message` (план `07`), `pendingCount` (`use-workspace.ts:43`), `editableFields`, `HELP`, `authClient`. `tsc --noUnusedLocals` такие экспорты не ловит, нужен отдельный инструмент.
+- Node в трёх пинах: `README.md:36` «24.20.0», `package.json:6` `>=24.11.0 <25`, `.nvmrc` `24`, `.node-version` `24.20.0`; согласование в плане `12`.
+
+### 1.7 Тесты
+
+**Артефакты e2e в дереве исходников.** `tests/e2e/workspace.spec.ts:10-11` `const artifacts = process.env.TASKINDEX_E2E_ARTIFACT_DIR ?? 'docs/reference/v2-validation'`; `:13-30` `afterAll` пишет `screenshots-sha256.json`; `:89,348` `mkdirSync`; скриншоты `:246-249,439-501,653-656`; `environment.json` `:349-365`. `git check-ignore docs/reference/v2-validation/desktop-board.png` → не игнорируется; каталог `docs/reference/` не отслеживается (`?? docs/reference/`), поэтому прежние версии не восстановимы. Факт порчи: сегодня файлы `desktop-*.png`, `mobile-*.png`, `environment.json`, `screenshots-sha256.json` имеют mtime 20:40:55-20:41:01, `environment.json.capturedAt = 2026-09-08T17:40:55.778Z` (20:40:55 по Москве), в то время как `README.md` той же папки датирован 16:50 и описывает съёмку 17:15; лог одного из прогонов ревью (`reports/`-агент по багам, `scratchpad/e2e.log`) показывает более ранний запуск около 20:15. Итого минимум два непреднамеренных прогона перезаписали эталонные снимки, на которые ссылается README.
+
+**Property-тесты узкие.** `tests/property/commands.test.ts:36-41` только актор `owner`; `:67-71` три фиксированные задачи; действия `:75-113` шесть видов (`task.update note`, `task.move`, `archive/restore`, `focus`, `comment.add`, `checklist.add`); `:117` `numRuns: 75`. `tests/property/undo.test.ts`: четыре действия (`:64-98`), `:108` `numRuns: 75`. Не генерируются: проекты, `comment.remove`, `checklist.update/remove/reorder`, `task.sync` с версиями, `task.save` с `position`, агентские акторы (`ownerFields`, скоупы).
+
+**Модули без прямых тестов** (карта `tests → src` проверена по импортам): `src/cli/arguments.ts` (только через `runCli`; нет юнитов на `--k=v`, `--`, `-q`, `-h`, switch со значением, дубль флага), `src/cli/client.ts` (`exitCode`, проверка origin ссылок пагинации, `redirect: 'error'`, политика повторов, ветки `resume`), `src/web/app/url.ts`, `src/web/app/sync.ts` (`grep EventSource tests/` пуст), все React-компоненты (только e2e), `src/server/index.ts` (bootstrap, статика, shutdown), `deploy/database.mjs` (только drill).
+
+**Сценарные мега-тесты.** Заголовки на 3-4 поведения: `tests/api/commands.test.ts:29` («preserves Focus through retries, stale edits, snapshot and archive restoration»), `:132`, `:180`, `tests/api/recovery-and-history.test.ts:22`, `:79`, `:130`; пять заголовков длиннее 100 символов. `describe` есть в `commands`, `unit/shared`, `web/store`, `web/drafts`, `cli/cli`, `cli/admin`; отсутствует в `recovery-and-history`, `auth`, `durability`, `migrations`, `property/*`, `web/api`, `cli/agent-cycle`.
+
+**Хрупкость e2e.** Одна база на все спеки: `workspace.spec.ts:415-426` переносит задачи других тестов в `personal`, чтобы очистить доску для снимков. `regressions.spec.ts:38-44` вычисляет фиктивный `x-real-ip` из регулярного выражения `B(\d+)` по заголовку теста, чтобы обойти rate-limit входа Better Auth; три теста `B01` (`:58`, `:309`, `:416`) делят одну корзину. `workspace.spec.ts:590` `waitForTimeout(260)` (ожидание активации `TouchSensor` с `delay: 220`, `board.tsx:56-58`) и `:596` `waitForTimeout(60)`. Модульная переменная `ownerCookies` мутируется тестами (`:12,46,703`).
+
+**`tests/e2e/agent-cycle.md`** это прозаический чек-лист приёмки на семь шагов; `deploy/README.md:74` отсылает к нему как к приёмке; `tests/cli/agent-cycle.test.ts:29` автоматизирует часть шагов 1, 2, 5, `tests/cli/cli.test.ts:146` шаг 6.
+
+**Q2: e2e не проверяет раздачу `dist/web`.** `tests/e2e/server.ts:33-43` поднимает Vite dev server с proxy; `src/server/index.ts:37-38` (`serveStatic` и SPA-fallback) и заголовки отдачи ни одним тестом не проверяются.
+
+**Тестовый долг других планов**, названный отчётом по багам (`review-3-bugs.md`, раздел «Тесты»): агентский `undo` операций владельца (B-01, план `02`), агентский `focus` (B-02, план `02`), масштабирование стоимости команды (B-03, план `01`), поведение outbox с посторонними и битыми файлами (B-05, план `03`). Здесь они перечислены, чтобы сводный критерий «тестовый долг закрыт» был проверяем.
+
+## 2. Цель и критерии приёмки
+
+Таблица «до / цель» служит критерием приёмки. «До» измерено 2026-09-08; способ измерения указан. Цель проверяется теми же командами в конце плана.
+
+| Метрика | До | Цель | Как измерять |
+|---|---|---|---|
+| `tsc --noEmit` | 0 ошибок при `strict` | 0 ошибок при `strict` + `noUncheckedIndexedAccess` + `noUnusedLocals` + `noUnusedParameters` | `npm run typecheck` |
+| ` as `-касты в `src` (без `as const`, import/export, `ui/*`) | 93, из них `commands.ts` 50 | ≤ 40, `commands.ts` ≤ 5 (только на границе Drizzle-строк, если маппер не сделан) | `grep -rn ' as ' src --include='*.ts' --include='*.tsx' \| grep -v 'as const' \| grep -vE '^\S+:\s*(import\|export) ' \| grep -v '^src/web/ui/' \| wc -l` |
+| `typescript/no-unsafe-type-assertion` (`src`) | 94 | ≤ 40; `commands.ts` 0 | `oxlint -c .oxlintrc.json --type-aware -A all -D typescript/no-unsafe-type-assertion src` |
+| Non-null `!` (`src`) | 28 | ≤ 10, каждое с комментарием причины | `oxlint -A all -D typescript/no-non-null-assertion src` |
+| `typescript/no-unnecessary-type-assertion` | 8 / 54 с тестами | 0 / 0 | то же с `--type-aware` |
+| `typescript/prefer-nullish-coalescing` | 22 | 0 | то же |
+| `eslint/no-nested-ternary` | 47 (44 в `src`) | 0 | `oxlint -A all -D eslint/no-nested-ternary src tests scripts` |
+| `eslint/no-shadow`, `eslint/preserve-caught-error` | 10, 1 | 0, 0 | категория `suspicious` включена |
+| `react/button-has-type` | 7 | 0 (план `07`) | `oxlint -A all -D react/button-has-type src` |
+| `unicorn/catch-error-name` | 20 | 0 | `oxlint -A all -D unicorn/catch-error-name src tests scripts` |
+| `eslint/max-lines-per-function` (порог 120, warn) | не меньше 10 функций (по отчёту: 897, 637, 604, 433, 329, 222, 216, 216, 195, 165 строк) | 0 после планов `03`, `06`, `07`, `10`; в этом плане `applyCommand` и его части ≤ 120 | правило в конфиге как `warn` |
+| `Record<string, unknown>` в `src` | 19 | ≤ 8 (сборка payload из флагов в CLI остаётся) | grep |
+| `JSON.parse` без схемы в `src` | 6 из 7 | 0 (`arguments.ts:86` возвращает `unknown`, это считается валидным) | grep + просмотр |
+| `.catch(() => {})` | 10 | 0, все через `ignoreRejection(promise, reason)` | grep |
+| Инлайн-литералы `{ ok: false, code, … }` вне `DomainError`/`cliError` | 13 | 0 | grep `ok: false` в `src` |
+| Дубли: `canonical` 3, `sleep` 3, boolean query 4, `alias` 2, `MemoryStorage` 2, `setup/cleanup` 3, `command()/snapshot()` 2 | | 1 каждого | просмотр; `tests/helpers/` существует |
+| Покрытие инструментов | `lint`/`format:check` по 13 путям; `database.mjs`, `drizzle.config.ts` вне | `oxlint .`, `oxfmt --check .`, `database.mjs` под `@ts-check` | `package.json` |
+| Алиасы | `@/`, `@web`, `@shared` в 3 конфигах; `@web` 0 использований | `@web` удалён везде; `vitest.config.ts` наследует `vite.config.ts` | grep |
+| Стиль импортов | `.js` 71 / без расширения 108 | один стиль во всём `src` (решение владельца, рекомендация ниже) | grep |
+| Неиспользуемые экспорты в app-коде | около 20 (список в 1.6) | 0; проверяется скриптом в `check` | `node scripts/unused-exports.mjs` |
+| Артефакты e2e по умолчанию | `docs/reference/v2-validation` | `test-results/e2e-artifacts`; публикация в `docs/` только `npm run e2e:publish-reference` | чтение `workspace.spec.ts` |
+| Property-тесты | владелец, 3 задачи, 6 действий, 75 прогонов | владелец и агенты `write`/`tasks`, проекты, `comment.remove`, `checklist.update/remove/reorder`, `task.sync`, ≥ 200 прогонов | `tests/property/*` |
+| Модули без прямых тестов | `arguments`, `client`, `url`, `sync`, компоненты, `server/index`, `database.mjs` | `arguments`, `client`, `url`, `sync` покрыты юнитами; `server/index` статическим e2e-проектом; компоненты по-прежнему e2e (решение ниже); `database.mjs` через drill (план `11`) | список файлов `tests/` |
+| Заголовки `it` длиннее 100 символов | 5 | 0; каждый `it` про одно поведение | `grep -rnE "it\('.{100,}"` |
+| `waitForTimeout` в e2e | 2 | 1 (удержание касания, именованная константа) | grep |
+| e2e: общая БД между спеками, fake IP из заголовка, `ownerCookies` | есть | визуальные снимки в отдельном проекте Playwright со своим сервером; IP из `testInfo.testId`; вход через `storageState` | конфиг Playwright |
+| `tests/e2e/agent-cycle.md` | в `tests/` | `docs/acceptance/agent-cycle.md`, ссылка в `deploy/README.md:74` обновлена | путь |
+| Раздача `dist/web` | не тестируется | проект Playwright `static` на `node dist/server/index.js`: `/`, SPA-fallback, `/assets/*`, `/api/*` 404 JSON, `/health` | конфиг Playwright |
+| `npm run check` | зелёный | зелёный с новыми правилами; `npm run e2e` зелёный во всех проектах | |
+
+## 3. Решение
+
+### 3.1 R1: редьюсер как `switch` по union
+
+`applyCommand(input, command: Command, ctx)` принимает уже валидированную команду (JSDoc: «Вызывающий отвечает за валидацию `commandSchema`; сервер делает это в `operations.ts`, клиент строит команды типизированными билдерами из плана `07`»). `parseCommand` из тела удаляется; функция `parseCommand` остаётся экспортом `schemas.ts` для тех, кому нужна валидация (тесты `tests/unit/shared.test.ts:132-163`, если они проверяли отказ через `applyCommand`, переходят на `commandSchema.safeParse`).
+
+Внутреннее устройство одного файла `src/shared/commands.ts` (разбиение на несколько модулей возможно позже, здесь важна форма, а не файлы):
+
+```ts
+type CommandOf<K extends CommandName> = Extract<Command, { command: K }>;
+type EntityOf<K extends EntityKind> = { task: Task; project: Project; comment: Comment }[K];
+function records<K extends EntityKind>(state: WorkspaceState, kind: K): EntityOf<K>[];
+function get<K extends EntityKind>(state: WorkspaceState, kind: K, id: string): EntityOf<K>;
+type Session = { state; ctx; history; effects; emit(kind, before, after, cmd?) };
+function applyUndo(s: Session, payload: CommandOf<'undo'>['payload']): CommandResult;
+function applyProject(s: Session, command: CommandOf<'project.create' | 'project.update'>): CommandResult;
+function applyComment(s: Session, command: CommandOf<'comment.add' | 'comment.remove'>): CommandResult;
+function applyTaskCreate(s: Session, command: CommandOf<'task.create' | 'task.sync'>): CommandResult;
+function applyTaskWrite(s: Session, command: CommandOf<'task.update' | 'task.save' | 'task.move' | 'task.archive' | 'task.restore'>): CommandResult;
+function applyChecklist(s: Session, command: CommandOf<'checklist.add' | 'checklist.update' | 'checklist.remove' | 'checklist.reorder'>): CommandResult;
+export function assertNever(value: never, message = 'Необработанный вариант'): never;
+```
+
+`applyCommand` становится `switch (command.command)` из 16 `case` с `default: return assertNever(command)`; каждая ветка получает `command.payload` уже суженного типа, и касты `p.id as string`, `payload.area as Task['area']`, `p.position as …` исчезают, потому что тип платежа задаёт `commandPayloadSchemas`. Общая часть «задача существует, вычислить patch, `assertMerge`, `Object.assign`, `order`, `emit`» выделяется в `commitTaskPatch(s, record, patch, position, baseRevision, syncing)`. `isSubjectField`, `records`, инверсия при `undo` и причина пропуска sync переписываются через `switch`/lookup с `assertNever`.
+
+Отвергнуто: оставить `startsWith('project.')`-диспетчеризацию с добавленной проверкой «известная команда» в конце. Это чинит только catch-all, а не 50 кастов, и не даёт компилятору сообщать о новой команде.
+Отвергнуто: класс-редьюсер с методами на команду. Не даёт преимуществ перед функциями и усложняет `structuredClone`-семантику.
+
+### 3.2 Имена
+
+- `type ProjectFilter = 'all' | 'none' | { id: string }` не вводится: три состояния кодируются в URL строкой, и объект усложнит `url.ts`. Выбрано: `type ProjectFilter = string` с брендированными константами `ALL_PROJECTS = 'all'`, `NO_PROJECT = 'none'` в `src/shared/model.ts` и функцией `projectFilterToId(filter): string | null | undefined` (`'all'` → `undefined`, `'none'` → `null`, иначе id). `queries.ts:118-122`, `shell`, `dialogs`, `sidebar`, `board`, `editor` используют их; литералы `'all'`/`'none'` остаются только в `model.ts` и `url.ts`.
+- Переименования: `first` → `moveToQueueTop`; `focusCount` → `newFromAgentsCount`; `change()` → `setStatus`, `toggleArchive`, `saveFields` (выполняется в плане `07`, шаг 11); `json()` → `jsonResponse` (`app.ts:75`); `more` → `sections`, `foreign` → `fromOtherGeneration`, `saved` → `base` (план `07`, шаг 13); CLI-команда `activity` остаётся (обратная совместимость скилла), но `HELP` и `SKILL.md` получают пояснение «лента операций, `/api/operations`» (план `03`/`12`).
+- Актор: единая пара `actorId/actorLabel` уже используется в трёх схемах; `Task.createdBy/createdByLabel` переименовывать нельзя без миграции и смены контракта, поэтому вместо переименования добавляется `isAgentActor(id: string): boolean` в `src/shared/model.ts` (одно место знания о префиксе `agent:`), используется в `queries.ts:75`, `card.tsx:173`, `shell.tsx:307`. Сервер формирует id в `auth.ts:68` (`agent:${agent.id}`) через ту же константу `AGENT_ACTOR_PREFIX`.
+- Тернарии → `switch` или lookup-объекты; для заголовка страницы (`shell.tsx:355-367`) таблица `viewTitle(location, project, area)` в `selectors.ts` плана `07`.
+- Константы: `src/shared/constants.ts` с `RETRY = { attempts: 4, baseDelayMs: 250, factor: 2 }` (единая политика для браузера и CLI; план §7 говорит «до трёх раз», фактически четыре попытки; оставить четыре и исправить формулировку плана в плане `12`), `REQUEST_TIMEOUT_MS = 15_000`, `SSE_HEARTBEAT_MS = 25_000`, `SSE_BACKPRESSURE_LIMIT = -1000`, `RESYNC_INTERVAL_MS = 60_000`, `RECENT_EVENTS_LIMIT = 500`, `DIGEST_PAGE_LIMIT = 50`, `PAGE_LIMIT_DEFAULT = 100`, `PAGE_LIMIT_MAX = 500`, `TOAST_TIMEOUT_MS = 6_500`. Серверные используются после разреза `app.ts` планом `06`; браузерные в `store.ts`, `sync.ts`, `api.ts`, `shell.tsx`.
+- Комментарии «почему» в шести местах из 1.2; формулировки в шаге 8.
+- README: абзац «Языковая политика: идентификаторы, комментарии и названия тестов на английском; тексты интерфейса, ошибки API/CLI, `.describe()` схем и документация на русском».
+
+### 3.3 Дублирование
+
+- Ответы об ошибках: сервер и web строят тело через `new DomainError(code, message).toJSON()` (`retryable` выводится из кода: `unavailable` → `true`); где нужен `retryable: false` при коде `unavailable` (ответ не по схеме в web, план `07` 3.7), пишется `{ ...new DomainError('unavailable', msg).toJSON(), retryable: false }` с комментарием, до тех пор пока план `04` не введёт клиентский код. CLI получает `cliError(code: CliErrorCode, message, extra?)` в `src/cli/errors.ts` для кодов `invalid_arguments | client_error | network_error | invalid_response | admin_error` (план `03` владеет CLI, здесь только форма).
+- `runOperation(c, input, commandName)` объединяет `app.ts:469-482` и `:496-509`; выполняется в плане `06` при разрезе `createApp`, здесь критерий.
+- `sleep(ms)` в `src/shared/sleep.ts`; `store.ts`, `client.ts`, `run.ts` принимают его как зависимость по умолчанию.
+- `booleanQuery` как `z.enum(['true', 'false', '1', '0']).transform((v) => v === 'true' || v === '1')` в `src/shared/schemas.ts` (план `04` владеет файлом; правка в четыре строки).
+- `vitest.config.ts` = `mergeConfig(viteConfig, defineConfig({ test: {…} }))`; блок `alias` остаётся в одном месте, `@web` удаляется из `tsconfig.json`, `vite.config.ts`.
+- `'Без направления'` → `NO_PROJECT_LABEL` в `src/web/app/labels.ts` (план `07` создаёт файл).
+- `tests/helpers/`: `storage.ts` (`MemoryStorage`), `fixture.ts` (`useFixture(mode)` с `afterEach`-очисткой, обёртка над `tests/api/helpers.ts`), `http.ts` для e2e (`command(page, name, payload)`, `snapshot(page)`, `createTask`, `openTask`), `task.ts` (фикстура `Task` вместо `makeTask`). Файлы e2e импортируют из `./helpers/http` (Playwright и vitest не смешиваются: e2e-хелперы лежат в `tests/e2e/helpers.ts`, vitest-хелперы в `tests/helpers/`).
+
+### 3.4 Типы
+
+- Включить `noUncheckedIndexedAccess` (11 ошибок, исправляются за час: `argv[index]`, `column[n]`, `events[0]`, `items[index]`, `groups[i]` получают проверки или `at()` с `??`), `noUnusedLocals`, `noUnusedParameters` (0 ошибок сейчас). После этого восемь избыточных `!` становятся осмысленными или заменяются проверками; правило `no-non-null-assertion: warn` держит счётчик на виду.
+- `auth.ts:59,72` → `const scope = actorSchema.shape.scope.safeParse(key.scope); if (!key?.agentId || !scope.success) fail(…)`; далее `scope.data`.
+- `app.ts:481,508` `as 200`: оставить с комментарием «hono RPC выводит тип ответа по литералу статуса; фактический статус может быть 4xx для сохранённого отказа» до решения плана `04` по OpenAPI/RPC; либо разделить `return c.json(body, 200)` и `return c.json(body, status as 400 | 403 | 404 | 409)` через `switch`, если `hc` в CLI остаётся.
+- `db.ts:123,136,162` → мапперы `toProject(row)`, `toTask(row, items, count)`, `toEvent(row, gen)` с явным перечислением полей; при рассинхроне колонок `tsc` укажет на маппер, а не на `as`.
+- `ChangeEffect.command: CommandName` (`commands.ts:23`), `labels: Record<CommandName | 'batch', string>` (план `07`), схемы `z.enum(commandNames)` (план `04`); `commandNames = Object.keys(commandPayloadSchemas) as CommandName[]` экспортируется из `schemas.ts` один раз с комментарием, почему каст допустим.
+
+### 3.5 Ошибки
+
+- `ignoreRejection(promise: Promise<unknown>, reason: string): void` в `src/shared/ignore-rejection.ts`: `void promise.catch(() => {})`, а `reason` документирует намерение и попадает в dev-лог (`console.debug` под `import.meta.env?.DEV`). Десять мест переводятся с формулировками причин («ошибка refresh уже в state.error», «catchUp сам выставляет connected=false», «повтор конверта: результат читается через pending»).
+- `store.ts:371-372` → `throw new Error('Версия базы изменилась.', { cause: error })`.
+- `catch (error)` везде; правило `unicorn/catch-error-name` с `{ "name": "error" }`.
+
+### 3.6 Линт и конфиги
+
+`.oxlintrc.json`: `categories: { correctness: 'error', suspicious: 'error' }`; `rules` дополнить: `"typescript/no-unsafe-type-assertion": "off"` (включить как `warn` после R1), `"eslint/no-nested-ternary": "error"`, `"eslint/max-lines-per-function": ["warn", { "max": 120, "skipBlankLines": true, "skipComments": true }]`, `"react/button-has-type": "error"`, `"unicorn/catch-error-name": ["error", { "name": "error" }]`, `"typescript/no-non-null-assertion": "warn"`, `"typescript/no-unnecessary-type-assertion": "error"`, `"typescript/prefer-nullish-coalescing": "error"`. Оставить `typeCheck: true`: он дублирует `tsc` (стек T1), но убрать его можно только вместе с решением, что `npm run typecheck` остаётся отдельным шагом; рекомендация снять `typeCheck`, оставить `typeAware`, так как `check` уже вызывает `tsc`.
+
+`package.json`: `"lint": "oxlint ."`, `"format:check": "oxfmt --check ."`, `"format": "oxfmt ."`; `.oxlintrc.json.ignorePatterns` дополнить `drizzle/v2/meta/**`, `docs/**`, `public/**`, `data/**`; `.oxfmtrc.json.ignorePatterns` дополнить `dist`, `drizzle/v2/meta`, `docs/reference`, `docs/audits`, `test-results`, `playwright-report`, `data`, `*.db`. Проверить `npx oxfmt --help` на поддерживаемые типы файлов; `.md` и `.yml` включаются, только если oxfmt их форматирует без спорных изменений (иначе исключить явно и записать это в README).
+
+`deploy/database.mjs`: первая строка `// @ts-check`, отдельный `tsconfig.deploy.json` (`allowJs`, `checkJs`, `noEmit`, `include: ["deploy/*.mjs"]`, `types: ["node"]`), `"typecheck": "tsc --noEmit && tsc -p tsconfig.deploy.json"`. `drizzle.config.ts` добавляется в `tsconfig.json.include`. Альтернатива (перенос в TS и сборка tsdown) отвергнута: меняет `Dockerfile:21` и путь в `deploy.sh:69,82`, что относится к плану `11`.
+
+Неиспользуемые экспорты: `scripts/unused-exports.mjs` на API `typescript` (пакет уже установлен): собирает экспорты `src/**` и ищет ссылки из других файлов; список исключений для публичных точек (`src/server/index.ts`, `src/cli/index.ts`, `src/cli/admin.ts`, `src/web/main.tsx`, `src/web/ui/**`). Подключается к `check`. Альтернатива `knip` (новая dev-зависимость) остаётся на усмотрение плана `09`.
+
+Стиль импортов, решение владельца. Варианты: (A) без расширения везде: работает в Vite, vitest, tsx, tsdown; один codemod по `src/shared`, `src/server`, `src/cli`. (B) `./x.js` везде: Vite резолвит `.js` в `.ts` для TS-проектов, но это неочевидное поведение, а будущий Node со strip-types требует `.ts`, не `.js`, так что выигрыша в переносимости нет. Рекомендация A. Контроль: `scripts/check-imports.mjs` (grep по `from '\.\.?/.*\.js'`) в `check`, если в oxlint 1.76 нет подходящего правила `import/extensions`.
+
+### 3.7 Тесты
+
+- **Артефакты.** Умолчание `test-results/e2e-artifacts`; хеши и `environment.json` пишутся всегда (в артефакты), но публикация в `docs/reference/v2-validation` происходит только явной командой `npm run e2e:publish-reference` (`TASKINDEX_E2E_ARTIFACT_DIR=docs/reference/v2-validation playwright test --project visual`). README этой папки обновляется тем же коммитом с новым `capturedAt`.
+- **Изоляция e2e.** Playwright-проекты: `setup` (вход владельца один раз, `storageState` в `test-results/owner.json`), `functional` (`regressions.spec.ts`, `workspace.spec.ts` без визуального теста, `web-client.spec.ts` из плана `07`; сервер 4173/4001), `visual` (новый `visual.spec.ts` со снимками; свой сервер 4273/4101 и чистая база), `static` (сборка и `node dist/server/index.js`; порт 4373). `tests/e2e/server.ts` читает `TASKINDEX_E2E_WEB_PORT`/`TASKINDEX_E2E_API_PORT`. Хак `workspace.spec.ts:415-426` удаляется.
+- **Rate limit входа.** IP на тест из `testInfo.testId`: `const octets = hash(testId)`, заголовок `x-real-ip: 10.${a}.${b}.${c}`; комментарий сохраняется. Со `storageState` вход выполняется один раз в `setup`, так что лимит перестаёт быть проблемой для большинства спеков; тест passkey (`workspace.spec.ts:659`) продолжает выходить и входить в своём контексте.
+- **Ожидания.** `TOUCH_HOLD_MS = 220 + 40` с комментарием «`TouchSensor` активируется через 220 мс, `board.tsx:56-58`»; `waitForTimeout(60)` → `expect.poll` по позиции `.drag-overlay .task-card`.
+- **Property.** Генератор действий расширяется: акторы `owner | agent(write) | agent(tasks)` (ожидания по правам берутся из плана `02`, поэтому этот шаг идёт после него), `project.create/update` с русскими именами и коллизиями регистра, `comment.add/remove`, `checklist.update/remove/reorder`, `task.sync` с монотонными версиями и версиями назад, `task.save` с `position`. Инварианты прежние: `projection == state`, `assertInvariants`, монотонный `revision`, `undo` возвращает предметные поля; плюс новые: `ownerFields` не убывают, агент не меняет `ownerFields`, `commentCount == число неудалённых комментариев`. `numRuns: 200`, `seed` фиксируется через `FC_SEED` в CI-логе.
+- **Юнит-тесты модулей без покрытия.** `tests/cli/arguments.test.ts`, `tests/cli/client.test.ts`; `tests/web/url.test.ts` и `tests/web/sync.test.ts` описаны в плане `07` (раздел 5, тесты 6-7). React-компоненты остаются без юнитов: решение не вводить jsdom, потому что e2e на реальном API и Better Auth даёт больше уверенности при 8 компонентах; логика вынесена в чистые селекторы (план `07`) и тестируется без DOM.
+- **Мега-тесты.** Разделять там, где шаги независимы (`commands.test.ts:29` → `describe('Focus')` с `beforeEach`-фикстурой и четырьмя `it`; `:132` → «moves area and project atomically», «maintains Russian uniqueness», «orders by before/after»; `:180` → «rolls back the entire batch», «persists a final rejection», «dryRun writes nothing»; `recovery-and-history.test.ts:22,79,130` аналогично). Настоящие последовательности (`agent-cycle.test.ts:29`) остаются одним `it`, но заголовок ≤ 100 символов, а поведения перечисляются в `describe`. Каждый файл получает `describe` по фиче.
+- **Приёмка.** `tests/e2e/agent-cycle.md` → `docs/acceptance/agent-cycle.md` с пометкой у каждого шага «автоматизирован в <тест>» или «ручной»; исполняемый сценарий делает план `12`.
+- **Статика.** Проект `static`: `webServer.command = "npm run build && node tests/e2e/static-server.ts"` (скрипт готовит временную базу с владельцем как `server.ts:11-18`, затем `spawn('node', ['dist/server/index.js'], { env })`); проверки в `tests/e2e/static.spec.ts`.
+
+## 4. Шаги
+
+Каждый шаг завершается `npm run check`; шаги, меняющие e2e, дополнительно `npm run e2e`. Шаги 1-3 не зависят от других планов и делаются первыми. Шаги 4-6 после плана `04`. Шаги 12-16 после плана `02` там, где указано.
+
+1. **Артефакты e2e.** `tests/e2e/workspace.spec.ts:10-11`: умолчание `test-results/e2e-artifacts`; `mkdirSync(artifacts, { recursive: true })` перенести в `test.beforeAll`; `package.json`: `"e2e:publish-reference": "TASKINDEX_E2E_ARTIFACT_DIR=docs/reference/v2-validation playwright test --config tests/e2e/playwright.config.ts --project visual"` (до шага 15 без `--project visual`). `docs/reference/v2-validation/README.md`: абзац «Снимки обновляются только командой `npm run e2e:publish-reference`; прогон `npm run e2e` пишет в `test-results/`». Проверка: `npm run e2e`, затем `git status docs/reference` не показывает изменений mtime (каталог не отслеживается, проверять `ls -la --time-style=full-iso`).
+2. **tsconfig и линт.** `tsconfig.json`: `noUncheckedIndexedAccess`, `noUnusedLocals`, `noUnusedParameters`, `include` + `drizzle.config.ts`; исправить 11 ошибок индексного доступа. `.oxlintrc.json` по 3.6 (с `no-unsafe-type-assertion: off`). `.oxfmtrc.json` ignore. `package.json` скрипты `oxlint .`, `oxfmt --check .`, `typecheck` с `tsconfig.deploy.json`. `deploy/database.mjs`: `// @ts-check`, исправить найденное. Удалить `@web` из трёх конфигов; `vitest.config.ts` через `mergeConfig`. Проверка: `npm run check` зелёный; ошибки новых правил исправляются в этом же шаге там, где правка тривиальна (`catch (e)` → `catch (error)`, `||` → `??` где семантика сохраняется), остальное фиксируется как `warn` до профильных шагов.
+3. **Обработка ошибок.** `src/shared/ignore-rejection.ts`; десять замен с причинами; `store.ts:371-372` с `cause`. Проверка: grep `.catch(() => {})` пуст; `tests/web/store.test.ts` зелёный.
+4. **R1: типы и доступ.** `commands.ts`: `CommandOf`, `EntityOf`, перегруженные `records`/`get`, `assertNever` (экспорт из `src/shared/errors.ts`); `isSubjectField` и `records` через `switch` с `assertNever`. Касты в вызовах `get` исчезают. Проверка: `tsc`, все тесты.
+5. **R1: разрез редьюсера.** Выделить `Session` и `emit`; функции `applyUndo`, `applyProject`, `applyComment`, `applyTaskCreate`, `applyTaskWrite`, `applyChecklist`, `commitTaskPatch`; `applyCommand` = `switch` с `default: assertNever`. Удалить `parseCommand` из `applyCommand`; проверить `tests/unit/shared.test.ts:132-163` и `tests/api/*` на ожидания «`applyCommand` отклоняет невалидный payload» и перевести их на `commandSchema.safeParse`. Инверсия `undo` (`:311-321`) и причина пропуска sync (`:548-552`) через `switch`. Проверка: property-тесты 75 прогонов зелёные, `no-nested-ternary` в `commands.ts` 0, ` as ` в файле ≤ 5, функция > 120 строк отсутствует.
+6. **R1: исчерпывающесть.** `ChangeEffect.command: CommandName`; `commandNames` в `schemas.ts`; тест «каждый `CommandName` имеет ветку» не нужен, потому что `assertNever` делает это на этапе компиляции; вместо него тест «каждый ключ `commandPayloadSchemas` присутствует в `commandLabels` и `HELP.writes`» (совместно с планами `07` и `03`). Проверка: временно добавить в `commandPayloadSchemas` ключ `task.pin` и убедиться, что `tsc` падает в `applyCommand` и в `labels`.
+7. **Имена и константы.** `src/shared/model.ts`: `ALL_PROJECTS`, `NO_PROJECT`, `projectFilterToId`, `AGENT_ACTOR_PREFIX`, `isAgentActor`; `src/shared/constants.ts`; `queries.ts:73-81` через `switch`-функцию `focusGroupOf(task, today)`; `queries.ts:118-122` через `projectFilterToId`; `auth.ts:68` через префикс; `store.ts`, `sync.ts`, `api.ts`, `client.ts`, `shell.tsx` через константы; `app.ts:75` → `jsonResponse` (если план `06` ещё не переехал, правка в том же файле). Переименования web-идентификаторов оставить плану `07`, если он идёт позже; если `07` уже выполнен, проверить, что имена совпадают с 3.2. Проверка: grep литералов `'all'`/`'none'` вне `model.ts`/`url.ts` пуст; `startsWith('agent:')` только в `model.ts`.
+8. **Комментарии «почему».** `app.ts:178-180,410-412`: «Проба записи для `dbWritable`: `UPDATE` без изменения значения не создаёт кадров WAL и не меняет `data_version` (замер 2026-09-08), но падает с `SQLITE_READONLY` на read-only файле»; `card.tsx:105` (текст в плане `07`, 3.9); `shell.tsx` над `WorkspaceBody` про `key={state.generation}`; `db.ts:180`: «Временный `nameKey` длиннее любого настоящего (имя до 60 символов), освобождает UNIQUE перед вставкой строки с итоговым ключом; парная техника для `orderKey` ниже»; `vite.config.ts:20`: «macOS Seatbelt (Codex) блокирует FSEvents, без polling HMR не видит изменений». README: абзац о языковой политике.
+9. **Дублирование.** `src/shared/sleep.ts`; `booleanQuery` в `schemas.ts` и четыре замены в `app.ts:565-574` (или в `routes/reads.ts` после плана `06`); `DomainError.toJSON()` вместо литералов в `app.ts` и `index.ts`, `api.ts` (web); `src/cli/errors.ts` `cliError` для `client.ts:110-117,194-205`, `run.ts:345-352`; `NO_PROJECT_LABEL`. `canonical` и `runOperation` проверить как выполненные планами `03` и `06`, иначе сделать здесь: `src/shared/canonical-json.ts` с одним алгоритмом (JSON.stringify с сортировкой ключей, как в `operations.ts:27-34`; `outbox.ts` переходит на него, тест `tests/cli/cli.test.ts:219` «does not silently change a saved generation or overwrite an existing operation» подтверждает совместимость). Проверка: grep `ok: false` в `src` показывает только `errors.ts`, `cli/errors.ts` и тесты.
+10. **Типы на границах сервера.** `auth.ts:59,72` через `actorSchema.shape.scope.safeParse`; мапперы `toProject/toTask/toEvent` в `db.ts`; комментарий или `switch` для `app.ts:481,508`. Проверка: `no-unsafe-type-assertion` в `src/server` уменьшается; `migrations.test.ts` зелёный.
+11. **`tests/helpers/`.** `storage.ts`, `fixture.ts`, `task.ts`; `tests/e2e/helpers.ts` (`command`, `snapshot`, `createTask`, `openTask`, `login`); перевести `store.test.ts`, `drafts.test.ts`, `commands.test.ts`, `recovery-and-history.test.ts`, `auth.test.ts`, оба e2e-спека. Проверка: `grep -rn 'class MemoryStorage' tests` даёт один файл.
+12. **Разделение мега-тестов и `describe`.** По 3.7; заголовки ≤ 100 символов; `describe` в каждом файле. Проверка: `grep -rnE "it\('.{100,}" tests` пуст; число `it` растёт, поведение не меняется.
+13. **Property.** Расширить генераторы по 3.7 после плана `02` (права агентов). `numRuns: 200`. Проверка: время прогона `tests/property` ≤ 10 с локально; при провале fast-check печатает `seed`, он фиксируется в issue.
+14. **Юнит-тесты CLI.** `tests/cli/arguments.test.ts`: `--k=v`, `--k v`, `--`, `-q`, `-h`, switch без значения и с `true/false`, `--json=yes` → ошибка, дубль флага, отсутствие значения. `tests/cli/client.test.ts`: матрица `exitCode` (2xx storedOperation → 0, 401/403 → 4, 409 → 3, 2xx `ok:false` → 1, 5xx → 1); `request` отклоняет ссылку на другой origin и передаёт `redirect: 'error'`; `send` делает `RETRY.attempts` попыток с паузами из `RETRY` через fake `sleep`, удаляет конверт только при `ok` или `retryable: false`; `resume` ветки 404 → `send`, `result.ok` → удалить, pending → `send`. Проверка: покрытие модулей по `vitest --coverage` (без добавления зависимости: `@vitest/coverage-v8` уже может отсутствовать; тогда критерий по наличию файлов тестов).
+15. **Перестройка e2e.** `tests/e2e/playwright.config.ts`: проекты `setup`, `functional`, `visual`, `static`; массив `webServer` с тремя серверами; `tests/e2e/server.ts` с портами из env; `tests/e2e/visual.spec.ts` (перенос `workspace.spec.ts:342-502` без `:415-426`); `storageState` из `setup`; `x-real-ip` из `testInfo.testId`; `TOUCH_HOLD_MS`; `expect.poll` вместо `waitForTimeout(60)`. `README.md:89-96` и `docs/reference/v2-validation/README.md` обновить (команды `npm run e2e`, `npm run e2e:publish-reference`). Проверка: `npm run e2e` зелёный; повторный прогон визуального проекта даёт те же хеши снимков (детерминированность проверяется два раза подряд; расхождения фиксируются как известные и решаются в плане `08`).
+16. **Статический проект.** `tests/e2e/static-server.ts`, `tests/e2e/static.spec.ts`: `/` → 200 `text/html`; `/?area=agency&view=list` → тот же `index.html`; `/assets/<имя из dist>` → 200, `content-type` JS, заголовки кэша по решению плана `11` (до него проверяется только статус и тип); `/api/nope` → 404 JSON `code: 'not_found'`; `/health` → 200 JSON с `build`; вход владельца по паролю на собранной статике и заголовок «Агентство». Проверка: проект `static` в `npm run e2e`.
+17. **Приёмка и долг.** `git mv tests/e2e/agent-cycle.md docs/acceptance/agent-cycle.md`; пометки «автоматизирован в …»; `deploy/README.md:74` ссылка. Раздел «Тестовый долг других планов» этого документа переносится в `docs/acceptance/test-debt.md` со ссылками на планы `01`, `02`, `03` и отмечается при закрытии.
+18. **Скрипт неиспользуемых экспортов.** `scripts/unused-exports.mjs`; удалить экспорты из списка 1.6, кроме тех, что нужны тестам (тогда пометить `/** @internal for tests */`); `check` дополнен. Проверка: скрипт печатает пустой список.
+
+## 5. Тесты
+
+| # | Файл | Сценарий | Ожидаемый результат |
+|---|---|---|---|
+| 1 | `tests/unit/commands-dispatch.test.ts` (новый) | для каждого ключа `commandPayloadSchemas` минимальный валидный payload проходит через `applyCommand` на подготовленном состоянии | ни одна команда не попадает в чужую ветку: `checklist.*` меняет `checklist`, `task.*` не трогает `checklist` без явного поля; `result.record` имеет ожидаемый вид |
+| 2 | `tests/unit/shared.test.ts` (правка) | невалидный payload | отказ через `commandSchema.safeParse`, а не через `applyCommand` |
+| 3 | `tests/unit/model.test.ts` (новый) | `isAgentActor('agent:x')`, `isAgentActor('owner')`, `projectFilterToId` для `'all'`, `'none'`, `'p1'` | `true`, `false`; `undefined`, `null`, `'p1'` |
+| 4 | `tests/unit/shared.test.ts` | `focusGroupOf` совпадает с прежним тернарием на таблице случаев: focus, агент без касания, срок, followUp, ничего | группы `selected`, `new`, `due`, `follow-ups`, `null` |
+| 5 | `tests/api/commands.test.ts` (правка после шага 9) | ответы `defaultHook`/`onError` | тело равно `new DomainError(code, message).toJSON()` по форме, `retryable` совпадает с картой кодов |
+| 6 | `tests/cli/arguments.test.ts` (новый) | по шагу 14 | коды и сообщения `ArgumentError` как сейчас; регрессий в `cli.test.ts` нет |
+| 7 | `tests/cli/client.test.ts` (новый) | по шагу 14 | `RETRY.attempts` попыток, паузы `250, 500, 1000`; конверт удалён только при терминальном ответе |
+| 8 | `tests/web/store.test.ts` (правка) | `send` с fake `delay` | те же паузы из `RETRY`, что в CLI; после исчерпания `status: 'unknown'`, конверт сохранён |
+| 9 | `tests/property/commands.test.ts`, `undo.test.ts` (расширение) | по 3.7 | инварианты держатся на 200 прогонах; агент `tasks` не проходит `project.*`; `ownerFields` не убывают |
+| 10 | `tests/e2e/static.spec.ts` (новый) | по шагу 16 | статусы, типы, SPA-fallback, JSON 404, вход |
+| 11 | `tests/e2e/visual.spec.ts` (перенос) | снимки на чистой базе | те же семь PNG, `environment.json`, `screenshots-sha256.json` в `test-results/e2e-artifacts`; два прогона подряд дают равные хеши или задокументированное расхождение |
+| 12 | `scripts/unused-exports.mjs` | запуск в `check` | пустой список; временно добавленный экспорт `export const unusedProbe = 1` ловится |
+| 13 | `npm run check` | после каждого шага | `tsc` с новыми флагами, `oxlint .`, `oxfmt --check .`, vitest зелёные; счётчики из таблицы раздела 2 достигнуты |
+
+## 6. Риски и откат
+
+- **R1 меняет самый нагруженный модуль.** Смягчение: шаги 4-6 отдельные коммиты; property-тесты и `tests/api` покрывают все команды; до и после сравнить `applyCommand` на журнале экспорта реальной базы (`taskindex-admin export` + `validateExport`, `admin.ts:239`), который проигрывает события через `applyEvent`. Откат: `git revert` шага 5, интерфейс `applyCommand` не меняется.
+- **`noUncheckedIndexedAccess` замедлит правки.** 11 ошибок сегодня; правило стоит того, потому что `commands.ts` работает с массивами событий и индексами. Откат: снять флаг, оставить `!` там, где они были.
+- **Категория `suspicious` с type-aware правилами.** Без `no-unsafe-type-assertion: off` линт даст сотни ошибок; после R1 включать как `warn` и следить за счётчиком.
+- **`oxlint .`/`oxfmt --check .` начнут проверять новые файлы и изменят форматирование `*.md`/`*.yml`.** Проверить на пустом diff; при спорном форматировании исключить типы файлов явно.
+- **Перестройка e2e на несколько серверов увеличит время прогона** (сейчас 32 с). Три сервера стартуют параллельно; сборка для `static` добавляет ~10-20 с. Смягчение: `--project functional` для быстрого локального цикла; полный набор в `check` перед PR.
+- **`storageState` и тест passkey.** Тест выходит из сессии в своём контексте; другие контексты не затронуты. Проверить, что `setup` не создаёт passkey.
+- **Property-тесты с агентами зависят от политики плана `02`.** Если `02` ещё не выполнен, генератор акторов ограничивается `owner` и `agent(write)` без проверок `ownerFields`.
+- **Codemod импортов.** Механическая замена расширений; `tsc` и vitest ловят ошибки резолва мгновенно. Откат: обратный codemod.
+
+## 7. Вне объёма
+
+- Генерация `commandSchema`/`commandEnvelopeSchema` из `commandPayloadSchemas`, `z.enum(commandNames)` в схемах, `LIMITS`, `issues` в ответах, `export { z }` из `schemas.ts`: план `04`.
+- `canonical()` в `shared`, `runCli` на части, реестр флагов, CLI-коды ошибок и `ApiReply` типизация: план `03`.
+- Разрез `createApp`, `runOperation`, `server/config.ts`, логирование со стеком: план `06`.
+- Декомпозиция web, `useDraft`, `ConflictPanel`, `labels.ts`, `selectors.ts`, тесты `url`/`sync`, a11y: план `07`; переименования web-идентификаторов выполняются там.
+- `deploy/health.mjs`, `shellcheck`, длинные строки в shell, heredoc-программы: план `11`.
+- Исполняемый агентский цикл, `CLAUDE.md`, единый пин Node, дрейф документации: план `12`.
+- Тестовый долг B-01, B-02, B-03, B-05: планы `02`, `02`, `01`, `03` соответственно; здесь только учёт.
+- Новые зависимости (`knip`, `@vitest/coverage-v8`, `vite-plugin-compression`): план `09`.
+
+## Покрытые находки
+
+| ID | Отчёт | Кратко | Где в плане |
+|---|---|---|---|
+| R1, §4 `applyCommand` | качество | Union стирается на `:230-231`, 50 кастов, `startsWith`-диспетчеризация, catch-all `else` для чеклиста, `get(): Entity` | 1.1, 3.1, шаги 4-6, тесты 1-2 |
+| §2 sentinel `'all'/'none'` | качество | 15 сравнений в 7 файлах, тип `string` | 1.2, 3.2, шаг 7, тест 3 |
+| §2 имена | качество | `first`, `focusCount`, `change`, `json`, `more/foreign/saved`, `activity`/«Активность»/`operations`, `createdBy` vs `actorId`, `'agent:'` ×3 | 1.2, 3.2, шаг 7 (web-часть в плане `07`) |
+| §2 тернарии | качество | 47 вложенных тернариев | 1.2, 3.2, шаги 5, 7, тест 4 |
+| §2 магические числа | качество | Две политики повтора, heartbeat, backpressure, таймауты, лимиты страниц | 1.2, 3.2, шаг 7, тесты 7-8 |
+| §2 комментарии «почему» | качество | Шесть мест без объяснения | 1.2, шаг 8 |
+| §2 языковая политика | качество | Не записана | 3.2, шаг 8 |
+| §3 дублирование | качество | Обработчики ×2, литералы ошибок ×13, `canonical` ×3, `sleep` ×3, boolean query ×4, `alias` ×2, `'Без направления'` ×6, тестовые хелперы | 1.3, 3.3, шаги 9, 11 |
+| §4 типы | качество | 93 каста, 28 `!`, 8 избыточных, 19 `Record<string, unknown>`, 6 `JSON.parse`, `auth.ts:59,72`, `as 200`, нет `never` | 1.4, 3.4, шаги 2, 4-6, 10 |
+| §5 ошибки | качество | `.catch(() => {})` ×10, потеря `cause`, имя в `catch` | 1.5, 3.5, шаг 3 |
+| §10 линт и конфиги | качество | Только `correctness`, списки путей, `database.mjs` и `drizzle.config.ts` вне проверок, `@web`, стиль импортов, неиспользуемые экспорты | 1.6, 3.6, шаги 2, 18 |
+| R9 | качество | Линт-правила, `!`, `type`, `catch`, `noUncheckedIndexedAccess`, `oxlint .` | шаг 2 |
+| R10 (тестовая часть) | качество | `tests/helpers/`, `agent-cycle.md` в `docs/`, артефакты в `test-results/` | шаги 1, 11, 17 |
+| §9 тесты | качество | Артефакты в `docs/`, узкие property, модули без тестов, мега-тесты, хрупкость e2e, чек-лист в `tests/` | 1.7, 3.7, шаги 1, 12-17, тесты 6-11 |
+| T1 | стек | `typeCheck: true` дублирует `tsc` | 3.6 (рекомендация снять `typeCheck`) |
+| T2 | стек | Lint не покрывает `deploy/database.mjs`; shell без shellcheck | 1.6, шаг 2 (`database.mjs`); shellcheck в плане `11` |
+| Q2 | стек | e2e не проверяет `dist/web` | 1.7, 3.7, шаг 16, тест 10 |
+| B3 (частично) | AI-ready | Добавление команды без проверок исчерпывающести | 3.1, 3.4, шаг 6 (union из схем в плане `04`) |
+| B7 | AI-ready | `noUnusedLocals`, категория `suspicious`, `serverId` не используется | шаги 2, 18 |
+| Тестовый долг B-01, B-02, B-03, B-05 | баги | Не покрыто тестами | 1.7, шаг 17 (учёт), исполнение в планах `02`, `01`, `03` |
+| Astra Q-03 | astra / TI-021 | оракул undo из production `isSubjectField`; `>=` при постоянном времени; узкие генераторы | шаг 19; генераторы шаг 13 |
+| Astra Q-05 (статическая часть) | astra / TI-017 | drill не исполняет `deploy.sh`; shell и `database.mjs` вне проверок | шаг 20; стенд в плане 11 |
+| Astra S-05 | astra / TI-018 | нет проекта WebKit; «touch drag не проверен» неверно | шаг 21 |
+| Astra S-06 | astra / TI-016 | нет CI и гейта релиза на `check` | шаг 22; связь с деплоем в плане 11 |
+| Astra Q-01 / A-05 | astra / TI-019 | потеря типа команды после валидации | 3.1 (R1); шаг 25 (`satisfies` для списков полей) |
+| Сверка (регрессии) | `reports/compare-bugs.md`, раздел (e) / TI-001, TI-003, TI-004, TI-006, TI-007, TI-008, TI-009, TI-010, TI-011, TI-035, TI-037, TI-039 | единый список регрессионных тестов по объединённым находкам | шаг 23 |
+| Сверка (методология) | `reports/compare-quality-method.md`, раздел (d) / нет | единая шкала, дедупликация, артефакты доказательств, e2e не пишет в `docs/` | шаг 24 |
+
+## Сверка с ревью Astra (2026-09-08)
+
+Кратко: Astra добавила два пробела в тестах, которых нет ни в одном из пяти наших отчётов. Q-03 (`astra-21-independent-property-model.md`, реестр TI-021): `tests/property/undo.test.ts:56-59` определяет `subject(task)` через `isSubjectField('task', key)`, тем же предикатом пользуется реализация отмены (`src/shared/commands.ts:304`, `:337`); если поле выпадет из `taskFields` (`:39-53`), реализация перестанет его восстанавливать, а тест перестанет сравнивать; кроме того `>=` для `revision` (`undo.test.ts:104`) при постоянном `now` (`:28`) не проверяет строгий рост `revision`/`updatedAt` из плана §13. Q-05 (`astra-17-deploy-entrypoint-failure-tests.md`, TI-017): `deploy/local-drill.sh:95` вызывает `rollback.sh` напрямую, `deploy.sh:18` требует Linux, ни один тест не исполняет `deploy.sh`, его ERR-ловушку и ветви `on_failure`; владелец стенда план 11, здесь статические проверки. S-05 (`astra-18-browser-and-phone-acceptance.md`, TI-018): единственный проект `Desktop Chrome` (`tests/e2e/playwright.config.ts:12`); отсутствие WebKit верно, но «touch drag остаётся неизвестным» неверно: `tests/e2e/workspace.spec.ts:568-590` поднимает мобильный контекст с `hasTouch` и шлёт `Input.dispatchTouchEvent` через CDP; по сверке это P3, а не P2, но проект дешёвый. S-06 (`astra-16-release-validation-gate.md`, TI-016): нет CI, `deploy.sh` не требует зелёного `check`; гейт в плане 11, workflow здесь. Q-01/A-05 (`astra-19`, TI-019) совпадает с R1 (3.1); формулировка следствия у Astra («часть будет отклонена рантаймом») совпадает с §1.1 здесь (`not_found` «Шаг не найден»). По методологии Astra впереди: единая шкала P1/P2/P3 с confidence, список без повторов, probe в репозитории и перезапущены координатором, ссылки проверены машинно, SHA 112 файлов; у нас четыре шкалы и репро-скрипты в scratchpad. Обе стороны перезаписали `docs/reference/v2-validation` прогоном e2e (наш около 20:15 раскрыт, их 20:40:55 не раскрыт, контроль SHA не включал `docs/`). Поправка к этому плану: инлайн-литералов ошибок 19, а не 13.
+
+### Добавлено по итогам сверки
+| Пункт | Источник Astra | Реестр | План Astra | Что делаем здесь / где делается |
+|---|---|---|---|---|
+| Независимый оракул для undo: явный список полей, маленькая эталонная модель, строгий рост `revision`/`updatedAt` при движущемся времени | Q-03 | TI-021 | `astra-21`, шаги 1-3, 5-6 | шаг 19 ниже |
+| `bash -n`, shell-анализатор и типизация `deploy/database.mjs` в `check` | Q-05 | TI-017 | `astra-17`, шаг 5 | шаг 20 ниже; стенд с настоящим `deploy.sh` в плане 11 |
+| Проект WebKit для критического пути; чек-лист телефона отдельно | S-05 | TI-018 | `astra-18`, шаги 1-2, 4 | шаг 21 ниже |
+| Минимальный гейт: Node 24, `npm ci`, `check`, `build`, browser suite; привязка к commit и digest | S-06 | TI-016 | `astra-16`, шаги 1-5 | шаг 22 ниже; привязка к образу и preflight в `deploy.sh` в плане 11 |
+| Единый список регрессионных тестов по объединённым находкам двух ревью | сверка по багам (e) | TI-001, TI-003, TI-004, TI-006…TI-011, TI-035, TI-037, TI-039 | `astra-01`…`astra-11` | шаг 23 ниже |
+| Методология: одна шкала, дедупликация, артефакты доказательств в репозитории, e2e не пишет в `docs/` | сверка по качеству (d) | нет | нет | шаг 24 ниже |
+| `satisfies`/`keyof` для списков полей; формулировка следствия для неизвестной команды | Q-01 / A-05 | TI-019 | `astra-19` | 3.1 уже; шаг 25 ниже |
+| Тесты формы сохранённых данных | Q-04 | TI-022 | `astra-22` | планы 04 (дополнительный шаг 16) и 03 (дополнительный шаг 18); здесь только учёт в шаге 23 |
+| Жизненный цикл намерения форм | Q-06 | TI-023 | `astra-23` | план 07 (дополнительный шаг 25) |
+| Диагностика ошибок | Q-02 | TI-020 | `astra-20` | план 06 |
+
+### Расхождения и решение
+- Тяжесть S-05. Astra P2, реестр P2; сверка: P3, потому что касания проверены в Chromium-эмуляции, а WebKit-специфичны только Web Locks в `drafts.ts`, EventSource, `AbortSignal.timeout` и passkey. Решение: проект `webkit` добавляется (шаг 21), стоимость малая; passkey на телефоне автоматизации не поддаётся и остаётся ручным чек-листом.
+- Q-01 P2 против A-05 P3. Astra сохраняет обе оценки; здесь R1 P2. Без изменений.
+- Счёт инлайн-литералов. В §1.3 и таблице §2 записано 13; фактически 19 (`app.ts` 7, `index.ts` 1, `api.ts` 3, `client.ts` 3, `run.ts` 4, `admin-run.ts` 1). Разделы не редактируются (только дописываются), поправка зафиксирована в шаге 25; цель 0 не меняется.
+- Побочный эффект e2e. Обе стороны перезаписали эталоны; шаг 1 меняет умолчание. У Astra контроль «неизменности исходников» покрывал `src/tests/deploy/drizzle/scripts` и корневые конфиги, но не `docs/`; урок записан в шаге 24.
+- CI. Astra: не требовать отдельного облачного сервиса ради галочки. Здесь: одни и те же команды в workflow git-хостинга (если репозиторий там размещён) и в локальном `scripts/gate.mjs`; выбор места и привязка к деплою в плане 11.
+- Рост `numRuns` сам по себе не улучшение (`astra-21`, шаг 6). Согласны: шаг 13 поднимает `numRuns` до 200 вместе с новыми генераторами, не вместо них.
+
+### Дополнительные шаги
+19. Q-03 (`astra-21`). (а) Экспортировать `taskFields`/`projectFields` из `src/shared/commands.ts` (или `subjectFields(kind)`); в `tests/property/undo.test.ts` заменить предикат `subject()` (`:56-59`) явным списком `UNDO_SUBJECT_FIELDS` (сегодня: `area`, `projectId`, `title`, `status`, `note`, `due`, `waitingFor`, `followUp`, `orderKey`, `focus`, `archived`, `checklist`, `originUrl` по `commands.ts:39-53`) и добавить страж `expect([...taskFields].sort()).toEqual([...UNDO_SUBJECT_FIELDS].sort())`, чтобы всплывали и выпавшее из production поле, и устаревший тестовый список. (б) Эталонная модель: `Map<taskId, Record<field, unknown>>`, обновляемая из сгенерированных действий без `applyCommand`; после `undo` предметные поля `state.tasks` равны снимку модели до пакета; модель покрывает только поля, которые трогает генератор. (в) Время движется: `now` = база плюс `counter` секунд на команду; после каждого предметного изменения `revision` и `updatedAt` строго больше прежних (план §13), при no-op не меняются. (г) Генераторы по шагу 13 плюс: отклонённый пакет (вторая команда невалидна) → состояние и `history` не изменились; устаревшая `baseRevision` после чужой правки → `conflict` при пересечении полей; создание через `task.sync` и отмена создания. (д) Контрольная мутация описана в шапке теста: удаление `'note'` из `taskFields` должно валить (а) и (б). Приёмка: проверка 1 из `astra-21`.
+20. Q-05, статическая часть. `package.json` `check` дополняется `bash -n deploy/*.sh` и, при установленном `shellcheck`, `shellcheck -S warning deploy/*.sh` (иначе пропуск с сообщением); `tsc -p tsconfig.deploy.json` для `deploy/database.mjs` из шага 2. Стенд, исполняющий настоящий `deploy.sh` с `TASKINDEX_FAIL_AT` на изолированном Linux/Docker окружении: план 11 (TI-017).
+21. S-05. `tests/e2e/playwright.config.ts`: проект `webkit` (`devices['Desktop Safari']`, метка `@webkit`) для сцен: вход по паролю и выход, создание задачи, правка и сохранение с переподключением SSE, восстановление черновика после перезагрузки (Web Locks), открытие редактора, чеклиста и комментариев, индикатор pending; `npx playwright install webkit` в README. Тест касаний в Chromium (`workspace.spec.ts:568-590`) остаётся покрытием touch; WebKit добавляет только различия движка. Чек-лист телефона (passkey, клавиатура, safe area, ориентация) в `docs/acceptance/phone.md` (`astra-18`, шаг 4). Тёмные сцены для плана 08 (там дополнительный шаг 17).
+22. S-06. Минимальный гейт одними и теми же командами в двух местах: `.github/workflows/check.yml`, если репозиторий размещён на GitHub (Node из `.node-version`, `npm ci`, `npm run check`, `npm run build`, `npm run e2e -- --project functional`, артефакты в `test-results/`, без деплоя), и `scripts/gate.mjs` для локального запуска тех же команд. Требование `deploy.sh` о зелёном гейте для точного commit и digest образа: план 11 (`astra-16`, шаги 3-4).
+23. Единый список регрессий (сверка по багам, раздел (e)). Таблица в `docs/acceptance/test-debt.md` (шаг 17) с колонками «ID Astra/Fable, TI, файл теста, план»: агентский undo операций владельца и агентский `focus` (`tests/api/permissions.test.ts`, план 02); SSE после `revokeAgentKey`/`disableAgent` (`tests/api/auth.test.ts`, план 05, шаг 10); refresh поверх живого события (`tests/web/store.test.ts`, план 07, шаг 22); CLI с посторонним 2xx JSON (`tests/cli/client.test.ts`, план 03, шаг 16); `operations?since=0` содержит no-op и отказ (`tests/api/recovery-and-history.test.ts`, план 04, шаг 11); `checklist.add` с дублем id и 101-м шагом сохраняет операцию (`tests/api/commands.test.ts`, план 04, шаг 12); id `none`/`all`/`by-origin` отклоняются (`commands.test.ts`, план 04, шаг 13); `submit` без хранилища (`store.test.ts`, план 07, шаг 23); редактор после отклонённого move (`store.test.ts`, план 07, шаг 24); два токена в одном `XDG_STATE_HOME` и посторонний файл outbox (`tests/cli/state.test.ts`, план 03); перезапуск обхода при 409 на курсоре (`tests/cli/cli.test.ts`, планы 01 и 03). Имена тестов повторяют идентификаторы probe Astra (`refresh-rolls-back-live-event` и другие из `docs/audits/2026-09-08-multiside-review/03-probes.ts`) для прослеживаемости. Строка закрывается, когда тест смержен.
+24. Методология (сверка по качеству, раздел (d); для README этой папки и будущих ревью, README правится отдельно): (а) одна шкала тяжести на ревью с отображением в P1/P2/P3 реестра `issues.md`; (б) один ID на причину, статусы только в реестре; (в) репро-скрипты наших ревью (`agent-undo-owner.mts`, `perf.mts`, `outbox-stray*.mts`, `shared-outbox.mts`, `a01-rejected-variant.mts`, `extra-probes.mts`, `health-write3.mts`) уже лежат в `docs/plans/2026-09-08-v2-review/probes/` (`repro/`, `compare/`, `transcripts/`, README); новые скрипты складывать туда же и ссылаться на них из планов; (г) ревью запускают e2e только с `TASKINDEX_E2E_ARTIFACT_DIR` до шага 1, `docs/reference` никогда не является выходом теста; (д) `scripts/check-doc-links.mjs`: каждая ссылка `файл:строка` в планах существует и строка не выходит за длину файла (Astra проверила 120 ссылок машинно).
+25. Поправки и дельта Q-01. Метрика «инлайн-литералы `{ ok: false, … }`» равна 19, не 13 (`app.ts` 7, `index.ts` 1, `api.ts` 3, `client.ts` 3, `run.ts` 4, `admin-run.ts` 1); цель 0 без изменений, grep теста 13 считает по `src` без `errors.ts` и `cli/errors.ts`. В шаге 4 объявить `taskFields`/`projectFields` как `ReadonlySet<keyof Task>`/`ReadonlySet<keyof Project>` через `satisfies`, чтобы переименование поля падало на `tsc` (предложение `astra-19`).

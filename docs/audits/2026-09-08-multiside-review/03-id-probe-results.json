@@ -1,0 +1,23 @@
+{
+  "runtime": "v24.20.0",
+  "projectSentinel": {
+    "projectCreationStatus": 200,
+    "requestedProjectId": "none",
+    "expectedTaskIds": [
+      "inside-project"
+    ],
+    "actualTaskIds": [
+      "unassigned"
+    ]
+  },
+  "taskRoute": {
+    "taskCreationStatus": 200,
+    "taskReadStatus": 400,
+    "body": {
+      "ok": false,
+      "code": "invalid",
+      "message": "Проверьте параметры запроса.",
+      "retryable": false
+    }
+  }
+}

@@ -1,0 +1,2897 @@
+# TaskIndex — единый реестр находок и решений
+
+Составлен 8 сентября 2026 по незакоммиченному дереву v2. **78 объединённых записей, а не 78 багов.** Исходные отчёты сохранены; исправления этим документом не выполнялись. Дополнено 2026-09-10 решениями владельца (делегированы Fable) и карточкой TI-078.
+
+Это основное место для ID, актуального статуса, приоритета и критерия закрытия. Отчёты объясняют, откуда взялась находка и как её проверяли; планы описывают последовательность реализации. Вопросы тёмной темы и скинов включены отдельными записями, а подробные планы остаются в общей папке.
+
+Текущий состав: **48 открытых замечаний, 18 предложений, 11 вопросов для решения, 1 снятая гипотеза** (пересчёт 2026-09-10 после добавления TI-078; статус РЕШЕНИЕ сохраняется, выбранный вариант по правилу 5 записан 2026-09-10 у TI-025, TI-026, TI-027, TI-029, TI-056, TI-057, TI-064, TI-068, TI-078; TI-073 ждёт замера, TI-077 без решения). Открытые замечания включают риски, документацию и приёмку; это не количество независимо воспроизведённых дефектов.
+
+Быстрый переход: [индекс](#issue-index) · [карточки](#issue-cards) · [покрытие исходных отчётов](#source-coverage) · [правила обновления](#maintenance).
+
+## С чего начать
+
+| Очередь | Записи | Причина |
+|---|---|---|
+| 1. Доступ и изоляция поручений | [TI-001](#ti-001), [TI-035](#ti-035), [TI-036](#ti-036), [TI-027](#ti-027) | Отозванный ключ продолжает получать SSE; другой агент исполняет чужой pending; своя таблица `agent_keys` без записи на каждый GET (решение 2026-09-10, P1); запрет агентского undo операций владельца и `focus` по принятой матрице (решение 2026-09-10, P1). |
+| 2. Резервирование до рабочего запуска | [TI-002](#ti-002) | Нужны обнаружение остановки репликации и проверенный получатель сигнала. |
+| 3. Сохранность и подтверждение действий | [TI-004](#ti-004), [TI-006](#ti-006), [TI-003](#ti-003), [TI-007](#ti-007), [TI-009](#ti-009) | Не терять envelope/ввод, не считать неизвестный исход успехом, не откатывать состояние. |
+| 4. Полный и устойчивый агентский цикл | [TI-008](#ti-008), [TI-037](#ti-037), [TI-038](#ti-038), [TI-039](#ti-039), [TI-040](#ti-040), [TI-043](#ti-043), [TI-044](#ti-044), [TI-045](#ti-045), [TI-046](#ti-046) | Корректные результаты, чтение страниц, восстановление и исполнимая справка. |
+| 5. Стоимость работы и права | [TI-012](#ti-012) | Устранить измеренные лишние чтения/записи; контракт пагинации по видам лент принят 2026-09-10. Политика owner/agent принята 2026-09-10: TI-036 и TI-027 перенесены в очередь 1 как P1. |
+| 6. Визуальная работа | [TI-025](#ti-025), [TI-026](#ti-026) | Одна общая основа темы (план 08, фаза A); затем предпочтение аккаунта и реестр скинов с предпросмотром, каталог «Classic» и «Фокус» (решение 2026-09-10). |
+| 7. Продуктовая работа | [TI-078](#ti-078) | Вид «Стол» для экрана Focus по макету «Фокус» (план 13); P2, после волны 1; стартовый экран не меняется. |
+| 8. Поверхность HTTP до переключения | [TI-056](#ti-056), [TI-057](#ti-057) | Allowlist `/health`, HSTS и заголовки, dev на `127.0.0.1` — первая волна по решению 2026-09-10. |
+
+Очередь — рекомендация координатора по объединённым доказательствам, не новый срок или разрешение на deploy. P1 — доступ/сохранность/обязательная готовность к рабочему запуску; P2 — функциональные дефекты и существенные риски; P3 — улучшения и необязательная оптимизация. Приоритет не заменяет тип и статус. Исходные оценки сохранены в отчётах; новые P1/P2/P3 для Fable — нормализация этого реестра, а не дословная оценка автора.
+
+Дополнение 2026-09-10 (Fable, первый проход). Приоритеты индекса тогда не менялись. Три предложения по повышению приоритета были записаны внутри карточек строкой «Предложение Fable»: [TI-027](#ti-027) P2 → P1, [TI-036](#ti-036) P2 → P1, [TI-056](#ti-056) P3 → P2. Спорные оценки в обе стороны (Astra B-01 средняя по продукту, S-05 P3) записаны в карточках без изменения индекса.
+
+Дополнение 2026-09-10 (второй проход, решения владельца). Владелец делегировал спорные решения Fable и отдельно подтвердил скины и раскладку «Фокус» ([README планов, «Решения владельца»](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/README.md:148)). Все три предложения приняты и применены в индексе, карточках и этой таблице: [TI-027](#ti-027) P2 → P1, [TI-036](#ti-036) P2 → P1, [TI-056](#ti-056) P3 → P2. Выбранные варианты записаны в карточках со статусом РЕШЕНИЕ абзацем «Выбранный вариант», в остальных — строкой «Решение» в «Детали и оговорки»; шкала приоритетов одна, реестра (P0 планов Fable = P1). Добавлена карточка [TI-078](#ti-078) (вид «Стол», план 13). Спорные оценки Astra B-01 и S-05 остаются без изменения индекса.
+
+## Источники и границы достоверности
+
+| Обозначение | Исходник |
+|---|---|
+| Astra S-01…S-07 | [01-stack.md](/Users/dmitriy/code/taskindex/docs/audits/2026-09-08-multiside-review/01-stack.md) |
+| Astra A-01…A-05 | [02-architecture.md](/Users/dmitriy/code/taskindex/docs/audits/2026-09-08-multiside-review/02-architecture.md) |
+| Astra B-01…B-08 | [03-bugs.md](/Users/dmitriy/code/taskindex/docs/audits/2026-09-08-multiside-review/03-bugs.md) |
+| Astra Q-01…Q-06 | [04-code-quality.md](/Users/dmitriy/code/taskindex/docs/audits/2026-09-08-multiside-review/04-code-quality.md) |
+| FS — стек Fable | [review-1-stack.md](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/review-1-stack.md) |
+| FA — архитектура Fable | [review-2-architecture.md](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/review-2-architecture.md) |
+| FB — баги Fable | [review-3-bugs.md](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/review-3-bugs.md) |
+| FQ — качество Fable (§ раздел, R строка итоговой таблицы) | [review-4-quality.md](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/review-4-quality.md) |
+| FI — AI-readiness Fable | [review-5-ai-ready.md](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/review-5-ai-ready.md) |
+| Предшествующие workflow-находки | [REPORT.md](/Users/dmitriy/code/taskindex/docs/audits/2026-09-08-workflows/claude-review/REPORT.md) |
+| Сопоставление моделей и независимая перепроверка | [ASTRA-VS-FABLE.md](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/ASTRA-VS-FABLE.md) |
+| FC — сверка Fable по трём осям (добавлено 2026-09-10) | [compare-bugs.md](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/compare-bugs.md), [compare-stack-arch.md](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/compare-stack-arch.md), [compare-quality-method.md](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/compare-quality-method.md) |
+| Пробы и повторы Fable (добавлено 2026-09-10) | [probes/README.md](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/probes/README.md) |
+| Решения владельца 2026-09-10 (делегированы Fable), план 13 и макеты (добавлено 2026-09-10) | [README планов, «Решения владельца»](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/README.md:148); разделы «Решение владельца (2026-09-10, делегировано Fable)» в планах 01, 02, 04–09, 11, 12; [13-focus-desk-view.md](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/13-focus-desk-view.md); [visions-2026-09-08/README.md](/Users/dmitriy/code/taskindex/docs/reference/visions-2026-09-08/README.md) |
+
+Полные планы: [34 плана Astra/BACKLOG/оформления](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/ASTRA-INDEX.md); [индекс планов Fable](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/README.md). [BACKLOG](/Users/dmitriy/code/taskindex/BACKLOG.md) сохраняет исходные требования/приёмку; статусы объединённых находок обновляются здесь. Одноимённые B-01 у Astra и Fable — разные пункты; namespace в ссылках обязателен.
+
+Один ID соответствует одной причине или цельной области решения. Например, разные виды сбоя outbox не слиты: ACK — TI-004, недоступное browser storage — TI-006, форма persisted данных — TI-022, чужой actor — TI-035, повреждённый файл CLI — TI-039. Крупные тематические записи сохраняют конкретные подслучаи и ссылки на подробные отчёты/планы.
+
+Ссылка на два отчёта означает тематическое сопоставление; она не всегда доказывает два независимых воспроизведения. Точное разделение «совпало / частично / только одна модель / расходится» находится в [Независимая сверка Astra/Fable](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/ASTRA-VS-FABLE.md). CSS-замечания Fable не приписаны задним числом четырём Astra-ревьюерам: оформление добавлено запросом владельца.
+
+Перед составлением карточек сверены SHA-256 всех **112 файлов** из [снимка исходного ревью](/Users/dmitriy/code/taskindex/docs/audits/2026-09-08-multiside-review/source-after.json): изменений не было. HEAD 4b780e42292e8702eee0f906acb77d5aa34ab7c1 — старый коммит под незакоммиченной v2; один HEAD не идентифицирует проверенный код. Последующее добавление навигации в README/BACKLOG — документационное изменение. При исправлениях строки ссылок могут сдвигаться: ориентироваться также на имя функции и исходный ID.
+
+В карточках разделены воспроизведение координатором, статическая проверка, свидетельство автора отчёта и предложение. Сохранённые проверки: [Astra functional probes](/Users/dmitriy/code/taskindex/docs/audits/2026-09-08-multiside-review/03-probe-results.json), [Astra architecture probes](/Users/dmitriy/code/taskindex/docs/audits/2026-09-08-multiside-review/02-architecture-probes.json), [Повторная проверка координатора](/Users/dmitriy/code/taskindex/docs/audits/2026-09-08-astra-fable-comparison/probes.json). В этом документальном шаге test/build/E2E и рабочие VPS/S3 проверки не повторялись. Синтетические числа не объявляются производственным SLA. Дополнение 2026-09-10: повторы и расширения Fable лежат в [probes/](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/probes/README.md) (`repro/`, `compare/`, `transcripts/`) и разобраны в трёх отчётах сверки `reports/compare-*.md`; в карточках они помечены «Сверка Fable:».
+
+| Статус | Значение |
+|---|---|
+| ОТКРЫТО | Подтверждённый дефект/пробел либо обоснованный риск; работа и проверка закрытия не выполнены. Уровень доказательства указан в карточке. |
+| ПРЕДЛОЖЕНО | Улучшение или рефакторинг; ожидаемая польза описана, реализация не начата. |
+| РЕШЕНИЕ | Нужно выбрать продуктовую/техническую семантику. Сам факт обсуждения не означает принятия предложенного варианта. |
+| СНЯТО | Гипотеза не подтвердилась; сохранена с объяснением. Не означает «исправлено». |
+
+<a id="issue-index"></a>
+
+## Индекс
+
+| ID | Приоритет | Статус | Тема |
+|---|---|---|---|
+| [TI-001](#ti-001) | P1 | ОТКРЫТО | Отзыв доступа к уже открытому SSE |
+| [TI-002](#ti-002) | P1 | ОТКРЫТО | Постоянный контроль прогресса резервирования |
+| [TI-003](#ti-003) | P2 | ОТКРЫТО | Согласование snapshot и событий без отката состояния |
+| [TI-004](#ti-004) | P2 | ОТКРЫТО | Подтверждение CLI-операций перед удалением outbox |
+| [TI-005](#ti-005) | P2 | ОТКРЫТО | Типизированные и проверяемые ответы web-клиента |
+| [TI-006](#ti-006) | P2 | ОТКРЫТО | Обязательное сохранение web-операции до отправки |
+| [TI-007](#ti-007) | P2 | ОТКРЫТО | Редактор и зависимые операции используют подтверждённую revision |
+| [TI-008](#ti-008) | P2 | ОТКРЫТО | Курсор операций, включающий отказы и команды без изменений |
+| [TI-009](#ti-009) | P2 | ОТКРЫТО | Сохранение окончательных доменных отказов |
+| [TI-010](#ti-010) | P2 | ОТКРЫТО | Разделение ID проекта и служебных фильтров |
+| [TI-011](#ti-011) | P2 | ОТКРЫТО | Устранение коллизии маршрута задачи by-origin |
+| [TI-012](#ti-012) | P2 | ОТКРЫТО | Стоимость команд, истории и пагинации |
+| [TI-013](#ti-013) | P2 | ОТКРЫТО | Неизменность применённых SQL-миграций |
+| [TI-014](#ti-014) | P2 | ОТКРЫТО | Совместимость таблиц, событий, результатов и клиентов |
+| [TI-015](#ti-015) | P2 | ОТКРЫТО | Неизменяемая конфигурация выпуска для отката |
+| [TI-016](#ti-016) | P2 | ОТКРЫТО | Обязательная проверка конкретного выпуска |
+| [TI-017](#ti-017) | P2 | ОТКРЫТО | Испытания deploy.sh и его аварийных ветвей |
+| [TI-018](#ti-018) | P2 | ОТКРЫТО | WebKit и приёмка на настоящем телефоне |
+| [TI-019](#ti-019) | P2 | ОТКРЫТО | Сохранение точных типов команд до обработчика |
+| [TI-020](#ti-020) | P2 | ОТКРЫТО | Диагностируемые ошибки и корреляция запросов |
+| [TI-021](#ti-021) | P2 | ОТКРЫТО | Независимые свойства команд и Undo |
+| [TI-022](#ti-022) | P3 | ОТКРЫТО | Проверка формата сохранённых черновиков и outbox |
+| [TI-023](#ti-023) | P3 | ПРЕДЛОЖЕНО | Общий жизненный цикл намерения в формах |
+| [TI-024](#ti-024) | P3 | ПРЕДЛОЖЕНО | Зависимости и измеримая загрузка интерфейса |
+| [TI-025](#ti-025) | P2 | РЕШЕНИЕ | Полноценная тёмная тема и общая основа оформления |
+| [TI-026](#ti-026) | P2 | РЕШЕНИЕ | Система скинов поверх общей темы |
+| [TI-027](#ti-027) | P1 | РЕШЕНИЕ | Граница самостоятельных правок агента и решений владельца |
+| [TI-028](#ti-028) | P2 | ОТКРЫТО | Постоянный Node 24 для проекта |
+| [TI-029](#ti-029) | P2 | РЕШЕНИЕ | Понятный и согласованный счётчик Focus |
+| [TI-030](#ti-030) | P2 | ОТКРЫТО | Русские ошибки и доступные имена интерфейса |
+| [TI-031](#ti-031) | P2 | ОТКРЫТО | Единое русское склонение количества задач |
+| [TI-032](#ti-032) | P2 | ОТКРЫТО | История изменений на языке пользователя |
+| [TI-033](#ti-033) | P2 | ОТКРЫТО | Сверка документации с реализованными контрактами |
+| [TI-034](#ti-034) | P2 | ОТКРЫТО | Рабочая приёмка после исправлений |
+| [TI-035](#ti-035) | P1 | ОТКРЫТО | CLI пересылает чужой outbox под текущим агентом |
+| [TI-036](#ti-036) | P1 | ОТКРЫТО | Проверка API-ключа пишет auth-метаданные при каждом GET |
+| [TI-037](#ti-037) | P2 | ОТКРЫТО | Полный обход страниц срывается при параллельной записи |
+| [TI-038](#ti-038) | P2 | ОТКРЫТО | Pending старого поколения остаётся в браузере без пути завершения |
+| [TI-039](#ti-039) | P2 | ОТКРЫТО | Один повреждённый файл outbox блокирует CLI-чтения |
+| [TI-040](#ti-040) | P2 | ОТКРЫТО | Конфликт имени проекта возвращает неправильный current |
+| [TI-041](#ti-041) | P2 | ОТКРЫТО | Fallback без Web Locks накапливает scope черновиков при reload |
+| [TI-042](#ti-042) | P2 | ОТКРЫТО | Back закрытого редактора не возвращает исходный URL фильтра |
+| [TI-043](#ti-043) | P2 | ОТКРЫТО | CLOSED EventSource не создаётся заново |
+| [TI-044](#ti-044) | P2 | ОТКРЫТО | CLI не предоставляет доступные API-фильтры и проверку своей личности |
+| [TI-045](#ti-045) | P2 | ОТКРЫТО | CLI help и parser не дают полный исполнимый контракт |
+| [TI-046](#ti-046) | P2 | ОТКРЫТО | Ошибки CLI/API не объясняют, какое поле и как исправить |
+| [TI-047](#ti-047) | P2 | ПРЕДЛОЖЕНО | У агента нет штатного сохранения cursor после полного чтения |
+| [TI-048](#ti-048) | P2 | ПРЕДЛОЖЕНО | Нет удобного входящего контекста для конкретного агента |
+| [TI-049](#ti-049) | P2 | ОТКРЫТО | OpenAPI громоздок и слабо описывает операции и авторизацию |
+| [TI-050](#ti-050) | P3 | ОТКРЫТО | Закрытый stdout вызывает EPIPE со stack trace |
+| [TI-051](#ti-051) | P3 | ПРЕДЛОЖЕНО | events --follow печатает пустые страницы каждую секунду |
+| [TI-052](#ti-052) | P2 | ОТКРЫТО | Инструкции подключения и работы агента с репозиторием неполны |
+| [TI-053](#ti-053) | P2 | ПРЕДЛОЖЕНО | Нет одной команды для одноразового dev-окружения |
+| [TI-054](#ti-054) | P2 | ОТКРЫТО | Цепочка миграций не связана проверкой со SCHEMA_VERSION |
+| [TI-055](#ti-055) | P2 | ОТКРЫТО | HTTP-управление API-ключами расходится с предметной моделью агентов |
+| [TI-056](#ti-056) | P2 | РЕШЕНИЕ | Публичный health и HTTP-защиты требуют явного контракта |
+| [TI-057](#ti-057) | P2 | РЕШЕНИЕ | Dev backend слушает 0.0.0.0 по умолчанию |
+| [TI-058](#ti-058) | P2 | ОТКРЫТО | E2E по умолчанию перезаписывает reference-артефакты в docs |
+| [TI-059](#ti-059) | P2 | ПРЕДЛОЖЕНО | Большие server/CLI/UI модули смешивают независимые обязанности |
+| [TI-060](#ti-060) | P2 | ПРЕДЛОЖЕНО | Лимиты повторяются в схемах, командах и JSX |
+| [TI-061](#ti-061) | P2 | ПРЕДЛОЖЕНО | Несколько canonical() могут разойтись в хешировании |
+| [TI-062](#ti-062) | P2 | ПРЕДЛОЖЕНО | Конфигурация разбросана, часть переменных не отражает runtime |
+| [TI-063](#ti-063) | P3 | ПРЕДЛОЖЕНО | Комментарии дублируются в store и отдельной загрузке по любому seq |
+| [TI-064](#ti-064) | P3 | РЕШЕНИЕ | Выбор Drizzle/better-sqlite3 требует измерения, замена не обоснована |
+| [TI-065](#ti-065) | P3 | ПРЕДЛОЖЕНО | CSS shadcn привязан к пакету генератора и его транзитивным зависимостям |
+| [TI-066](#ti-066) | P3 | ПРЕДЛОЖЕНО | Dev/build конфигурация содержит лишнюю работу и широкое наблюдение |
+| [TI-067](#ti-067) | P2 | ОТКРЫТО | Пути runtime/migrations/static зависят от текущего каталога |
+| [TI-068](#ti-068) | P3 | РЕШЕНИЕ | Место сборки и состав production image можно упростить |
+| [TI-069](#ti-069) | P2 | ОТКРЫТО | E2E проверяет Vite dev, но не production static serving |
+| [TI-070](#ti-070) | P2 | ПРЕДЛОЖЕНО | Общее состояние, ожидания и дубли делают E2E хрупкими |
+| [TI-071](#ti-071) | P3 | ПРЕДЛОЖЕНО | Lint, мёртвый код и соглашения дают неполный сигнал качества |
+| [TI-072](#ti-072) | P2 | ПРЕДЛОЖЕНО | Нет безопасного обзора deploy-плана и воспроизводимого bootstrap |
+| [TI-073](#ti-073) | P3 | РЕШЕНИЕ | События хранятся и отдельно, и в результате операции |
+| [TI-074](#ti-074) | P3 | ПРЕДЛОЖЕНО | Имя владельца зашито в UI |
+| [TI-075](#ti-075) | — | СНЯТО | Гипотеза: каждый health создаёт новые WAL-кадры |
+| [TI-076](#ti-076) | P3 | ПРЕДЛОЖЕНО | В UI активности нет фильтра по агенту, доступного в API/CLI |
+| [TI-077](#ti-077) | P3 | РЕШЕНИЕ | Жизненный цикл проекта не включает удаление/архивирование |
+| [TI-078](#ti-078) | P2 | РЕШЕНИЕ | Вид «Стол» для экрана Focus по макету «Фокус» |
+
+<a id="issue-cards"></a>
+
+## Карточки
+
+<a id="ti-001"></a>
+
+### TI-001 — Отзыв доступа к уже открытому SSE
+
+**Тип:** Баг. **Статус:** ОТКРЫТО. **Приоритет:** P1.
+
+**Источники:** [Astra:B-01](/Users/dmitriy/code/taskindex/docs/audits/2026-09-08-multiside-review/03-bugs.md:22); [Сохранённое воспроизведение](/Users/dmitriy/code/taskindex/docs/audits/2026-09-08-multiside-review/03-probe-results.json); [FC:compare-bugs «Их B-01»](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/compare-bugs.md:51); [FC:compare-quality-method (e)](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/compare-quality-method.md:91); [План 05, доп. шаг 10](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/05-auth-and-agent-keys.md:195).
+
+**Где:** [src/server/app.ts:810](/Users/dmitriy/code/taskindex/src/server/app.ts:810), [src/server/auth.ts](/Users/dmitriy/code/taskindex/src/server/auth.ts), [src/server/admin.ts:196](/Users/dmitriy/code/taskindex/src/server/admin.ts:196).
+
+**Проблема и последствия.** Ключ агента проверяется при подключении. После отзыва новый HTTP-запрос получает отказ, а существующий SSE продолжает отдавать задачи, созданные после отзыва. Воспроизведение выполнено с настоящим Better Auth. Отзыв через административный CLI происходит в другом процессе, поэтому локального массива подписчиков недостаточно.
+
+**Проверка и ограничения.** Воспроизведено координатором в исходном аудите. Better Auth: новый запрос после отзыва получает 403, открытый SSE принимает новую задачу. Сверка Fable: probe Astra перезапущен с настоящим Better Auth 2026-09-08, результат `freshRequestStatus 403, mutationStatus 200, receivedPostRevocationTitle true` ([compare-bugs (f)](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/compare-bugs.md:156)).
+
+**Предлагаемая работа.** Каждая новая порция данных допускается к отправке только при действующем доступе. Неактивное соединение закрывается за явно заданный максимальный интервал повторной проверки.
+
+**Критерий закрытия.** Регрессия воспроизводится до исправления и проходит после него; максимальное idle-окно явно описано; все виды SSE-сообщений проходят одну границу доступа.
+
+**Проверки при реализации:**
+
+- Регрессия: открыть поток ключом, отозвать его через отдельное соединение/процесс, создать задачу после отзыва — её данные не приходят.
+- Проверить idle-соединение, catch-up старого курсора, отзыв во время отправки, выключение агента, истечение и уменьшение scope; активный разрешённый поток остаётся рабочим.
+- Проверить завершение owner-session при выходе/сбросе сессий в пределах поддерживаемого auth-контракта; проверить отсутствие утечки таймеров и секретов в логах.
+
+**Детали и оговорки:**
+
+- Повторная auth-проверка может стать дорогой или писать в SQLite. Измерить путь и применять проверку состояния credential без побочных счётчиков. При ошибке проверки прекращать выдачу данных; расширять права для сохранения соединения нельзя.
+- Сверка Fable: тяжесть для этого продукта средняя, приоритет P1 сохраняется. Поставляемый CLI не открывает SSE: `taskindex events --follow` опрашивает `/api/events` раз в секунду ([src/cli/run.ts:387-390](/Users/dmitriy/code/taskindex/src/cli/run.ts:387)) и после отзыва получает 403 на следующем опросе; окно ограничено жизнью процесса; эффект только чтение новых событий. Уязвим самописный SSE-клиент или `curl` по OpenAPI. Закрыть до того, как ключи начнут раздаваться за пределы машины владельца ([compare-bugs (c)](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/compare-bugs.md:57)).
+- Сверка Fable: проектировать вместе с TI-036. Кэш результата `verifyApiKey` на 30–60 с (FA:V3) расширил бы то же окно отзыва, поэтому отвергнут обеими сторонами; принятый путь — подписчик SSE несёт `actor`/`credential`/`check()`, перепроверка перед каждой отправкой и на heartbeat без записей в базу, гарантия «не позже `SSE_HEARTBEAT_MS` (25 с) или ближайшей отправки» ([план 05, доп. шаги 10–12](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/05-auth-and-agent-keys.md:195); [план 06, доп. шаг 13](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/06-server-structure-config-logging.md:242)).
+- **Решение** (принято 2026-09-10; решение делегировано владельцем Fable): исправляется тем же изменением, что TI-036 — собственная таблица `agent_keys` по плану 05; подписчик SSE-хаба несёт `actor`/`credential`/`check()`, перепроверка перед каждой отправкой и на heartbeat без записи в базу, поток закрывается при отзыве ключа или отключении агента, гарантия «не позже `SSE_HEARTBEAT_MS`» (план 05, шаги 10–12). Кэш результата проверки не вводится. Приоритет P1 без изменений; до рабочего переключения ([план 05, решение владельца](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/05-auth-and-agent-keys.md:199); [README планов, строка «Плагин api-key»](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/README.md:155)).
+
+**Связанные планы:** [astra-01-sse-access-revocation.md](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/astra-01-sse-access-revocation.md); [05-auth-and-agent-keys.md](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/05-auth-and-agent-keys.md); [06-server-structure-config-logging.md](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/06-server-structure-config-logging.md).
+
+Исходная оценка в плане: P1.
+
+<a id="ti-002"></a>
+
+### TI-002 — Постоянный контроль прогресса резервирования
+
+**Тип:** Эксплуатационный риск. **Статус:** ОТКРЫТО. **Приоритет:** P1.
+
+**Источники:** [Astra:S-02](/Users/dmitriy/code/taskindex/docs/audits/2026-09-08-multiside-review/01-stack.md:74); [FC:compare-stack-arch S-02](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/compare-stack-arch.md:70); [План 11 §3.1](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/11-deploy-and-ops.md:98).
+
+**Где:** [deploy/compose.yml](/Users/dmitriy/code/taskindex/deploy/compose.yml), [deploy/litestream.yml](/Users/dmitriy/code/taskindex/deploy/litestream.yml), [src/server/app.ts:408](/Users/dmitriy/code/taskindex/src/server/app.ts:408).
+
+**Проблема и последствия.** Локальный health приложения не доказывает, что новая запись доходит до внешней реплики. В репозитории не найден постоянный внешний сигнал о поломке резервирования. Это не утверждение, что действующая реплика уже потеряна или что вне репозитория точно нет мониторинга.
+
+**Проверка и ограничения.** Проверено в исходном ревью по коду; отдельного нового воспроизведения при составлении реестра не выполнялось. Сверка Fable: подтверждено по коду и конфигурации (`deploy/litestream.yml` без `heartbeat-url`/`heartbeat-interval`/`addr`, `compose.yml` без healthcheck у `litestream`); ключи `heartbeat-url`, `heartbeat-interval` (минимум 1m) и `addr` присутствуют в Litestream 0.5.12 по `cmd/litestream/main.go` тега v0.5.12 ([compare-stack-arch (c), (f)](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/compare-stack-arch.md:73)). Оценка Fable «P0 до переключения» равна P1 реестра: расхождения нет.
+
+**Предлагаемая работа.** Сбой репликации обнаруживается независимо от доступности VPS; есть получатель уведомления, проверяемый сигнал восстановления и отдельное доказательство восстановления из выбранного хранилища.
+
+**Критерий закрытия.** Есть измеренное время обнаружения и подтверждённый получатель; проверен отказ и возврат в норму. До выполнения реального стенда план остаётся незавершённым.
+
+**Проверки при реализации:**
+
+- Внешний получатель сообщает о пропущенном сигнале, даже когда источник целиком остановлен.
+- Повреждённые credentials реплики не дают успешный heartbeat только из-за живого процесса.
+- Runbook объясняет, как проверить последний подтверждённый backup и восстановиться; локальная file-replica не засчитывается как реальная S3-приёмка.
+
+**Детали и оговорки:**
+
+- Не вводить автоматический запрет всех записей при кратковременной потере реплики без отдельного продуктового решения. Проверить, какие именно сбои покрывает выбранный heartbeat. Основание для предлагаемого механизма: [официальный Litestream heartbeat](https://litestream.io/reference/config/#heartbeat-monitoring).
+- Сверка Fable: конкретика в [плане 11 §3.1](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/11-deploy-and-ops.md:98) и шагах 1–2: `heartbeat-url: ${LITESTREAM_HEARTBEAT_URL}`, `heartbeat-interval: 1m`, опциональный `addr` без публикации порта, переменная `LITESTREAM_HEARTBEAT_URL` с `:?`-guard в compose, приёмник `deploy/drill/heartbeat-receiver.mjs` в drill с тремя проверками (пинг при здоровой реплике, отсутствие пинга при недоступной реплике и зелёном `/health`, возобновление), раздел RPO в `deploy/README.md`. Получатель и канал оповещения — отдельное поручение владельца ([README планов, «Решения владельца»](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/README.md:160)).
+- **Решение** (принято 2026-09-10; решение делегировано владельцем Fable): получатель heartbeat — healthchecks.io, `heartbeat-interval: 1m`, оповещение владельцу при пропуске трёх интервалов; первая волна, до рабочего переключения. Оставшийся объём: план 11 §3.1, шаги 1–2 (конфигурация, `:?`-guard в compose, приёмник в drill, раздел RPO) и подтверждение реального получателя по критерию карточки ([план 11, решение владельца](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/11-deploy-and-ops.md:398); [README планов, строка «Heartbeat Litestream»](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/README.md:164)).
+
+**Связанные планы:** [astra-02-backup-progress-monitoring.md](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/astra-02-backup-progress-monitoring.md); [11-deploy-and-ops.md](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/11-deploy-and-ops.md).
+
+Исходная оценка в плане: P1.
+
+<a id="ti-003"></a>
+
+### TI-003 — Согласование snapshot и событий без отката состояния
+
+**Тип:** Баг. **Статус:** ОТКРЫТО. **Приоритет:** P2.
+
+**Источники:** [Astra:B-02](/Users/dmitriy/code/taskindex/docs/audits/2026-09-08-multiside-review/03-bugs.md:49); [Сохранённое воспроизведение](/Users/dmitriy/code/taskindex/docs/audits/2026-09-08-multiside-review/03-probe-results.json); [FC:compare-bugs «Их B-02»](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/compare-bugs.md:67); [extra-probes.mts (c)](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/probes/compare/extra-probes.mts); [План 07, доп. шаг 22](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/07-web-client-fixes-and-structure.md:271).
+
+**Где:** [src/web/app/store.ts:155](/Users/dmitriy/code/taskindex/src/web/app/store.ts:155), [src/web/app/sync.ts:9](/Users/dmitriy/code/taskindex/src/web/app/sync.ts:9).
+
+**Проблема и последствия.** При refresh более новое SSE-событие применяется раньше задержанного старого snapshot. loadSnapshot затем уменьшает seq, заменяет confirmed и очищает буфер. Соединение той же generation остаётся connected, хотя интерфейс уже пропустил изменение. Серверная запись не теряется.
+
+**Проверка и ограничения.** Воспроизведено координатором в исходном аудите. Состояние seq=1/tasks=1 откатывается к seq=0/tasks=0 после старого snapshot. Сверка Fable: probe Astra перезапущен (`afterEvent {seq:1,tasks:1}` → `afterSnapshot {seq:0,tasks:0,connected:true}`); расширение (`extra-probes.mts` (c)): при следующем живом событии `ingest` не находит пропущенный seq, буферизует и вызывает `catchUp` → `/api/events?since=0`, состояние восстанавливается `{seq:0,tasks:0}` → `{seq:2,tasks:2}`. Устаревание длится до следующего события в пространстве; данные не теряются.
+
+**Предлагаемая работа.** Внутри одной generation подтверждённая позиция клиента никогда не уменьшается. Snapshot и SSE образуют согласованную последовательность; неполная операция не отображается частично.
+
+**Критерий закрытия.** Нет уменьшения seq в одной generation и потери целых пакетов; все отложенные ответы привязаны к эпохе; исходный probe проходит.
+
+**Проверки при реализации:**
+
+- Детерминированный тест доставки: snapshot(seq=0) задержан, SSE(seq=1) применён, snapshot отпущен — задача остаётся, seq не падает.
+- Матрица: события до/во время/после refresh, два refresh, смена generation, пропуск и дубль, неполный batch, pending-операция одновременно с refresh.
+- Один browser-сценарий с реальным store и управляемыми ответами подтверждает видимую карточку и отсутствие ложного состояния «синхронизировано».
+
+**Детали и оговорки:**
+
+- Полный reconnect сам по себе недостаточен, если он стартует с уже неверной позиции. Нельзя маскировать гонку периодическим polling без устранения нарушения watermark.
+- Сверка Fable: тяжесть низкая из-за самовосстановления, исправление дешёвое: в `refresh` после `loadSnapshot` вызывать `catchUp()`, либо в `loadSnapshot` при той же generation и `snapshot.seq < state.seq` не заменять состояние, а догонять; поздний ответ refresh старой эпохи отбрасывать ([план 07, доп. шаг 22](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/07-web-client-fixes-and-structure.md:271)). Это не отменяет требования карточки «seq не уменьшается в одной generation».
+
+**Связанные планы:** [astra-03-snapshot-sse-ordering.md](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/astra-03-snapshot-sse-ordering.md); [07-web-client-fixes-and-structure.md](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/07-web-client-fixes-and-structure.md).
+
+Исходная оценка в плане: P2.
+
+<a id="ti-004"></a>
+
+### TI-004 — Подтверждение CLI-операций перед удалением outbox
+
+**Тип:** Баг. **Статус:** ОТКРЫТО. **Приоритет:** P2.
+
+**Источники:** [Astra:B-03](/Users/dmitriy/code/taskindex/docs/audits/2026-09-08-multiside-review/03-bugs.md:78); [FQ:§3](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/review-4-quality.md:75); [Сохранённое воспроизведение](/Users/dmitriy/code/taskindex/docs/audits/2026-09-08-multiside-review/03-probe-results.json); [FC:compare-bugs «Их B-03»](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/compare-bugs.md:73); [План 03, доп. шаг 16](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/03-cli-outbox-and-ergonomics.md:291).
+
+**Где:** [src/cli/client.ts:144](/Users/dmitriy/code/taskindex/src/cli/client.ts:144), [src/cli/outbox.ts](/Users/dmitriy/code/taskindex/src/cli/outbox.ts), [src/shared/schemas.ts](/Users/dmitriy/code/taskindex/src/shared/schemas.ts).
+
+**Проблема и последствия.** CLI принимает произвольный JSON с HTTP 200 за успех команды. На ответ {"status":"maintenance"} он возвращает exit 0 и удаляет outbox, хотя сервер не подтвердил нужную операцию. HTTP-успех и доказательство завершения команды сейчас смешаны.
+
+**Проверка и ограничения.** Воспроизведено координатором в исходном аудите. HTTP 200 maintenance → exit 0, envelope удалён без результата операции. Сверка Fable: probe перезапущен: `{"reply":{"status":200,"body":{"status":"maintenance"}},"exitCode":0,"outboxExists":false}`; причина в `exitCode` ([src/cli/client.ts:41-43](/Users/dmitriy/code/taskindex/src/cli/client.ts:41)) и `send` ([src/cli/client.ts:144-148](/Users/dmitriy/code/taskindex/src/cli/client.ts:144)). Требуется upstream, отвечающий JSON 200 не от TaskIndex (ошибочный `TASKINDEX_URL`, чужой прокси); HTML-заглушка nginx уже ловится `invalid_response`.
+
+**Предлагаемая работа.** Конверт удаляется только после проверенного окончательного результата именно этой операции. Неизвестный или несовместимый ответ оставляет возможность безопасно узнать результат или повторить исходный конверт.
+
+**Критерий закрытия.** Исходный probe больше не удаляет envelope; все способы подтверждения проходят одну функцию классификации и имеют точные exit-коды.
+
+**Проверки при реализации:**
+
+- HTTP 200 maintenance, пустой body, success с чужим ID, чужая generation и неизвестный discriminant сохраняют конверт и не дают ложный exit 0.
+- Настоящий success и сохранённый domain rejection корректно завершают состояние; повтор того же envelope идемпотентен.
+- После обрыва между commit и ответом CLI находит stored result и не создаёт второй эффект.
+
+**Детали и оговорки:**
+
+- Окончательный отказ не следует бесконечно повторять. Его нужно отличать от HTTP-ответа посредника, который лишь похож на ошибку приложения. Валидацию файлов outbox реализует отдельный план 22.
+- resultCompleted в CLI и ApiClient.resume дублируют классификацию подтверждения; объединить именно эту гарантию при исправлении, чтобы разные пути не удаляли envelope по разным признакам.
+- Сверка Fable: исправление — перед `outbox.remove` проверять тело `operationSuccessSchema`/`operationErrorSchema` и совпадение `operationId`/`generation` с конвертом; иначе конверт остаётся, код `invalid_response`, exit 1; `resume` проверяет `storedOperationSchema` ([план 03, доп. шаг 16](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/03-cli-outbox-and-ergonomics.md:291), там же таблица «исход → код выхода → конверт»). Делается в P0-части плана 03 вместе с TI-035/TI-039, потому что правка точечная.
+
+**Связанные планы:** [astra-04-cli-operation-acknowledgement.md](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/astra-04-cli-operation-acknowledgement.md); [03-cli-outbox-and-ergonomics.md](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/03-cli-outbox-and-ergonomics.md).
+
+Исходная оценка в плане: P2.
+
+<a id="ti-005"></a>
+
+### TI-005 — Типизированные и проверяемые ответы web-клиента
+
+**Тип:** Усиление контракта. **Статус:** ОТКРЫТО. **Приоритет:** P2.
+
+**Источники:** [Astra:S-04](/Users/dmitriy/code/taskindex/docs/audits/2026-09-08-multiside-review/01-stack.md:101); [FQ:§4](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/review-4-quality.md:100); [FQ:R8](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/review-4-quality.md:287); [FC:compare-stack-arch S-04](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/compare-stack-arch.md:104); [ASTRA-VS-FABLE §4.5](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/ASTRA-VS-FABLE.md:133); [README планов, расхождение 8](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/README.md:101).
+
+**Где:** [src/web/app/api.ts:13](/Users/dmitriy/code/taskindex/src/web/app/api.ts:13), [src/web/app/store.ts:170](/Users/dmitriy/code/taskindex/src/web/app/store.ts:170), [src/web/app/sync.ts:23](/Users/dmitriy/code/taskindex/src/web/app/sync.ts:23).
+
+**Проблема и последствия.** request<T> возвращает тип через приведение, а SSE принимает распарсенный JSON без полноценной проверки контракта. Существование TypeScript-типа не проверяет реально пришедшие bytes. Несовместимый ответ может попасть в confirmed, обработку pending или интерфейс.
+
+**Проверка и ограничения.** Проверено в исходном ревью по коду; отдельного нового воспроизведения при составлении реестра не выполнялось. Сверка Fable: подтверждено по коду (`src/web/app/api.ts:74` `value as T`, `sync.ts:25` без `eventSchema`).
+
+**Предлагаемая работа.** Каждый входящий snapshot, event, operation-result и справочный ответ проверяется до изменения состояния; endpoint определяет тип результата, а не произвольный generic вызывающего кода.
+
+**Критерий закрытия.** Все входные пути store покрыты валидацией; создание нового endpoint требует явного контракта; сохранность черновиков проверена при protocol mismatch.
+
+**Проверки при реализации:**
+
+- Malformed snapshot/events не меняют confirmed/seq и не завершают pending.
+- Схема валидна, но generation/ID неверны — ответ отвергается на уровне корреляции.
+- Валидные ответы проходят без второй несовместимой трансформации; ошибки сети, протокола и домена различимы в UI и тестах.
+
+**Детали и оговорки:**
+
+- Hono RPC обеспечивает compile-time связь, но не заменяет runtime-валидацию и политику совместимости из плана 14. Не распространять один generic на разные формы error/success.
+- Проверять также тип current и results[].record, generation/operationId, а не только JSON-форму. Hono hc и общий TypeScript не заменяют runtime parse. Предложение FS:F3 убрать клиентскую валидацию нельзя применять к HTTP/SSE-границе.
+- Сверка Fable: клиентская валидация snapshot/SSE/ответов операций сохраняется; вариант FS:F3 «валидация только на сервере» снят обеими сторонами; вес бандла снимается переходом `src/shared` на `zod/mini` по замеру, а не отказом от проверок ([ASTRA-VS-FABLE §4.5](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/ASTRA-VS-FABLE.md:133); [план 07, доп. шаг 26](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/07-web-client-fixes-and-structure.md:275)). Проверка связности `operationId`/`generation` в ответе — [план 04, доп. шаг 14](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/04-api-contract-and-schemas.md:291).
+- **Решение** (принято 2026-09-10; решение делегировано владельцем Fable): клиентская валидация snapshot, событий SSE и ответов операций сохраняется; вес снимается переходом `src/shared` на `zod/mini` по замеру; вариант «валидация только на сервере» (FS:F3) снят ([план 04, решение владельца](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/04-api-contract-and-schemas.md:295); [README планов, строка «Валидация на клиенте»](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/README.md:160)).
+
+**Связанные планы:** [astra-05-web-response-contracts.md](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/astra-05-web-response-contracts.md); [04-api-contract-and-schemas.md](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/04-api-contract-and-schemas.md); [07-web-client-fixes-and-structure.md](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/07-web-client-fixes-and-structure.md).
+
+**Связанные записи / зависимости исходного плана:** [TI-004](#ti-004).
+
+Исходная оценка в плане: P2.
+
+<a id="ti-006"></a>
+
+### TI-006 — Обязательное сохранение web-операции до отправки
+
+**Тип:** Баг. **Статус:** ОТКРЫТО. **Приоритет:** P2.
+
+**Источники:** [Astra:B-08](/Users/dmitriy/code/taskindex/docs/audits/2026-09-08-multiside-review/03-bugs.md:187); [Сохранённое воспроизведение](/Users/dmitriy/code/taskindex/docs/audits/2026-09-08-multiside-review/03-storage-probe-result.json); [FC:compare-bugs «Их B-08»](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/compare-bugs.md:91); [План 07, доп. шаг 23](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/07-web-client-fixes-and-structure.md:272).
+
+**Где:** [src/web/app/store.ts:118](/Users/dmitriy/code/taskindex/src/web/app/store.ts:118), [src/web/app/drafts.ts:9](/Users/dmitriy/code/taskindex/src/web/app/drafts.ts:9).
+
+**Проблема и последствия.** Если браузер запрещает сам getter localStorage, browserStorage возвращает undefined. Optional chaining превращает persist в no-op, но запрос всё равно отправляется. После неизвестного результата и reload конверт теряется. Существующая защита от quota exceeded не закрывает этот сценарий.
+
+**Проверка и ограничения.** Воспроизведено координатором в исходном аудите. Getter localStorage бросает SecurityError; отправлено 4 POST, pending после reload исчезает. Сверка Fable: probe перезапущен (`postCount 4, beforeReloadPending 1, afterReloadPending 0, draftPersistedAcrossInstance false`). Getter бросает в редких режимах (выключенное хранилище, sandbox-iframe, политики site data), поэтому тяжесть низкая; при квоте (`setItem` бросает) поведение уже корректно.
+
+**Предлагаемая работа.** При отсутствии подтверждённого durable storage запись не отправляется. Чтение приложения остаётся доступным, введённый текст остаётся в памяти с честным статусом несохранённости.
+
+**Критерий закрытия.** Исходный storage probe проходит; невозможен путь send без успешного persist; пользователь видит разницу между введено, сохранено локально и подтверждено сервером.
+
+**Проверки при реализации:**
+
+- Getter SecurityError, отсутствие localStorage и setItem QuotaExceeded: ноль сетевых write-запросов.
+- Хранилище доступно, ответ unknown, reload — envelope восстановлен в точности; подтверждённый результат очищает его.
+- Чтение, открытие редактора, копирование текста и предварительный просмотр оформления работают без ложного обещания долговечности.
+
+**Детали и оговорки:**
+
+- Автоматический переход на memory-only outbox разрушит исходную гарантию. Переход на IndexedDB допустим только как отдельная обоснованная замена с миграцией и теми же тестами, а не обязательная часть исправления.
+- Сверка Fable: способ — `storageAvailable` в состоянии store, отказ `submit` до построения pending и сети, постоянный баннер и `disabled` у кнопок отправки; черновики остаются удобством с предупреждением; IndexedDB и memory-only outbox не вводятся ([план 07, доп. шаг 23](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/07-web-client-fixes-and-structure.md:272)).
+
+**Связанные планы:** [astra-06-browser-storage-write-boundary.md](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/astra-06-browser-storage-write-boundary.md); [07-web-client-fixes-and-structure.md](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/07-web-client-fixes-and-structure.md).
+
+Исходная оценка в плане: P2.
+
+<a id="ti-007"></a>
+
+### TI-007 — Редактор и зависимые операции используют подтверждённую revision
+
+**Тип:** Баг. **Статус:** ОТКРЫТО. **Приоритет:** P2.
+
+**Источники:** [Astra:A-01](/Users/dmitriy/code/taskindex/docs/audits/2026-09-08-multiside-review/02-architecture.md:49); [Сохранённое воспроизведение](/Users/dmitriy/code/taskindex/docs/audits/2026-09-08-multiside-review/02-architecture-probes.json); [FC:compare-bugs «Их A-01»](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/compare-bugs.md:95); [compare/a01-rejected-variant.mts](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/probes/compare/a01-rejected-variant.mts); [План 07, доп. шаг 24](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/07-web-client-fixes-and-structure.md:273).
+
+**Где:** [src/web/app/card.tsx:103](/Users/dmitriy/code/taskindex/src/web/app/card.tsx:103), [src/web/app/shell.tsx:665](/Users/dmitriy/code/taskindex/src/web/app/shell.tsx:665), [src/web/app/editor.tsx:114](/Users/dmitriy/code/taskindex/src/web/app/editor.tsx:114), [src/web/app/store.ts:325](/Users/dmitriy/code/taskindex/src/web/app/store.ts:325).
+
+**Проблема и последствия.** Pending-перемещение рисует optimistic revision=2. Открытый следом редактор использует её как серверную базу и может отправить save раньше move. Сервер правомерно отклоняет версию из будущего. Подтверждён отказ сохранения, а не безусловная потеря текста.
+
+**Проверка и ограничения.** Воспроизведено координатором в исходном аудите. Confirmed revision=1, база редактора=2; зависимый save получает 400 до завершения move. Сверка Fable: probe Astra перезапущен (`confirmedRevision 1`, `editorBaseRevision 2`, отказ `invalid` «Базовая версия из будущего», первая операция затем принята). Детерминированный вариант БЕЗ гонки (`a01-rejected-variant.mts`): после окончательно отклонённого `task.move` (`invalid`, сосед ушёл) превью снимается, но редактор держит `saved.revision = 2` при серверной 1; оба следующих сохранения получают «Базовая версия из будущего», сервер остаётся на revision 1. По коду черновик пишется с `baseRevision: saved.revision` ([editor.tsx:145-165](/Users/dmitriy/code/taskindex/src/web/app/editor.tsx:145)), а при повторном открытии `saved.revision` восстанавливается из черновика ([editor.tsx:118-121](/Users/dmitriy/code/taskindex/src/web/app/editor.tsx:118)), то есть тупик переживает закрытие карточки; в браузере не воспроизводилось.
+
+**Предлагаемая работа.** UI-проекция остаётся быстрой, но optimistic revision никогда не выдаётся за подтверждённую базу следующей операции.
+
+**Критерий закрытия.** Исходный probe закрыт; все bases происходят из confirmed; для неизвестного результата зависимое действие имеет явный статус.
+
+**Проверки при реализации:**
+
+- Управляемая доставка move/save в обратном порядке: второй запрос не уходит с будущей revision.
+- Первая операция success/rejection/unknown, серверная параллельная правка, закрытие/открытие редактора и reload — текст не исчезает и результат не выдумывается.
+- Правка другой задачи остаётся доступной; отдельная revision комментария не блокируется необоснованно.
+
+**Детали и оговорки:**
+
+- Безусловный rebase может перезаписать чужую правку. Сохранить текущую полевую проверку конфликтов и не подменять её повтором с самой свежей revision.
+- Сверка Fable: корневая правка — база редактора из `confirmed` (`confirmedTask(id)`), `restored.baseRevision` только если не больше подтверждённой, при отказе «из будущего» сброс `saved.revision` и `baseRevision` черновика на подтверждённую; блокировка зависимого submit не нужна, потому что сервер сливает по полям через `assertMerge`, вместо неё индикатор pending по задаче; полевая панель конфликта сохраняется ([план 07, доп. шаг 24](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/07-web-client-fixes-and-structure.md:273)).
+
+**Связанные планы:** [astra-07-confirmed-editor-revisions.md](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/astra-07-confirmed-editor-revisions.md); [07-web-client-fixes-and-structure.md](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/07-web-client-fixes-and-structure.md).
+
+**Связанные записи / зависимости исходного плана:** [TI-003](#ti-003), [TI-006](#ti-006).
+
+Исходная оценка в плане: P2.
+
+<a id="ti-008"></a>
+
+### TI-008 — Курсор операций, включающий отказы и команды без изменений
+
+**Тип:** Баг. **Статус:** ОТКРЫТО. **Приоритет:** P2.
+
+**Источники:** [Astra:B-04](/Users/dmitriy/code/taskindex/docs/audits/2026-09-08-multiside-review/03-bugs.md:96); [Сохранённое воспроизведение](/Users/dmitriy/code/taskindex/docs/audits/2026-09-08-multiside-review/03-probe-results.json); [FC:compare-bugs «Их B-04»](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/compare-bugs.md:77); [extra-probes.mts (b)](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/probes/compare/extra-probes.mts); [План 04, доп. шаг 11](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/04-api-contract-and-schemas.md:288); [План 01, доп. шаг 15](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/01-performance-history-and-pagination.md:237).
+
+**Где:** [src/server/app.ts:717](/Users/dmitriy/code/taskindex/src/server/app.ts:717), [src/server/app.ts:963](/Users/dmitriy/code/taskindex/src/server/app.ts:963), [src/server/db.ts](/Users/dmitriy/code/taskindex/src/server/db.ts), [src/shared/schemas.ts](/Users/dmitriy/code/taskindex/src/shared/schemas.ts).
+
+**Проблема и последствия.** digest и operations?since используют lastSeq предметных событий. У сохранённого отказа и успешной команды без изменений событий нет, поэтому фильтр выбрасывает их навсегда. Добавление фиктивного task-event исказило бы историю.
+
+**Проверка и ограничения.** Воспроизведено координатором в исходном аудите. Noop и rejected доступны в обычной активности, отсутствуют в digest/operations?since. Сверка Fable: расширение (`extra-probes.mts` (b)): `operations` без фильтра → `["rejected","noop","initial"]`, `?since=0` → `["initial"]`, `?until=1` → все три, `digest` → `["initial"]`. То есть `since=0` не эквивалентен «всё», `until` асимметричен, а `digest` никогда не показывает отказы и no-op; это несогласованность контракта, не потеря данных.
+
+**Предлагаемая работа.** У каждой сохранённой операции есть монотонная позиция в журнале операций, независимо от наличия предметных событий. Клиент может читать все outcomes без пропусков.
+
+**Критерий закрытия.** Исходный probe на noop/rejection проходит; две позиции не смешиваются в API/CLI; есть миграционная фикстура и примеры контракта.
+
+**Проверки при реализации:**
+
+- Последовательность success с изменением, noop, rejection, повтор и ещё success читается полностью с page size=1 и несколькими фильтрами.
+- Параллельная запись между страницами, смена generation, миграция старой БД и export→import не теряют и не дублируют операции.
+- Event stream не получает фиктивных событий для noop/rejection; digest показывает понятный исход всех новых операций.
+
+**Детали и оговорки:**
+
+- Это не локальная замена одного фильтра: меняются курсоры и формат истории. Не выпускать без стратегии старых клиентов и проверенного импорта. Оптимизацию SQL координировать с планом 12.
+- Сверка Fable: делать `operationSeq` (колонка `operations.operation_seq`, backfill по `(created_at, id)`, keyset `after=`, `sinceOp` в digest, поле в export) до переключения, потому что совместимость старых клиентов пока не нужна ([план 04, доп. шаг 11](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/04-api-contract-and-schemas.md:288)); страховка до этого — `since=0` и отсутствие `since` возвращают и операции с `lastSeq = null` ([план 01, доп. шаг 15](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/01-performance-history-and-pagination.md:237)). До курсора операций правило для агентов «отказы и no-op других акторов читайте `activity` без `since`» в `/api/context` и SKILL.md ([план 02, доп. шаг 17](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/02-agent-permissions-and-sync-semantics.md:303); [план 12, доп. шаг 13](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/12-ai-readiness-and-docs.md:440)).
+- **Решение** (принято 2026-09-10; решение делегировано владельцем Fable): курсор операций `operationSeq` по плану 04 принят (монотонная позиция журнала операций независимо от предметных событий); страховка `since=0` = всё до его появления; события не усекаются и не компактируются ради скорости ([план 04, решение владельца](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/04-api-contract-and-schemas.md:295); [план 01, решение владельца](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/01-performance-history-and-pagination.md:240); [README планов, строка «Пагинация»](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/README.md:156)).
+
+**Связанные планы:** [astra-08-operation-feed-cursor.md](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/astra-08-operation-feed-cursor.md); [04-api-contract-and-schemas.md](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/04-api-contract-and-schemas.md); [01-performance-history-and-pagination.md](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/01-performance-history-and-pagination.md).
+
+**Связанные записи / зависимости исходного плана:** [TI-013](#ti-013), [TI-014](#ti-014).
+
+Исходная оценка в плане: P2.
+
+<a id="ti-009"></a>
+
+### TI-009 — Сохранение окончательных доменных отказов
+
+**Тип:** Баг. **Статус:** ОТКРЫТО. **Приоритет:** P2.
+
+**Источники:** [Astra:B-05](/Users/dmitriy/code/taskindex/docs/audits/2026-09-08-multiside-review/03-bugs.md:121); [Сохранённое воспроизведение](/Users/dmitriy/code/taskindex/docs/audits/2026-09-08-multiside-review/03-probe-results.json); [FC:compare-bugs «Их B-05»](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/compare-bugs.md:81); [extra-probes.mts (a)](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/probes/compare/extra-probes.mts); [План 04, доп. шаг 12](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/04-api-contract-and-schemas.md:289).
+
+**Где:** [src/server/operations.ts:123](/Users/dmitriy/code/taskindex/src/server/operations.ts:123), [src/shared/commands.ts:217](/Users/dmitriy/code/taskindex/src/shared/commands.ts:217).
+
+**Проблема и последствия.** Валидный checklist.add для 101-го пункта нарушает схему итогового состояния. ZodError выходит из сохраняемой модели DomainError: HTTP сообщает окончательный 400, operation get возвращает 404, а тот же operationId принимает другую команду. Контракт идемпотентного окончательного отказа нарушен.
+
+**Проверка и ограничения.** Воспроизведено координатором в исходном аудите. 101-й пункт → 400; operation get=404; тот же ID допускает новый payload. Сверка Fable: probe перезапущен (400, `operation get` 404, повтор id другой командой 200). Второй путь к тому же дефекту без 101 пункта (`extra-probes.mts` (a)): `checklist.add` с `id`, уже существующим в этой задаче, нарушает refine уникальности `checklistSchema` → `{"status":400,"code":"invalid"}`, `operation get` 404, тот же id принимает другой payload; для агента это реалистичнее (повтор шага с тем же id). Последствие ограничено: клиент получает окончательный `retryable:false`, конверт удаляется, база не тронута; страдает идемпотентный контракт.
+
+**Предлагаемая работа.** Если envelope принят и доменное выполнение отвергло его, результат сохраняется в той же модели операций; повтор даёт тот же отказ, изменённый envelope с тем же ID — mismatch.
+
+**Критерий закрытия.** Исходный probe проходит; окончательные исходы после принятия envelope всегда обнаруживаются по operationId; предметное состояние атомарно.
+
+**Проверки при реализации:**
+
+- checklist.add 101: сохранённый отказ доступен через operation get; повтор идентичен; другой payload с тем же ID отклоняется.
+- Отказ в середине batch не оставляет state/events частично; индекс и причина правильные.
+- Malformed envelope остаётся входной ошибкой, непредвиденное исключение не маскируется под доменный отказ.
+
+**Детали и оговорки:**
+
+- Нельзя сохранять заведомо окончательный отказ после частично закоммиченного эффекта. Нормализацию делать в пределах существующей транзакционной границы; журналы не должны содержать лишний пользовательский текст.
+- Сверка Fable: исправление — в `assertInvariants` заменить `checklistSchema.parse` ([src/shared/commands.ts:217](/Users/dmitriy/code/taskindex/src/shared/commands.ts:217)) на явные `fail('invalid', …)` для длины и дублей; executor (`operations.ts:124`) не меняется, `DomainError` сохраняется; тесты на 101-й шаг, дубль id и `operation_mismatch` при другом payload ([план 04, доп. шаг 12](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/04-api-contract-and-schemas.md:289)).
+
+**Связанные планы:** [astra-09-persist-domain-rejections.md](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/astra-09-persist-domain-rejections.md); [04-api-contract-and-schemas.md](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/04-api-contract-and-schemas.md).
+
+Исходная оценка в плане: P2.
+
+<a id="ti-010"></a>
+
+### TI-010 — Разделение ID проекта и служебных фильтров
+
+**Тип:** Баг. **Статус:** ОТКРЫТО. **Приоритет:** P2.
+
+**Источники:** [Astra:B-06](/Users/dmitriy/code/taskindex/docs/audits/2026-09-08-multiside-review/03-bugs.md:146); [FQ:§2](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/review-4-quality.md:49); [Сохранённое воспроизведение](/Users/dmitriy/code/taskindex/docs/audits/2026-09-08-multiside-review/03-id-probe-results.json); [FC:compare-bugs «Их B-06 и B-07»](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/compare-bugs.md:87); [FC:compare-quality-method, sentinel](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/compare-quality-method.md:64); [План 04, доп. шаг 13](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/04-api-contract-and-schemas.md:290); [План 10, шаг 7](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/10-code-quality-and-tests.md:228).
+
+**Где:** [src/shared/queries.ts:119](/Users/dmitriy/code/taskindex/src/shared/queries.ts:119), [src/web/app/shell.tsx:124](/Users/dmitriy/code/taskindex/src/web/app/shell.tsx:124), [src/shared/schemas.ts:94](/Users/dmitriy/code/taskindex/src/shared/schemas.ts:94).
+
+**Проблема и последствия.** Допустимый ID проекта none совпадает со значением «без проекта», all — с фильтром всех проектов. Создание проходит, а запрос и элементы выбора трактуют реальную запись как служебное значение. none воспроизведён, аналогичный путь all установлен чтением кода.
+
+**Проверка и ограничения.** Воспроизведено координатором в исходном аудите. Проект none создаётся, его фильтр возвращает unassigned. all дополнительно подтверждён по коду. Сверка Fable: probe перезапущен (проект `none` создан, `?project=none` → только `unassigned`); фильтр в [queries.ts:118-122](/Users/dmitriy/code/taskindex/src/shared/queries.ts:118). Рамка Astra (адресуемость id) признана первичной для исполнителя, наша (тип/читаемость, FQ:§2) — вторичной защитой.
+
+**Предлагаемая работа.** Любой допустимый сохранённый ID однозначно адресует проект. «Все» и «без проекта» выражаются отдельными признаками фильтра, а не специальными ID.
+
+**Критерий закрытия.** Нет общего строкового пространства у служебного фильтра и ID; существующие записи доступны; исходный probe проходит.
+
+**Проверки при реализации:**
+
+- Проекты none, all и обычный ID: создание, назначение, фильтр API/CLI, sidebar, выбор в редакторе и reload URL.
+- Независимые запросы «без проекта» и «все» возвращают ожидаемые множества.
+- Старая сохранённая ссылка обрабатывается предсказуемо; export/import не меняет ID.
+
+**Детали и оговорки:**
+
+- Изменение query-контракта требует переходных примеров для агентов. Не исправлять баг массовым переименованием пользовательских записей.
+- Fable описал слабую модель sentinel; Astra воспроизвёл допустимый ID none. Константы ALL/NONE сами по себе коллизию не исправляют. Предпочесть различимый тип фильтра и явный API-параметр, сохранив существующие ID.
+- Сверка Fable: до переключения нет пользовательских id, которые нужно защищать, поэтому выбран резерв слов `RESERVED_IDS = {all, none, by-origin, lookup}` через `refine` в `task.create`/`task.sync`/`project.create` и в `importWorkspace`, без смены семантики фильтра; тест «каждый статический сегмент маршрута входит в `RESERVED_IDS`» ([план 04, доп. шаг 13](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/04-api-contract-and-schemas.md:290)). Константы `ALL_PROJECTS`/`NO_PROJECT` и тип `ProjectFilter` остаются защитой на уровне типов ([план 10, шаг 7](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/10-code-quality-and-tests.md:228)). Если владелец позже захочет буквальные id `none`/`all`, путь описан в `astra-10`.
+
+**Связанные планы:** [astra-10-project-id-filter-separation.md](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/astra-10-project-id-filter-separation.md); [04-api-contract-and-schemas.md](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/04-api-contract-and-schemas.md); [10-code-quality-and-tests.md](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/10-code-quality-and-tests.md).
+
+Исходная оценка в плане: P2.
+
+<a id="ti-011"></a>
+
+### TI-011 — Устранение коллизии маршрута задачи by-origin
+
+**Тип:** Баг. **Статус:** ОТКРЫТО. **Приоритет:** P2.
+
+**Источники:** [Astra:B-07](/Users/dmitriy/code/taskindex/docs/audits/2026-09-08-multiside-review/03-bugs.md:168); [Сохранённое воспроизведение](/Users/dmitriy/code/taskindex/docs/audits/2026-09-08-multiside-review/03-id-probe-results.json); [FC:compare-bugs «Их B-06 и B-07»](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/compare-bugs.md:87); [extra-probes.mts (d)](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/probes/compare/extra-probes.mts); [План 04, доп. шаг 13](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/04-api-contract-and-schemas.md:290).
+
+**Где:** [src/server/app.ts:593](/Users/dmitriy/code/taskindex/src/server/app.ts:593), [src/server/app.ts:609](/Users/dmitriy/code/taskindex/src/server/app.ts:609).
+
+**Проблема и последствия.** Задача с допустимым ID by-origin создаётся, но GET /api/tasks/by-origin попадает в статический поиск по источнику и возвращает 400. Маршрутизатор забирает адрес существующей сущности.
+
+**Проверка и ограничения.** Воспроизведено координатором в исходном аудите. Задача by-origin создаётся с 200, GET возвращает 400. Сверка Fable: probe перезапущен (задача `by-origin` создана 200, `GET /api/tasks/by-origin` → 400); сужение (`extra-probes.mts` (d)): ломается только одиночный GET, `/api/tasks/by-origin/history` 200, `/comments` 200, поиск `?q=` 200. Причина: статический маршрут [app.ts:593](/Users/dmitriy/code/taskindex/src/server/app.ts:593) зарегистрирован раньше `/api/tasks/{id}` ([app.ts:609](/Users/dmitriy/code/taskindex/src/server/app.ts:609)).
+
+**Предлагаемая работа.** GET задачи работает для всех допустимых ID, а поиск по origin имеет отдельный недвусмысленный адрес.
+
+**Критерий закрытия.** Исходный probe проходит; таблица адресов однозначна, миграция предметных данных не требуется.
+
+**Проверки при реализации:**
+
+- Создание и GET task by-origin возвращают ту же запись; обычные ID работают как раньше.
+- Новый lookup и legacy-запрос с origin находят одну задачу; неполный legacy query получает понятный ответ.
+- Проверки API/CLI и OpenAPI-пример не расходятся; encoded path не создаёт новой неоднозначности.
+
+**Детали и оговорки:**
+
+- Простое переставление маршрутов местами сломает старый lookup. Совместимость должна определяться явно, а не случайным порядком регистрации.
+- Сверка Fable: перенос поиска на `/api/tasks/lookup/by-origin` без legacy-алиаса (до переключения совместимость старого адреса не нужна; `astra-11` шаг 2 не применяется) плюс резерв `by-origin`/`lookup` в `RESERVED_IDS` — одно исправление на TI-010 и TI-011 ([план 04, доп. шаг 13](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/04-api-contract-and-schemas.md:290)).
+
+**Связанные планы:** [astra-11-task-lookup-route-separation.md](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/astra-11-task-lookup-route-separation.md); [04-api-contract-and-schemas.md](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/04-api-contract-and-schemas.md).
+
+Исходная оценка в плане: P2.
+
+<a id="ti-012"></a>
+
+### TI-012 — Стоимость команд, истории и пагинации
+
+**Тип:** Производительность. **Статус:** ОТКРЫТО. **Приоритет:** P2.
+
+**Источники:** [Astra:S-01](/Users/dmitriy/code/taskindex/docs/audits/2026-09-08-multiside-review/01-stack.md:43); [Astra:A-02](/Users/dmitriy/code/taskindex/docs/audits/2026-09-08-multiside-review/02-architecture.md:67); [FS:D1](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/review-1-stack.md:51); [FA:K1](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/review-2-architecture.md:59); [FA:Ж5](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/review-2-architecture.md:101); [FB:B-03](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/review-3-bugs.md:44); [FB:B-11](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/review-3-bugs.md:165); [FQ:§7](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/review-4-quality.md:144); [FA:Ж2](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/review-2-architecture.md:98); [Синтетические измерения](/Users/dmitriy/code/taskindex/docs/audits/2026-09-08-multiside-review/01-stack-bench.json); [FC:compare-stack-arch «Бенчмарки»](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/compare-stack-arch.md:59); [bench-events.ts](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/probes/bench-events.ts); [repro/perf.mts](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/probes/repro/perf.mts); [compare/astra-bench-rerun.json](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/probes/compare/astra-bench-rerun.json); [ASTRA-VS-FABLE §4.6](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/ASTRA-VS-FABLE.md:139); [План 01, доп. шаги 12–16](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/01-performance-history-and-pagination.md:234).
+
+**Где:** [src/server/db.ts:118](/Users/dmitriy/code/taskindex/src/server/db.ts:118), [src/server/db.ts:191](/Users/dmitriy/code/taskindex/src/server/db.ts:191), [src/server/db.ts:235](/Users/dmitriy/code/taskindex/src/server/db.ts:235), [src/server/operations.ts:93](/Users/dmitriy/code/taskindex/src/server/operations.ts:93), [src/server/app.ts:851](/Users/dmitriy/code/taskindex/src/server/app.ts:851).
+
+**Проблема и последствия.** Каждая команда читает state и весь журнал. readState повторно фильтрует checklist/comments по задачам, writeState линейно ищет каждую прежнюю задачу, lookup операции читает все результаты с дополнительными запросами. Страницы формируются после полной загрузки, SSE backlog не ограничен. Синтетический замер 50 000 событий дал около 250 мс на правку и 1 039 мс на lookup; это не производственный SLA.
+
+**Проверка и ограничения.** Измерено на искусственных fixtures; не производственный SLA. Сверка Fable: второй набор данных — 14 / 32 / 65 мс на команду при 320 / 2 020 / 5 020 событиях (`probes/bench-events.ts`, заметка 1 КБ, наклон около 10 мс на 1 000 событий); через HTTP-слой 3,3 → 35,7 мс при 0 → 4k событий и 2 010 задачах, `/api/operations?limit=50` 95 мс, `/api/operations/{id}` 88 мс, `digest` 108 мс (`probes/repro/perf.mts`). Бенчмарк Astra перезапущен Fable с расхождением до 7 %: 1,7 / 8,8 / 65,8 мс при 100 / 1 000 / 5 000 задач, 5,4 / 48 / 253,7 мс при 1k / 10k / 50k событий, lookup 24 / 238 / 1 106 мс (`probes/compare/astra-bench-rerun.json`). Обе кривые согласуются как одна линейная с квадратичной составляющей по числу задач в `writeState`; посев Astra (все события одной задачи) максимально нагружает `assertMerge`, вывод не меняется.
+
+**Предлагаемая работа.** Сохранить SQLite и единый transactional executor, но привязать стоимость точечной операции к затронутым данным, а страниц — к размеру страницы.
+
+**Критерий закрытия.** Задокументировано, какие полные сканы устранены, какие остались обоснованно; метрики и regression suite подтверждают улучшение без ослабления гарантий.
+
+**Проверки при реализации:**
+
+- Тесты идемпотентности, конфликтов, undo цепочек, batch rollback и import/export дают те же результаты.
+- Lookup одного operation не загружает все operations; feed не материализует весь result JSON; ограниченный backlog не блокирует обработку нового запроса.
+- Сравнить масштаб 1×/10× истории и количество прочитанных строк. Целевой бюджет задержки определить по baseline и рабочему профилю, не выдавать микробенчмарк за SLA.
+
+**Детали и оговорки:**
+
+- Срез history должен содержать всё необходимое для конфликтов и undo. Неполный history может ускорить код ценой неверных разрешений. Выполнять частями; формат operation cursor согласовать с планом 08, смена СУБД не входит в план.
+- Охват включает full readState/readEvents, копию history на каждую команду batch, O(T×(I+C)) сборку состояния, O(T²) сравнение writeState, N+1 readOperations, фильтрацию/хеширование до пагинации и неограниченный SSE catch-up. Это связанные проявления одного пути работы с полным журналом.
+- Для SSE ограничить чтение и отправку пакетами с backpressure; сохранить firstSeq/lastSeq и стык backlog/live. Для CLI убрать тяжёлый context только ради generation, дав лёгкий аутентифицированный metadata endpoint. Микробенчмарки Fable и Astra используют разные fixtures.
+- Сверка Fable: принятые правила ([ASTRA-VS-FABLE §4.6](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/ASTRA-VS-FABLE.md:139); [план 01, доп. шаг 14](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/01-performance-history-and-pagination.md:236)): события не усекаются, не компактируются и не удаляются ради производительности — `undo`, `assertMerge`, `validateExport` требуют полного журнала; семантика пагинации по видам лент — монотонная позиция для append-only журналов (операции, история, комментарии), для изменяемого списка задач оговорённый snapshot либо распознаваемое изменение (`Page.seq` первой и последней страницы различаются → маркер `list_changed_during_walk`) с ограниченным повтором; полный согласованный список даёт только `/api/snapshot`. Оба бенчмарка входят в `bench-baseline.json` как пороги регрессии, не SLA ([план 01, доп. шаги 12–13](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/01-performance-history-and-pagination.md:234)).
+- **Решение** (принято 2026-09-10; решение делегировано владельцем Fable): контракт пагинации по видам лент — монотонная позиция для журналов (события, операции, комментарии); для изменяемого списка задач ограниченный перезапуск с маркером `list_changed_during_walk` и подписью в UI; единственный согласованный полный список — `/api/snapshot`; курсор операций `operationSeq` по плану 04; retention/compaction событий нет. Приоритет P2 без изменений; дешёвые шаги 1–7 плана 01 до рабочего переключения, потому что формат курсора проще менять до появления живых агентов ([план 01, решение владельца](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/01-performance-history-and-pagination.md:240); [README планов, строка «Пагинация»](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/README.md:156)).
+
+**Связанные планы:** [astra-12-indexed-reads-and-write-cost.md](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/astra-12-indexed-reads-and-write-cost.md); [01-performance-history-and-pagination.md](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/01-performance-history-and-pagination.md).
+
+**Связанные записи / зависимости исходного плана:** [TI-037](#ti-037), [TI-047](#ti-047).
+
+Исходная оценка в плане: P2.
+
+<a id="ti-013"></a>
+
+### TI-013 — Неизменность применённых SQL-миграций
+
+**Тип:** Риск миграций. **Статус:** ОТКРЫТО. **Приоритет:** P2.
+
+**Источники:** [Astra:S-03](/Users/dmitriy/code/taskindex/docs/audits/2026-09-08-multiside-review/01-stack.md:91); [FC:compare-stack-arch S-03](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/compare-stack-arch.md:76); [План 09, доп. шаг 11](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/09-data-layer-and-dependencies.md:213); [План 06, доп. шаг 15](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/06-server-structure-config-logging.md:244).
+
+**Где:** [src/server/db.ts:69](/Users/dmitriy/code/taskindex/src/server/db.ts:69), [drizzle/v2](/Users/dmitriy/code/taskindex/drizzle/v2).
+
+**Проблема и последствия.** Runner запоминает имя SQL-файла, но не его содержимое. Если ранее применённый файл поменять, старая база пропустит его, новая получит другую схему под тем же набором имён. Проверка schema_version этого не обнаруживает.
+
+**Проверка и ограничения.** Проверено по коду/конфигурации и границам существующих тестов; это не доказательство уже произошедшей потери данных. Сверка Fable: подтверждено по коду (`db.ts:69-87`: таблица `__taskindex_migrations(name TEXT PRIMARY KEY)`, отклонение неизвестных имён, применение отсутствующих по имени; содержимое не сверяется; `tests/api/migrations.test.ts` сверяет снапшот и имена, не содержимое с базой). Оговорка Astra о штатном миграторе Drizzle верна: он хранит hash, но сверяет по нему только идентичность записи, не отказ при изменённом файле.
+
+**Предлагаемая работа.** Одна история миграций соответствует одному содержимому. Изменение применённого SQL обнаруживается до выполнения новых мутаций базы.
+
+**Критерий закрытия.** Нельзя получить две разные схемы под одинаковой принятой историей незаметно; runner и инструкция запрещают редактирование применённых SQL.
+
+**Проверки при реализации:**
+
+- Повтор неизменённой цепочки идемпотентен; изменённый/пропавший старый SQL останавливает runner до новых записей.
+- Новая миграция применяется один раз; ошибка откатывает допустимую транзакционную часть, состояние журнала соответствует БД.
+- Legacy fixture проходит baseline только по проверенной процедуре; unknown/newer schema отказывается открываться для записи.
+
+**Детали и оговорки:**
+
+- Не считать переход на стандартный Drizzle migrator автоматическим решением: нужно проверить его реальное поведение при изменённом checksum. Никакого schema push на рабочую базу.
+- Сверка Fable: реализация — колонка `sha256` в `__taskindex_migrations` (`ALTER TABLE` для существующих баз, backfill из файлов образа с одной записью `warn` только для dev-баз до переключения; после переключения backfill лишь по сверке с архивным SQL релиза), сравнение с `bundledMigrations(dir)` до любого применения, отказ `unavailable` при другом хеше; хеш байтов с нормализацией `\r\n` ([план 09, доп. шаг 11](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/09-data-layer-and-dependencies.md:213); интерфейс `assertSchema` — [план 06, доп. шаг 15](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/06-server-structure-config-logging.md:244)).
+- **Решение** (принято 2026-09-10; решение делегировано владельцем Fable): контрольная сумма `sha256` применённых миграций в `__taskindex_migrations` вводится в минимальной форме по плану 09, доп. шаг 11 (одна из трёх проверок миграций вместе с TI-054 и TI-014); versioned codecs не вводятся ([план 09, решение владельца](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/09-data-layer-and-dependencies.md:217); [README планов, строка «Миграции»](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/README.md:166)).
+
+**Связанные планы:** [astra-13-migration-checksums.md](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/astra-13-migration-checksums.md); [09-data-layer-and-dependencies.md](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/09-data-layer-and-dependencies.md); [06-server-structure-config-logging.md](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/06-server-structure-config-logging.md).
+
+Исходная оценка в плане: P2.
+
+<a id="ti-014"></a>
+
+### TI-014 — Совместимость таблиц, событий, результатов и клиентов
+
+**Тип:** Риск миграций. **Статус:** ОТКРЫТО. **Приоритет:** P2.
+
+**Источники:** [Astra:A-03](/Users/dmitriy/code/taskindex/docs/audits/2026-09-08-multiside-review/02-architecture.md:88); [FA:Ж11](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/review-2-architecture.md:107); [FC:compare-stack-arch A-03](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/compare-stack-arch.md:81); [compare/astra-arch-probes-rerun.json](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/probes/compare/astra-arch-probes-rerun.json); [План 09, доп. шаг 12](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/09-data-layer-and-dependencies.md:214); [План 04, доп. шаг 15](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/04-api-contract-and-schemas.md:292).
+
+**Где:** [src/shared/model.ts](/Users/dmitriy/code/taskindex/src/shared/model.ts), [src/shared/schemas.ts](/Users/dmitriy/code/taskindex/src/shared/schemas.ts), [src/shared/commands.ts](/Users/dmitriy/code/taskindex/src/shared/commands.ts), [src/server/admin.ts](/Users/dmitriy/code/taskindex/src/server/admin.ts), [src/server/db.ts](/Users/dmitriy/code/taskindex/src/server/db.ts).
+
+**Проблема и последствия.** Таблицы, события и сохранённые command-result имеют строгие схемы, а импорт сверяет replay с текущими записями. Для следующей доменной миграции недостаточно ALTER TABLE. Старый открытый клиент и прежний outbox тоже продолжают существовать. Аудит не доказал текущую порчу: искусственная row-only модификация правильно вызвала отказ strict import.
+
+**Проверка и ограничения.** Проверено по коду/конфигурации и границам существующих тестов; это не доказательство уже произошедшей потери данных. Сверка Fable: probe Astra перезапущен из scratch: после `UPDATE tasks SET note=…` без события `/health` зелёный, экспорт строится, `importWorkspace` отказывает «состояние записей не совпадает с журналом событий» (`admin.ts:354-360`); `applyEvent` собирает запись только из `changes`, поэтому любое поле, появившееся в таблице без события, делает replay неравным таблицам; импорт также требует точного `schema_version` (`admin.ts:369-373`). `schemaVersion` в `Snapshot` сегодня НЕТ, версия отдаётся только в `/health` ([app.ts:400](/Users/dmitriy/code/taskindex/src/server/app.ts:400), [app.ts:419](/Users/dmitriy/code/taskindex/src/server/app.ts:419)).
+
+**Предлагаемая работа.** Каждое изменение модели имеет явную политику чтения истории, старых envelope, export/import и поведения старого клиента.
+
+**Критерий закрытия.** Есть документированная матрица эволюции и исполняемая fixture предыдущей версии; правила применены к первому реальному изменению формата.
+
+**Проверки при реализации:**
+
+- Предыдущая база с историей проходит миграцию и strict round-trip без переписывания смысла старых действий.
+- Старый pending envelope получает стабильный исход или явный несовместимый протокол; его текст не удаляется.
+- Старый открытый web-клиент не применяет неизвестное событие как известное и не сообщает ложную синхронизацию.
+
+**Детали и оговорки:**
+
+- Избыточная версия каждого мелкого DTO усложнит проект. Ввести минимальные границы совместимости, которые реально нужны текущим persisted данным, без отдельного event-sourcing framework.
+- Добавление EntityKind затрагивает ручные ветви, import/replay, DB mapping и результирующие схемы. Registry может облегчить сопровождение, но не заменит правила исторической совместимости.
+- Исходный synthetic probe с преобразованием только row намеренно оставляет events/result старого формата: он демонстрирует незавершённость такого подхода к будущей миграции, а не текущую порчу валидной базы.
+- Сверка Fable: достаточный минимум вместо versioned codecs/upcasters — правило миграций данных «либо события системной операции `migration:<name>`, либо правка `applyEvent`/`validateExport`, чтобы replay применял схемные значения по умолчанию», фикстура экспорта предыдущей версии `tests/fixtures/export-schema-<N>.json` и тест `migration-compat` (`migrate → export → validateExport → import → operation get → повтор конверта`) ([план 09, доп. шаг 12](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/09-data-layer-and-dependencies.md:214)); `schemaVersion` в `snapshotSchema` и режим несовместимого клиента с сохранением черновиков ([план 04, доп. шаг 15](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/04-api-contract-and-schemas.md:292)). Версия кодека событий не вводится до первой реальной нужды.
+- **Решение** (принято 2026-09-10; решение делегировано владельцем Fable): правило миграций данных «либо через события системной операции, либо `validateExport` применяет default по схеме» с фикстурой экспорта прежней версии и тестом `migration-compat` принято как достаточный минимум; versioned codecs/upcasters не вводятся до первой реальной нужды. Плановое применение — поля `focus_key`/`focus_left_at` плана 13 (TI-078, шаг 1: `validateExport` применяет default `null`) ([план 09, решение владельца](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/09-data-layer-and-dependencies.md:217); [README планов, строка «Миграции»](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/README.md:166)).
+
+**Связанные планы:** [astra-14-domain-contract-evolution.md](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/astra-14-domain-contract-evolution.md); [09-data-layer-and-dependencies.md](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/09-data-layer-and-dependencies.md); [04-api-contract-and-schemas.md](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/04-api-contract-and-schemas.md).
+
+**Связанные записи / зависимости исходного плана:** [TI-013](#ti-013), [TI-054](#ti-054), [TI-064](#ti-064).
+
+Исходная оценка в плане: P2; до первой доменной миграции.
+
+<a id="ti-015"></a>
+
+### TI-015 — Неизменяемая конфигурация выпуска для отката
+
+**Тип:** Риск выпуска. **Статус:** ОТКРЫТО. **Приоритет:** P2.
+
+**Источники:** [Astra:A-04](/Users/dmitriy/code/taskindex/docs/audits/2026-09-08-multiside-review/02-architecture.md:102); [FC:compare-stack-arch A-04](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/compare-stack-arch.md:87); [План 11 §3.2](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/11-deploy-and-ops.md:111).
+
+**Где:** [deploy/deploy.sh:40](/Users/dmitriy/code/taskindex/deploy/deploy.sh:40), [deploy/common.sh:15](/Users/dmitriy/code/taskindex/deploy/common.sh:15), [deploy/rollback.sh:38](/Users/dmitriy/code/taskindex/deploy/rollback.sh:38).
+
+**Проблема и последствия.** Rollback сохраняет image и DB, но compose/helpers получает из checkout кандидата. Если новый выпуск изменит environment, volume mapping или сценарии запуска, прежний image может запускаться уже с чужой конфигурацией. Пройденный локальный drill не проверял переход между двумя различными release-config.
+
+**Проверка и ограничения.** Проверено по коду/конфигурации и границам существующих тестов; это не доказательство уже произошедшей потери данных. Сверка Fable: подтверждено по коду с двумя уточнениями. В пользу текущей реализации: helpers внутри образа (`deploy/database.mjs`, `taskindex-admin`) при откате берутся из старого образа, потому что `TASKINDEX_IMAGE` выставляется из манифеста ([rollback.sh:38-39](/Users/dmitriy/code/taskindex/deploy/rollback.sh:38)) до `dc run`; из checkout кандидата приходят только `compose.yml`, `litestream.yml`, `common.sh`, `rollback.sh`. В пользу Astra, чего у неё нет: `on_failure` ([deploy.sh:45-61](/Users/dmitriy/code/taskindex/deploy/deploy.sh:45)) не возвращает checkout, поэтому после первого же неудачного релиза VPS остаётся на detached HEAD кандидата ([deploy.sh:40](/Users/dmitriy/code/taskindex/deploy/deploy.sh:40)), и `deploy/compose.sh` при любой последующей ручной операции подставляет compose кандидата под старый образ; расхождение возникает сразу, а не «в следующих релизах».
+
+**Предлагаемая работа.** Предыдущий и новый выпуски воспроизводимы как согласованные наборы image, compose, helpers и совместимого формата данных.
+
+**Критерий закрытия.** Можно доказать, какой полный выпуск запущен и к какому можно вернуться; двухверсионный drill проходит.
+
+**Проверки при реализации:**
+
+- B меняет compose/env name/helper — после отказа запускается A со своей конфигурацией и своим image.
+- Manifest и каталоги не содержат секретов; отсутствие исторического artifact даёт отказ до опасного действия.
+- После open-writes алгоритм не теряет новые записи автоматическим rollback checkpoint.
+
+**Детали и оговорки:**
+
+- Не превращать это в новую систему оркестрации. Минимальный release manifest и immutable directory достаточны; очистку старых артефактов не смешивать с исправлением. Испытание реального entrypoint — план 17.
+- Сверка Fable: реализация — снимок `deploy/.runtime/releases/<deployment>/{compose.yml,litestream.yml,common.sh,rollback.sh,release.json}` при каждом релизе, путь в `current.json`/`last-backup.json`, `TASKINDEX_COMPOSE_FILE` в `dc()`, `rollback.sh` только из снимка с проверкой sha256, возврат checkout в `on_failure` во всех ветках до открытия записи, режим совместимости для первого релиза без снимка; harness с релизами A и B, различающимися в `compose.yml` ([план 11 §3.2](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/11-deploy-and-ops.md:111), [шаг 7](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/11-deploy-and-ops.md:283)).
+- **Решение** (принято 2026-09-10; решение делегировано владельцем Fable): план 11 принят как путь реализации — снимок релиза `deploy/.runtime/releases/<deployment>/…`, `rollback.sh` только из снимка с проверкой sha256, возврат checkout в `on_failure` во всех ветках до открытия записи, harness с релизами A и B (§3.2, шаг 7) ([план 11, решение владельца](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/11-deploy-and-ops.md:398); [README планов, «Решения владельца»](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/README.md:148)).
+
+**Связанные планы:** [astra-15-immutable-release-rollback.md](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/astra-15-immutable-release-rollback.md); [11-deploy-and-ops.md](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/11-deploy-and-ops.md).
+
+Исходная оценка в плане: P2; до изменения deploy-конфигурации.
+
+<a id="ti-016"></a>
+
+### TI-016 — Обязательная проверка конкретного выпуска
+
+**Тип:** Проверки выпуска. **Статус:** ОТКРЫТО. **Приоритет:** P2.
+
+**Источники:** [Astra:S-06](/Users/dmitriy/code/taskindex/docs/audits/2026-09-08-multiside-review/01-stack.md:128); [FC:compare-stack-arch S-06](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/compare-stack-arch.md:94); [План 11 §3.4](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/11-deploy-and-ops.md:134); [План 10, доп. шаг 22](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/10-code-quality-and-tests.md:343).
+
+**Где:** [package.json](/Users/dmitriy/code/taskindex/package.json), [deploy/Dockerfile:9](/Users/dmitriy/code/taskindex/deploy/Dockerfile:9), [deploy/deploy.sh:19](/Users/dmitriy/code/taskindex/deploy/deploy.sh:19).
+
+**Проблема и последствия.** Нужные проверки существуют, но в репозитории нет обязательного CI-gate, а build/deploy не доказывает запуск typecheck, lint и тестов для именно этого image. Успешная транспиляция может пропустить ошибки типов и поведения.
+
+**Проверка и ограничения.** Проверено по коду/конфигурации и границам существующих тестов; это не доказательство уже произошедшей потери данных. Сверка Fable: подтверждено (`Dockerfile:9` только `npm run build`; `deploy.sh:19-41` проверяет чистоту checkout и коммит, не `check`; `.github/` отсутствует; репозиторий размещён на GitHub, Actions доступны).
+
+**Предлагаемая работа.** До остановки работающего выпуска есть проверяемый результат тестов, связанный с точным commit и image digest.
+
+**Критерий закрытия.** Есть один задокументированный воспроизводимый вход проверки и невозможность случайно засчитать чужой выпуск; автоматического деплоя от добавления CI нет.
+
+**Проверки при реализации:**
+
+- Преднамеренная ошибка типов/теста останавливает gate до stop/migrate.
+- Проверка commit A не разрешает image B; сохранённый отчёт содержит версии инструментов и digest.
+- Чистый checkout на Node 24 воспроизводит gate без локальных /tmp-настроек и production-секретов.
+
+**Детали и оговорки:**
+
+- Не требовать все дорогие проверки для каждого документационного изменения. Минимальный suite обязателен для кода, дополнительные проверки выбираются по затронутым гарантиям.
+- Сверка Fable: gate и место сборки связаны — если образ собирается в CI после зелёного `check`, CI и есть gate. Принято: workflow на Node 24 (`npm ci`, `check` с `lint:shell`, `build`, e2e с артефактами в `test-results/`), затем образ `linux/amd64` с label `org.opencontainers.image.revision=<sha>`; `deploy.sh COMMIT` требует готовый образ с совпадающим label (`--image REF`), сборка на VPS только с `--build-here`; запасной путь `deploy/release.sh` ([план 11 §3.4](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/11-deploy-and-ops.md:134), [шаг 8](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/11-deploy-and-ops.md:285); workflow и `scripts/gate.mjs` — [план 10, доп. шаг 22](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/10-code-quality-and-tests.md:343)).
+- **Решение** (принято 2026-09-10; решение делегировано владельцем Fable): GitHub Actions на Node 24.20.0, `npm run check` как гейт релиза; образ `linux/amd64` собирается в CI после зелёного `check` и переносится `docker save | ssh docker load`; `--build-here` только аварийно; реестр GHCR не заводится ([план 11, решение владельца](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/11-deploy-and-ops.md:398); [README планов, строка «Сборка образа»](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/README.md:165)).
+
+**Связанные планы:** [astra-16-release-validation-gate.md](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/astra-16-release-validation-gate.md); [11-deploy-and-ops.md](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/11-deploy-and-ops.md); [10-code-quality-and-tests.md](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/10-code-quality-and-tests.md).
+
+Исходная оценка в плане: P2.
+
+<a id="ti-017"></a>
+
+### TI-017 — Испытания deploy.sh и его аварийных ветвей
+
+**Тип:** Проверки выпуска. **Статус:** ОТКРЫТО. **Приоритет:** P2.
+
+**Источники:** [Astra:Q-05](/Users/dmitriy/code/taskindex/docs/audits/2026-09-08-multiside-review/04-code-quality.md:91); [FS:T2](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/review-1-stack.md:127); [FQ:§10](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/review-4-quality.md:184); [FC:compare-quality-method Q-05](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/compare-quality-method.md:56); [План 11 §3.3](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/11-deploy-and-ops.md:123); [План 10, доп. шаг 20](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/10-code-quality-and-tests.md:341).
+
+**Где:** [deploy/local-drill.sh](/Users/dmitriy/code/taskindex/deploy/local-drill.sh), [deploy/deploy.sh](/Users/dmitriy/code/taskindex/deploy/deploy.sh), [deploy/rollback.sh](/Users/dmitriy/code/taskindex/deploy/rollback.sh), [deploy/database.mjs](/Users/dmitriy/code/taskindex/deploy/database.mjs).
+
+**Проблема и последствия.** Существующий drill проверяет rollback/recovery, вызывая нужные части напрямую. Он не доказывает работу фаз deploy.sh, ERR trap, on_failure и состояния opened. Успешный прямой rollback не исключает неверное решение оркестратора при реальном отказе.
+
+**Проверка и ограничения.** Проверено по коду/конфигурации и границам существующих тестов; это не доказательство уже произошедшей потери данных. Сверка Fable: подтверждено (`local-drill.sh:79-95` сам ломает схему и вызывает `rollback.sh` напрямую; `deploy.sh:18` требует Linux; ни один файл в `tests/`, `scripts/`, `deploy/` не вызывает `deploy.sh`; не проверены выбор ветки `on_failure` по `phase`, запрет отката при `opened=1`, передача `last-backup.json`, инъекции `TASKINDEX_FAIL_AT`, порядок boundary-файла и `open-writes`). `bash -n deploy/*.sh` на всех пяти скриптах чистый на 2026-09-08; `shellcheck` на машине не установлен.
+
+**Предлагаемая работа.** Изолированный стенд запускает настоящий entrypoint deploy.sh и проверяет решения при сбоях по обе стороны открытия записи.
+
+**Критерий закрытия.** Есть исполняемая матрица реального entrypoint с фактическими доказательствами branch outcome, а не только прямого helper-вызова.
+
+**Проверки при реализации:**
+
+- До open-writes отказ возвращает согласованный предыдущий выпуск; после открытия записи новые данные не теряются.
+- Неизвестный outcome не превращается в уверенное предположение «запись ещё закрыта».
+- Повторный запуск не использует чужой checkpoint/release; остановка контейнера и ошибка compose отражаются в результате.
+
+**Детали и оговорки:**
+
+- Дублирование production-скрипта в тесте даст ложную уверенность. Не оставлять свободно включаемую fault-injection переменную в рабочем окружении без защиты.
+- Настоящий deploy.sh с фазами/ERR-trap/opened, а не только прямой rollback helper. Статический check deploy/database.mjs и shell — отдельный быстрый слой. Существующие TASKINDEX_FAIL_AT использовать в изолированном harness.
+- Сверка Fable: harness `deploy/drill/deploy-drill.sh` на Linux запускает настоящий `deploy.sh` в отдельном worktree и compose-проекте по матрице `TASKINDEX_FAIL_AT` = `before-stop`, `after-migrate`, `health`, `after-open`, без инъекции (две точки новые), с guard «`TASKINDEX_FAIL_AT` только при `TASKINDEX_COMPOSE_PROJECT`»; копии алгоритма в тесте нет ([план 11 §3.3](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/11-deploy-and-ops.md:123), [шаг 9](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/11-deploy-and-ops.md:287)). Статический слой: `bash -n`, `shellcheck` (при наличии) и `tsc -p tsconfig.deploy.json` для `deploy/*.mjs` в `check` ([план 10, доп. шаг 20](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/10-code-quality-and-tests.md:341); `lint:shell` обязателен в CI — [план 11, шаг 11](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/11-deploy-and-ops.md:293)).
+- **Решение** (принято 2026-09-10; решение делегировано владельцем Fable): план 11 принят как путь реализации — harness настоящего `deploy.sh` (`deploy/drill/deploy-drill.sh`) с матрицей `TASKINDEX_FAIL_AT` и guard по `TASKINDEX_COMPOSE_PROJECT` (§3.3, шаг 9); статический слой — план 10, доп. шаг 20, без изменений ([план 11, решение владельца](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/11-deploy-and-ops.md:398); [README планов, «Решения владельца»](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/README.md:148)).
+
+**Связанные планы:** [astra-17-deploy-entrypoint-failure-tests.md](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/astra-17-deploy-entrypoint-failure-tests.md); [11-deploy-and-ops.md](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/11-deploy-and-ops.md); [10-code-quality-and-tests.md](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/10-code-quality-and-tests.md).
+
+**Связанные записи / зависимости исходного плана:** [TI-015](#ti-015).
+
+Исходная оценка в плане: P2.
+
+<a id="ti-018"></a>
+
+### TI-018 — WebKit и приёмка на настоящем телефоне
+
+**Тип:** Приёмка. **Статус:** ОТКРЫТО. **Приоритет:** P2.
+
+**Источники:** [Astra:S-05](/Users/dmitriy/code/taskindex/docs/audits/2026-09-08-multiside-review/01-stack.md:116); [FC:compare-stack-arch S-05](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/compare-stack-arch.md:98); [План 10, доп. шаг 21](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/10-code-quality-and-tests.md:342); [План 08, доп. шаг 17](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/08-styling-skin-and-dark-theme.md:251).
+
+**Где:** [tests/e2e/playwright.config.ts:9](/Users/dmitriy/code/taskindex/tests/e2e/playwright.config.ts:9), [tests/e2e/workspace.spec.ts](/Users/dmitriy/code/taskindex/tests/e2e/workspace.spec.ts), [tests/e2e/agent-cycle.md](/Users/dmitriy/code/taskindex/tests/e2e/agent-cycle.md).
+
+**Проблема и последствия.** Автоматический suite запускается только в Chromium. Пройденные 18 тестов не подтверждают Safari/iOS, настоящую регистрацию passkey и мобильное перетаскивание.
+
+**Проверка и ограничения.** Проверено по коду/конфигурации и границам существующих тестов; это не доказательство уже произошедшей потери данных. Сверка Fable: отсутствие WebKit подтверждено (`playwright.config.ts:12` один проект Desktop Chrome). Утверждение Astra «touch drag не проверен» неточно: касания тестируются в Chromium-эмуляции — контекст `viewport 390×844, isMobile, hasTouch` и `Input.dispatchTouchEvent` через CDP ([workspace.spec.ts:569-590](/Users/dmitriy/code/taskindex/tests/e2e/workspace.spec.ts:569)); не проверен именно WebKit (Web Locks в `drafts.ts`, EventSource, `AbortSignal.timeout`, passkey). Fable оценивает P3, реестр P2; обе оценки записаны, проект `webkit` дешёвый и добавляется в любом случае.
+
+**Предлагаемая работа.** Основные действия проверяются в Chromium и WebKit, а особенности устройства проходят отдельную физическую приёмку с точными версиями ОС/браузера.
+
+**Критерий закрытия.** Сохранены отчёты Chromium/WebKit и реального телефона; эмуляция не названа доказательством всего iOS-пути.
+
+**Проверки при реализации:**
+
+- Оба автоматических browser projects проходят общий критический путь.
+- Физическая приёмка отдельно подтверждает passkey и touch; отсутствие устройства отмечено как незавершённый пункт.
+- Навигация/редактор остаются доступны при узком экране, открытой клавиатуре и смене orientation.
+
+**Детали и оговорки:**
+
+- WebKit Playwright не является установленным Safari на iPhone. Не писать в отчёте «мобильная приёмка выполнена» только по desktop emulation.
+- Сверка Fable: проект `webkit` (`devices['Desktop Safari']`) для входа/выхода, создания и сохранения с переподключением SSE, восстановления черновика после перезагрузки, редактора, чеклиста, комментариев, индикатора pending; чек-лист телефона (passkey, клавиатура, safe area, ориентация) в `docs/acceptance/phone.md` ([план 10, доп. шаг 21](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/10-code-quality-and-tests.md:342)); тёмные сцены `dark` × `webkit` ([план 08, доп. шаг 17](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/08-styling-skin-and-dark-theme.md:251)).
+
+**Связанные планы:** [astra-18-browser-and-phone-acceptance.md](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/astra-18-browser-and-phone-acceptance.md); [10-code-quality-and-tests.md](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/10-code-quality-and-tests.md); [08-styling-skin-and-dark-theme.md](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/08-styling-skin-and-dark-theme.md).
+
+Исходная оценка в плане: P2.
+
+<a id="ti-019"></a>
+
+### TI-019 — Сохранение точных типов команд до обработчика
+
+**Тип:** Качество кода. **Статус:** ОТКРЫТО. **Приоритет:** P2.
+
+**Источники:** [Astra:Q-01](/Users/dmitriy/code/taskindex/docs/audits/2026-09-08-multiside-review/04-code-quality.md:31); [Astra:A-05](/Users/dmitriy/code/taskindex/docs/audits/2026-09-08-multiside-review/02-architecture.md:114); [FS:S4](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/review-1-stack.md:93); [FQ:§3](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/review-4-quality.md:75); [FQ:§4](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/review-4-quality.md:100); [FQ:R1](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/review-4-quality.md:280); [FQ:R2](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/review-4-quality.md:281); [FI:B3](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/review-5-ai-ready.md:125); [FC:compare-quality-method, строка 1 матрицы](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/compare-quality-method.md:21); [План 10, доп. шаг 25](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/10-code-quality-and-tests.md:346).
+
+**Где:** [src/shared/commands.ts:230](/Users/dmitriy/code/taskindex/src/shared/commands.ts:230), [src/shared/schemas.ts](/Users/dmitriy/code/taskindex/src/shared/schemas.ts), [src/shared/model.ts](/Users/dmitriy/code/taskindex/src/shared/model.ts).
+
+**Проблема и последствия.** После проверки discriminated union обработчик стирает payload до Record<string, unknown> и восстанавливает поля кастами. Ветка checklist по startsWith имеет неявный остаточный вариант. Новая команда может компилироваться без полного корректного обработчика.
+
+**Проверка и ограничения.** Проверено в исходном ревью по коду; отдельного нового воспроизведения при составлении реестра не выполнялось. Сверка Fable: паритет. У Fable пересчитаны касты (48–51 `as` в `commands.ts` по методу подсчёта) и найден `get()` без перегрузки; у Astra точнее следствие: неизвестная `task.*` не «молча уйдёт в ветку чеклиста», а упадёт на `commands.ts:623` с `not_found` «Шаг не найден» («часть будет отклонена рантаймом»). Предложение `satisfies`/`keyof` для списков полей принято ([план 10, доп. шаг 25](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/10-code-quality-and-tests.md:346)).
+
+**Предлагаемая работа.** Добавление команды требует согласованной схемы и исчерпывающего обработчика; проверенные поля доходят до reducer без повторного угадывания типа.
+
+**Критерий закрытия.** Нет стирания проверенного union на входе dispatch; исчерпывающесть обеспечена компилятором; изменения поведения отсутствуют либо вынесены в отдельные исправления.
+
+**Проверки при реализации:**
+
+- Compile-time проверка: новая команда без обработчика вызывает ошибку.
+- Существующие unit/API/property tests дают те же state/events/errors на фиксированных входах.
+- Проверить редкие checklist reorder/remove, undo batch и comment operations, а не только task.create.
+
+**Детали и оговорки:**
+
+- Не начинать универсальный command framework с динамической регистрацией. Для текущего набора достаточно типизированного switch/map. Разницу приоритетов двух ревьюеров сохраняем, одну задачу дважды не считаем.
+- Объединить commandSchema/commandEnvelopeSchema из payload registry, исчерпывающие labels/handlers и typed get по EntityKind. Расширение enum исторических events/results согласовать с TI-014; не ломать старую историю ради текущего closed union.
+
+**Связанные планы:** [astra-19-exhaustive-command-dispatch.md](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/astra-19-exhaustive-command-dispatch.md); [04-api-contract-and-schemas.md](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/04-api-contract-and-schemas.md); [10-code-quality-and-tests.md](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/10-code-quality-and-tests.md).
+
+Исходная оценка в плане: P2 по Q-01; P3 по A-05.
+
+<a id="ti-020"></a>
+
+### TI-020 — Диагностируемые ошибки и корреляция запросов
+
+**Тип:** Диагностика. **Статус:** ОТКРЫТО. **Приоритет:** P2.
+
+**Источники:** [Astra:Q-02](/Users/dmitriy/code/taskindex/docs/audits/2026-09-08-multiside-review/04-code-quality.md:49); [FA:V4](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/review-2-architecture.md:78); [FA:Ж6](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/review-2-architecture.md:102); [FQ:§5](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/review-4-quality.md:118); [FI:B6](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/review-5-ai-ready.md:137); [FC:compare-quality-method Q-02](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/compare-quality-method.md:22); [ASTRA-VS-FABLE §4.7](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/ASTRA-VS-FABLE.md:145); [План 06, доп. шаг 14](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/06-server-structure-config-logging.md:243).
+
+**Где:** [src/server/app.ts:259](/Users/dmitriy/code/taskindex/src/server/app.ts:259), [src/server/app.ts:285](/Users/dmitriy/code/taskindex/src/server/app.ts:285), [deploy/compose.yml](/Users/dmitriy/code/taskindex/deploy/compose.yml).
+
+**Проблема и последствия.** Непредвиденная ошибка логируется как объект Error без явных message/stack/code и идентификатора запроса; JSON может потерять содержимое. LOG_LEVEL объявлен в compose, но не управляет наблюдаемым поведением. Сбой становится трудно связать с конкретной операцией.
+
+**Проверка и ограничения.** Проверено в исходном ревью по коду; отдельного нового воспроизведения при составлении реестра не выполнялось. Сверка Fable: probe Astra перезапущен, вывод идентичен; паритет по точности (у Astra артефакт probe, у Fable следствие FA:V4 `retryable:true` → 4 повтора и конверт навсегда в outbox).
+
+**Предлагаемая работа.** Один сбой можно проследить по requestId и operationId от ответа до серверного stack, не раскрывая ключи, cookies и тексты задач.
+
+**Критерий закрытия.** По одному requestId восстанавливается причинная цепочка сбоя; безопасный формат проверен автоматическим тестом и примером runbook.
+
+**Проверки при реализации:**
+
+- Искусственная ошибка с cause/SQLite code создаёт читаемую JSON-запись с stack и correlation.
+- В запросе есть тестовые секреты/текст задачи — их нет в логах и клиентском internal response.
+- Error boundary и executor не дублируют один сбой; LOG_LEVEL реально фильтрует разрешённые уровни.
+
+**Детали и оговорки:**
+
+- Stack/message некоторых ошибок содержат SQL или значения. Санитизацию проверить на реальных ошибках библиотек; структурированный JSON сам по себе не обеспечивает приватность.
+- Не делать каждый не-SQLite Error окончательным retryable:false: ошибка возможна после commit в рассылке/ответе. Окончательность следует из известного исхода операции, не имени исключения. RequestId вернуть клиенту, LOG_LEVEL реально подключить; не писать keys/cookies/raw envelope.
+- Сверка Fable: предложение FA:V4 отвечать `retryable:false` на любой не-SQLite `Error` отвергнуто и Fable принял отказ ([ASTRA-VS-FABLE §4.7](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/ASTRA-VS-FABLE.md:145); [README планов, расхождение 4](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/README.md:97)). Граница — известность исхода: `internal` (500, `retryable:false`) только для исключений до и внутри `executeOperation` (транзакция откатывается); ошибки после коммита (`hub.publish`, `c.json`) логируются как `post_commit_error` с `requestId`/`operationId`, ответ не меняется ([план 06, доп. шаг 14](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/06-server-structure-config-logging.md:243)).
+- **Решение** (принято 2026-09-10; решение делегировано владельцем Fable): `retryable:false` только при известном исходе — `internal` (500) лишь для исключений до и внутри `executeOperation`; ошибки после коммита логируются как `post_commit_error` с `requestId`/`operationId`, ответ не меняется; вариант «любой не-SQLite Error окончателен» снят. `LOG_LEVEL` реализуется (уровни `error`, `info`, `debug`), а не удаляется ([план 06, решение владельца](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/06-server-structure-config-logging.md:246); [README планов, строка «Внутренние ошибки»](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/README.md:157)).
+
+**Связанные планы:** [astra-20-structured-error-diagnostics.md](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/astra-20-structured-error-diagnostics.md); [06-server-structure-config-logging.md](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/06-server-structure-config-logging.md).
+
+Исходная оценка в плане: P2.
+
+<a id="ti-021"></a>
+
+### TI-021 — Независимые свойства команд и Undo
+
+**Тип:** Качество тестов. **Статус:** ОТКРЫТО. **Приоритет:** P2.
+
+**Источники:** [Astra:Q-03](/Users/dmitriy/code/taskindex/docs/audits/2026-09-08-multiside-review/04-code-quality.md:63); [FQ:§9](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/review-4-quality.md:166); [FC:compare-quality-method Q-03](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/compare-quality-method.md:54); [План 10, доп. шаг 19](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/10-code-quality-and-tests.md:340); [План 02, доп. шаг 18](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/02-agent-permissions-and-sync-semantics.md:304).
+
+**Где:** [tests/property/undo.test.ts](/Users/dmitriy/code/taskindex/tests/property/undo.test.ts), [tests/property/commands.test.ts](/Users/dmitriy/code/taskindex/tests/property/commands.test.ts), [src/server/operations.ts](/Users/dmitriy/code/taskindex/src/server/operations.ts).
+
+**Проблема и последствия.** Undo-тест использует production isSubjectField как oracle. Если важное поле исчезнет из реализации и из сравнения одновременно, тест останется зелёным. Генераторы в основном покрывают owner, актуальную revision и успешные короткие последовательности.
+
+**Проверка и ограничения.** Проверено в исходном ревью по коду; отдельного нового воспроизведения при составлении реестра не выполнялось. Сверка Fable: подтверждено (`undo.test.ts:56-59` `subject()` через `isSubjectField`; тот же предикат в `commands.ts:304`, `:337`; удаление `note` из `taskFields` одновременно отключит восстановление и сравнение; `>=` для `revision` при постоянном `now` не проверяет строгий рост). Смягчение: `assertMerge` и `ownerFields` используют тот же предикат, часть тестов конфликтов упала бы по другой причине; пример-тесты Undo проверяют `due`, `archived`, `title`, `commentCount`, но не `note`.
+
+**Предлагаемая работа.** Тесты проверяют независимые предметные инварианты и трудные переходы, а не повторяют набор решений production-кода.
+
+**Критерий закрытия.** Oracle независим от проверяемого классификатора; новые свойства ловят хотя бы показанную контрольную мутацию и проходят на корректном коде.
+
+**Проверки при реализации:**
+
+- Контрольная мутация, удаляющая восстановление одного значимого поля, действительно роняет независимый тест.
+- Генераторы достигают rejected/conflict/noop/unknown-boundary сценариев, а не отбрасывают их фильтрами.
+- Counterexample сохраняется компактно и воспроизводится одной командой.
+
+**Детали и оговорки:**
+
+- Полная вторая реализация продукта станет таким же источником ошибок. Reference model должна быть маленькой, с явно ограниченным набором правил. Политику owner/agent после решения плана 27 проверять отдельно.
+- Fable тоже отмечает узость генераторов. Astra отдельно доказал слепую зону oracle через production isSubjectField; это не устраняется простым увеличением numRuns.
+- Сверка Fable: реализация — явный список `UNDO_SUBJECT_FIELDS` в тесте плюс страж `expect([...taskFields].sort()).toEqual(...)`, маленькая эталонная модель `Map<taskId, Record<field, unknown>>` без `applyCommand`, движущееся время (`now` = база + счётчик) со строгим ростом `revision`/`updatedAt`, генераторы с отклонённым пакетом, устаревшей `baseRevision`, `task.sync` и агентскими акторами; контрольная мутация «удалить `note`» описана в шапке теста ([план 10, доп. шаг 19](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/10-code-quality-and-tests.md:340); ожидания для агентов из табличных `cases`, не из `requireScope` — [план 02, доп. шаг 18](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/02-agent-permissions-and-sync-semantics.md:304)).
+
+**Связанные планы:** [astra-21-independent-property-model.md](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/astra-21-independent-property-model.md); [10-code-quality-and-tests.md](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/10-code-quality-and-tests.md); [02-agent-permissions-and-sync-semantics.md](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/02-agent-permissions-and-sync-semantics.md).
+
+Исходная оценка в плане: P2.
+
+<a id="ti-022"></a>
+
+### TI-022 — Проверка формата сохранённых черновиков и outbox
+
+**Тип:** Усиление контракта. **Статус:** ОТКРЫТО. **Приоритет:** P3.
+
+**Источники:** [Astra:Q-04](/Users/dmitriy/code/taskindex/docs/audits/2026-09-08-multiside-review/04-code-quality.md:77); [FQ:§4](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/review-4-quality.md:100); [FQ:R8](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/review-4-quality.md:287); [Сохранённое воспроизведение](/Users/dmitriy/code/taskindex/docs/audits/2026-09-08-multiside-review/quality-probes-root-recheck.jsonl); [FC:compare-quality-method Q-04](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/compare-quality-method.md:58); [compare/quality-probes.out.jsonl](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/probes/compare/quality-probes.out.jsonl); [План 04, доп. шаг 16](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/04-api-contract-and-schemas.md:293); [План 03, доп. шаг 18](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/03-cli-outbox-and-ergonomics.md:293).
+
+**Где:** [src/web/app/drafts.ts:34](/Users/dmitriy/code/taskindex/src/web/app/drafts.ts:34), [src/web/app/store.ts:379](/Users/dmitriy/code/taskindex/src/web/app/store.ts:379), [src/cli/outbox.ts:61](/Users/dmitriy/code/taskindex/src/cli/outbox.ts:61), [src/web/app/dialogs.tsx:52](/Users/dmitriy/code/taskindex/src/web/app/dialogs.tsx:52).
+
+**Проблема и последствия.** DraftStorage проверяет только formatVersion, queued envelopes — в основном наличие ID/generation, CLI outbox тоже принимает неполную структуру. fields:null может дойти до формы и вызвать ошибку. Текущий writer такую форму не создаёт; это риск повреждения или будущей версии, а не доказанная штатная потеря данных.
+
+**Проверка и ограничения.** Воспроизведено координатором в исходном аудите. Draft с fields:null принимается и ломает чтение fields.title; нормальный writer такую форму не создаёт. Сверка Fable: probe Astra перезапущен из scratch, вывод побайтно совпал с `quality-probes.jsonl` (`quality-probes.out.jsonl`). Fable шире по местам (`sync.ts:25` с неиспользуемым `eventSchema`, `api.ts:74`), Astra глубже по следствию и тестам.
+
+**Предлагаемая работа.** Локальные данные рассматриваются как внешняя граница: валидные восстанавливаются, известные старые форматы мигрируются, неизвестные сохраняются для восстановления и не отправляются.
+
+**Критерий закрытия.** Ни одна непроверенная persisted структура не поступает в форму или send; повреждённые данные не исчезают молча.
+
+**Проверки при реализации:**
+
+- fields:null, missing payload, неверная revision, чужая formatVersion, truncated JSON и один повреждённый файл рядом с валидными.
+- Known old fixture мигрирует с сохранением текста и operationId; unknown сохраняется raw и не отправляется.
+- Один плохой draft не роняет редактор другого объекта; read CLI остаётся доступным.
+
+**Детали и оговорки:**
+
+- Quarantine тоже может не записаться при недоступном storage: сохранить исходную запись и показать состояние, не удалять её до подтверждённого резервирования. Миграция формата не равна смене generation.
+- Проверка формы persisted данных и сбой перечисления одного плохого CLI-файла — разные причины; второй сценарий имеет TI-039. Не удалять raw draft при неизвестной версии.
+- Сверка Fable: три теста на каждый читатель (битый JSON; верный `formatVersion` с `fields: null`; неизвестный `formatVersion`), сырое значение переносится под `taskindex/corrupt/<ключ>` и не удаляется ([план 04, доп. шаг 16](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/04-api-contract-and-schemas.md:293)); для CLI outbox — `savedOperationSchema` с `formatVersion: 2` и `actorId`, `safeParse` в `get()`, переименование в `<имя>.corrupt` ([план 03, доп. шаг 18](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/03-cli-outbox-and-ergonomics.md:293)).
+
+**Связанные планы:** [astra-22-persisted-drafts-and-outbox-schemas.md](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/astra-22-persisted-drafts-and-outbox-schemas.md); [04-api-contract-and-schemas.md](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/04-api-contract-and-schemas.md); [03-cli-outbox-and-ergonomics.md](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/03-cli-outbox-and-ergonomics.md).
+
+**Связанные записи / зависимости исходного плана:** [TI-004](#ti-004), [TI-006](#ti-006), [TI-039](#ti-039).
+
+Исходная оценка в плане: P3.
+
+<a id="ti-023"></a>
+
+### TI-023 — Общий жизненный цикл намерения в формах
+
+**Тип:** Качество кода. **Статус:** ПРЕДЛОЖЕНО. **Приоритет:** P3.
+
+**Источники:** [Astra:Q-06](/Users/dmitriy/code/taskindex/docs/audits/2026-09-08-multiside-review/04-code-quality.md:117); [FQ:§3](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/review-4-quality.md:75); [FQ:§6](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/review-4-quality.md:130); [FQ:R5](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/review-4-quality.md:284); [FC:compare-quality-method Q-06](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/compare-quality-method.md:60); [План 07, доп. шаг 25](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/07-web-client-fixes-and-structure.md:274).
+
+**Где:** [src/web/app/dialogs.tsx](/Users/dmitriy/code/taskindex/src/web/app/dialogs.tsx), [src/web/app/editor.tsx](/Users/dmitriy/code/taskindex/src/web/app/editor.tsx), [src/web/app/store.ts](/Users/dmitriy/code/taskindex/src/web/app/store.ts).
+
+**Проблема и последствия.** QuickCreate, InlineCreate, ProjectDialog и TaskDiscussion повторяют управление draft/entityId/operationId/busy/unknown/ack с различиями очистки после ошибок. Правка правила повторов требует нескольких согласованных изменений и рискует потерять намерение.
+
+**Проверка и ограничения.** Проверено в исходном ревью по коду; отдельного нового воспроизведения при составлении реестра не выполнялось. Сверка Fable: формулировка Astra точнее списка дублей Fable: `QuickCreate` берёт новый `operationId` при любом `retryable:false` (`dialogs.tsx:100-101`), `InlineCreate` обнуляет намерение (`board.tsx:204`), `TaskDiscussion` сохраняет его (`activity.tsx:390-392`); сервер хранит доменные отказы и на повтор с тем же id и другим payload отвечает `operation_mismatch` (`operations.ts:51-82`), так что политика `TaskDiscussion` неверна для окончательных DomainError; достижимость для владельца низкая (длина текста ограничена одинаково в UI и схеме). Унификация политики, не баг.
+
+**Предлагаемая работа.** Общие гарантии сохранения и повторов задаются одним небольшим controller/hook; предметные поля, markup и разрешение конфликтов остаются в конкретной форме.
+
+**Критерий закрытия.** Общие правила больше не расходятся между формами; предметные конфликты не скрыты универсальной абстракцией.
+
+**Проверки при реализации:**
+
+- Двойной submit, HTTP success, definitive rejection, unknown, close/reopen, reload и смена generation сохраняют установленный lifecycle.
+- Одна общая проверка инварианта ID/persist плюс небольшой интеграционный сценарий каждой формы.
+- Текст не очищается до подтверждения, а повтор unknown отправляет исходный envelope.
+
+**Детали и оговорки:**
+
+- Начинать рефакторинг до исправления семантики означает закрепить ошибку в общем hook. Не объединять разные сущности только из-за внешне похожих полей.
+- QuickCreate/InlineCreate/ProjectDialog/TaskDiscussion: стабильный ID, persisted intent, unknown, definitive rejection, clear-after-ack. Вынести подписку черновика и общее повторяющееся сохранение, оставить формы и conflict semantics предметными. makeTask с revision=0 заменить подходящим draft type при этом рефакторинге.
+- Сверка Fable: одна таблица состояний намерения (editing → persisted → sending → success | definitive rejection | unknown); новый `operationId` только после окончательного отказа и изменения payload; `unknown` сохраняет `operationId` и конверт; применить к трём формам через `use-save-intent.ts`/`use-draft.ts` ([план 07, доп. шаг 25](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/07-web-client-fixes-and-structure.md:274)).
+
+**Связанные планы:** [astra-23-form-intent-lifecycle.md](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/astra-23-form-intent-lifecycle.md); [10-code-quality-and-tests.md](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/10-code-quality-and-tests.md); [07-web-client-fixes-and-structure.md](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/07-web-client-fixes-and-structure.md).
+
+**Связанные записи / зависимости исходного плана:** [TI-004](#ti-004), [TI-006](#ti-006), [TI-007](#ti-007), [TI-022](#ti-022).
+
+Исходная оценка в плане: P3.
+
+<a id="ti-024"></a>
+
+### TI-024 — Зависимости и измеримая загрузка интерфейса
+
+**Тип:** Оптимизация. **Статус:** ПРЕДЛОЖЕНО. **Приоритет:** P3.
+
+**Источники:** [Astra:S-07](/Users/dmitriy/code/taskindex/docs/audits/2026-09-08-multiside-review/01-stack.md:138); [FS:F3](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/review-1-stack.md:108); [FS:Z2](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/review-1-stack.md:147); [FQ:§10](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/review-4-quality.md:184); [FQ:R9](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/review-4-quality.md:288); [BACKLOG: BL-BUNDLE](/Users/dmitriy/code/taskindex/BACKLOG.md); [FC:compare-stack-arch S-04 и F3](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/compare-stack-arch.md:104); [ASTRA-VS-FABLE §4.5](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/ASTRA-VS-FABLE.md:133); [План 07, доп. шаг 26](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/07-web-client-fixes-and-structure.md:275).
+
+**Где:** [package.json](/Users/dmitriy/code/taskindex/package.json), [vite.config.ts](/Users/dmitriy/code/taskindex/vite.config.ts), [deploy/Dockerfile](/Users/dmitriy/code/taskindex/deploy/Dockerfile), [BACKLOG.md](/Users/dmitriy/code/taskindex/BACKLOG.md).
+
+**Проблема и последствия.** date-fns числится runtime-зависимостью без найденного использования. Browser-библиотеки попадают в общий install серверного образа; клиентская сборка содержит крупный chunk: около 1 034,22 kB JS / 299,05 kB gzip в проверенном snapshot. Сам размер не доказывает плохой запуск на телефоне.
+
+**Проверка и ограничения.** Проверено в исходном ревью по коду; отдельного нового воспроизведения при составлении реестра не выполнялось. Сверка Fable: вариант FS:F3 «валидация только на сервере» снят; клиентская проверка snapshot/SSE/ответов остаётся (TI-005), вес снимается `zod/mini` для `src/shared` по замеру `source-map-explorer` ([план 07, шаг 20](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/07-web-client-fixes-and-structure.md:172); [доп. шаг 26](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/07-web-client-fixes-and-structure.md:275)). Отдельно Fable отмечает, что статика отдаётся без `Cache-Control`/gzip (`serve-static` ставит только `Last-Modified`, nginx без `gzip`/`expires`): это правится без замеров и даёт больше, чем разбиение чанка — [план 11 §3.5](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/11-deploy-and-ops.md:146).
+
+**Предлагаемая работа.** Убрать подтверждённо лишнее и сократить только измеренный критический путь загрузки, сохранив выбранный стек и простоту выпуска.
+
+**Критерий закрытия.** Неиспользуемые зависимости убраны после проверки; решение о splitting основано на фактических метриках и не ухудшает надёжность.
+
+**Проверки при реализации:**
+
+- Чистые npm ci/check/build работают после cleanup; production server стартует с native SQLite.
+- Cold phone сценарий быстрее или проще при равном поведении; после lazy import сохраняются auth, drag и повтор открытия диалога.
+- Если выигрыш незначителен, оставить результаты измерения и не внедрять сложное разделение.
+
+**Детали и оговорки:**
+
+- Удаление transitive-only пакета или разделение node_modules может сломать сборку/адаптеры. Не объявлять задержку доказанной только по gzip-числу. BL-BUNDLE объединён с S-07, отдельной дублирующей задачи нет.
+- Сначала состав production bundle и cold-phone measurements, затем lazy boundaries при доказанном выигрыше. Не удалять клиентскую проверку протокола; не считать gzip-size доказанной задержкой. Runtime image и venue сборки подробно TI-068, build-зависимость shadcn — TI-065.
+- **Решение** (принято 2026-09-10; решение делегировано владельцем Fable): клиентская валидация протокола сохраняется (TI-005); вес снимается переходом `src/shared` на `zod/mini` по замеру `source-map-explorer`; вариант «валидация только на сервере» снят ([план 04, решение владельца](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/04-api-contract-and-schemas.md:295); [README планов, строка «Валидация на клиенте»](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/README.md:160)).
+
+**Связанные планы:** [astra-24-bundle-and-runtime-dependencies.md](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/astra-24-bundle-and-runtime-dependencies.md); [07-web-client-fixes-and-structure.md](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/07-web-client-fixes-and-structure.md); [11-deploy-and-ops.md](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/11-deploy-and-ops.md).
+
+**Связанные записи / зависимости исходного плана:** [TI-018](#ti-018), [TI-065](#ti-065), [TI-068](#ti-068), [TI-069](#ti-069).
+
+Исходная оценка в плане: P3 для cleanup; P2 для открытой мобильной проверки.
+
+<a id="ti-025"></a>
+
+### TI-025 — Полноценная тёмная тема и общая основа оформления
+
+**Тип:** Новая функция. **Статус:** РЕШЕНИЕ. **Приоритет:** P2.
+
+**Источники:** [FS:F1](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/review-1-stack.md:99); [FQ:§6](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/review-4-quality.md:130); [FQ:R6](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/review-4-quality.md:285); Запрос владельца: отдельные подробные планы тёмной темы и скинов (эта задача, 08.09.2026); [План 08, сверка](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/08-styling-skin-and-dark-theme.md:225); [FC:compare-quality-method, строка 12 матрицы](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/compare-quality-method.md:32); [README планов, «Решения владельца»](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/README.md:152).
+
+**Где:** [src/web/styles.css:51](/Users/dmitriy/code/taskindex/src/web/styles.css:51), [src/web/styles.css:1606](/Users/dmitriy/code/taskindex/src/web/styles.css:1606), [src/web/main.tsx](/Users/dmitriy/code/taskindex/src/web/main.tsx), [index.html](/Users/dmitriy/code/taskindex/index.html), [src/web/app/auth.tsx](/Users/dmitriy/code/taskindex/src/web/app/auth.tsx), [docs/plans/2026-09-08-taskindex-v2.md:27](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-taskindex-v2.md:27).
+
+**Проблема и последствия.** В CSS уже есть две :root-палитры и две .dark-палитры; последние определения перекрывают первые. Переключатель/контроллер режима отсутствует, часть состояний имеет фиксированные светлые цвета, theme-color в HTML постоянный. Это заготовка, а не проверенная тёмная тема. Подсчёт hex сам по себе не показывает итоговый computed style: нужно учитывать каскад.
+
+**Проверка и ограничения.** Запрос владельца на планирование; варианты палитр, хранения preference и переключателя ещё не реализованы. Сверка Fable: факты плана 08, которых нет в планах Astra: каскад — ручной CSS лежит вне `@layer`, поэтому нелэйерные объявления побеждают любой слой Tailwind, 27 `!important`; 248 hex мимо токенов (126 уникальных); 78 правил лезут внутрь примитивов селектором элемента против 16 через `data-slot`/`data-sidebar`; `.dark` мёртв (класс никогда не ставится на `<html>`, 33 варианта `dark:` в `src/web/ui/*` не срабатывают); 93 селектора определены повторно; 25 мёртвых классов; `767px` в 5 медиазапросах и `use-mobile.ts:2`. Замечание Astra «подсчёт hex не показывает computed style» принято: фаза A требует побайтного совпадения скриншотов.
+
+**Предлагаемая работа.** Предложение: три понятных режима «Как в системе», «Светлая», «Тёмная»; выбранный режим сохраняется и доступен через UI/API/CLI. Классический внешний вид и поведение доски остаются эталоном. Общая основа сразу допускает skinId=classic; дополнительные скины добавляет план 26.
+
+**Критерий закрытия.** В классическом скине нет светлых островов/нечитаемых состояний; режим переживает reload и согласован между клиентами; первый paint и системные controls соответствуют resolved теме; есть desktop/WebKit отчёт и физическая мобильная приёмка.
+
+**Проверки при реализации:**
+
+- Все три preference mode при системных light/dark: explicit override, OS change, reload, новая вкладка, вход/выход и восстановление сессии.
+- Ранний paint не показывает противоположную тему при валидном cache; invalid/missing/unavailable storage даёт безопасный system fallback без падения страницы.
+- Проверить вход и ошибки auth, доску, поиск/Focus, редактор, popovers/portals, подтверждения, комментарии, checklist, activity, pending/unknown/conflict, drag overlay, мобильную клавиатуру и safe area.
+- API/CLI get/set дают ту же preference revision, что UI; повтор неизвестного результата идемпотентен; смена оформления не меняет tasks/projects/comments, их revision и ownerFields.
+- Контраст измерен для ролей и реальных сочетаний, focus виден с клавиатуры; цвета статуса/проекта не являются единственным источником смысла.
+
+**Детали и оговорки:**
+
+- Расширение оформления на серверную preference увеличивает объём относительно CSS-переключателя, но сохраняет принятый паритет приложения. Browser-only настройка — допустимая более дешёвая альтернатива только после явного уточнения границы паритета. Новые цвета и место переключателя являются предложением этого плана, не уже утверждённым дизайном.
+- Долг CSS включён сюда: две :root/.dark палитры, три исторических слоя, повторные селекторы, неиспользуемые классы и workspace-overview.css, используемый несколькими экранами. Число hex/селекторов не доказывает итоговый computed style; сначала зафиксировать действующий Classic Light.
+- Ручной CSS и Tailwind-примитивы могут сосуществовать через роли токенов/явные слои каскада/data-slot. Удаление одного подхода или массовый перевод JSX на утилиты не является автоматически принятым решением. Порядок: общая основа темы, затем дополнительные скины TI-026.
+- Сверка Fable: согласие — сначала одна база токенов и фиксация действующего Classic Light без изменения вида, явный порядок слоёв (`@layer theme, base, components, utilities, skin`), обращение к примитивам через `data-slot`, односторонняя зависимость «тема → скины», артефакты отдельно от эталонов, критерии контраста WCAG 2.2 в `check-skin.mjs` ([план 08, доп. шаг 13](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/08-styling-skin-and-dark-theme.md:247)). Расхождение записано как решение владельца: Fable — вариант A, системная тема через `prefers-color-scheme` и `data-theme` без тумблера (усилие S, без миграций); Astra — предпочтение аккаунта с тремя режимами, командой `appearance.update`, полем снимка и CLI. Рекомендация плана 08: A первым, при желании тумблера — C′ по контракту Astra поверх A без переделки ([план 08, доп. шаг 14](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/08-styling-skin-and-dark-theme.md:248); [README планов, «Решения владельца»](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/README.md:152)).
+
+**Выбранный вариант.** Принято 2026-09-10; решение делегировано владельцем Fable, владелец отдельно подтвердил скины и раскладку «Фокус». Режимы «как в системе», «светлая», «тёмная»; предпочтение темы хранится в аккаунте и доступно через API и CLI (паритет агентов), локальный кэш только для первой отрисовки — контракт Astra (`astra-25`; в разделе 3.4 плана 08 выбран вариант C′ вместо A) поверх основы Fable: сначала фаза A плана 08 (одна база токенов, `@layer skin`, контракт `data-slot`, ни одного зашитого hex, побайтное совпадение скриншотов Classic Light), затем реестр и предпочтения. Тумблер нужен, потому что нужен выбор скина (TI-026); вариант A «системная тема без тумблера» снят. Последствия: новая сущность предпочтений, команда и поле снимка по `astra-25`; фаза A остаётся первым шагом и не меняет вид. Оставшийся объём: фазы A/B плана 08, затем контракт предпочтений `astra-25`; критерии закрытия карточки без изменений ([план 08, решение владельца](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/08-styling-skin-and-dark-theme.md:253); [README планов, строка «Тема и скины»](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/README.md:161)).
+
+**Связанные планы:** [astra-25-dark-theme.md](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/astra-25-dark-theme.md); [08-styling-skin-and-dark-theme.md](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/08-styling-skin-and-dark-theme.md).
+
+**Связанные записи / зависимости исходного плана:** [TI-003](#ti-003), [TI-005](#ti-005), [TI-006](#ti-006), [TI-013](#ti-013), [TI-014](#ti-014), [TI-018](#ti-018).
+
+Исходная оценка в плане: P2, отдельная продуктовая работа.
+
+<a id="ti-026"></a>
+
+### TI-026 — Система скинов поверх общей темы
+
+**Тип:** Новая функция. **Статус:** РЕШЕНИЕ. **Приоритет:** P2.
+
+**Источники:** Запрос владельца: отдельные подробные планы тёмной темы и скинов (эта задача, 08.09.2026); [План 08, доп. шаг 15](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/08-styling-skin-and-dark-theme.md:249); [README планов, «Решения владельца»](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/README.md:153).
+
+**Где:** [src/web/styles.css](/Users/dmitriy/code/taskindex/src/web/styles.css), [src/web/app/workspace-overview.css](/Users/dmitriy/code/taskindex/src/web/app/workspace-overview.css), [src/web/app/sidebar.tsx](/Users/dmitriy/code/taskindex/src/web/app/sidebar.tsx), [src/web/app/board.tsx:308](/Users/dmitriy/code/taskindex/src/web/app/board.tsx:308), [src/shared/model.ts](/Users/dmitriy/code/taskindex/src/shared/model.ts).
+
+**Проблема и последствия.** Сейчас несколько исторических наборов CSS перекрывают друг друга, но явного реестра скинов, независимого skinId и полного контракта токенов нет. Простое добавление третьего блока overrides увеличит долг и оставит часть экранов в старой палитре.
+
+**Проверка и ограничения.** Запрос владельца на планирование; варианты палитр, хранения preference и переключателя ещё не реализованы. Сверка Fable: план 08 не предусматривает каталога скинов и preview; скин там — ручной CSS в `@layer skin` поверх `tokens.css`. Общее для обоих подходов (`tokens.css`, `@layer skin`, `data-slot`) делается в плане 08; каталог, реестр `SkinDefinition` и второй встроенный скин — продуктовая функция и решение владельца после фаз A/B.
+
+**Предлагаемая работа.** Скин меняет оформление через проверяемый набор визуальных токенов и поддерживает светлый/тёмный режимы. Он сохраняет навигацию, статусы доски, порядок задач и все гарантии редактирования.
+
+**Критерий закрытия.** Два встроенных скина работают в light/dark, каталог и API/CLI согласованы, preview обратим, добавление следующего скина ограничено registry/tokens/fixtures.
+
+**Проверки при реализации:**
+
+- Каждый skin реализует все обязательные роли для обеих палитр; неполная registry-запись отклоняется при проверке.
+- Preview → Cancel/Esc, Preview → Apply success/rejection/unknown, смена темы во время preview, reload и другая вкладка.
+- После выбора кожа не меняет tasks/projects/comments, статусы, порядок, navigation URL и открытые draft. Сервер получает только preference command.
+- Unknown skin из старого cache/новой server version безопасно показывает Classic с объяснением; исходное значение не уничтожается автоматически.
+- Изменение token одного скина не влияет на другой; контраст и все состояния подтверждены реальными сценами.
+
+**Детали и оговорки:**
+
+- Названия и палитры — предложение, не утверждённый редизайн. Внешние CSS, скрипты, маркетплейс и произвольные пользовательские темы не нужны для первого этапа. Существующий параллельный 08-styling-skin-and-dark-theme.md содержит другую группировку; перед реализацией выбрать один согласованный дизайн, не выполнять две миграции каскада независимо.
+- Подробные read/write skinId contracts, preview/apply/cancel и совместимость неизвестного скина находятся в актуальном плане. Built-in каталог — предложение; удалённый CSS/JS и marketplace не нужны.
+- Сверка Fable: чтобы позже не переделывать, в `tokens.css` резервируется `data-skin` (дополнительная палитра — блок `:root[data-skin='<id>']` и его тёмная пара, текущая палитра `classic`), `check-skin.mjs` проверяет правило «один блок на пару (`data-skin`, режим)» ([план 08, доп. шаг 15](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/08-styling-skin-and-dark-theme.md:249)). Зависимость Astra-плана 26 от `astra-13`/`astra-14` для варианта A не нужна.
+
+**Выбранный вариант.** Принято 2026-09-10; решение делегировано владельцем Fable, владелец отдельно подтвердил скины и раскладку «Фокус». Скины нужны. Реестр скинов с предпросмотром по `astra-26` после фазы A плана 08; первый каталог — «Classic» (текущий вид) и «Фокус» (палитра и типографика макета [focus.html](/Users/dmitriy/code/taskindex/docs/reference/visions-2026-09-08/focus.html): тёплая бумага, тёмно-зелёные чернила, терракотовый акцент, засечки в заголовке текущей задачи; переменные `:root` макета (`--paper`, `--ink`, `--warm`, `--green`, `--serif` и остальные) ложатся на токены). Раскладка макета — не скин, а отдельный вид экрана Focus, [TI-078](#ti-078) (план 13). Порядок: фаза A плана 08, затем реестр и предпочтения, затем скин «Фокус»; двойной миграции CSS нет. Оставшийся объём: реестр `SkinDefinition`, preview/apply/cancel, второй скин; критерии закрытия карточки без изменений ([план 08, решение владельца](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/08-styling-skin-and-dark-theme.md:253); [план 13, шаг 11](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/13-focus-desk-view.md:96); [README планов, строка «Тема и скины»](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/README.md:161)).
+
+**Связанные планы:** [astra-26-skins-system.md](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/astra-26-skins-system.md); [08-styling-skin-and-dark-theme.md](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/08-styling-skin-and-dark-theme.md).
+
+**Связанные записи / зависимости исходного плана:** [TI-025](#ti-025).
+
+Исходная оценка в плане: P2, после основы темы.
+
+<a id="ti-027"></a>
+
+### TI-027 — Граница самостоятельных правок агента и решений владельца
+
+**Тип:** Политика продукта. **Статус:** РЕШЕНИЕ. **Приоритет:** P1.
+
+**Источники:** [FB:B-01](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/review-3-bugs.md:9); [FB:B-02](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/review-3-bugs.md:28); [FI:A12](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/review-5-ai-ready.md:104); [FA:Ж7](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/review-2-architecture.md:103); [BACKLOG: BL-AUTHORITY](/Users/dmitriy/code/taskindex/BACKLOG.md); [Исходное workflow-ревью BACKLOG](/Users/dmitriy/code/taskindex/docs/audits/2026-09-08-workflows/claude-review/REPORT.md); [FC:compare-bugs «Наши B-01/B-02»](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/compare-bugs.md:59); [repro/agent-undo-owner.mts](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/probes/repro/agent-undo-owner.mts); [ASTRA-VS-FABLE §4.8](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/ASTRA-VS-FABLE.md:151); [README планов, расхождение 3](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/README.md:96); [План 02, сверка](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/02-agent-permissions-and-sync-semantics.md:281).
+
+**Где:** [BACKLOG.md](/Users/dmitriy/code/taskindex/BACKLOG.md), [src/shared/commands.ts](/Users/dmitriy/code/taskindex/src/shared/commands.ts), [docs/audits/2026-09-08-workflows/claude-review/REPORT.md](/Users/dmitriy/code/taskindex/docs/audits/2026-09-08-workflows/claude-review/REPORT.md).
+
+**Проблема и последствия.** Проверено, что tasks-агент может снова открыть закрытую владельцем задачу прямым move и Undo, а write-агент — отменить переименование проекта. task.sync защищает решения владельца, прямые команды имеют более широкие права. Как отличать самостоятельное обновление источника от нового поручения владельца, пока не решено.
+
+**Проверка и ограничения.** Текущее поведение подтверждено в BACKLOG; требуемое поведение ещё требует продуктового решения. Сверка Fable: repro перезапущен 2026-09-08 (`agent(tasks) undo of owner archive -> 200`, `task archived after agent undo: false`, `agent task.update focus:true -> 200`, задача попадает в группу `selected`); `requireScope` (`commands.ts:65-68`) проверяет только scope и вид сущности, в ветке `undo` (`commands.ts:329-335`) проверка автора есть только для комментариев, `focus` разрешён во всех task-командах (`schemas.ts:82`) и блокируется в `task.sync` лишь при `ownerTouchedAt`.
+
+**Предлагаемая работа.** Зафиксировать понятную политику и одинаково применять её к прямым командам, пакетам, sync и Undo. Один запрет Undo не должен оставлять эквивалентный обход через move/save.
+
+**Критерий закрытия.** Решение владельца записано отдельно от рекомендации, матрица реализована и проверена по всем путям. До решения завершён только анализ вариантов, не изменение прав.
+
+**Проверки при реализации:**
+
+- Таблица разрешений исполняется для direct commands, batch и Undo; move/save не обходят запрещённое состояние.
+- tasks не получает project/write права; агент не подменяет actor или approval через payload.
+- Легитимное новое поручение выполнимо выбранным способом, а owner может исправить свои решения.
+
+**Детали и оговорки:**
+
+- Излишний запрет лишит агентов обещанного управления приложением; излишне широкий scope позволит нежелательную автономность. Это продуктовый компромисс, а не причина без обсуждения заменять auth-плагин.
+- Матрица должна охватить owner undo, task.move/save, агентский focus=true, отмену другого агента, а также защиту checklist целиком против поэлементной. Прямые команды и автономный task.sync имеют разный текущий смысл. Запрет одного Undo не закрывает эквивалентные команды.
+- Общий outbox TI-035 — самостоятельный дефект изоляции намерений, не следствие отсутствующего продуктового запрета owner undo.
+- Сверка Fable: Fable оценивает это как P0/дефект контракта, а не только открытую политику, потому что текст правил, отдаваемый в `/api/context` («Undo сохраняет наибольшую обработанную версию источника и ручные решения», [src/server/app.ts:902](/Users/dmitriy/code/taskindex/src/server/app.ts:902)), обещает то, чего код не обеспечивает. Согласованное решение: единая матрица прав для direct/batch/sync/undo (план 02 §3.1 = `astra-27`), решение владельца записывается отдельно от рекомендации; P0-часть (агентский undo операций владельца, агентский `focus`) не имеет легитимного сценария и не ждёт решения по прямым командам над `ownerFields` ([план 02, доп. шаг 16](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/02-agent-permissions-and-sync-semantics.md:302)). Рекомендация Fable: агент не отменяет операции владельца и не ставит `focus`; отмена операций другого агента разрешена в рамках scope ([README планов, «Решения владельца»](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/README.md:151)).
+- Сверка Fable: переоценка Ж7/Ж8/Ж9 Astra принята ([план 02, сверка](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/02-agent-permissions-and-sync-semantics.md:299)). Ж7 — защита чеклиста целиком это принятая гранулярность плана v2, поэлементная защита — изменение продукта и решение владельца. Ж8 — первое пустое «Сохранить» владельца пишет событие только с `ownerTouchedAt`; это реальное действие «владелец коснулся», событие не удаляется, исправляется подпись в «Истории» (план 07). Ж9 — обязательный `fields.area` в `task.sync` и `skipped: area locked` это шум контракта, не потеря корректности; упрощение схемы — план 04.
+- **Предложение Fable: P1** (сейчас P2). Основание: решение блокирует приёмку (TI-034 зависит от TI-027), а P0-часть срабатывает на штатном пути через штатный CLI без злого умысла; индекс не менялся до решения владельца.
+
+**Выбранный вариант.** Принято 2026-09-10; решение делегировано владельцем Fable, владелец отдельно подтвердил скины и раскладку «Фокус». (а) Сразу, не дожидаясь остальной матрицы: агент любого scope не отменяет операции, содержащие события владельца, и не ставит `focus`/`focusPosition`; в `task.sync` оба поля всегда `skipped: owner`. (б) Прямые команды над полями `ownerFields` требуют в конверте `confirmOwnerFields: true`; без флага — 403 `forbidden`; флаг это след в «Активности», не доказательство поручения. (в) Отмена операций другого агента разрешена в рамках scope. (г) Чеклист защищён целиком, поэлементная защита отклонена (Ж7 принят как решение продукта). Последствия: матрица плана 02 §3.1 и `astra-27` закрываются этим вариантом; Ж8 — событие первого пустого «Сохранить» остаётся, правится подпись в «Истории» (план 07); Ж9 — `fields.area` в `task.sync` становится необязательным при наличии `origin` (план 04); `focusPosition` вводится планом 13 ([TI-078](#ti-078)) как владельческое поле. Оставшийся объём: реализация и тесты — план 02, шаги 1–10; план 13, шаг 4; `tests/api/permissions.test.ts`; для приёмки TI-034 блокер «нет решения» снят, остаётся реализация. Приоритет P2 → P1 применён в индексе (предложение Fable выше принято) ([план 02, решение владельца](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/02-agent-permissions-and-sync-semantics.md:306); [README планов, строка «Права агентов»](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/README.md:154)).
+
+**Связанные планы:** [astra-27-agent-owner-authority-policy.md](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/astra-27-agent-owner-authority-policy.md); [02-agent-permissions-and-sync-semantics.md](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/02-agent-permissions-and-sync-semantics.md).
+
+Исходная оценка в плане: Решение до рабочей приёмки.
+
+<a id="ti-028"></a>
+
+### TI-028 — Постоянный Node 24 для проекта
+
+**Тип:** Окружение. **Статус:** ОТКРЫТО. **Приоритет:** P2.
+
+**Источники:** [FI:B1](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/review-5-ai-ready.md:117); [BACKLOG: BL-NODE](/Users/dmitriy/code/taskindex/BACKLOG.md); [Исходное workflow-ревью BACKLOG](/Users/dmitriy/code/taskindex/docs/audits/2026-09-08-workflows/claude-review/REPORT.md).
+
+**Где:** [package.json](/Users/dmitriy/code/taskindex/package.json), [BACKLOG.md](/Users/dmitriy/code/taskindex/BACKLOG.md), [docs/audits/2026-09-08-workflows/claude-review/environment.json](/Users/dmitriy/code/taskindex/docs/audits/2026-09-08-workflows/claude-review/environment.json).
+
+**Проблема и последствия.** В зафиксированной проверке обычный node и Homebrew node@24 фактически запускают Node 26.7.0, несовместимый с установленным SQLite native ABI и контрактом >=24.11.0 <25. Рабочий Node 24.20.0 доступен только через временный /tmp PATH.
+
+**Проверка и ограничения.** Окружение проверялось в предшествующем аудите; перед настройкой повторно проверить реальные node/ABI, состояние могло измениться.
+
+**Предлагаемая работа.** Чистый терминал в проекте использует поддерживаемый Node 24 без временного каталога и без изменения runtime других проектов.
+
+**Критерий закрытия.** Разработка воспроизводима из нового терминала по README, версия проверяется автоматически, временный runtime не нужен.
+
+**Проверки при реализации:**
+
+- Новый терминал без ручного PATH на /tmp запускает реальный Node 24.
+- SQLite загружается, check/build проходят; запуск другим Node даёт понятный preflight отказ.
+- В соседнем проекте глобальные symlink/PATH не были перезаписаны; Docker/CI используют совместимый major.
+
+**Детали и оговорки:**
+
+- Состояние окружения могло измениться после аудита, поэтому сначала свежая проверка. Не чинить один проект глобальной заменой Homebrew node или удалением других runtime.
+
+**Связанные планы:** [astra-28-permanent-node-runtime.md](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/astra-28-permanent-node-runtime.md); [12-ai-readiness-and-docs.md](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/12-ai-readiness-and-docs.md).
+
+Исходная оценка в плане: P2; до воспроизводимой разработки.
+
+<a id="ti-029"></a>
+
+### TI-029 — Понятный и согласованный счётчик Focus
+
+**Тип:** Политика продукта. **Статус:** РЕШЕНИЕ. **Приоритет:** P2.
+
+**Источники:** [FQ:§2](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/review-4-quality.md:49); [BACKLOG: BL-FOCUS](/Users/dmitriy/code/taskindex/BACKLOG.md); [Исходное workflow-ревью BACKLOG](/Users/dmitriy/code/taskindex/docs/audits/2026-09-08-workflows/claude-review/REPORT.md).
+
+**Где:** [BACKLOG.md](/Users/dmitriy/code/taskindex/BACKLOG.md), [src/shared/queries.ts](/Users/dmitriy/code/taskindex/src/shared/queries.ts), [src/web/app/sidebar.tsx](/Users/dmitriy/code/taskindex/src/web/app/sidebar.tsx), [src/web/app/overview.tsx](/Users/dmitriy/code/taskindex/src/web/app/overview.tsx).
+
+**Проблема и последствия.** Sidebar считает только незавершённые неархивные задачи агентов, которых не касался владелец. Остальные группы Focus могут быть непустыми при отсутствии числа. Это расходится с прежним смыслом счётчика раздела, но итоговый смысл индикатора нужно определить явно.
+
+**Проверка и ограничения.** Текущее поведение подтверждено в BACKLOG; требуемое поведение ещё требует продуктового решения.
+
+**Предлагаемая работа.** Число возле названия раздела объясняется содержимым этого раздела и одинаково вычисляется в UI/API/CLI.
+
+**Критерий закрытия.** Смысл индикатора записан, список и badge используют общий источник, все группы и пересечения проверены.
+
+**Проверки при реализации:**
+
+- Ручные и агентские задачи, selected+overdue одновременно, owner touch, done/archive и граница даты.
+- Пустой Focus даёт согласованный zero state; непустой не скрывается из-за отсутствия new-agent задач.
+- Число совпадает с числом уникальных задач, соответствующих выбранному смыслу.
+
+**Детали и оговорки:**
+
+- Это не автоматическое одобрение нового устройства Focus. Сохранить уже принятую навигацию и доску как стартовый экран; решение о счётчике не включает редизайн.
+- Простое переименование focusCount в newFromAgentsCount устраняет ложное имя переменной, но не решает смысл badge. Сумма групп может двойным счётом включить задачу; считать уникальные записи при выборе общего Focus count.
+
+**Выбранный вариант.** Принято 2026-09-10; решение делегировано владельцем Fable, владелец отдельно подтвердил скины и раскладку «Фокус». Счётчик Focus в сайдбаре — `counts.focus` селектора `focusDesk` плана 13 (всего задач в фокусе); список и badge берут одно значение из общего селектора; сегодняшний `focusCount`, считающий только «Новое от агентов» ([src/web/app/shell.tsx:304](/Users/dmitriy/code/taskindex/src/web/app/shell.tsx:304), строки 304–311), заменяется ([план 13 §3.3](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/13-focus-desk-view.md:62), [шаг 9](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/13-focus-desk-view.md:94)). Последствия: `astra-29` закрывается планом 13; смысл badge — «сколько задач в фокусе», группы «Новое от агентов», «Пора сделать», «Пора вернуться» остаются в `focusGroups` для `digest`; редизайн экрана — отдельная карточка [TI-078](#ti-078), стартовый экран не меняется. Оставшийся объём: шаг 9 плана 13 и e2e-проверка числа.
+
+**Связанные планы:** [astra-29-focus-counter-semantics.md](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/astra-29-focus-counter-semantics.md).
+
+Исходная оценка в плане: P2.
+
+<a id="ti-030"></a>
+
+### TI-030 — Русские ошибки и доступные имена интерфейса
+
+**Тип:** UX. **Статус:** ОТКРЫТО. **Приоритет:** P2.
+
+**Источники:** [BACKLOG: BL-LOCALIZATION](/Users/dmitriy/code/taskindex/BACKLOG.md); [Исходное workflow-ревью BACKLOG](/Users/dmitriy/code/taskindex/docs/audits/2026-09-08-workflows/claude-review/REPORT.md).
+
+**Где:** [BACKLOG.md](/Users/dmitriy/code/taskindex/BACKLOG.md), [src/web/app/auth.tsx](/Users/dmitriy/code/taskindex/src/web/app/auth.tsx), [src/web/ui](/Users/dmitriy/code/taskindex/src/web/ui), [src/web/app/sidebar.tsx](/Users/dmitriy/code/taskindex/src/web/app/sidebar.tsx).
+
+**Проблема и последствия.** Неверный пароль показывает Invalid email or password, а мобильная навигация, закрытие диалогов и уведомления имеют английские доступные имена. Видимый русский интерфейс не совпадает с тем, что сообщает screen reader.
+
+**Проверка и ограничения.** Проверено в исходном ревью по коду; отдельного нового воспроизведения при составлении реестра не выполнялось.
+
+**Предлагаемая работа.** Пользовательские сообщения и доступные имена текущих сценариев последовательно русские и понятные, технические machine codes остаются стабильными.
+
+**Критерий закрытия.** По инвентарю нет необъяснённых английских пользовательских строк; основные сценарии подтверждены browser/a11y inspection.
+
+**Проверки при реализации:**
+
+- Неверный пароль, истёкшая сессия, passkey failure и неизвестная auth error показывают корректный русский текст.
+- Accessibility tree мобильного меню/диалогов/toasts содержит русские имена без пустых/дублирующихся подписей.
+- Длинные переводы не обрезают действия на узком экране; технические API error codes не изменены.
+
+**Детали и оговорки:**
+
+- Не переводить пользовательские названия задач, имена источников и machine-readable поля. Локализация не должна ухудшать диагностику: requestId/code можно сохранить в технических деталях.
+
+**Связанные планы:** [astra-30-russian-ui-and-accessible-labels.md](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/astra-30-russian-ui-and-accessible-labels.md).
+
+Исходная оценка в плане: P2.
+
+<a id="ti-031"></a>
+
+### TI-031 — Единое русское склонение количества задач
+
+**Тип:** Баг UI. **Статус:** ОТКРЫТО. **Приоритет:** P2.
+
+**Источники:** [BACKLOG: BL-PLURALS](/Users/dmitriy/code/taskindex/BACKLOG.md); [Исходное workflow-ревью BACKLOG](/Users/dmitriy/code/taskindex/docs/audits/2026-09-08-workflows/claude-review/REPORT.md).
+
+**Где:** [BACKLOG.md](/Users/dmitriy/code/taskindex/BACKLOG.md), [src/web/app/overview.tsx](/Users/dmitriy/code/taskindex/src/web/app/overview.tsx), [src/web/app/activity.tsx](/Users/dmitriy/code/taskindex/src/web/app/activity.tsx), [src/web/app/shell.tsx](/Users/dmitriy/code/taskindex/src/web/app/shell.tsx).
+
+**Проблема и последствия.** Focus и поиск показывают 1 задач, 3 задач, 4 задач. В Activity уже есть корректное склонение, но оно не переиспользуется всеми представлениями.
+
+**Проверка и ограничения.** Проверено в исходном ревью по коду; отдельного нового воспроизведения при составлении реестра не выполнялось.
+
+**Предлагаемая работа.** Все количества задач используют общую русскую форму и одинаковую семантику числа.
+
+**Критерий закрытия.** Нет ручных несовместимых форм количества задач, единый formatter проверен небольшой таблицей примеров.
+
+**Проверки при реализации:**
+
+- Таблица 0, 1, 2, 4, 5, 11, 21, 22, 25, 101, 111.
+- Focus, поиск и Activity на одинаковом числе дают согласованные формы.
+- Проверить короткие/длинные count labels на мобильном экране.
+
+**Детали и оговорки:**
+
+- Не строить обобщённый переводчик всех существительных ради трёх форм. Проверка должна задавать ожидаемые русские строки, а не вычислять их тем же formatter второй раз.
+
+**Связанные планы:** [astra-31-russian-task-counts.md](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/astra-31-russian-task-counts.md).
+
+Исходная оценка в плане: P2.
+
+<a id="ti-032"></a>
+
+### TI-032 — История изменений на языке пользователя
+
+**Тип:** UX. **Статус:** ОТКРЫТО. **Приоритет:** P2.
+
+**Источники:** [BACKLOG: BL-HISTORY](/Users/dmitriy/code/taskindex/BACKLOG.md); [Исходное workflow-ревью BACKLOG](/Users/dmitriy/code/taskindex/docs/audits/2026-09-08-workflows/claude-review/REPORT.md).
+
+**Где:** [BACKLOG.md](/Users/dmitriy/code/taskindex/BACKLOG.md), [src/web/app/activity.tsx](/Users/dmitriy/code/taskindex/src/web/app/activity.tsx), [src/web/app/editor.tsx](/Users/dmitriy/code/taskindex/src/web/app/editor.tsx), [docs/audits/2026-09-08-workflows/agent-owner-history.txt](/Users/dmitriy/code/taskindex/docs/audits/2026-09-08-workflows/agent-owner-history.txt).
+
+**Проблема и последствия.** История показывает agency/todo/done, технические order keys a0/a1 и JSON checklist. Сохранённые события верны, но пользователю сложно понять, что именно изменилось.
+
+**Проверка и ограничения.** Проверено в исходном ревью по коду; отдельного нового воспроизведения при составлении реестра не выполнялось.
+
+**Предлагаемая работа.** Основная история описывает предметные изменения русскими словами; raw details доступны при необходимости и не заменяют понятный рассказ.
+
+**Критерий закрытия.** История отвечает «кто и что поменял» без чтения внутренних enum/JSON; нет выдуманных значений при недостатке исторического контекста.
+
+**Проверки при реализации:**
+
+- Статус/область/позиция/checklist add-edit-check-remove-reorder, проект удалён/переименован после события, неизвестное поле.
+- Пакет отображается одной операцией с правильными деталями, Undo и rejection описаны без ложного успеха.
+- Читаемость на реальных коротких русских примерах и узком экране; raw export остаётся побайтово прежним.
+
+**Детали и оговорки:**
+
+- Текущая запись может отличаться от состояния на момент события. Использовать event evidence, а не реконструировать историю из сегодняшней задачи без оговорки.
+
+**Связанные планы:** [astra-32-human-readable-history.md](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/astra-32-human-readable-history.md).
+
+Исходная оценка в плане: P2.
+
+<a id="ti-033"></a>
+
+### TI-033 — Сверка документации с реализованными контрактами
+
+**Тип:** Документация. **Статус:** ОТКРЫТО. **Приоритет:** P2.
+
+**Источники:** [FI:B6](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/review-5-ai-ready.md:137); [FI:A13](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/review-5-ai-ready.md:107); [FQ:§10](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/review-4-quality.md:184); [FA:Ж4](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/review-2-architecture.md:100); [FA:Ж6](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/review-2-architecture.md:102); [FA:Ж8](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/review-2-architecture.md:104); [FA:Ж9](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/review-2-architecture.md:105); [FA:Ж12](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/review-2-architecture.md:108); [FA:Ж13](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/review-2-architecture.md:109); [BACKLOG: BL-DOCS](/Users/dmitriy/code/taskindex/BACKLOG.md); [Исходное workflow-ревью BACKLOG](/Users/dmitriy/code/taskindex/docs/audits/2026-09-08-workflows/claude-review/REPORT.md); [ASTRA-VS-FABLE §5 (Ж4)](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/ASTRA-VS-FABLE.md:174); [План 12, доп. шаг 11](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/12-ai-readiness-and-docs.md:438).
+
+**Где:** [BACKLOG.md](/Users/dmitriy/code/taskindex/BACKLOG.md), [docs/plans/2026-09-08-taskindex-v2.md](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-taskindex-v2.md), [README.md](/Users/dmitriy/code/taskindex/README.md), [deploy/README.md](/Users/dmitriy/code/taskindex/deploy/README.md).
+
+**Проблема и последствия.** Основной план не полностью отражает порядок с архивными соседями, выключенный rate limit ключей, проверку их привязки, approved_deployment, fingerprint страниц и фактический SQLite backup. Есть риск выполнять старый текст как актуальный контракт или вновь объявить уже существующую возможность отсутствующей.
+
+**Проверка и ограничения.** Проверено в исходном ревью по коду; отдельного нового воспроизведения при составлении реестра не выполнялось. Сверка Fable: соответствие «`dryRun` меняет hash envelope» (FA:Ж4) — явный контракт, документируется, не исправляется; это принято ([ASTRA-VS-FABLE §5](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/ASTRA-VS-FABLE.md:174)). Таблица сверки «утверждение → код/тест → фактическое поведение → документ → статус» добавляется в раздел «Отклонения от плана» `docs/plans/2026-09-08-taskindex-v2.md`; исторические отчёты не переписываются ([план 12, доп. шаг 11](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/12-ai-readiness-and-docs.md:438)).
+
+**Предлагаемая работа.** Документация различает принятое требование, нынешнюю реализацию, открытый дефект и запланированное изменение; агент получает одну непротиворечивую точку входа.
+
+**Критерий закрытия.** Указанные расхождения устранены по коду, открытые решения названы явно, агент может найти актуальный контракт без чтения всех прошлых аудитов.
+
+**Проверки при реализации:**
+
+- Ссылки существуют; команды и параметры в актуальном разделе совпадают с CLI/OpenAPI.
+- Каждый открытый пункт имеет источник и ответственный план, дубли помечены.
+- Ни один будущий режим/команда не подан как уже доступный; исторический snapshot отличается от текущей спецификации.
+
+**Детали и оговорки:**
+
+- Не превращать план исправлений в ложный отчёт о завершении. В общей папке есть независимый набор Fable с совпадающими короткими ID; всегда указывать источник/namespace.
+- Дополнительно сверить HELP с --generation, всегда JSON против описания --json, 4 попытки против текста «3», миграционный timezone, способ установки skill и какие шаги agent-cycle уже автоматизированы. Инструкции подключения/репозитория — TI-052, help/parser — TI-045.
+- Сохранить как явные контракты, а не баги по умолчанию: dryRun меняет hash envelope; первое owner save может писать ownerTouchedAt; task.sync area locked — допустимый пропуск; домен хранит ISO, auth — integer ms; restore вне runbook без mark-restored не обязан автоматически менять generation. Изменение любого из этих решений требует отдельного обоснования.
+- Публичный health описан в исходном плане; требования к поверхности решаются в TI-056. Утверждение FA:V7 о WAL от health снято в TI-075. Уже реализованное event:operations не записывать как отсутствующую возможность.
+- **Решение** (принято 2026-09-10; решение делегировано владельцем Fable): флаг `--json` удаляется, а не документируется как no-op — позиция плана 03 (§1.3: флаг присутствует в `switches`/`controls`/`HELP` и нигде не читается, вывод всегда JSON; критерий 9; шаг 8: неизвестный флаг → `invalid_arguments` с `hint: "вывод всегда JSON, флаг удалён"`; шаг 14: правка `README.md`, `SKILL.md` и §10 плана v2 как отклонение) ([план 03 §1.3](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/03-cli-outbox-and-ergonomics.md:25); [критерий 9](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/03-cli-outbox-and-ergonomics.md:67); [шаг 8](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/03-cli-outbox-and-ergonomics.md:186); [шаг 14](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/03-cli-outbox-and-ergonomics.md:198)). Таблица сверки документации — план 12, доп. шаг 11, без изменений.
+
+**Связанные планы:** [astra-33-contract-documentation-reconciliation.md](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/astra-33-contract-documentation-reconciliation.md); [12-ai-readiness-and-docs.md](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/12-ai-readiness-and-docs.md).
+
+**Связанные записи / зависимости исходного плана:** [TI-027](#ti-027).
+
+Исходная оценка в плане: P2.
+
+<a id="ti-034"></a>
+
+### TI-034 — Рабочая приёмка после исправлений
+
+**Тип:** Приёмка. **Статус:** ОТКРЫТО. **Приоритет:** P2.
+
+**Источники:** [FI:A13](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/review-5-ai-ready.md:107); [BACKLOG: BL-ACCEPTANCE](/Users/dmitriy/code/taskindex/BACKLOG.md); [Исходное workflow-ревью BACKLOG](/Users/dmitriy/code/taskindex/docs/audits/2026-09-08-workflows/claude-review/REPORT.md).
+
+**Где:** [BACKLOG.md](/Users/dmitriy/code/taskindex/BACKLOG.md), [tests/e2e/agent-cycle.md](/Users/dmitriy/code/taskindex/tests/e2e/agent-cycle.md), [deploy/README.md](/Users/dmitriy/code/taskindex/deploy/README.md).
+
+**Проблема и последствия.** Локальные проверки не заменяют приёмку владельцем, фактический цикл Claude Code/Codex, реальный телефон и выбранные VPS/S3/TLS. Домен, инфраструктурные параметры и рабочее переключение остаются отдельными решениями.
+
+**Проверка и ограничения.** Это незавершённая приёмка; локальные тесты не заменяют фактический VPS/S3, владельца и телефон.
+
+**Предлагаемая работа.** Подготовить один конкретный кандидат выпуска и комплект доказательств, затем выполнить согласованное рабочее переключение на выбранную инфраструктуру.
+
+**Критерий закрытия.** Рабочая приёмка закрыта доказательствами всех обязательных пунктов; неподтверждённые проверки остаются открытыми, а не отмечаются выполненными по локальному аналогу.
+
+**Проверки при реализации:**
+
+- Кандидат прошёл обязательный gate; реальная среда соответствует проверенному image и release config.
+- Есть фактические результаты owner UI, двух агентских клиентов, физического телефона и восстановления из выбранного S3.
+- После открытия записи подтверждены health, доступ, SSE/revocation, внешний backup signal и сохранение новой тестовой операции.
+
+**Детали и оговорки:**
+
+- Этот файл — план, а не разрешение на commit, изменение VPS, отправку сообщений или перенос данных. Подготовка пакета выполняется до финального согласования рабочего действия; повторное согласование уже явно порученного действия не требуется.
+- Оценки AI-readiness 6/10 и 4/10 — рубрика исходного автора, а не автоматический критерий закрытия. Нужны конкретные результаты agent cycle и целевых устройств.
+
+**Связанные планы:** [astra-34-release-and-owner-acceptance.md](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/astra-34-release-and-owner-acceptance.md); [12-ai-readiness-and-docs.md](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/12-ai-readiness-and-docs.md).
+
+**Связанные записи / зависимости исходного плана:** [TI-001](#ti-001), [TI-002](#ti-002), [TI-003](#ti-003), [TI-004](#ti-004), [TI-005](#ti-005), [TI-006](#ti-006), [TI-007](#ti-007), [TI-008](#ti-008), [TI-009](#ti-009), [TI-010](#ti-010), [TI-011](#ti-011), [TI-013](#ti-013), [TI-014](#ti-014), [TI-015](#ti-015), [TI-016](#ti-016), [TI-017](#ti-017), [TI-018](#ti-018), [TI-027](#ti-027), [TI-028](#ti-028), [TI-033](#ti-033).
+
+Исходная оценка в плане: Перед рабочим переключением.
+
+<a id="ti-035"></a>
+
+### TI-035 — CLI пересылает чужой outbox под текущим агентом
+
+**Тип:** Баг. **Статус:** ОТКРЫТО. **Приоритет:** P1.
+
+**Источники:** [FI:A1](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/review-5-ai-ready.md:62); [Повторная проверка координатора](/Users/dmitriy/code/taskindex/docs/audits/2026-09-08-astra-fable-comparison/probes.json); [FC:compare-bugs «Наш A1»](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/compare-bugs.md:63); [compare/shared-outbox.mts](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/probes/compare/shared-outbox.mts); [План 03 §3.1](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/03-cli-outbox-and-ergonomics.md:75).
+
+**Где:** [src/cli/outbox.ts](/Users/dmitriy/code/taskindex/src/cli/outbox.ts); [src/cli/run.ts](/Users/dmitriy/code/taskindex/src/cli/run.ts).
+
+**Проблема и последствия.** Два агента на одной машине используют общий каталог ops. Если A сохранил ещё не исполненный envelope, B выполняет operation resume без ID и отправляет намерение A со своим ключом. В базе автором становится B, а файл A удаляется. Это смешивает поручения и атрибуцию; особенно существенно для Claude Code и Codex под одним пользователем ОС.
+
+**Проверка и ограничения.** Независимо воспроизведено при сравнении: createdBy=agent:agent-b, exit=0, envelopeRemoved=true. Контроль с уже исполненной операцией сохранил автора A: речь о первом исполнении, не переписывании истории. Сверка Fable: собственный повтор (`shared-outbox.mts`, настоящий `runCli`, два ключа, один `XDG_STATE_HOME`): B запускает `operation resume` без id → stderr `pendingOperations ["a-op-1"]`, stdout `{"ok":true,"operationId":"a-op-1",…}`, `task.createdBy agent:codex`, `stored operation actorId agent:codex`, outbox пуст; затем A получает «Сохранённый конверт не найден», exit 2. Код: `Outbox` строит путь только из `XDG_STATE_HOME` ([outbox.ts:47-53](/Users/dmitriy/code/taskindex/src/cli/outbox.ts:47)), `list` фильтрует по `baseUrl`, не по актору ([outbox.ts:83-98](/Users/dmitriy/code/taskindex/src/cli/outbox.ts:83)), `run.ts:212-221` печатает чужие `pendingOperations`, `:232-244` пересылает все.
+
+**Предлагаемая работа.** Разделить persisted intent по серверу и идентичности агента; проверять принадлежность при list/get/resume. Выбрать способ стабильного определения actor и безопасный переход старых каталогов без автоматической пересылки неидентифицированных файлов.
+
+**Критерии закрытия:**
+
+- Два ключа с одним XDG_STATE_HOME: B не отправляет и не удаляет pending A, в том числе при resume ID.
+- Изоляция разных baseUrl и восстановление после смены ключа проверены; старые raw envelopes доступны для явного разбора.
+- Повтор уже исполненного envelope сохраняет результат и исходного автора.
+
+**Детали и оговорки:**
+
+- Хеш токена в пути разделяет ключи, но сам по себе не решает rotation/несколько ключей одного агента. Не сохранять сам секрет как identity.
+- Сверка Fable: реализация — каталог состояния по серверу и агенту (`<state>/taskindex/<serverId>/<agentId>/ops`), `actorId` в сохранённом конверте, `resume` без id только своих, тест с двумя токенами ([план 03 §3.1](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/03-cli-outbox-and-ergonomics.md:75), шаги 1, 3, 6); `serverId()` уже существует и не используется ([outbox.ts:144](/Users/dmitriy/code/taskindex/src/cli/outbox.ts:144)); идентичность агента при ротации ключа не теряется (кэш идентичности по хешу токена, не хеш как identity).
+
+**Связанные планы:** [03-cli-outbox-and-ergonomics.md](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/03-cli-outbox-and-ergonomics.md); [05-auth-and-agent-keys.md](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/05-auth-and-agent-keys.md).
+
+**Связанные записи / зависимости исходного плана:** [TI-004](#ti-004), [TI-027](#ti-027), [TI-039](#ti-039), [TI-047](#ti-047), [TI-055](#ti-055).
+
+<a id="ti-036"></a>
+
+### TI-036 — Проверка API-ключа пишет auth-метаданные при каждом GET
+
+**Тип:** Производительность. **Статус:** ОТКРЫТО. **Приоритет:** P1.
+
+**Источники:** [FS:S1](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/review-1-stack.md:74); [FS:S2](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/review-1-stack.md:81); [FA:V3](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/review-2-architecture.md:74); [Повторная проверка координатора](/Users/dmitriy/code/taskindex/docs/audits/2026-09-08-astra-fable-comparison/probes.json); [Независимая сверка Astra/Fable](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/ASTRA-VS-FABLE.md); [FC:compare-stack-arch S1/V3](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/compare-stack-arch.md:118); [ASTRA-VS-FABLE §4.2](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/ASTRA-VS-FABLE.md:115); [План 05, сверка](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/05-auth-and-agent-keys.md:173).
+
+**Где:** [src/server/auth.ts](/Users/dmitriy/code/taskindex/src/server/auth.ts); [src/server/app.ts](/Users/dmitriy/code/taskindex/src/server/app.ts).
+
+**Проблема и последствия.** verifyApiKey обновляет метаданные ключа даже для чтения. Частое агентское polling/SSE переподключение создаёт WAL и репликационную нагрузку, хотя предметные данные не меняются. Отключённый rateLimit не устраняет весь путь записи.
+
+**Проверка и ограничения.** Независимый probe: GET при writes=held выполняет 2 UPDATE apikey, WAL увеличивается на 8 272 байта, event seq остаётся 2. Это не доказательство обхода запрета предметных команд и не измерение числа fsync. Сверка Fable: подтверждено чтением плагина (`@better-auth/api-key/dist/index.mjs:1717-1727` безусловный `adapter.update({updatedAt})`, `:1795-1804` `adapter.update({lastRequest})` при `rateLimitEnabled: false`). Обход `writes: held` следует из порядка middleware: авторизация выполняется до проверки `opened()` ([app.ts:305-320](/Users/dmitriy/code/taskindex/src/server/app.ts:305)), то есть auth-запись происходит и при закрытой записи; это записи auth-метаданных и лишний fsync на каждый GET агента, не обход предметного запрета (event seq не меняется).
+
+**Предлагаемая работа.** Определить требование к немедленности отзыва, затем сравнить настройку/адаптацию verify и отдельное хранение агентских ключей на том же workload. Выбрать вариант, сохраняющий scopes, hashing, rotation, отключение агента и SSE-отзыв.
+
+**Критерии закрытия:**
+
+- На серии аутентифицированных GET измерены SQL/WAL и latency до/после; устранены неоправданные записи.
+- Новый запрос и уже открытый SSE соблюдают принятую гарантию отзыва.
+- Выданные ранее ключи и owner password/passkey проходят регрессию.
+
+**Детали и оговорки:**
+
+- Кэш на 30–60 секунд из FA:V3 меняет семантику отзыва и не принят автоматически. FS:S2 cookie cache owner-session — отдельная необязательная оптимизация с той же проверкой отзыва.
+- Рекомендация «своя auth-таблица за 30–50 строк» не является оценкой полного объёма безопасной замены.
+- Сверка Fable: список требований §4.2 к замене плагина закрыт планом 05 — хеширование (шаг 3, SHA-256 base64url совместим с плагином), выдача (`issueAgentKey`), ротация (шаг 5), связь агент/scope (`agent_keys.agent_id`, `scope`), отключение (`agents.disabled_at`), отзыв (`revoked_at`), миграция выданных ключей (шаг 2, тест 3), долгоживущие соединения (доп. шаг 10), гарантия отзыва «на новые запросы немедленно, на открытый SSE не позже 25 с» (доп. шаг 11) ([план 05, шаги 1–7](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/05-auth-and-agent-keys.md:66); [доп. шаги 10–12](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/05-auth-and-agent-keys.md:195)). Кэш 30–60 с отвергнут обеими сторонами (расширяет окно TI-001).
+- **Предложение Fable: P1** (сейчас P2). Основание: обход порядка `writes: held` и запись на каждый GET агента затрагивают тот же код, что TI-001, и правятся до переключения; Fable ставит P0 в плане 05, реестр P2; индекс не менялся до решения владельца.
+- **Решение** (принято 2026-09-10; решение делегировано владельцем Fable): плагин `@better-auth/api-key` заменяется собственной таблицей `agent_keys` по шагам 1–7 плана 05 с требованиями из сверки — хеширование, выдача, ротация без потери идентичности агента, отзыв и отключение на новых запросах и на открытом SSE, миграция выданных ключей, связь агент/scope; кэш результата проверки не вводится; Better Auth для входа владельца (пароль, passkey) остаётся. Отзыв закрывает открытый SSE тем же изменением ([TI-001](#ti-001), шаги 10–12). Приоритет P2 → P1 применён в индексе (предложение Fable выше принято); до рабочего переключения. Оставшийся объём: шаги 1–7 и 10–12 плана 05, критерии закрытия карточки без изменений ([план 05, решение владельца](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/05-auth-and-agent-keys.md:199); [README планов, строка «Плагин api-key»](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/README.md:155)).
+
+**Связанные планы:** [05-auth-and-agent-keys.md](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/05-auth-and-agent-keys.md).
+
+**Связанные записи / зависимости исходного плана:** [TI-001](#ti-001), [TI-055](#ti-055), [TI-075](#ti-075).
+
+<a id="ti-037"></a>
+
+### TI-037 — Полный обход страниц срывается при параллельной записи
+
+**Тип:** Баг. **Статус:** ОТКРЫТО. **Приоритет:** P2.
+
+**Источники:** [FA:V1](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/review-2-architecture.md:67); [FB:B-09](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/review-3-bugs.md:145); [Повторная проверка координатора](/Users/dmitriy/code/taskindex/docs/audits/2026-09-08-astra-fable-comparison/probes.json); [Независимая сверка Astra/Fable](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/ASTRA-VS-FABLE.md); [FC:compare-bugs, строка 9 матрицы](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/compare-bugs.md:27); [ASTRA-VS-FABLE §4.6](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/ASTRA-VS-FABLE.md:139); [План 01, доп. шаг 16](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/01-performance-history-and-pagination.md:238); [План 03, шаг 11](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/03-cli-outbox-and-ergonomics.md:192); [План 12, доп. шаг 13](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/12-ai-readiness-and-docs.md:440).
+
+**Где:** [src/shared/queries.ts](/Users/dmitriy/code/taskindex/src/shared/queries.ts); [src/server/app.ts](/Users/dmitriy/code/taskindex/src/server/app.ts); [src/cli/run.ts](/Users/dmitriy/code/taskindex/src/cli/run.ts).
+
+**Проблема и последствия.** Курсор привязан к меняющемуся состоянию. После чтения первой страницы другая команда меняет базу, следующая страница отвечает 409. CLI --all не имеет завершённой стратегии восстановления; при активной работе агент не может надёжно получить полный список.
+
+**Проверка и ограничения.** Независимо воспроизведено при сравнении: запись между страницами приводит к 409. Масштаб и вероятность на реальной нагрузке отдельно не измерены. Сверка Fable: следствие для CLI — `taskindex tasks --all` завершается с exit 3 на второй странице при параллельной записи, тогда как `SKILL.md` рекомендует `--all`; в UI «Показать ещё» даёт ошибку. Keyset по изменяемому `orderKey` сам по себе полного согласованного обхода не даёт, это принято ([ASTRA-VS-FABLE §4.6](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/ASTRA-VS-FABLE.md:139)).
+
+**Предлагаемая работа.** Определить контракт обхода отдельно для изменяемых задач и append-only журналов. Для задач выбрать snapshot либо ограниченный restart с явным сообщением о неполном результате; для журнала — стабильную позицию и верхнюю границу. Передать это в API и CLI.
+
+**Критерии закрытия:**
+
+- Вставка/перемещение/удаление между страницами не приводит к незаметному пропуску при заявленном полном результате.
+- Повторы ограничены; исчерпание бюджета даёт структурированный, честный ответ.
+- generation_changed не маскируется обычным restart; eventless операции учитываются собственным курсором.
+
+**Детали и оговорки:**
+
+- Keyset по изменяемому orderKey допускает пропуски/дубли. Нельзя закрывать issue простым удалением проверки 409.
+- Сверка Fable: семантика по видам лент — монотонная позиция для журналов; для списка задач ограниченный перезапуск обхода при 409 в CLI ([план 03, шаг 11](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/03-cli-outbox-and-ergonomics.md:192)) и видимый маркер изменения: если `Page.seq` первой и последней страницы различаются, CLI печатает в stderr `{"warning":"list_changed_during_walk","fromSeq":N,"toSeq":M}`, UI показывает «Список изменился во время загрузки» ([план 01, доп. шаг 16](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/01-performance-history-and-pagination.md:238)); правило скилла «полный согласованный список даёт только `/api/snapshot`; при ручном обходе по `nextCursor` после 409 начать с первой страницы» ([план 12, доп. шаг 13](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/12-ai-readiness-and-docs.md:440)).
+- **Решение** (принято 2026-09-10; решение делегировано владельцем Fable): контракт пагинации по видам лент принят — журналам монотонная позиция; списку задач ограниченный перезапуск обхода при 409 (план 03, шаг 11) с маркером `list_changed_during_walk` в stderr CLI и подписью «Список изменился во время загрузки» в UI; полный согласованный список даёт только `/api/snapshot` (правило скилла, план 12, доп. шаг 13). Приоритет P2 без изменений ([план 01, решение владельца](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/01-performance-history-and-pagination.md:240); [README планов, строка «Пагинация»](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/README.md:156)).
+
+**Связанные планы:** [01-performance-history-and-pagination.md](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/01-performance-history-and-pagination.md); [03-cli-outbox-and-ergonomics.md](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/03-cli-outbox-and-ergonomics.md); [12-ai-readiness-and-docs.md](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/12-ai-readiness-and-docs.md).
+
+**Связанные записи / зависимости исходного плана:** [TI-008](#ti-008), [TI-012](#ti-012), [TI-047](#ti-047).
+
+<a id="ti-038"></a>
+
+### TI-038 — Pending старого поколения остаётся в браузере без пути завершения
+
+**Тип:** Баг UI. **Статус:** ОТКРЫТО. **Приоритет:** P2.
+
+**Источники:** [FB:B-04](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/review-3-bugs.md:68); [repro/store-foreign-pending.mts](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/probes/repro/store-foreign-pending.mts); [FC:compare-bugs, уникальные пункты](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/compare-bugs.md:103); [План 07, шаги 1–2](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/07-web-client-fixes-and-structure.md:153).
+
+**Где:** [src/web/app/store.ts](/Users/dmitriy/code/taskindex/src/web/app/store.ts); [src/web/app/drafts.ts](/Users/dmitriy/code/taskindex/src/web/app/drafts.ts); [src/web/app/editor.tsx](/Users/dmitriy/code/taskindex/src/web/app/editor.tsx).
+
+**Проблема и последствия.** После смены generation старые pending intents больше нельзя безопасно отправлять в восстановленную базу. UI блокирует их, но не даёт ясного пути разобрать, сохранить содержимое и убрать зависшее состояние; пользователь остаётся с постоянным предупреждением/блокировкой.
+
+**Проверка и ограничения.** Сценарий описан и проверен по реализации в Fable. При составлении реестра отдельный браузерный прогон не выполнялся. Сверка Fable: repro `store-foreign-pending.mts` (`pending after 2nd reload: 1`, `finish is private`); по коду `recover` (`store.ts:379-420`) добавляет конверт в `pending` со статусом `unknown` без `finish`, `retry` отклоняет, панель не имеет действия кроме disabled «Повторить». Триггер редкий (restore базы при непустом outbox браузера), исход тупиковый.
+
+**Предлагаемая работа.** Ввести видимое состояние «из предыдущего восстановления»: просмотр исходного намерения, копирование/экспорт, явное отклонение либо создание нового намерения после сверки текущей записи.
+
+**Критерии закрытия:**
+
+- После generation change видны причина и доступные действия; UI выходит из тупика.
+- Отклонение удаляет только выбранный intent после явного действия; raw текст доступен до него.
+- Повтор под новым generation требует нового подтверждённого основания/operationId и не происходит автоматически.
+
+**Детали и оговорки:**
+
+- Сверка Fable: реализация — `dismiss(id)` в store, панель `pending-notice.tsx` с именем команды, извлечёнными текстами и кнопкой «Убрать»; удаление только выбранного intent после явного действия ([план 07, шаги 1–2](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/07-web-client-fixes-and-structure.md:153); тесты 1–2).
+
+**Связанные планы:** [07-web-client-fixes-and-structure.md](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/07-web-client-fixes-and-structure.md).
+
+**Связанные записи / зависимости исходного плана:** [TI-003](#ti-003), [TI-006](#ti-006), [TI-022](#ti-022).
+
+<a id="ti-039"></a>
+
+### TI-039 — Один повреждённый файл outbox блокирует CLI-чтения
+
+**Тип:** Баг. **Статус:** ОТКРЫТО. **Приоритет:** P2.
+
+**Источники:** [FB:B-05](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/review-3-bugs.md:86); [Повторная проверка координатора](/Users/dmitriy/code/taskindex/docs/audits/2026-09-08-astra-fable-comparison/probes.json); [repro/outbox-stray.mts](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/probes/repro/outbox-stray.mts); [repro/outbox-stray2.mts](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/probes/repro/outbox-stray2.mts); [FC:compare-bugs, уникальные пункты](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/compare-bugs.md:104); [План 03, шаги 1, 3](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/03-cli-outbox-and-ergonomics.md:160).
+
+**Где:** [src/cli/outbox.ts](/Users/dmitriy/code/taskindex/src/cli/outbox.ts); [src/cli/run.ts](/Users/dmitriy/code/taskindex/src/cli/run.ts).
+
+**Проблема и последствия.** Общий проход по outbox бросает исключение на некорректном имени/содержимом. Даже read-команда context завершается до HTTP, хотя ей не нужно исполнять этот файл. Одна локальная поломка делает весь CLI недоступным.
+
+**Проверка и ограничения.** Независимо воспроизведено: один плохой файл, context exit=2 до API-чтения. Runtime-схемы содержимого сами по себе не обеспечат изоляцию ошибки перечисления. Сверка Fable: repro `outbox-stray.mts`/`outbox-stray2.mts` (`ArgumentError` на чужом имени файла, `SyntaxError` на битом JSON); `list` → `get` → `path` бросает, `run.ts:212` вызывает `list` до любой команды. Q-04 Astra говорит о валидации содержимого, но не о том, что чужое имя файла или битый JSON валят каждый запуск.
+
+**Предлагаемая работа.** Разделить чтение сервера и диагностику очереди; разбирать файлы независимо. Неисполняемые записи показывать как повреждённые с путём/причиной и сохранять для восстановления, а не молча удалять.
+
+**Критерии закрытия:**
+
+- context/tasks работают при одном испорченном файле; list/resume явно сообщают о нём.
+- Корректные свои envelopes не теряются, повреждённые не отправляются.
+- Malformed JSON, неизвестная версия, неверное имя и ошибка чтения дают локализованную диагностику без массового удаления.
+
+**Детали и оговорки:**
+
+- Сверка Fable: пер-файловый перехват в `list`, переименование в `<имя>.corrupt` с сохранением байтов, предупреждение `outbox_skipped` в stderr, чтения не блокируются ([план 03, шаги 1, 3](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/03-cli-outbox-and-ergonomics.md:160); схема конверта — доп. шаг 18).
+
+**Связанные планы:** [03-cli-outbox-and-ergonomics.md](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/03-cli-outbox-and-ergonomics.md).
+
+**Связанные записи / зависимости исходного плана:** [TI-022](#ti-022), [TI-035](#ti-035).
+
+<a id="ti-040"></a>
+
+### TI-040 — Конфликт имени проекта возвращает неправильный current
+
+**Тип:** Баг. **Статус:** ОТКРЫТО. **Приоритет:** P2.
+
+**Источники:** [FB:B-06](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/review-3-bugs.md:102); [Повторная проверка координатора](/Users/dmitriy/code/taskindex/docs/audits/2026-09-08-astra-fable-comparison/probes.json); [repro/name-conflict-current.mts](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/probes/repro/name-conflict-current.mts); [FC:compare-bugs, строка 6 матрицы](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/compare-bugs.md:24); [План 07, шаги 3–4](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/07-web-client-fixes-and-structure.md:155).
+
+**Где:** [src/server/operations.ts](/Users/dmitriy/code/taskindex/src/server/operations.ts); [src/web/app/dialogs.tsx](/Users/dmitriy/code/taskindex/src/web/app/dialogs.tsx).
+
+**Проблема и последствия.** При project.create с занятым именем rejected.current содержит создаваемую, отвергнутую запись, а не существующий конфликтующий проект. Клиенту предлагается неверная база для отображения/разбора конфликта; такого current.id может вообще не быть в состоянии.
+
+**Проверка и ограничения.** Независимый probe: current.id=rejected-project при реально существующем existing-project. Сверка Fable: repro `name-conflict-current.mts` (`current.id = p-second (existing is p-first)`); тяжесть низкая.
+
+**Предлагаемая работа.** Определить точный контракт name conflict: существующий объект или отдельное поле conflictingRecord. Проверить обработчик ProjectDialog, чтобы отказ create не превращался без согласия в update другого проекта.
+
+**Критерии закрытия:**
+
+- Конфликт одинакового нормализованного имени указывает на реально существующую запись.
+- UI правильно объясняет отказ и сохраняет ввод; отмена не меняет существующий проект.
+- Сохранённый rejected result и повтор operationId дают тот же корректный ответ.
+
+**Детали и оговорки:**
+
+- Сверка Fable: в `assertInvariants` при конфликте имени `current` = существующая запись (`changedIds` для выбора), диалог при 409 показывает «Такое направление уже есть» и не превращает создание в update без согласия ([план 07, шаги 3–4](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/07-web-client-fixes-and-structure.md:155); контракт ответа — план 04).
+
+**Связанные планы:** [04-api-contract-and-schemas.md](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/04-api-contract-and-schemas.md); [07-web-client-fixes-and-structure.md](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/07-web-client-fixes-and-structure.md).
+
+**Связанные записи / зависимости исходного плана:** [TI-005](#ti-005), [TI-019](#ti-019).
+
+<a id="ti-041"></a>
+
+### TI-041 — Fallback без Web Locks накапливает scope черновиков при reload
+
+**Тип:** Баг UI. **Статус:** ОТКРЫТО. **Приоритет:** P2.
+
+**Источники:** [FB:B-07](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/review-3-bugs.md:117); [Независимая сверка Astra/Fable](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/ASTRA-VS-FABLE.md); [repro/drafts-scope.mts](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/probes/repro/drafts-scope.mts); [FC:compare-bugs, строка 7 матрицы](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/compare-bugs.md:25); [План 07, шаг 5](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/07-web-client-fixes-and-structure.md:157).
+
+**Где:** [src/web/app/drafts.ts](/Users/dmitriy/code/taskindex/src/web/app/drafts.ts).
+
+**Проблема и последствия.** В окружении без navigator.locks перезагрузка создаёт новый scope и клонирует сохранённые записи, сохраняя старые. Число ключей localStorage растёт, осложняя восстановление и приближая quota failure.
+
+**Проверка и ограничения.** Сверка кода и результатов Fable подтверждает накопление. Наблюдавшийся ряд 3,6,9… — линейный рост, не доказанное удвоение на каждом reload. Сверка Fable: repro `drafts-scope.mts` (`scopes=1 draftKeys=3` … `scopes=5 draftKeys=15`). Поправка Astra принята: рост линейный 3→6→9→12→15, а не удвоение на каждом reload; слово «удваивает» в исходном отчёте неточно.
+
+**Предлагаемая работа.** Спроектировать устойчивую идентичность вкладки и безопасную уборку только доказанно ненужных scope. Учесть дубликат вкладки и независимые несохранённые данные; решить fallback без обязательного Web Locks.
+
+**Критерии закрытия:**
+
+- Повторные reload без Web Locks не увеличивают бессрочно число одинаковых scope.
+- Две вкладки и их клонирование не теряют независимые drafts/pending.
+- Quota/storage failure остаётся безопасным по правилам TI-006.
+
+**Детали и оговорки:**
+
+- Автоматическое удаление по возрасту без оценки живых вкладок может уничтожить намерение; TTL не принят как готовое решение.
+- Сверка Fable: `chooseScope(deps)` с инъекцией storage/session/locks/now; уборка только scope, чей маркер старше `DRAFT_SCOPE_TTL_MS` и не удерживается живой вкладкой, дубликат вкладки сохраняет независимые черновики ([план 07, шаг 5](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/07-web-client-fixes-and-structure.md:157)). Оговорка карточки о TTL сохраняется: возраст без оценки живых вкладок не является достаточным критерием.
+
+**Связанные планы:** [07-web-client-fixes-and-structure.md](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/07-web-client-fixes-and-structure.md).
+
+**Связанные записи / зависимости исходного плана:** [TI-006](#ti-006), [TI-022](#ti-022).
+
+<a id="ti-042"></a>
+
+### TI-042 — Back закрытого редактора не возвращает исходный URL фильтра
+
+**Тип:** Баг UI. **Статус:** ОТКРЫТО. **Приоритет:** P2.
+
+**Источники:** [FB:B-08](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/review-3-bugs.md:135); [FC:compare-bugs, строка 8 матрицы](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/compare-bugs.md:26); [План 07, шаг 6](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/07-web-client-fixes-and-structure.md:158).
+
+**Где:** [src/web/app/shell.tsx](/Users/dmitriy/code/taskindex/src/web/app/shell.tsx); [src/web/app/url.ts](/Users/dmitriy/code/taskindex/src/web/app/url.ts).
+
+**Проблема и последствия.** При открытии карточки поверх списка и последующем Back/fallback вычисляется неполный адрес возврата. Поисковая строка, фильтр или режим могут потеряться, и пользователь попадает не в тот список, из которого открыл задачу.
+
+**Проверка и ограничения.** По исходному ревью Fable и сверке пути navigation. Отдельный повтор Playwright в этом документальном шаге не запускался. Сверка Fable: подтверждено по коду (`url.ts`: `popstate` при пустом `location.search` читает последнее состояние из localStorage); отдельного repro-скрипта нет, браузерный прогон не выполнялся.
+
+**Предлагаемая работа.** Хранить/восстанавливать полный допустимый URL контекста открытия; согласовать browser back, кнопку закрытия и прямую ссылку без предыдущего состояния.
+
+**Критерии закрытия:**
+
+- Открытие/закрытие из поиска, Focus, проекта и архива восстанавливает query/view/filter.
+- Прямой deep link закрывается в предсказуемый fallback; external return URL не принимается.
+- Reload и browser back/forward не создают циклов/лишних записей history.
+
+**Детали и оговорки:**
+
+- Сверка Fable: `parseLocation(search)`/`serializeLocation(state)`/`savedLocation()`; `popstate` читает строго `location.search`, возврат к `/` даёт `defaults`, первичная загрузка пустого `/` по-прежнему берёт localStorage; e2e на back/forward ([план 07, шаг 6](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/07-web-client-fixes-and-structure.md:158); тесты 6, 6a).
+
+**Связанные планы:** [07-web-client-fixes-and-structure.md](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/07-web-client-fixes-and-structure.md).
+
+**Связанные записи / зависимости исходного плана:** [TI-059](#ti-059).
+
+<a id="ti-043"></a>
+
+### TI-043 — CLOSED EventSource не создаётся заново
+
+**Тип:** Баг. **Статус:** ОТКРЫТО. **Приоритет:** P2.
+
+**Источники:** [FA:V5](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/review-2-architecture.md:81); [Независимая сверка Astra/Fable](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/ASTRA-VS-FABLE.md); [FC:compare-bugs, строка 14 матрицы](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/compare-bugs.md:32); [План 07, шаг 7](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/07-web-client-fixes-and-structure.md:159); [План 05, доп. шаг 11](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/05-auth-and-agent-keys.md:196).
+
+**Где:** [src/web/app/sync.ts](/Users/dmitriy/code/taskindex/src/web/app/sync.ts).
+
+**Проблема и последствия.** onerror полагается на автоматическое переподключение EventSource. При окончательном readyState=CLOSED существующий экземпляр уже не возобновит поток; вкладка может надолго остаться без обновлений после auth/server failure.
+
+**Проверка и ограничения.** Подтверждено анализом обработчика и семантики EventSource в независимой сверке. Нагрузочный браузерный прогон каждого сетевого отказа не выполнялся. Сверка Fable: подтверждено по коду (`sync.ts:11, 22`); repro-скрипта нет. После 401/5xx/ошибки прокси клиент живёт только на `catchUp` раз в 60 с. Сценарий отличается от TI-003 (гонка snapshot/SSE) и от TI-001 (отзыв): переподключение прекращается после окончательного 401/403 по `/api/me`.
+
+**Предлагаемая работа.** Различить временный CONNECTING, окончательный CLOSED, auth denial и остановку самим приложением. Пересоздавать поток с ограниченным backoff и правильным cursor/generation; для отозванного доступа прекращать retry и очищать соответствующее состояние.
+
+**Критерии закрытия:**
+
+- CLOSED после временной серверной проблемы восстанавливается и догоняет изменения.
+- 401/403 и logout не запускают бесконечный reconnect; dispose не оставляет таймер/дубликат подписки.
+- Стык snapshot/SSE, cursor и отзыв проходят совместные регрессии.
+
+**Детали и оговорки:**
+
+- Сверка Fable: `startSync(store, deps)` с инъекцией `EventSource`/таймеров; при `CLOSED` сначала `request('/api/me')`, при 401/403 переподключение прекращается, иначе пересоздание с экспоненциальной паузой 1–30 с, `onopen` сбрасывает счётчик, смена `generation` открывает новый поток ([план 07, шаг 7](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/07-web-client-fixes-and-structure.md:159)). После отзыва ключа поток завершается событием `revoked`, клиент не переподключается в цикле ([план 05, доп. шаг 11](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/05-auth-and-agent-keys.md:196)).
+
+**Связанные планы:** [07-web-client-fixes-and-structure.md](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/07-web-client-fixes-and-structure.md).
+
+**Связанные записи / зависимости исходного плана:** [TI-001](#ti-001), [TI-003](#ti-003), [TI-012](#ti-012).
+
+<a id="ti-044"></a>
+
+### TI-044 — CLI не предоставляет доступные API-фильтры и проверку своей личности
+
+**Тип:** Неполный интерфейс. **Статус:** ОТКРЫТО. **Приоритет:** P2.
+
+**Источники:** [FI:A4](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/review-5-ai-ready.md:74); [FI:A5](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/review-5-ai-ready.md:78); [FQ:§8](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/review-4-quality.md:154); [FQ:R10](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/review-4-quality.md:289); [Повторная проверка координатора](/Users/dmitriy/code/taskindex/docs/audits/2026-09-08-astra-fable-comparison/probes.json); [План 03, шаг 8](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/03-cli-outbox-and-ergonomics.md:186); [План 03, шаг 4](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/03-cli-outbox-and-ergonomics.md:171).
+
+**Где:** [src/cli/run.ts](/Users/dmitriy/code/taskindex/src/cli/run.ts); [src/server/app.ts](/Users/dmitriy/code/taskindex/src/server/app.ts).
+
+**Проблема и последствия.** API поддерживает today/hasFollowUp и GET /api/me, а CLI не принимает соответствующие флаги и команду me. Агент не может повторить выборку «На сегодня» или быстро проверить текущего actor/scope стандартным CLI.
+
+**Проверка и ограничения.** Независимый probe подтвердил exit=2 для tasks --today true и me. Остальной паритет описан в матрице FI; отсутствующие в UI служебные batch/snapshot/sync сами по себе не дефект. Сверка Fable: в плане 03 `tasks.query` получает `today`, `has-follow-up`, `READS` — `me` и `openapi` (шаг 8); `/api/me` расширяется полями `generation` и `seq`, чтобы CLI не тянул `/api/context` ради generation (шаг 4).
+
+**Предлагаемая работа.** Добавить явные read-маршруты CLI и общие query-схемы/метаданные. Сохранить документированный синтаксис boolean и null; сопоставить список поддерживаемых флагов реальному API.
+
+**Критерии закрытия:**
+
+- CLI и HTTP today/hasFollowUp возвращают одинаковые ID на заданной fixture.
+- me показывает actor/scope без секрета; неверные аргументы дают понятную справку.
+- Новая read-возможность одновременно попадает в help и контрактный тест.
+
+**Связанные планы:** [03-cli-outbox-and-ergonomics.md](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/03-cli-outbox-and-ergonomics.md); [04-api-contract-and-schemas.md](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/04-api-contract-and-schemas.md).
+
+**Связанные записи / зависимости исходного плана:** [TI-045](#ti-045), [TI-048](#ti-048), [TI-049](#ti-049).
+
+<a id="ti-045"></a>
+
+### TI-045 — CLI help и parser не дают полный исполнимый контракт
+
+**Тип:** UX CLI. **Статус:** ОТКРЫТО. **Приоритет:** P2.
+
+**Источники:** [FI:A2](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/review-5-ai-ready.md:66); [FI:A4](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/review-5-ai-ready.md:74); [FI:B6](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/review-5-ai-ready.md:137); [FQ:§8](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/review-4-quality.md:154); [FQ:R10](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/review-4-quality.md:289); [План 03, шаги 7–8](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/03-cli-outbox-and-ergonomics.md:177); [План 12, шаг 5](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/12-ai-readiness-and-docs.md:340); [План 04 §3.7](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/04-api-contract-and-schemas.md:158).
+
+**Где:** [src/cli/run.ts](/Users/dmitriy/code/taskindex/src/cli/run.ts); [src/cli/arguments.ts](/Users/dmitriy/code/taskindex/src/cli/arguments.ts); [skills/taskindex/SKILL.md](/Users/dmitriy/code/taskindex/skills/taskindex/SKILL.md).
+
+**Проблема и последствия.** HELP статичен и не содержит флаги/примеры каждой команды. Для --since нужен --generation, о котором справка молчит; --json заявлен, но не меняет всегда JSON-вывод. Неполная команда превращается в «task.undefined». Агент вынужден читать исходники и исправлять запрос пробами.
+
+**Проверка и ограничения.** Подтверждено исходным FI/FQ по коду и CLI-транскриптам; часть parser-поведения повторена в probes. Генерация help пока только предложение. Сверка Fable: `spec.ts`/`help.ts` как единственный источник команд, флагов и примеров, `help <group>`, разбор group/action до dispatch ([план 03, шаги 7–8](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/03-cli-outbox-and-ergonomics.md:177)); `tests/cli/skill.test.ts` сверяет SKILL.md со справкой ([план 12, шаг 5](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/12-ai-readiness-and-docs.md:340)). Проба плана 04: `z.config(z.locales.ru())` работает на Zod 4.5.4, `issues` можно отдавать на русском ([план 04 §3.7](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/04-api-contract-and-schemas.md:158)). `--json` не читается ни в одном месте (grep по `src/cli`), решение о его судьбе — план 03, шаг 8 и документация шага 14.
+
+**Предлагаемая работа.** Описать command/read registry для help и allow-list; разбирать group/action до dispatch. Дать обязательные флаги, типы, значения по умолчанию и рабочие примеры. Решить судьбу --json с учётом существующих вызывающих скриптов.
+
+**Критерии закрытия:**
+
+- help команды содержит действительно достаточный пример; примеры с --since включают generation.
+- task без action, неизвестные group/action/flags дают структурированную ошибку с допустимыми вариантами.
+- Документированы payload/file/stdin, batch, focus false, cursor и recovery; help не обещает отсутствующие возможности.
+
+**Детали и оговорки:**
+
+- Автогенерация JSON Schema не заменяет сценарные примеры. Не требовать буквального UI/CLI совпадения всех служебных действий.
+- **Решение** (принято 2026-09-10; решение делегировано владельцем Fable): судьба `--json` — удалить no-op флаг из парсера, справки и документации по плану 03 (критерий 9; шаг 8: `--json` становится неизвестным флагом → `invalid_arguments` с `hint: "вывод всегда JSON, флаг удалён"`; шаг 14 — документы); CLI флаг нигде не читает (grep по `src/cli`, §1.3), вывод без флага не меняется (всегда JSON), вызов с `--json` после удаления даёт `invalid_arguments` с подсказкой. Записано согласованно с [TI-033](#ti-033) ([план 03 §1.3](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/03-cli-outbox-and-ergonomics.md:25); [критерий 9](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/03-cli-outbox-and-ergonomics.md:67); [шаг 8](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/03-cli-outbox-and-ergonomics.md:186)).
+
+**Связанные планы:** [03-cli-outbox-and-ergonomics.md](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/03-cli-outbox-and-ergonomics.md); [12-ai-readiness-and-docs.md](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/12-ai-readiness-and-docs.md).
+
+**Связанные записи / зависимости исходного плана:** [TI-033](#ti-033), [TI-044](#ti-044), [TI-046](#ti-046), [TI-052](#ti-052), [TI-059](#ti-059).
+
+<a id="ti-046"></a>
+
+### TI-046 — Ошибки CLI/API не объясняют, какое поле и как исправить
+
+**Тип:** Диагностика. **Статус:** ОТКРЫТО. **Приоритет:** P2.
+
+**Источники:** [FI:A3](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/review-5-ai-ready.md:70); [FI:A8](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/review-5-ai-ready.md:90); [FI:B9](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/review-5-ai-ready.md:151); [FQ:§5](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/review-4-quality.md:118); [FQ:§3](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/review-4-quality.md:75); [План 04, шаг 6](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/04-api-contract-and-schemas.md:188); [План 03, шаг 9](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/03-cli-outbox-and-ergonomics.md:188).
+
+**Где:** [src/cli/run.ts](/Users/dmitriy/code/taskindex/src/cli/run.ts); [src/server/app.ts](/Users/dmitriy/code/taskindex/src/server/app.ts); [src/shared/errors.ts](/Users/dmitriy/code/taskindex/src/shared/errors.ts).
+
+**Проблема и последствия.** CLI выводит сырые английские Zod issues; API defaultHook/ZodError сокращают их до общей фразы без paths. При опечатке поля либо пропущенной revision агент не получает достаточного контекста для следующего корректного действия.
+
+**Проверка и ограничения.** FI приводит реальные invalid_arguments и опечатку titel; код соответствующих ветвей сверялся при сравнении. Русский язык сам по себе не ухудшает AI-readiness. Сверка Fable: `issues[{path,message}]` в `operationErrorSchema` и `defaultHook`, `z.config(z.locales.ru())` в `createApp` ([план 04, шаг 6](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/04-api-contract-and-schemas.md:188)); `src/cli/errors.ts` с `formatIssues` и подсказками ([план 03, шаг 9](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/03-cli-outbox-and-ergonomics.md:188)). Проверено на Zod 4.5.4: опечатка `titel` даёт две `issues` — `invalid_type` по `payload.title` и `unrecognized_keys` по `payload`.
+
+**Предлагаемая работа.** Сохранить стабильные code и добавить безопасные issues[{path,message}] и предметные hints; согласовать русские пользовательские сообщения. Не включать значения паролей/ключей/полный payload в ответ или лог.
+
+**Критерии закрытия:**
+
+- Опечатка поля возвращает конкретный path; отсутствие baseRevision подсказывает получить актуальную запись.
+- JSON-форма ошибок стабильна для HTTP и CLI; exit codes различают ошибки аргументов, доменный отказ и неизвестный исход.
+- Изменение текста не меняет классификацию окончательного/неизвестного результата операции.
+
+**Детали и оговорки:**
+
+- Повторные transport-ошибки можно строить общим helper, но network error, доменный stored outcome и post-commit unknown имеют разную семантику. Не сводить их к одной окончательной ошибке.
+
+**Связанные планы:** [03-cli-outbox-and-ergonomics.md](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/03-cli-outbox-and-ergonomics.md); [04-api-contract-and-schemas.md](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/04-api-contract-and-schemas.md).
+
+**Связанные записи / зависимости исходного плана:** [TI-020](#ti-020), [TI-030](#ti-030), [TI-045](#ti-045).
+
+<a id="ti-047"></a>
+
+### TI-047 — У агента нет штатного сохранения cursor после полного чтения
+
+**Тип:** Новая функция. **Статус:** ПРЕДЛОЖЕНО. **Приоритет:** P2.
+
+**Источники:** [FI:A6](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/review-5-ai-ready.md:82); [План 03, шаг 10](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/03-cli-outbox-and-ergonomics.md:190); [План 03, доп. шаг 17](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/03-cli-outbox-and-ergonomics.md:292).
+
+**Где:** [src/cli/run.ts](/Users/dmitriy/code/taskindex/src/cli/run.ts); [src/cli/outbox.ts](/Users/dmitriy/code/taskindex/src/cli/outbox.ts); [skills/taskindex/SKILL.md](/Users/dmitriy/code/taskindex/skills/taskindex/SKILL.md).
+
+**Проблема и последствия.** Инструкция требует сохранять seq вместе с generation и только после обработки всех страниц. CLI не предоставляет общего хранилища/commit, поэтому каждый агент пишет собственный ненадёжный файл и может пропустить изменения между сессиями.
+
+**Проверка и ограничения.** Это подтверждённый пробел CLI, а не доказанная потеря истории сервером. Новый cursor API/синтаксис ещё не принят. Сверка Fable: `cursor show|commit|reset`, `--since last` и `--commit` для `digest`/`activity`/`events` ([план 03, шаг 10](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/03-cli-outbox-and-ergonomics.md:190)); до появления `operationSeq` курсор хранит `{generation, seq, committedAt}` по событиям и справка предупреждает, что инкрементальное чтение не показывает операции без событий (TI-008); после плана 04 `cursor.json` получает `operationSeq` ([план 03, доп. шаг 17](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/03-cli-outbox-and-ergonomics.md:292)).
+
+**Предлагаемая работа.** Добавить per-server/per-agent cursor show/commit и удобное чтение от последней подтверждённой позиции. Отделить cursor событий от cursor операций; коммитить позицию явно после завершённого обхода.
+
+**Критерии закрытия:**
+
+- Прерывание на середине страниц не продвигает сохранённую позицию.
+- Повтор сессии получает все ещё не подтверждённые изменения, включая eventless outcomes по соответствующей ленте.
+- Смена generation объясняется и требует нового baseline; курсоры разных серверов/агентов не пересекаются.
+
+**Связанные планы:** [03-cli-outbox-and-ergonomics.md](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/03-cli-outbox-and-ergonomics.md); [12-ai-readiness-and-docs.md](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/12-ai-readiness-and-docs.md).
+
+**Связанные записи / зависимости исходного плана:** [TI-008](#ti-008), [TI-035](#ti-035), [TI-037](#ti-037), [TI-048](#ti-048).
+
+<a id="ti-048"></a>
+
+### TI-048 — Нет удобного входящего контекста для конкретного агента
+
+**Тип:** Новая функция. **Статус:** ПРЕДЛОЖЕНО. **Приоритет:** P2.
+
+**Источники:** [FI:A7](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/review-5-ai-ready.md:86); [FI:A14](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/review-5-ai-ready.md:111); [План 03, шаг 12](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/03-cli-outbox-and-ergonomics.md:194); [План 04, шаг 5](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/04-api-contract-and-schemas.md:186).
+
+**Где:** [src/server/app.ts](/Users/dmitriy/code/taskindex/src/server/app.ts); [src/cli/run.ts](/Users/dmitriy/code/taskindex/src/cli/run.ts); [src/shared/domain-schemas.ts](/Users/dmitriy/code/taskindex/src/shared/domain-schemas.ts).
+
+**Проблема и последствия.** Комментарии владельца можно извлечь из events/задачи, но digest не даёт их текст как «ответы мне». Context не включает me и справочник других агентов. Обратная связь существует в данных, но оператор должен сам собирать её из нескольких запросов.
+
+**Проверка и ограничения.** FI проверил comment/event/activity и context. Это предложение удобного чтения существующих данных, не отсутствие канала комментариев вообще. Сверка Fable: `/api/context` получает `me` и `agents: [{id, label, disabledAt}]` ([план 04, шаг 5](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/04-api-contract-and-schemas.md:186)); CLI `inbox` над `/api/digest` с разделом `comments` после плана 04 ([план 03, шаг 12](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/03-cli-outbox-and-ergonomics.md:194)). Sandbox и инструкции печатают только локальные тестовые credentials (план 12 §3.3).
+
+**Предлагаемая работа.** Начать с owner comments since с taskId/text и лёгкого me; решить, нужны ли mentions/адресат и какие поля справочника видны агентам. Согласовать pagination, generation и явное подтверждение чтения.
+
+**Критерии закрытия:**
+
+- Одна документированная команда даёт новый комментарий владельца с текстом и taskId.
+- Нет пропусков между страницами/сессиями; redaction и права совпадают с обычным доступом.
+- Узнавание actor не требует тяжёлого полного context или вывода чужих ключей.
+
+**Связанные планы:** [12-ai-readiness-and-docs.md](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/12-ai-readiness-and-docs.md); [04-api-contract-and-schemas.md](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/04-api-contract-and-schemas.md).
+
+**Связанные записи / зависимости исходного плана:** [TI-012](#ti-012), [TI-044](#ti-044), [TI-047](#ti-047), [TI-049](#ti-049).
+
+<a id="ti-049"></a>
+
+### TI-049 — OpenAPI громоздок и слабо описывает операции и авторизацию
+
+**Тип:** Качество контракта. **Статус:** ОТКРЫТО. **Приоритет:** P2.
+
+**Источники:** [FS:S3](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/review-1-stack.md:87); [FI:A9](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/review-5-ai-ready.md:94); [FQ:R3](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/review-4-quality.md:282); [Независимая сверка Astra/Fable](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/ASTRA-VS-FABLE.md); [FC:compare-stack-arch S3](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/compare-stack-arch.md:123); [ASTRA-VS-FABLE §4.4](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/ASTRA-VS-FABLE.md:127); [openapi-probe.mts](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/probes/openapi-probe.mts); [План 04, сверка](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/04-api-contract-and-schemas.md:264); [README планов, расхождение 7](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/README.md:100).
+
+**Где:** [src/server/app.ts](/Users/dmitriy/code/taskindex/src/server/app.ts); [src/shared/schemas.ts](/Users/dmitriy/code/taskindex/src/shared/schemas.ts).
+
+**Проблема и последствия.** В исходном замере документ около 970 КБ: повторные inline-схемы, отсутствуют operationId/summary/tags/examples и securitySchemes. Агенту трудно обнаружить допустимую команду и параметры; схемы context/digest также неудобно переиспользовать из server модуля.
+
+**Проверка и ограничения.** Числа взяты из живого замера FI на проверяемом дереве, не из повторного сегодняшнего запроса. FS:S3 предлагает убрать OpenAPI, FI:A9 — улучшить; это расхождение решений, не два разных дефекта. Сверка Fable: утверждение Astra в 01-stack, что OpenAPI потребляется агентами и «RPC используется в CLI», коду не соответствует: потребители сегодня — два теста ([tests/api/commands.test.ts:752](/Users/dmitriy/code/taskindex/tests/api/commands.test.ts:752), [tests/api/recovery-and-history.test.ts:155](/Users/dmitriy/code/taskindex/tests/api/recovery-and-history.test.ts:155)) и `hc` только для двух POST ([src/cli/client.ts:92-103](/Users/dmitriy/code/taskindex/src/cli/client.ts:92)); скилл и `/api/context` OpenAPI не используют, `/api/context` строит схемы через `z.toJSONSchema` ([app.ts:893-896](/Users/dmitriy/code/taskindex/src/server/app.ts:893)). Замер `openapi-probe.mts`: 970 600 байт, 0 `operationId`. Направление Astra «сделать полезным» при этом верное.
+
+**Предлагаемая работа.** Выделить повторные модели в components/$ref, дать стабильные ID/summary и auth metadata, описать query/ошибки/примеры. Сделать компактный контракт доступным агенту через CLI или документированный HTTP.
+
+**Критерии закрытия:**
+
+- Каждый поддерживаемый endpoint имеет уникальный operationId, описание и корректную security metadata.
+- Типовые сущности переиспользуются; размер измерен до/после без потери схем/примеров.
+- Клиент может обнаружить контракт и выполнить пример; режим доступа к схеме выбран явно.
+
+**Детали и оговорки:**
+
+- Публичность без ключа — отдельное решение владельца, не обязательное условие. Порог 150 КБ из FI не является согласованным SLA.
+- Удаление OpenAPI не следует автоматически из его текущего размера.
+- Сверка Fable: решение обеих сторон — оставить и сделать полезным (`operationId`/`summary`/`tags`, `components/$ref` через `.meta({id})`, `securitySchemes`, `.describe()` на query); публичность без ключа — отдельное необязательное решение, достаточно компактной схемы для аутентифицированного CLI (`taskindex openapi`) ([план 04, шаг 7](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/04-api-contract-and-schemas.md:190); [README планов, расхождение 7](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/README.md:100)). Проба плана 04 на Zod 4.5.4: `.meta({id})` на корневой схеме меняет вывод `z.toJSONSchema` на `{$ref:'#/$defs/X', $defs}` вместо инлайн-объекта, `.extend()` сбрасывает `id`; поэтому `/api/context.fields` строится хелпером `inlineJsonSchema`, чтобы контракт `fields` не изменился ([план 04 §1](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/04-api-contract-and-schemas.md:32), [шаг 5](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/04-api-contract-and-schemas.md:186)).
+- **Решение** (принято 2026-09-10; решение делегировано владельцем Fable): OpenAPI остаётся и становится компактным контрактом для агентов — `components/$ref` через `.meta({id})`, `operationId`/`summary`/`tags`, `securitySchemes`; доступ по ключу (`taskindex openapi`), публичный без ключа не делается; вариант «убрать OpenAPI» (FS:S3) снят ([план 04, решение владельца](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/04-api-contract-and-schemas.md:295); [README планов, строка «OpenAPI»](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/README.md:159)).
+
+**Связанные планы:** [04-api-contract-and-schemas.md](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/04-api-contract-and-schemas.md).
+
+**Связанные записи / зависимости исходного плана:** [TI-005](#ti-005), [TI-019](#ti-019), [TI-044](#ti-044), [TI-045](#ti-045), [TI-048](#ti-048), [TI-059](#ti-059).
+
+<a id="ti-050"></a>
+
+### TI-050 — Закрытый stdout вызывает EPIPE со stack trace
+
+**Тип:** Баг CLI. **Статус:** ОТКРЫТО. **Приоритет:** P3.
+
+**Источники:** [FI:A10](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/review-5-ai-ready.md:98); [transcripts/epipe.txt](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/probes/transcripts/epipe.txt); [План 03, шаг 5](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/03-cli-outbox-and-ergonomics.md:173).
+
+**Где:** [src/cli/index.ts](/Users/dmitriy/code/taskindex/src/cli/index.ts); [src/cli/run.ts](/Users/dmitriy/code/taskindex/src/cli/run.ts).
+
+**Проблема и последствия.** При tasks --all | head ранний выход потребителя закрывает pipe; запись в stdout без обработчика error приводит к необработанному EPIPE. Обычная shell-композиция заканчивается шумным stack trace.
+
+**Проверка и ограничения.** Воспроизведение приведено Fable в FI:A10; координатор не повторял его при составлении реестра. Сверка Fable: транскрипт `probes/transcripts/epipe.txt` (stack trace при `tasks --all | head -c 50`); обработка EPIPE в `src/cli/index.ts` и тест через `spawn` с закрытым stdout ([план 03, шаг 5](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/03-cli-outbox-and-ergonomics.md:173)). При сверке pipe повторно не воспроизводился.
+
+**Предлагаемая работа.** Обрабатывать ожидаемый EPIPE в entrypoint вывода и тихо завершать поток. Не поглощать прочие ошибки I/O и не терять pending mutation из-за закрытия stdout.
+
+**Критерии закрытия:**
+
+- Read-команда с head -c 1 завершается без unhandled error.
+- Прочие ошибки stdout имеют определённый ненулевой исход.
+- Если ответ операции не был доставлен пользователю, её durable outcome/outbox следует общему контракту.
+
+**Связанные планы:** [03-cli-outbox-and-ergonomics.md](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/03-cli-outbox-and-ergonomics.md).
+
+**Связанные записи / зависимости исходного плана:** [TI-004](#ti-004), [TI-045](#ti-045).
+
+<a id="ti-051"></a>
+
+### TI-051 — events --follow печатает пустые страницы каждую секунду
+
+**Тип:** UX CLI. **Статус:** ПРЕДЛОЖЕНО. **Приоритет:** P3.
+
+**Источники:** [FI:A11](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/review-5-ai-ready.md:102); [План 03, шаг 11](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/03-cli-outbox-and-ergonomics.md:192).
+
+**Где:** [src/cli/run.ts](/Users/dmitriy/code/taskindex/src/cli/run.ts).
+
+**Проблема и последствия.** Polling follow выводит пустые страницы даже без новых событий. Для долго работающего агента это расходует контекст и затрудняет наблюдение полезных изменений; интервал нельзя удобно настроить.
+
+**Проверка и ограничения.** FI зафиксировал две пустые строки за две секунды. Сам выбор polling вместо SSE признан допустимым. Сверка Fable: `--follow` без пустых страниц и настраиваемый интервал реализуются вместе с перезапуском `--all` в `reads.ts` ([план 03, шаг 11](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/03-cli-outbox-and-ergonomics.md:192)).
+
+**Предлагаемая работа.** Определить quiet-режим или вывод только непустых страниц и настраиваемый interval; сохранить явные сообщения об auth/generation/error и машинный формат.
+
+**Критерии закрытия:**
+
+- В quiet при простое нет потока пустых JSON, новые события приходят один раз по cursor.
+- generation/auth/error не скрываются фильтром пустых страниц.
+- Сигналы завершения и интервал корректны; команды чтения не блокируют друг друга.
+
+**Связанные планы:** [03-cli-outbox-and-ergonomics.md](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/03-cli-outbox-and-ergonomics.md).
+
+**Связанные записи / зависимости исходного плана:** [TI-012](#ti-012), [TI-047](#ti-047).
+
+<a id="ti-052"></a>
+
+### TI-052 — Инструкции подключения и работы агента с репозиторием неполны
+
+**Тип:** Документация. **Статус:** ОТКРЫТО. **Приоритет:** P2.
+
+**Источники:** [FI:B1](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/review-5-ai-ready.md:117); [FI:A13](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/review-5-ai-ready.md:107); [FI:A15](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/review-5-ai-ready.md:113); [FI:B6](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/review-5-ai-ready.md:137); [FI:B8](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/review-5-ai-ready.md:148); [FQ:R10](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/review-4-quality.md:289); [План 12, доп. шаг 12](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/12-ai-readiness-and-docs.md:439); [План 12 §3.1](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/12-ai-readiness-and-docs.md:74).
+
+**Где:** [README.md](/Users/dmitriy/code/taskindex/README.md); [skills/taskindex/SKILL.md](/Users/dmitriy/code/taskindex/skills/taskindex/SKILL.md); [tests/e2e/agent-cycle.md](/Users/dmitriy/code/taskindex/tests/e2e/agent-cycle.md).
+
+**Проблема и последствия.** В исходном дереве нет проектного onboarding для агента-разработчика: runtime/native build, безопасный sandbox, generated файлы, изменение контрактов и обязательные команды проверки приходится восстанавливать самому. Product skill не объясняет установку CLI/skill, настройку окружения и чтение типовых ответов.
+
+**Проверка и ограничения.** Подтверждено исходным FI. Перед созданием AGENTS.md проверить текущие глобальные инструкции и фактические правила владельца; отсутствие CLAUDE.md само по себе не требует второго дублирующего файла. Сверка Fable: после сверки существуют реестр `issues.md` и `ASTRA-INDEX.md`; `CLAUDE.md` (полное содержание в [плане 12 §3.1](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/12-ai-readiness-and-docs.md:74)) обязан направлять агентов к `issues.md` как источнику статуса и приоритета, к `docs/plans/2026-09-08-v2-review/README.md` (планы 01–12) и к `ASTRA-INDEX.md` (`astra-01`…`astra-34`), с правилами «перед исправлением прочитать карточку, после — обновить статус», «namespace обязателен: `Astra:B-01` и `FB:B-01` разные находки», «новая находка сначала становится карточкой» ([план 12, доп. шаг 12](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/12-ai-readiness-and-docs.md:439)). `AGENTS.md` — симлинк на `CLAUDE.md`, второй файл не дублируется (шаг 1).
+
+**Предлагаемая работа.** Сделать короткую точку входа с навигацией к текущим контрактам/планам, setup и check, перечнем generated/editable файлов и практическими примерами. Отдельно описать подключение агента-оператора и разработчика.
+
+**Критерии закрытия:**
+
+- Агент с новым checkout поднимает изолированную fixture по инструкции без рабочих секретов.
+- Установленный CLI выполняет create/get/sync/conflict/resume по примерам; показаны ownerFields и stale sync.
+- Generated provenance и ручные/автоматизированные этапы приёмки явно обозначены; нет конфликтующих инструкций.
+
+**Детали и оговорки:**
+
+- FI:A15 подтверждает работоспособную семантику task.sync: её нужно объяснить и сохранить, а не занести в список багов.
+- Указанный Fable worktree-only должен опираться на применимые инструкции владельца; не вводить новый обязательный запрет по предположению отчёта.
+- **Решение** (принято 2026-09-10; решение делегировано владельцем Fable): `CLAUDE.md` указывает на `issues.md` как единственный реестр статусов и приоритетов, на README планов (`docs/plans/2026-09-08-v2-review/README.md`) и на `ASTRA-INDEX.md`; правило «перед реализацией подсистемы выбирается один план из двух наборов»; `AGENTS.md` — симлинк на `CLAUDE.md` (шаг 1 плана 12); шкала приоритетов везде одна, реестра ([план 12, решение владельца](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/12-ai-readiness-and-docs.md:443)).
+
+**Связанные планы:** [12-ai-readiness-and-docs.md](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/12-ai-readiness-and-docs.md).
+
+**Связанные записи / зависимости исходного плана:** [TI-028](#ti-028), [TI-033](#ti-033), [TI-034](#ti-034), [TI-045](#ti-045), [TI-053](#ti-053), [TI-071](#ti-071).
+
+<a id="ti-053"></a>
+
+### TI-053 — Нет одной команды для одноразового dev-окружения
+
+**Тип:** Инструменты разработки. **Статус:** ПРЕДЛОЖЕНО. **Приоритет:** P2.
+
+**Источники:** [FI:B2](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/review-5-ai-ready.md:121); [План 12 §3.3](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/12-ai-readiness-and-docs.md:261); [План 12, шаг 3](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/12-ai-readiness-and-docs.md:336); [ASTRA-VS-FABLE §5 (FI:B2)](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/ASTRA-VS-FABLE.md:188).
+
+**Где:** [scripts/setup-dev.mjs](/Users/dmitriy/code/taskindex/scripts/setup-dev.mjs); [scripts/dev.mjs](/Users/dmitriy/code/taskindex/scripts/dev.mjs); [package.json](/Users/dmitriy/code/taskindex/package.json).
+
+**Проблема и последствия.** setup:dev работает с .env/data текущего checkout. Агенту, которому нужна временная проверка, приходится вручную переносить DB/порты/credentials и следить за процессами. Это повышает риск загрязнить основное окружение; сам setup не считается неожиданно destructive без проверки его условий.
+
+**Проверка и ограничения.** Пробел и текущий путь setup описаны FI; новый sandbox ещё не реализован. Сверка Fable: `scripts/sandbox.mts` с временной БД, свободными портами, локальной учёткой и ключом, JSON-описанием подключения и teardown ([план 12 §3.3](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/12-ai-readiness-and-docs.md:261), [шаг 3](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/12-ai-readiness-and-docs.md:336)); условие Astra «sandbox печатает только локальные тестовые credentials, не рабочие секреты» совпадает с 3.3.
+
+**Предлагаемая работа.** Добавить одну воспроизводимую команду sandbox с временной БД, свободными портами, локальной учёткой/ключом, JSON-описанием подключения и teardown. Не смешивать её с рабочим deploy.
+
+**Критерии закрытия:**
+
+- Два sandbox параллельно не делят БД/порты/outbox и не меняют существующие .env/data.
+- После normal exit/сигнала процессы завершаются; артефакты можно сохранить явно для разбора.
+- Выдаются только локальные тестовые credentials; созданные файлы не попадают в git status исходников.
+
+**Связанные планы:** [12-ai-readiness-and-docs.md](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/12-ai-readiness-and-docs.md).
+
+**Связанные записи / зависимости исходного плана:** [TI-028](#ti-028), [TI-035](#ti-035), [TI-052](#ti-052), [TI-067](#ti-067).
+
+<a id="ti-054"></a>
+
+### TI-054 — Цепочка миграций не связана проверкой со SCHEMA_VERSION
+
+**Тип:** Риск миграций. **Статус:** ОТКРЫТО. **Приоритет:** P2.
+
+**Источники:** [FA:V6](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/review-2-architecture.md:84); [FI:B4](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/review-5-ai-ready.md:129); [FS:D2](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/review-1-stack.md:60); [План 06, критерий 5](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/06-server-structure-config-logging.md:77); [План 06, шаг 3](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/06-server-structure-config-logging.md:128).
+
+**Где:** [src/server/db.ts](/Users/dmitriy/code/taskindex/src/server/db.ts); [src/server/admin.ts](/Users/dmitriy/code/taskindex/src/server/admin.ts); [src/shared/model.ts](/Users/dmitriy/code/taskindex/src/shared/model.ts); [tests/api/migrations.test.ts](/Users/dmitriy/code/taskindex/tests/api/migrations.test.ts).
+
+**Проблема и последствия.** Номер протокольной/схемной версии поддерживается отдельно от SQL-цепочки. Разработчик может добавить миграцию и забыть bump; проверка формы текущей БД ещё не гарантирует правильную маркировку совместимости. Используется собственный runner, поэтому одних Drizzle metadata недостаточно.
+
+**Проверка и ограничения.** Риск подтверждён анализом цепочки и тестов Fable; существующей второй несовместимой версии с потерей данных не показано. Checksum старого SQL — отдельная TI-013. Сверка Fable: план 06 вычисляет версию схемы из набора миграций в образе и удаляет константу `SCHEMA_VERSION` (`migrate`, `assertSchema`, `/health`, `admin initialize` берут одно значение) ([план 06, шаг 3](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/06-server-structure-config-logging.md:128)); контрольные суммы применённого SQL — TI-013, правило миграций данных — TI-014.
+
+**Предлагаемая работа.** Определить явное соответствие release schema/version и chain head; проверять его при сборке/старте/миграции. Разделить версию хранения и API при необходимости и связать с матрицей совместимости.
+
+**Критерии закрытия:**
+
+- Добавленная миграция без требуемой декларации версии обнаруживается проверкой.
+- Поддерживаемые upgrade/restore/export пути имеют fixture старого состояния и ясный отказ несовместимой версии.
+- Проверка не путает обязательный bump контракта с любой безвредной технической миграцией.
+
+**Детали и оговорки:**
+
+- **Решение** (принято 2026-09-10; решение делегировано владельцем Fable): версия схемы вычисляется из цепочки миграций в образе, константа `SCHEMA_VERSION` удаляется, `migrate`/`assertSchema`/`/health`/`admin initialize` берут одно значение (план 06, шаг 3) — одна из трёх проверок миграций в минимальной форме вместе с контрольной суммой SQL (TI-013) и правилом миграций данных с фикстурой прежней версии (TI-014); versioned codecs не вводятся ([план 09, решение владельца](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/09-data-layer-and-dependencies.md:217); [план 06, решение владельца](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/06-server-structure-config-logging.md:246); [README планов, строка «Миграции»](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/README.md:166)).
+
+**Связанные планы:** [09-data-layer-and-dependencies.md](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/09-data-layer-and-dependencies.md); [12-ai-readiness-and-docs.md](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/12-ai-readiness-and-docs.md).
+
+**Связанные записи / зависимости исходного плана:** [TI-013](#ti-013), [TI-014](#ti-014), [TI-064](#ti-064).
+
+<a id="ti-055"></a>
+
+### TI-055 — HTTP-управление API-ключами расходится с предметной моделью агентов
+
+**Тип:** Архитектура доступа. **Статус:** ОТКРЫТО. **Приоритет:** P2.
+
+**Источники:** [FA:V8](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/review-2-architecture.md:90); [Повторная проверка координатора](/Users/dmitriy/code/taskindex/docs/audits/2026-09-08-astra-fable-comparison/probes.json); [Независимая сверка Astra/Fable](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/ASTRA-VS-FABLE.md).
+
+**Где:** [src/server/auth.ts](/Users/dmitriy/code/taskindex/src/server/auth.ts); [src/server/admin.ts](/Users/dmitriy/code/taskindex/src/server/admin.ts); [src/server/schema.ts](/Users/dmitriy/code/taskindex/src/server/schema.ts).
+
+**Проблема и последствия.** Better Auth предоставляет owner HTTP routes выдачи ключей, а предметная привязка key→agent/scope находится в дополнительной модели и admin CLI. Owner может создать формально валидный, но непривязанный ключ; несколько мест описывают права и жизненный цикл, что увеличивает вероятность рассогласования.
+
+**Проверка и ограничения.** Независимо проверено: create без сессии=401, owner create=200, business API для непривязанного ключа=403. Анонимная выдача рабочего предметного доступа не подтверждена.
+
+**Предлагаемая работа.** Выбрать одну поддерживаемую точку выдачи/отзыва и источник scope. Неиспользуемые HTTP key routes закрыть или связать с атомарным созданием agent metadata; описать уже выданные/непривязанные ключи и migration.
+
+**Критерии закрытия:**
+
+- Нельзя получить внешне успешную выдачу без понятной привязки и прав; неподдерживаемый route явно недоступен.
+- Auth-only ключ не получает предметного доступа, отозванный/disabled actor не проходит.
+- HTTP/CLI admin, rotation и scope изменения дают согласованный результат.
+
+**Связанные планы:** [05-auth-and-agent-keys.md](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/05-auth-and-agent-keys.md).
+
+**Связанные записи / зависимости исходного плана:** [TI-001](#ti-001), [TI-027](#ti-027), [TI-035](#ti-035), [TI-036](#ti-036).
+
+<a id="ti-056"></a>
+
+### TI-056 — Публичный health и HTTP-защиты требуют явного контракта
+
+**Тип:** Усиление эксплуатации. **Статус:** РЕШЕНИЕ. **Приоритет:** P2.
+
+**Источники:** [FB:B-10](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/review-3-bugs.md:155); [FA:Ж10](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/review-2-architecture.md:106); [FS:P3](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/review-1-stack.md:137); [FS:F3](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/review-1-stack.md:108); [Независимая сверка Astra/Fable](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/ASTRA-VS-FABLE.md); [FC:compare-bugs, строка 10 матрицы](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/compare-bugs.md:28); [ASTRA-VS-FABLE §4.9](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/ASTRA-VS-FABLE.md:155); [План 11 §3.5](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/11-deploy-and-ops.md:146); [README планов, «Решения владельца»](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/README.md:159).
+
+**Где:** [src/server/app.ts](/Users/dmitriy/code/taskindex/src/server/app.ts); [deploy/nginx/taskindex.conf](/Users/dmitriy/code/taskindex/deploy/nginx/taskindex.conf); [deploy/README.md](/Users/dmitriy/code/taskindex/deploy/README.md).
+
+**Проблема и последствия.** Health без auth показывает generation/seq и часть эксплуатационных метаданных. Nginx/HTTP настройки нужно сверить с ожидаемой публичной поверхностью: TLS termination, security headers и cache policy для hashed assets против index/API. Сейчас это набор неявных решений, а не доказанная утечка текста задач.
+
+**Проверка и ограничения.** Публичность health и конфигурация подтверждены в отчётах. seq считает события, а не все команды. Сквозная проверка реального публичного VPS/TLS в этом ревью не выполнялась. Сверка Fable: все потребители `/health` внутри периметра (`deploy.sh:34, 84, 98` через host-порт 3100, `common.sh:34`, `local-drill.sh:37, 91`, healthcheck `compose.yml:32`), публичность не нужна ничему; security-заголовков нет ни в nginx, ни в приложении (grep `secureHeaders|Strict-Transport|X-Frame` по `src/` пуст); статика без `Cache-Control`/gzip. Согласие с §4.9 Astra: публичный `/health` не доказывает утечку, это настройка поверхности, поэтому содержимое `/health` не меняется (план 06), закрывается только доступ извне.
+
+**Предлагаемая работа.** Определить минимальный публичный readiness ответ и доступ к расширенной диагностике. Зафиксировать TLS/proxy runbook и безопасные заголовки с учётом passkey/auth/SSE. Разделить кэширование immutable assets и некэшируемых HTML/API.
+
+**Критерии закрытия:**
+
+- Набор публичных health полей явно утверждён; мониторинг/deploy используют поддерживаемую форму.
+- На production-like HTTP проверены заголовки/cache для assets, index, API и ошибок.
+- Авторизация, passkey, SSE и deep-link navigation работают за выбранным proxy/TLS.
+
+**Детали и оговорки:**
+
+- Скрывать OpenAPI безусловно не требуется: это отдельный контракт TI-049. CSP/HSTS/другие заголовки выбирать по реальной схеме размещения, без слепого набора.
+- Удалять health SQL probe из-за WAL нельзя: соответствующая гипотеза снята в TI-075.
+- Сверка Fable: реализация — nginx `location = /health { allow 127.0.0.1; allow ::1; deny all; }`, `http2`, HSTS `max-age=31536000` без `includeSubDomains`/`preload`, `server_tokens off`, `ssl_session_*`, gzip для css/js/json/svg и `gzip off` для SSE ([план 11, шаг 3](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/11-deploy-and-ops.md:199)); в приложении `hono/secure-headers` с `strictTransportSecurity: false`, `X-Frame-Options: DENY`, CSP сначала report-only с проверкой нарушений в e2e, `Cache-Control: immutable` для `/assets/*` и `no-cache` для HTML ([план 11, шаг 4](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/11-deploy-and-ops.md:253); тесты 4, 5, 6, 9). Внешние мониторы доступности используют `GET /`, не `/health`.
+- **Предложение Fable: P2** (сейчас P3). Основание: Fable ставит allowlist `/health`, HSTS и базовые заголовки в P0 до переключения (план 11, шаги 3–4), цена — одна правка nginx и один middleware; индекс не менялся до решения владельца.
+
+**Выбранный вариант.** Принято 2026-09-10; решение делегировано владельцем Fable, владелец отдельно подтвердил скины и раскладку «Фокус». Nginx `location = /health { allow 127.0.0.1; allow ::1; deny all; }`, HSTS без `includeSubDomains`/`preload`, security-заголовки через `hono/secure-headers` в приложении (план 11, шаги 3–4); содержимое `/health` не меняется (план 06, шаг 5). Первая волна, до рабочего переключения. Последствия: публичного readiness-ответа нет, внешние мониторы доступности используют `GET /`; CSP сначала report-only по плану 11; критерий «набор публичных health полей утверждён» выполняется решением «поля прежние, доступ только изнутри периметра». Оставшийся объём: правка nginx, middleware, `Cache-Control` для `/assets/*` и HTML, тесты 4–6, 9 плана 11 и проверка на production-like HTTP по критериям карточки. Приоритет P3 → P2 применён в индексе (предложение Fable выше принято) ([план 11, решение владельца](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/11-deploy-and-ops.md:398); [README планов, строка «`/health`, заголовки, dev bind»](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/README.md:163)).
+
+**План:** минимальный объём и критерии записаны в этой карточке; отдельный подробный файл для этого пункта пока не создан. Сверка Fable: подробный план теперь есть — [11-deploy-and-ops.md §3.5](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/11-deploy-and-ops.md:146) (шаги 3–4, тесты 4–6, 9); содержимое `/health` — [06-server-structure-config-logging.md, шаг 5](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/06-server-structure-config-logging.md:137).
+
+**Связанные записи / зависимости исходного плана:** [TI-002](#ti-002), [TI-033](#ti-033), [TI-049](#ti-049), [TI-057](#ti-057), [TI-069](#ti-069), [TI-075](#ti-075).
+
+<a id="ti-057"></a>
+
+### TI-057 — Dev backend слушает 0.0.0.0 по умолчанию
+
+**Тип:** Настройка окружения. **Статус:** РЕШЕНИЕ. **Приоритет:** P2.
+
+**Источники:** [FB:B-12](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/review-3-bugs.md:175); [FC:compare-bugs, строка 12 матрицы](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/compare-bugs.md:30); [План 06, критерий 6](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/06-server-structure-config-logging.md:78); [План 11, шаг 14](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/11-deploy-and-ops.md:299).
+
+**Где:** [src/server/index.ts](/Users/dmitriy/code/taskindex/src/server/index.ts); [scripts/dev.mjs](/Users/dmitriy/code/taskindex/scripts/dev.mjs); [scripts/setup-dev.mjs](/Users/dmitriy/code/taskindex/scripts/setup-dev.mjs).
+
+**Проблема и последствия.** Разработка предполагает локальную тестовую БД/credentials, но backend bind может открывать порт локальной сети. Это более широкая поверхность, чем ожидает агент, запускающий временную проверку на ноутбуке.
+
+**Проверка и ограничения.** Bind подтверждён по коду Fable. Доступность порта из чужой сети и обход auth не доказаны; production Docker может обоснованно требовать 0.0.0.0. Сверка Fable: статус PLAUSIBLE по коду, не воспроизводилось. Решение в плане 06: `npm run dev` слушает `127.0.0.1:3001`, в контейнере (`NODE_ENV=production`) `0.0.0.0`, `HOST` переопределяет ([план 06, критерий 6](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/06-server-structure-config-logging.md:78)); compose получает явный `HOST: 0.0.0.0` одной правкой вместе с `LITESTREAM_HEARTBEAT_URL` ([план 11, шаг 14](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/11-deploy-and-ops.md:299)). Fable оценивает P0 в плане 06 при цене одной строки; реестр P2, спора нет.
+
+**Предлагаемая работа.** Разделить dev default loopback и явный внешний bind; параметры HOST/PORT валидировать. Документировать включение LAN для телефонной приёмки и container deployment.
+
+**Критерии закрытия:**
+
+- Обычный dev/sandbox слушает ожидаемый loopback; внешний bind включается явно.
+- Docker service остаётся доступен proxy; настройка телефона описана и проверена.
+- Startup показывает фактический адрес без утечки credentials.
+
+**Выбранный вариант.** Принято 2026-09-10; решение делегировано владельцем Fable, владелец отдельно подтвердил скины и раскладку «Фокус». Вне production dev-сервер слушает `127.0.0.1` (`npm run dev` → `127.0.0.1:3001`); `0.0.0.0` только в контейнере (`NODE_ENV=production`) или при явном `HOST`, compose получает явный `HOST: 0.0.0.0` (план 06, шаг 4, критерий 6; план 11, шаг 14). Первая волна. Последствия: телефонная приёмка в LAN требует явного `HOST`, что документируется. Оставшийся объём: правка `src/server/index.ts`/`scripts/dev.mjs`, документация включения LAN, проверка startup-вывода без секретов. Приоритет P2 без изменений ([план 11, решение владельца](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/11-deploy-and-ops.md:398); [README планов, строка «`/health`, заголовки, dev bind»](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/README.md:163)).
+
+**План:** минимальный объём и критерии записаны в этой карточке; отдельный подробный файл для этого пункта пока не создан. Сверка Fable: подробный план теперь есть — [06-server-structure-config-logging.md, шаг 4](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/06-server-structure-config-logging.md:135) (критерий 6); compose-сторона — [11-deploy-and-ops.md, шаг 14](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/11-deploy-and-ops.md:299).
+
+**Связанные записи / зависимости исходного плана:** [TI-018](#ti-018), [TI-053](#ti-053), [TI-056](#ti-056), [TI-062](#ti-062).
+
+<a id="ti-058"></a>
+
+### TI-058 — E2E по умолчанию перезаписывает reference-артефакты в docs
+
+**Тип:** Дефект изоляции тестов. **Статус:** ОТКРЫТО. **Приоритет:** P2.
+
+**Источники:** [FQ:§9](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/review-4-quality.md:166); [FQ:R10](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/review-4-quality.md:289); [FC:compare-quality-method, побочный эффект e2e](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/compare-quality-method.md:68); [README планов, «Состояние на момент записи»](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/README.md:166); [План 10, доп. шаг 24](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/10-code-quality-and-tests.md:345).
+
+**Где:** [tests/e2e/workspace.spec.ts](/Users/dmitriy/code/taskindex/tests/e2e/workspace.spec.ts); [tests/e2e/playwright.config.ts](/Users/dmitriy/code/taskindex/tests/e2e/playwright.config.ts); [.gitignore](/Users/dmitriy/code/taskindex/.gitignore).
+
+**Проблема и последствия.** Скриншоты и screenshots-sha256.json обычного прогона пишутся в docs/reference/v2-validation. Каталог не исключён из git, поэтому проверка изменяет зафиксированное визуальное доказательство и создаёт шум/риск случайно принять новый baseline.
+
+**Проверка и ограничения.** Fable указал конкретный writer и проверил отсутствие ignore. При составлении реестра E2E не запускался и reference-артефакты не перезаписывались. Сверка Fable: уточнение — `docs/reference/v2-validation/*` перезаписали ОБА ревью. Fable около 20:15 (раскрыто в README планов, версия 17:15 незакоммичена и невосстановима) и собственный `npm run e2e` Astra в 20:40:55 ([e2e.log](/Users/dmitriy/code/taskindex/docs/audits/2026-09-08-multiside-review/e2e.log), предупреждение Better Auth в 17:40:49Z; [`environment.json.capturedAt = 2026-09-08T17:40:55.778Z`](/Users/dmitriy/code/taskindex/docs/reference/v2-validation/environment.json:2); mtime PNG 20:40:55–20:41:01). В `REPORT.md`/`verification.json` Astra это не отражено; SHA-контроль «неизменности исходников» покрывал 112 файлов из `src/tests/deploy/drizzle/scripts` и корневых конфигов, `docs/` в него не входил. Сравнение с копией в `docs/audits/2026-09-08-workflows/fix-verification/screenshots/`: 4 из 8 PNG (`desktop-activity-rejected`, `desktop-activity`, `desktop-discussion`, `mobile-board`) отличаются между прогонами одного кода, то есть эти сцены недетерминированы (активность и обсуждение с относительным временем).
+
+**Предлагаемая работа.** Направить обычные результаты в отдельный ignored test-results; обновление эталонных docs делать только явным режимом публикации после просмотра. Развести baseline и фактический результат.
+
+**Критерии закрытия:**
+
+- Обычный E2E не меняет docs/reference и tracked/untracked исходники.
+- Явный publish/reference режим создаёт доказательства с понятной датой/версией и не включается случайно.
+- Отчёт CI/локальный просмотр находят сохранённые артефакты по новому пути.
+
+**Детали и оговорки:**
+
+- Сверка Fable: до смены умолчания (план 10, шаг 1) ревью запускают e2e только с `TASKINDEX_E2E_ARTIFACT_DIR`; `docs/reference` никогда не является выходом теста; проверка «неизменности» будущих ревью должна включать `docs/` ([план 10, доп. шаг 24](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/10-code-quality-and-tests.md:345)). Недетерминизм четырёх сцен — отдельная причина хрупкости, учтён в TI-070.
+
+**Связанные планы:** [10-code-quality-and-tests.md](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/10-code-quality-and-tests.md).
+
+**Связанные записи / зависимости исходного плана:** [TI-018](#ti-018), [TI-025](#ti-025), [TI-069](#ti-069), [TI-070](#ti-070).
+
+<a id="ti-059"></a>
+
+### TI-059 — Большие server/CLI/UI модули смешивают независимые обязанности
+
+**Тип:** Качество кода. **Статус:** ПРЕДЛОЖЕНО. **Приоритет:** P2.
+
+**Источники:** [FA:V2](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/review-2-architecture.md:72); [FI:B5](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/review-5-ai-ready.md:133); [FQ:§1](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/review-4-quality.md:24); [FQ:§3](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/review-4-quality.md:75); [FQ:§6](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/review-4-quality.md:130); [FQ:§8](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/review-4-quality.md:154); [FQ:R3](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/review-4-quality.md:282); [FQ:R4](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/review-4-quality.md:283); [FQ:R5](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/review-4-quality.md:284); [FQ:R10](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/review-4-quality.md:289).
+
+**Где:** [src/server/app.ts](/Users/dmitriy/code/taskindex/src/server/app.ts); [src/cli/run.ts](/Users/dmitriy/code/taskindex/src/cli/run.ts); [src/web/app/shell.tsx](/Users/dmitriy/code/taskindex/src/web/app/shell.tsx); [src/web/app/editor.tsx](/Users/dmitriy/code/taskindex/src/web/app/editor.tsx).
+
+**Проблема и последствия.** createApp объединяет схемы, auth, ошибки, pagination, routes и operation execution; shell/editor — navigation, selectors, shortcuts, drafts, command orchestration и JSX. runCli вручную маршрутизирует чтения/записи. Дубли request/runOperation и передача навигации через несколько уровней увеличивают поверхность изменения и мешают проверять зависимости.
+
+**Проверка и ограничения.** Конкретные границы и дубли перечислены FA/FQ/FI. Количество строк само по себе не доказывает ошибку; это сопровождаемость, а не требование переписать приложение.
+
+**Предлагаемая работа.** Выделять модули по стабильным контрактам: transport/auth/errors/routes, read CLI registry, navigation/selectors, editor sections. Переиспользовать request и command execution, сохраняя транзакционную границу, ack и инъекцию DB/auth.
+
+**Критерии закрытия:**
+
+- Изменение одной read-команды/секции UI не требует править несколько несвязанных диспетчеров.
+- Рефакторинг сохраняет ответы, ошибок/commit классификацию, dispose/recovery и независимость вкладок.
+- Нет циклических runtime imports shared↔server/web; новые границы понятны по импортам и точечным проверкам.
+
+**Детали и оговорки:**
+
+- Общий hook сохранения TI-023 уже выделен отдельно. Navigation context должен уменьшать prop drilling, а не скрывать все зависимости в глобальном объекте.
+- Лимит «не больше 400 строк», переименование всех catch и повсеместная замена if/switch не являются критериями закрытия.
+- Дополнительные места того же разреза: server/admin owner/agents/export/restore; shared model с presentation catalog и случайным reexport z; web/lib/workspace с повторным WorkspaceData и command builders в shell/activity/use-workspace. Переименование схем в command/entity допустимо, если оно проясняет границу.
+- Скрытый dispatch change(task, patch) по ключам patch заменить явными предметными действиями при выделении command builders. Повторные request effects с flight.active можно объединить, сохранив отмену/защиту от позднего ответа.
+
+**Связанные планы:** [06-server-structure-config-logging.md](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/06-server-structure-config-logging.md); [07-web-client-fixes-and-structure.md](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/07-web-client-fixes-and-structure.md); [10-code-quality-and-tests.md](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/10-code-quality-and-tests.md).
+
+**Связанные записи / зависимости исходного плана:** [TI-019](#ti-019), [TI-020](#ti-020), [TI-023](#ti-023), [TI-042](#ti-042), [TI-045](#ti-045), [TI-049](#ti-049), [TI-063](#ti-063).
+
+<a id="ti-060"></a>
+
+### TI-060 — Лимиты повторяются в схемах, командах и JSX
+
+**Тип:** Качество контракта. **Статус:** ПРЕДЛОЖЕНО. **Приоритет:** P2.
+
+**Источники:** [FQ:§2](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/review-4-quality.md:49); [FQ:R7](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/review-4-quality.md:286); [FQ:§3](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/review-4-quality.md:75).
+
+**Где:** [src/shared/schemas.ts](/Users/dmitriy/code/taskindex/src/shared/schemas.ts); [src/shared/commands.ts](/Users/dmitriy/code/taskindex/src/shared/commands.ts); [src/web/app/editor.tsx](/Users/dmitriy/code/taskindex/src/web/app/editor.tsx); [src/cli/run.ts](/Users/dmitriy/code/taskindex/src/cli/run.ts).
+
+**Проблема и последствия.** Числа ограничений длины и количества задаются в нескольких местах. При расширении title/checklist/page size интерфейс может принять больше, чем команда, либо ограничить допустимые сервером данные. Настройки retry/timeout также повторяются без явного объяснения различий.
+
+**Проверка и ограничения.** Дубли подтверждены FQ; не каждое одинаковое число означает единый предметный лимит и текущий mismatch.
+
+**Предлагаемая работа.** Выделить смысловые константы/схемы для общих ограничений и использовать в UI/CLI. Разделить доменные пределы и транспортные бюджеты; намеренные различия browser/CLI timeout описать.
+
+**Критерии закрытия:**
+
+- Изменение общих ограничений отражается в валидации и UI без ручного дублирования.
+- Границы min/max/+1 проверяются на существующих предметных лимитах.
+- Нет одного абстрактного LIMIT для разных несвязанных смыслов; retry сохраняет safety неизвестного исхода.
+
+**Детали и оговорки:**
+
+- Включить повторный boolean query parsing и named budgets heartbeat/backpressure/SSE timeout/outbox history window. Не менять их численные значения без причины.
+
+**Связанные планы:** [04-api-contract-and-schemas.md](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/04-api-contract-and-schemas.md); [10-code-quality-and-tests.md](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/10-code-quality-and-tests.md).
+
+**Связанные записи / зависимости исходного плана:** [TI-009](#ti-009), [TI-019](#ti-019), [TI-045](#ti-045), [TI-062](#ti-062).
+
+<a id="ti-061"></a>
+
+### TI-061 — Несколько canonical() могут разойтись в хешировании
+
+**Тип:** Качество контракта. **Статус:** ПРЕДЛОЖЕНО. **Приоритет:** P2.
+
+**Источники:** [FQ:§3](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/review-4-quality.md:75); [FQ:R10](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/review-4-quality.md:289).
+
+**Где:** [src/cli/outbox.ts](/Users/dmitriy/code/taskindex/src/cli/outbox.ts); [src/server/operations.ts](/Users/dmitriy/code/taskindex/src/server/operations.ts); [src/server/admin.ts](/Users/dmitriy/code/taskindex/src/server/admin.ts).
+
+**Проблема и последствия.** Канонизация JSON повторена в нескольких реализациях. Расхождение порядка ключей/допустимых значений способно дать разные hash для одного намерения или экспорта и испортить предсказуемость idempotency/mismatch.
+
+**Проверка и ограничения.** FQ показывает дубли. Независимая сверка не установила mismatch для текущих валидных command payload; проблема — риск эволюции, а не доказанная сегодняшняя порча хеша.
+
+**Предлагаемая работа.** Задокументировать отдельные контракты command hash и export checksum; объединять код только при одинаковой семантике. Сохранить канонизацию исторических сохранённых результатов и версию формата.
+
+**Критерии закрытия:**
+
+- Перестановка ключей, вложенные значения и допустимые Unicode payload имеют одинаковый результат там, где контракт общий.
+- Исторические command/export fixtures сохраняют digest и replay.
+- Различные форматы не сведены насильно к одному алгоритму без миграционного решения.
+
+**Связанные планы:** [10-code-quality-and-tests.md](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/10-code-quality-and-tests.md).
+
+**Связанные записи / зависимости исходного плана:** [TI-004](#ti-004), [TI-014](#ti-014), [TI-033](#ti-033), [TI-045](#ti-045).
+
+<a id="ti-062"></a>
+
+### TI-062 — Конфигурация разбросана, часть переменных не отражает runtime
+
+**Тип:** Качество конфигурации. **Статус:** ПРЕДЛОЖЕНО. **Приоритет:** P2.
+
+**Источники:** [FA:Ж6](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/review-2-architecture.md:102); [FI:B6](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/review-5-ai-ready.md:137); [FQ:§7](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/review-4-quality.md:144); [FQ:§10](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/review-4-quality.md:184); [FQ:R7](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/review-4-quality.md:286); [FC:compare-quality-method, строка 27 матрицы](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/compare-quality-method.md:47); [План 06, шаг 1](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/06-server-structure-config-logging.md:102); [План 11 §3.8](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/11-deploy-and-ops.md:169).
+
+**Где:** [src/server/index.ts](/Users/dmitriy/code/taskindex/src/server/index.ts); [src/cli/admin-run.ts](/Users/dmitriy/code/taskindex/src/cli/admin-run.ts); [deploy/compose.yml](/Users/dmitriy/code/taskindex/deploy/compose.yml); [scripts/dev.mjs](/Users/dmitriy/code/taskindex/scripts/dev.mjs).
+
+**Проблема и последствия.** Env читается в нескольких entrypoints; неочевидны defaults/валидация и момент применения. TIMEZONE используется при migrate, действующий timezone хранится в settings; LOG_LEVEL не подключён к логам. Повторная загрузка .env и неиспользуемые настройки усложняют диагностику.
+
+**Проверка и ограничения.** Наблюдения взяты из FA/FI/FQ. Это не означает, что сервер должен на лету переинтерпретировать сохранённые даты при изменении env. Сверка Fable: `TIMEZONE` читается только при `migrate` ([db.ts:91-92](/Users/dmitriy/code/taskindex/src/server/db.ts:91), через `admin-run.ts:94`), действующий пояс — `settings.timezone` (`app.ts:187`); `LOG_LEVEL` объявлен в `compose.yml:15` и `.env.example:7`, в `src/` не читается; `BUILD ?? BUILD_ID` — два имени одной переменной (`src/server/index.ts:22`). Хардкод `'Europe/Moscow'` ×4 в `src/` (`store.ts:47`, `app.ts:187`, `db.ts:92`, `queries.ts:108`) — та же причина «конфигурация не отражает runtime», отдельная карточка не нужна.
+
+**Предлагаемая работа.** Собрать типизированные конфиги по entrypoint с проверкой URL/порта/пути и понятными ошибками. Удалить только доказанно неиспользуемые параметры либо подключить их; описать startup-only и stored settings.
+
+**Критерии закрытия:**
+
+- Некорректная переменная выявляется при старте с именем поля без вывода секрета.
+- README/.env examples/compose соответствуют реально читаемым параметрам.
+- Смена TIMEZONE не меняет историческую семантику без явной миграции; LOG_LEVEL работает или не обещан.
+
+**Детали и оговорки:**
+
+- Общий модуль не должен заставлять CLI чтения валидировать все server/admin secrets. BUILD_ID проверять по реальным потребителям перед удалением.
+- Сверка Fable: `server/config.ts` на Zod по entrypoint ([план 06, шаг 1](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/06-server-structure-config-logging.md:102)); `LOG_LEVEL` реализовать, `TIMEZONE` оставить параметром миграции с комментарием, `HOST` явный; compose и `.env.example` правятся один раз вместе с `LITESTREAM_HEARTBEAT_URL` ([план 11 §3.8](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/11-deploy-and-ops.md:169), шаг 14). `'Europe/Moscow'` в `src/web` и `src/shared` убирается планом 07 (шаг 10), на сервере — планом 06.
+- **Решение** (принято 2026-09-10; решение делегировано владельцем Fable): `LOG_LEVEL` реализуется (уровни `error`, `info`, `debug`), а не удаляется, потому что уже объявлен в compose и документации; `TIMEZONE` остаётся переменной только для `migrate`, документация исправляется; `HOST` явный, dev на `127.0.0.1` (TI-057) ([план 06, решение владельца](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/06-server-structure-config-logging.md:246)).
+
+**Связанные планы:** [06-server-structure-config-logging.md](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/06-server-structure-config-logging.md); [11-deploy-and-ops.md](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/11-deploy-and-ops.md); [07-web-client-fixes-and-structure.md](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/07-web-client-fixes-and-structure.md).
+
+**Связанные записи / зависимости исходного плана:** [TI-020](#ti-020), [TI-028](#ti-028), [TI-033](#ti-033), [TI-057](#ti-057), [TI-060](#ti-060), [TI-067](#ti-067).
+
+<a id="ti-063"></a>
+
+### TI-063 — Комментарии дублируются в store и отдельной загрузке по любому seq
+
+**Тип:** Архитектура UI. **Статус:** ПРЕДЛОЖЕНО. **Приоритет:** P3.
+
+**Источники:** [FA:Ж3](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/review-2-architecture.md:99); [План 07, критерий 6](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/07-web-client-fixes-and-structure.md:62).
+
+**Где:** [src/web/app/store.ts](/Users/dmitriy/code/taskindex/src/web/app/store.ts); [src/web/app/editor.tsx](/Users/dmitriy/code/taskindex/src/web/app/editor.tsx); [src/web/app/activity.tsx](/Users/dmitriy/code/taskindex/src/web/app/activity.tsx).
+
+**Проблема и последствия.** Comments уже приходят со snapshot/SSE в общий store, но обсуждение повторно запрашивает их при изменении глобального seq. Изменение несвязанной задачи вызывает чтение; два источника состояния требуют отдельного согласования freshness.
+
+**Проверка и ограничения.** По FA и сверке пути данных. Избыточность подтверждена, отдельный потерянный комментарий из-за неё не воспроизведён. Сверка Fable: `TaskDiscussion` перечитывает `/comments` и `/history` только при событии этой задачи (`entityId === task.id` или `taskId === task.id`) либо после перезагрузки; `latestSeqForTask` в селекторах ([план 07, критерий 6](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/07-web-client-fixes-and-structure.md:62), шаг 10, тест 12).
+
+**Предлагаемая работа.** Выбрать источник данных для discussion: selector подтверждённого store либо предметный fetch с invalidation по taskId и ограниченным списком событий. Сохранить пагинацию/удаления и recovery.
+
+**Критерии закрытия:**
+
+- Несвязанные изменения не вызывают повторный запрос комментариев открытой задачи.
+- Add/delete/undo и snapshot recovery правильно отражаются в discussion.
+- Смена taskId и запоздалый ответ не подменяют комментарии другой задачи.
+
+**Связанные планы:** [07-web-client-fixes-and-structure.md](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/07-web-client-fixes-and-structure.md).
+
+**Связанные записи / зависимости исходного плана:** [TI-003](#ti-003), [TI-012](#ti-012), [TI-059](#ti-059).
+
+<a id="ti-064"></a>
+
+### TI-064 — Выбор Drizzle/better-sqlite3 требует измерения, замена не обоснована
+
+**Тип:** Решение по стеку. **Статус:** РЕШЕНИЕ. **Приоритет:** P3.
+
+**Источники:** [FS:D2](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/review-1-stack.md:60); [FS:D3](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/review-1-stack.md:66); [Независимая сверка Astra/Fable](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/ASTRA-VS-FABLE.md).
+
+**Где:** [src/server/db.ts](/Users/dmitriy/code/taskindex/src/server/db.ts); [src/server/schema.ts](/Users/dmitriy/code/taskindex/src/server/schema.ts); [src/server/operations.ts](/Users/dmitriy/code/taskindex/src/server/operations.ts); [package.json](/Users/dmitriy/code/taskindex/package.json).
+
+**Проблема и последствия.** Fable предлагает raw SQL/отказ от Drizzle и возможный node:sqlite. Astra предлагает оставить стек, исправив выборки. Существующие медленные полные сканы не доказывают, что ORM/driver принципиально не подходит; миграция затронет auth adapter, SQL semantics и native-runtime окружение.
+
+**Проверка и ограничения.** Drizzle реально используется для схемы/чтений/записей/auth. Подтверждён hot path TI-012; comparative benchmark альтернатив и полная совместимость node:sqlite не проверялись.
+
+**Предлагаемая работа.** Сначала улучшить точные запросы на текущем стеке и измерить. Если сохраняется существенное ограничение, оформить небольшой сравнительный spike с критериями API, транзакций, migration/auth, операционных затрат и выгоды.
+
+**Критерии закрытия:**
+
+- Есть измеренное ограничение текущего варианта и сопоставимый benchmark альтернатив.
+- Решение явно принято/отклонено с последствиями; отсутствие смены библиотеки допустимо при закрытом hot path.
+- Любой переход сохраняет текущие DB fixtures, collations, auth, idempotency, backup и restore.
+
+**Детали и оговорки:**
+
+- Node 26 ABI решается runtime TI-028, а не обязательной сменой driver. Не заявлять текущую ошибку сортировки только из-за отсутствия явного COLLATE BINARY без отличия фактической collation.
+
+**Выбранный вариант.** Принято 2026-09-10; решение делегировано владельцем Fable, владелец отдельно подтвердил скины и раскладку «Фокус». Drizzle остаётся источником схемы и слоем записи; сначала точечные выборки по плану 01 и бенчмарк (`bench-baseline.json` как пороги регрессии); любой переход на raw SQL или `node:sqlite` принимается только по цифрам после этого. Последствия: карточка остаётся гейтом замера, а не задачей замены; предложение FS:D2/D3 «raw SQL / отказ от Drizzle» снято до появления измеренного ограничения. Оставшийся объём: шаги плана 01 и сравнительный замер по критериям карточки; статус РЕШЕНИЕ сохраняется до результата замера ([план 09, решение владельца](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/09-data-layer-and-dependencies.md:217); [README планов, строка «Drizzle»](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/README.md:158)).
+
+**Связанные планы:** [09-data-layer-and-dependencies.md](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/09-data-layer-and-dependencies.md).
+
+**Связанные записи / зависимости исходного плана:** [TI-012](#ti-012), [TI-013](#ti-013), [TI-014](#ti-014), [TI-028](#ti-028), [TI-054](#ti-054).
+
+<a id="ti-065"></a>
+
+### TI-065 — CSS shadcn привязан к пакету генератора и его транзитивным зависимостям
+
+**Тип:** Оптимизация зависимостей. **Статус:** ПРЕДЛОЖЕНО. **Приоритет:** P3.
+
+**Источники:** [FS:F2](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/review-1-stack.md:104); [FS:Z2](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/review-1-stack.md:147).
+
+**Где:** [src/web/styles.css](/Users/dmitriy/code/taskindex/src/web/styles.css); [package.json](/Users/dmitriy/code/taskindex/package.json); [package-lock.json](/Users/dmitriy/code/taskindex/package-lock.json); [components.json](/Users/dmitriy/code/taskindex/components.json).
+
+**Проблема и последствия.** styles импортирует shadcn/tailwind.css из пакета CLI. Для нескольких CSS правил сборка тянет генератор и его дерево; override undici связан с этим деревом. Упрощение может уменьшить зависимости и убрать лишнюю связь runtime-оформления с генератором.
+
+**Проверка и ограничения.** Состав импортов/lockfile указан FS. Наличие override или зависимостей не является доказательством эксплуатируемой уязвимости.
+
+**Предлагаемая работа.** Проверить ровно используемые правила, лицензию/provenance и вариант локального CSS либо минимального пакета; сохранить возможность осознанной регенерации примитивов. После удаления зависимости проверить необходимость override.
+
+**Критерии закрытия:**
+
+- Build и визуальные состояния совпадают после выделения нужного CSS.
+- Lockfile показывает фактически удалённое дерево; генерация UI и provenance описаны.
+- Override удалён только если больше не нужен; theme/dark/animations не регрессируют.
+
+**Связанные планы:** [08-styling-skin-and-dark-theme.md](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/08-styling-skin-and-dark-theme.md); [09-data-layer-and-dependencies.md](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/09-data-layer-and-dependencies.md).
+
+**Связанные записи / зависимости исходного плана:** [TI-024](#ti-024), [TI-025](#ti-025), [TI-052](#ti-052), [TI-071](#ti-071).
+
+<a id="ti-066"></a>
+
+### TI-066 — Dev/build конфигурация содержит лишнюю работу и широкое наблюдение
+
+**Тип:** Инструменты разработки. **Статус:** ПРЕДЛОЖЕНО. **Приоритет:** P3.
+
+**Источники:** [FS:F4](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/review-1-stack.md:113); [FS:T1](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/review-1-stack.md:125); [FQ:§10](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/review-4-quality.md:184).
+
+**Где:** [vite.config.ts](/Users/dmitriy/code/taskindex/vite.config.ts); [package.json](/Users/dmitriy/code/taskindex/package.json); [scripts/dev.mjs](/Users/dmitriy/code/taskindex/scripts/dev.mjs).
+
+**Проблема и последствия.** Fable отмечает варианты упрощения Tailwind integration, области Vite watch и повторного typecheck между check/build. Наблюдение за data/artifacts и повторные стадии могут тратить ресурсы без нового сигнала.
+
+**Проверка и ограничения.** Это рекомендации по конфигурации конкретного дерева; фактическая экономия времени/CPU не измерена. Смена Tailwind plugin не доказана обязательной.
+
+**Предлагаемая работа.** Измерить последовательность используемых dev/release команд и реальные watch events. Исключить генерируемые DB/artifacts; убрать повторное вычисление только при сохранении всех обязательных проверок конкретного выпуска.
+
+**Критерии закрытия:**
+
+- HMR реагирует на src/config, не перезапускается из-за DB/WAL/test-results.
+- В проверяемом release workflow typecheck выполнен и относится к тому же исходному состоянию.
+- Время/состав сборки до и после сохранены; CSS output и dev feedback не ухудшились.
+
+**Связанные планы:** [09-data-layer-and-dependencies.md](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/09-data-layer-and-dependencies.md).
+
+**Связанные записи / зависимости исходного плана:** [TI-016](#ti-016), [TI-024](#ti-024), [TI-058](#ti-058), [TI-065](#ti-065), [TI-069](#ti-069).
+
+<a id="ti-067"></a>
+
+### TI-067 — Пути runtime/migrations/static зависят от текущего каталога
+
+**Тип:** Надёжность запуска. **Статус:** ОТКРЫТО. **Приоритет:** P2.
+
+**Источники:** [FS:S5](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/review-1-stack.md:95).
+
+**Где:** [src/server/db.ts](/Users/dmitriy/code/taskindex/src/server/db.ts); [src/server/index.ts](/Users/dmitriy/code/taskindex/src/server/index.ts); [src/cli/admin-run.ts](/Users/dmitriy/code/taskindex/src/cli/admin-run.ts).
+
+**Проблема и последствия.** Часть путей строится относительно process.cwd(). Запуск CLI/server из другого каталога может искать migrations/static не там или создать другую DB. Docker WORKDIR маскирует зависимость, но пользовательский CLI и supervisor запускаются иначе.
+
+**Проверка и ограничения.** Риск указан FS по конкретным путям; универсальная поломка всех entrypoints из любого каталога не заявляется.
+
+**Предлагаемая работа.** Разделить пути ресурсов установленного приложения и явно заданные пользовательские data paths. Ресурсы разрешать от модуля/packaged root, data — от документированного абсолютного config либо явно описанной базы относительного пути.
+
+**Критерии закрытия:**
+
+- Запуск поддерживаемых server/admin/CLI команд из другого cwd на fixture использует ожидаемые ресурсы и DB.
+- Ошибка отсутствующего пути ясна и не создаёт пустую рабочую БД молча.
+- Docker, локальная разработка и собранный пакет проходят одинаковый контракт путей.
+
+**Связанные планы:** [06-server-structure-config-logging.md](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/06-server-structure-config-logging.md).
+
+**Связанные записи / зависимости исходного плана:** [TI-028](#ti-028), [TI-053](#ti-053), [TI-062](#ti-062), [TI-068](#ti-068).
+
+<a id="ti-068"></a>
+
+### TI-068 — Место сборки и состав production image можно упростить
+
+**Тип:** Оптимизация эксплуатации. **Статус:** РЕШЕНИЕ. **Приоритет:** P3.
+
+**Источники:** [FS:P1](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/review-1-stack.md:133); [FS:P2](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/review-1-stack.md:135); [FC:compare-stack-arch P1/P2](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/compare-stack-arch.md:37); [План 11 §3.4](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/11-deploy-and-ops.md:134); [План 11 §1.6](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/11-deploy-and-ops.md:44); [README планов, «Решения владельца»](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/README.md:158).
+
+**Где:** [deploy/Dockerfile](/Users/dmitriy/code/taskindex/deploy/Dockerfile); [deploy/deploy.sh](/Users/dmitriy/code/taskindex/deploy/deploy.sh); [package.json](/Users/dmitriy/code/taskindex/package.json).
+
+**Проблема и последствия.** Текущая сборка на VPS и состав зависимостей runtime image могут расходовать лишние CPU/RAM/диск и затягивать выпуск. Fable предлагает перенос сборки и pruning optional dependencies, но измеренного ограничения текущего хоста в этом аудите нет.
+
+**Проверка и ограничения.** Конфигурационные наблюдения FS, не факт уже случившегося OOM/срыва deploy. Native better-sqlite3 требует совместимости платформы/ABI. Сверка Fable: `Dockerfile:9` `npm prune --omit=dev --omit=optional` сегодня безвреден — замыкание production-зависимостей по `package-lock.json` (118 пакетов) не содержит ни одного пакета с `optionalDependencies`; опасен при обновлениях (платформенный модуль в optional соберётся и упадёт при старте); достаточно `--omit=dev` ([план 11 §1.6](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/11-deploy-and-ops.md:44)). `TASKINDEX_IMAGE` уже читается compose, но `deploy.sh:37` жёстко переопределяет его и всегда собирает.
+
+**Предлагаемая работа.** Замерить длительность и пиковые ресурсы build/runtime image. Сравнить текущую схему с заранее собранным immutable image и точечным pruning; сохранить rollback к полному старому выпуску.
+
+**Критерии закрытия:**
+
+- Выбранное место сборки обосновано измерениями и доступным процессом доставки image.
+- Runtime image стартует с native SQLite и всеми реально нужными optional пакетами.
+- Image/config identity и двухверсионный rollback сохранены; секреты не встроены в layers.
+
+**Детали и оговорки:**
+
+- Не удалять все optional dependencies вслепую: некоторые являются платформенной реализацией нужного пакета.
+- Сверка Fable: рекомендация — сборка `linux/amd64` в CI после зелёного `check` с label `org.opencontainers.image.revision`, доставка через GHCR (`docker pull`) или `docker save | zstd | ssh docker load` (`deploy/release.sh`), `deploy.sh --image REF` проверяет label, `--build-here` только как аварийный путь ([план 11 §3.4](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/11-deploy-and-ops.md:134), шаги 5, 8). Решение владельца записано в README планов как «локально или в CI с переносом образа».
+
+**Выбранный вариант.** Принято 2026-09-10; решение делегировано владельцем Fable, владелец отдельно подтвердил скины и раскладку «Фокус». Сборка образа `linux/amd64` в GitHub Actions на Node 24.20.0 после зелёного `npm run check` (гейт релиза), перенос `docker save | ssh docker load`, `deploy.sh --image REF` с проверкой label `org.opencontainers.image.revision`; `--build-here` только аварийно; реестр GHCR не заводится; `npm prune --omit=dev` без `--omit=optional` (§1.6). Последствия: первый критерий закрытия («место сборки обосновано измерениями») выполняется решением владельца и выбранным процессом доставки, замер VPS для выбора не требуется; остальные критерии (native SQLite в runtime image, identity image/config, двухверсионный rollback, отсутствие секретов в layers) без изменений. Оставшийся объём: workflow, `deploy/release.sh`, `--image`, шаги 5, 8, 11 плана 11 ([план 11, решение владельца](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/11-deploy-and-ops.md:398); [README планов, строка «Сборка образа»](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/README.md:165)).
+
+**Связанные планы:** [09-data-layer-and-dependencies.md](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/09-data-layer-and-dependencies.md); [11-deploy-and-ops.md](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/11-deploy-and-ops.md).
+
+**Связанные записи / зависимости исходного плана:** [TI-015](#ti-015), [TI-016](#ti-016), [TI-024](#ti-024), [TI-028](#ti-028), [TI-067](#ti-067).
+
+<a id="ti-069"></a>
+
+### TI-069 — E2E проверяет Vite dev, но не production static serving
+
+**Тип:** Проверки выпуска. **Статус:** ОТКРЫТО. **Приоритет:** P2.
+
+**Источники:** [FS:Q2](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/review-1-stack.md:153); [FQ:§9](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/review-4-quality.md:166).
+
+**Где:** [tests/e2e/server.ts](/Users/dmitriy/code/taskindex/tests/e2e/server.ts); [tests/e2e/playwright.config.ts](/Users/dmitriy/code/taskindex/tests/e2e/playwright.config.ts); [src/server/index.ts](/Users/dmitriy/code/taskindex/src/server/index.ts); [deploy/nginx/taskindex.conf](/Users/dmitriy/code/taskindex/deploy/nginx/taskindex.conf).
+
+**Проблема и последствия.** Зелёные браузерные тесты на Vite не доказывают, что собранные assets, SPA fallback, cache/headers и маршруты авторизации правильно обслуживаются production server/proxy. Эта граница остаётся вне текущего автоматического сигнала.
+
+**Проверка и ограничения.** Режим тестового сервера проверен в FS. Исходные E2E и build проходили отдельно; совместный production HTTP/browser путь ими не закрывается.
+
+**Предлагаемая работа.** Добавить небольшой production-build E2E smoke на том же release artifact: прямой deep link, reload, assets, login, одна команда/SSE и ошибка API; proxy-вариант использовать там, где он влияет на routing/cache.
+
+**Критерии закрытия:**
+
+- Production artifact обслуживает deep links без подмены API 404 на HTML.
+- Assets/HTML/API имеют корректный Content-Type/cache, auth и SSE работают.
+- Результат привязан к проверяемому build; обычный прогон не меняет reference docs.
+
+**Связанные планы:** [10-code-quality-and-tests.md](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/10-code-quality-and-tests.md).
+
+**Связанные записи / зависимости исходного плана:** [TI-015](#ti-015), [TI-016](#ti-016), [TI-018](#ti-018), [TI-056](#ti-056), [TI-058](#ti-058), [TI-068](#ti-068).
+
+<a id="ti-070"></a>
+
+### TI-070 — Общее состояние, ожидания и дубли делают E2E хрупкими
+
+**Тип:** Качество тестов. **Статус:** ПРЕДЛОЖЕНО. **Приоритет:** P2.
+
+**Источники:** [FQ:§3](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/review-4-quality.md:75); [FQ:§9](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/review-4-quality.md:166); [FQ:R10](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/review-4-quality.md:289); [FC:compare-quality-method, побочный эффект e2e](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/compare-quality-method.md:68); [План 10, шаг 15](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/10-code-quality-and-tests.md:236).
+
+**Где:** [tests/e2e/workspace.spec.ts](/Users/dmitriy/code/taskindex/tests/e2e/workspace.spec.ts); [tests/e2e/regressions.spec.ts](/Users/dmitriy/code/taskindex/tests/e2e/regressions.spec.ts); [tests/api/helpers.ts](/Users/dmitriy/code/taskindex/tests/api/helpers.ts).
+
+**Проблема и последствия.** Спеки используют общую БД/мутируемые ownerCookies; один тест двигает чужие задачи, чтобы очистить доску. IP для rate limit выведен из имени Bxx, fixed sleeps зависят от тайминга; helpers повторяются. Это связывает порядок запуска с результатом и затрудняет локализацию сбоев.
+
+**Проверка и ограничения.** FQ перечисляет конкретные места. Это риск устойчивости, а не утверждение, что все текущие тесты флакают или их assertions слабые. Сверка Fable: подтверждённый признак хрупкости — 4 из 8 reference-сцен (`desktop-activity-rejected`, `desktop-activity`, `desktop-discussion`, `mobile-board`) дают разные PNG при одинаковом коде (активность и обсуждение показывают относительное время); подробности в TI-058. Проекты `setup`/`functional`/`visual`/`static` и изоляция fixtures — [план 10, шаг 15](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/10-code-quality-and-tests.md:236).
+
+**Предлагаемая работа.** Изолировать fixtures по тесту/worker или явно ограниченным сценарием, ожидать наблюдаемые состояния вместо таймеров, выделить общие HTTP/storage/setup helpers. Разбивать длинные сценарии только если сохраняется проверяемая причинная цепочка.
+
+**Критерии закрытия:**
+
+- Выбранные спеки проходят отдельно и в другом порядке без изменения чужих записей.
+- Auth/rate-limit fixture не зависит от названия теста; cookies локальны владельцу fixture.
+- Задержки сети/анимации не ломают ожидание, а ошибка указывает на конкретную гарантию.
+
+**Детали и оговорки:**
+
+- Не заменять сильные интеграционные сценарии большим числом тестов, зеркалящих функции. Property oracle закрывается отдельно в TI-021.
+
+**Связанные планы:** [10-code-quality-and-tests.md](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/10-code-quality-and-tests.md).
+
+**Связанные записи / зависимости исходного плана:** [TI-021](#ti-021), [TI-053](#ti-053), [TI-058](#ti-058), [TI-069](#ti-069).
+
+<a id="ti-071"></a>
+
+### TI-071 — Lint, мёртвый код и соглашения дают неполный сигнал качества
+
+**Тип:** Качество кода. **Статус:** ПРЕДЛОЖЕНО. **Приоритет:** P3.
+
+**Источники:** [FI:B7](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/review-5-ai-ready.md:145); [FI:B8](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/review-5-ai-ready.md:148); [FQ:§2](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/review-4-quality.md:49); [FQ:§3](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/review-4-quality.md:75); [FQ:§4](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/review-4-quality.md:100); [FQ:§6](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/review-4-quality.md:130); [FQ:§10](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/review-4-quality.md:184); [FQ:R9](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/review-4-quality.md:288).
+
+**Где:** [.oxlintrc.json](/Users/dmitriy/code/taskindex/.oxlintrc.json); [tsconfig.json](/Users/dmitriy/code/taskindex/tsconfig.json); [components.json](/Users/dmitriy/code/taskindex/components.json); [package.json](/Users/dmitriy/code/taskindex/package.json); [src/web/app/card.tsx](/Users/dmitriy/code/taskindex/src/web/app/card.tsx).
+
+**Проблема и последствия.** Проверки перечисляют пути вручную и пропускают часть конфигурации. Есть неиспользуемые exports/alias, неработающие поля PendingOperation, non-null assertions, сложные ternary и неочевидные имена. UI требует точечной проверки button type, ID и семантики интерактивных элементов; generated shadcn и ручные части не обозначены.
+
+**Проверка и ограничения.** Инвентарь FQ/FI относится к исходному снимку. Числа warnings не равны числу багов; отсутствие type у кнопки вне form не доказывает неожиданный submit.
+
+**Предлагаемая работа.** Включать правила с полезным сигналом по категориям и расширить check coverage с явным ignore. Удалить только подтверждённо неиспользуемое после проверки public/generated потребителей. Зафиксировать разумные naming/import conventions и комментарии сложных invariants.
+
+**Критерии закрытия:**
+
+- Проверки охватывают ожидаемые JS/TS/config; новый файл не выпадает из gate из-за ручного списка.
+- Удаление aliases/exports не ломает shadcn generation, публичные entrypoints и tests.
+- Реальные DOM сценарии button/form, unique IDs, keyboard и screen reader проверены; исправлены доказанные нарушения.
+
+**Детали и оговорки:**
+
+- @/ используется metadata генератора даже при отсутствии импортов; @web проверять отдельно. server/cli .js imports могут быть необходимы для ESM и не обязаны копировать web стиль.
+- no-await-in-loop часто отражает необходимую последовательность pagination; blanket style/max-lines породит шум.
+- Проверить unused initializeDatabase/serverId/requireScope, reexports схем, PendingOperation.attempts/message, pendingCount/editableFields/HELP/authClient по всем потребителям. Комментировать решения про health noop, temporary unique keys, generation remount, DnD listeners и polling, где иначе теряется причина.
+- Низкоприоритетные примеры читаемости: moveToQueueTop вместо first, jsonResponse вместо json для OpenAPI, sections/fromOtherGeneration/base в редакторе, общий isAgentActor и согласованная терминология activity/operations. Переименование persisted actor полей требует совместимости TI-014.
+- Оценить лишние use client в Vite, длинноживущие однобуквенные переменные и объявления через запятую. Каталог подписей вроде «Без направления» может устранить дубли, но не должен превращаться в новую систему локализации без потребности.
+
+**Связанные планы:** [10-code-quality-and-tests.md](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/10-code-quality-and-tests.md); [12-ai-readiness-and-docs.md](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/12-ai-readiness-and-docs.md).
+
+**Связанные записи / зависимости исходного плана:** [TI-017](#ti-017), [TI-024](#ti-024), [TI-030](#ti-030), [TI-052](#ti-052), [TI-059](#ti-059), [TI-065](#ti-065), [TI-066](#ti-066).
+
+<a id="ti-072"></a>
+
+### TI-072 — Нет безопасного обзора deploy-плана и воспроизводимого bootstrap
+
+**Тип:** Инструменты эксплуатации. **Статус:** ПРЕДЛОЖЕНО. **Приоритет:** P2.
+
+**Источники:** [FI:B10](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/review-5-ai-ready.md:154); [FQ:§10](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/review-4-quality.md:184); [План 11 §3.7](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/11-deploy-and-ops.md:165); [План 11 §3.6](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/11-deploy-and-ops.md:159); [План 11 §1.7](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/11-deploy-and-ops.md:48).
+
+**Где:** [deploy/deploy.sh](/Users/dmitriy/code/taskindex/deploy/deploy.sh); [deploy/common.sh](/Users/dmitriy/code/taskindex/deploy/common.sh); [deploy/local-drill.sh](/Users/dmitriy/code/taskindex/deploy/local-drill.sh); [deploy/README.md](/Users/dmitriy/code/taskindex/deploy/README.md).
+
+**Проблема и последствия.** Агенту трудно заранее показать точные действия выпуска и подготовить чистый VPS по единому входу. Fable предлагает deploy --plan/bootstrap; внутри скриптов повторяются health probes и inline Node programs, что повышает риск расхождения вспомогательных проверок.
+
+**Проверка и ограничения.** FI/FQ отмечают отсутствие удобного планирования и дубли. Это не разрешение запускать deploy/bootstrap и не доказательство неправильности существующей ERR/opened защиты. Сверка Fable: конкретика плана 11 — health-проба написана четырежды (`common.sh:34`, `local-drill.sh:37`, `:91`, `compose.yml:32`) плюс три варианта `curl`+`jq` в `deploy.sh:34-36, 84-85, 98-99`; `for command in` затеняет builtin `command` ([deploy/deploy.sh:17](/Users/dmitriy/code/taskindex/deploy/deploy.sh:17)); четыре heredoc-программы Node в `local-drill.sh` (`:46-52`, `:70-78`, `:81-86`, `:112-118`) без lint/typecheck; 27 строк длиннее 140 символов в `deploy/*.sh`; `shellcheck` не установлен и не запускается ни в `check`, ни в CI ([план 11 §1.7](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/11-deploy-and-ops.md:48)).
+
+**Предлагаемая работа.** Добавить действительно read-only обзор фаз, входов, версии и предусловий; формализовать bootstrap/runbook отдельно от обновления. Общие health/drill helpers вынести при сохранении exit/timeout/secret semantics.
+
+**Критерии закрытия:**
+
+- --plan не мигрирует БД, не открывает запись, не меняет releases/services и не выводит секреты.
+- Вывод позволяет проверить target/version/config/backup/rollback границу до запуска.
+- Реальный entrypoint сохраняет аварийные ветви; bootstrap можно проверить в одноразовом окружении.
+
+**Детали и оговорки:**
+
+- Создание плана не заменяет разрешение владельца на применение к рабочему хосту. Длинная shell-строка или имя command — низкий приоритет по сравнению с проверкой ветвей.
+- Сверка Fable: `deploy/health.mjs` в образе заменяет все семь проб ([план 11 §3.6](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/11-deploy-and-ops.md:159), шаг 6); heredoc-программы → `deploy/drill/*.mjs` с `@ts-check`, предел 120 символов, `for tool in` (шаг 10); `npm run lint:shell` (`bash -n` + `shellcheck -x`) в `check` и CI (шаг 11); `deploy.sh --plan COMMIT` печатает JSON плана без Docker и без записи на диск (шаг 12); `deploy/bootstrap.sh` повторяет шаги README с guard'ами и пишет `current.json` и снимок релиза, запись открывается только с `--open-writes` (шаг 13); предупреждение о `git checkout --detach` в README (шаг 14) ([план 11 §3.7](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/11-deploy-and-ops.md:165)).
+
+**План:** минимальный объём и критерии записаны в этой карточке; отдельный подробный файл для этого пункта пока не создан. Сверка Fable: подробный план теперь есть — [11-deploy-and-ops.md §3.6–3.7](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/11-deploy-and-ops.md:159) (шаги 6, 10–14, тесты 7–8).
+
+**Связанные записи / зависимости исходного плана:** [TI-002](#ti-002), [TI-015](#ti-015), [TI-017](#ti-017), [TI-033](#ti-033), [TI-034](#ti-034), [TI-068](#ti-068).
+
+<a id="ti-073"></a>
+
+### TI-073 — События хранятся и отдельно, и в результате операции
+
+**Тип:** Оптимизация хранения. **Статус:** РЕШЕНИЕ. **Приоритет:** P3.
+
+**Источники:** [FA:Ж1](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/review-2-architecture.md:97); [План 09, доп. шаг 13](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/09-data-layer-and-dependencies.md:215).
+
+**Где:** [src/server/operations.ts](/Users/dmitriy/code/taskindex/src/server/operations.ts); [src/server/schema.ts](/Users/dmitriy/code/taskindex/src/server/schema.ts).
+
+**Проблема и последствия.** Stored result включает события, которые также лежат в event log. Это увеличивает размер БД/экспорта/чтений, но сохраняет точный ответ для идемпотентного повтора. Удаление дублирования может нарушить исторический результат и восстановление.
+
+**Проверка и ограничения.** Дублирование подтверждено FA. Его неприемлемая стоимость отдельно не измерена; это осознанный tradeoff, а не баг по умолчанию. Сверка Fable: гейт перед удалением `events` из `result` — замер `SUM(LENGTH(result))` и `SUM(LENGTH(json_extract(result, '$.events')))` на бенчмарк-базе плана 01; удаление только при существенной доле, иначе дублирование сохраняется с обоснованием в этой карточке; старые строки с `events` читаются как есть ([план 09, доп. шаг 13](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/09-data-layer-and-dependencies.md:215)).
+
+**Предлагаемая работа.** Измерить долю result JSON и цену чтения на реальных fixtures. Если оправдано, рассмотреть ссылки/версию codec с гарантией восстановления точного старого ответа и доступности eventless outcomes.
+
+**Критерии закрытия:**
+
+- Выигрыш в размере/чтении подтверждён измерением.
+- Replay старого operationId даёт прежний ответ; export/import/restore и отсутствие событий учтены.
+- Решение оставить дублирование допускается с зафиксированным обоснованием.
+
+**План:** минимальный объём и критерии записаны в этой карточке; отдельный подробный файл для этого пункта пока не создан. Сверка Fable: замер и гейт описаны в [09-data-layer-and-dependencies.md, доп. шаг 13](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/09-data-layer-and-dependencies.md:215).
+
+**Связанные записи / зависимости исходного плана:** [TI-008](#ti-008), [TI-012](#ti-012), [TI-014](#ti-014).
+
+<a id="ti-074"></a>
+
+### TI-074 — Имя владельца зашито в UI
+
+**Тип:** Качество UI. **Статус:** ПРЕДЛОЖЕНО. **Приоритет:** P3.
+
+**Источники:** [FA:V9](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/review-2-architecture.md:93); [FQ:§6](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/review-4-quality.md:130).
+
+**Где:** [src/web/app/shell.tsx](/Users/dmitriy/code/taskindex/src/web/app/shell.tsx); [src/web/app/sidebar.tsx](/Users/dmitriy/code/taskindex/src/web/app/sidebar.tsx).
+
+**Проблема и последствия.** UI использует захардкоженное имя владельца вместо уже известной auth identity. При другом тестовом/рабочем owner интерфейс показывает неподходящую подпись; это также усложняет fixtures и повторное использование приложения.
+
+**Проверка и ограничения.** По FA/FQ и пути отображения в UI. Для текущего единственного владельца это прежде всего долг конфигурации, а не нарушение доступа.
+
+**Предлагаемая работа.** Получать label из owner/session или явной продуктовой настройки; предусмотреть fallback без loading flicker. Не смешивать display name с actorId для attribution.
+
+**Критерии закрытия:**
+
+- При другом owner отображается корректный label, а history actorId остаётся стабильным.
+- Неавторизованное/переходное состояние не выводит чужое имя из старого кэша.
+- Текущий пользователь и тестовая fixture проходят визуальную проверку.
+
+**Связанные планы:** [07-web-client-fixes-and-structure.md](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/07-web-client-fixes-and-structure.md).
+
+**Связанные записи / зависимости исходного плана:** [TI-030](#ti-030), [TI-048](#ti-048), [TI-059](#ti-059).
+
+<a id="ti-075"></a>
+
+### TI-075 — Гипотеза: каждый health создаёт новые WAL-кадры
+
+**Тип:** Снятая гипотеза. **Статус:** СНЯТО. **Приоритет:** —.
+
+**Источники:** [FA:V7](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/review-2-architecture.md:87); [Повторная проверка координатора](/Users/dmitriy/code/taskindex/docs/audits/2026-09-08-astra-fable-comparison/probes.json); [Независимая сверка Astra/Fable](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/ASTRA-VS-FABLE.md); [repro/health-write2.mts](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/probes/repro/health-write2.mts); [compare/health-write3.mts](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/probes/compare/health-write3.mts); [compare/health-wal-probe.mts](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/probes/compare/health-wal-probe.mts); [FC:compare-stack-arch V7](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/compare-stack-arch.md:112); [FC:compare-bugs «/health и запись в базу»](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/compare-bugs.md:110).
+
+**Где:** [src/server/app.ts](/Users/dmitriy/code/taskindex/src/server/app.ts); [src/server/db.ts](/Users/dmitriy/code/taskindex/src/server/db.ts).
+
+**Проблема и последствия.** В FA:V7 no-op UPDATE health был интерпретирован как постоянная запись новых WAL-кадров и лишняя репликация. Fable снял это в сводке; независимая проверка не подтвердила причинную цепочку.
+
+**Проверка и ограничения.** После checkpoint GET /health вернул 200, WAL=0. SQL выполняется, но отсутствие изменения строки здесь не создаёт заявленный поток WAL. В отличие от этого verifyApiKey реально увеличивает WAL — TI-036. Сверка Fable: три собственных замера. `health-write2.mts`/`health-write3.mts`: после `migrate` `{"log":47,"checkpointed":47}`, после `createApp` и 20 вызовов `/health` те же 47 кадров, `data_version` соседнего соединения 2 → 2, коммитов не наблюдается. `health-wal-probe.mts` (файловая БД, `wal_autocheckpoint=0`): 20 холостых `UPDATE settings SET value=value` → +0 байт WAL, `value||''` ×5 → +0, реальный `value||'x'` → +4 152 байта (один кадр). Объяснение: `UPDATE` берёт write-lock WAL (этим и проверяет записываемость), но SQLite не помечает страницу грязной при побайтно совпадающем содержимом, поэтому нет ни кадра WAL, ни fsync, ни трафика Litestream; better-sqlite3 при этом сообщает `changes: 1`, что и ввело ревьюера в заблуждение. Остаётся замечание «`dbWritable: true` захардкожен» — план 06, шаг 5.
+
+**Предлагаемая работа.** Исправление по этой гипотезе не планируется. Сохранить запись и доказательство, чтобы не повторять ошибочный вывод и не удалить health writeability probe на ложном основании.
+
+**Критерии закрытия:**
+
+- Гипотеза снята результатом probes; действие над health на этом основании не требуется.
+
+**Детали и оговорки:**
+
+- СНЯТО означает «вывод не подтвердился», а не «баг исправлен». Если изменится SQL/SQLite/runtime, повторная проверка может открыть новую запись с новым доказательством.
+
+**План:** минимальный объём и критерии записаны в этой карточке; отдельный подробный файл для этого пункта пока не создан. Сверка Fable: комментарий над пробной записью и вычисляемый `dbWritable` — [06-server-structure-config-logging.md, шаг 5](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/06-server-structure-config-logging.md:137).
+
+**Связанные записи / зависимости исходного плана:** [TI-036](#ti-036), [TI-056](#ti-056).
+
+<a id="ti-076"></a>
+
+### TI-076 — В UI активности нет фильтра по агенту, доступного в API/CLI
+
+**Тип:** Неполный интерфейс. **Статус:** ПРЕДЛОЖЕНО. **Приоритет:** P3.
+
+**Источники:** [FI: матрица паритета](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/review-5-ai-ready.md:47).
+
+**Где:** [src/web/app/activity.tsx](/Users/dmitriy/code/taskindex/src/web/app/activity.tsx); [src/server/app.ts](/Users/dmitriy/code/taskindex/src/server/app.ts).
+
+**Проблема и последствия.** API operations?actor и CLI activity --actor поддерживают выбор автора, а владелец в UI получает общую ленту без этого фильтра. При нескольких агентах труднее проверить поручения и атрибуцию.
+
+**Проверка и ограничения.** Матрица паритета FI явно фиксирует разрыв; это дополнительный UI scope, а не отсутствие авторства в истории.
+
+**Предлагаемая работа.** Добавить фильтр автора с понятными labels и URL/state semantics; согласовать с пагинацией и списком агентов, сохраняя доступ к старым/отключённым авторам.
+
+**Критерии закрытия:**
+
+- UI и CLI actor-filter показывают одинаковые операции, включая eventless после TI-008.
+- Смена фильтра не смешивает страницы/поздние ответы; выбранный автор понятен пользователю.
+- Удалённый/disabled actor остаётся различим в исторических записях.
+
+**Связанные планы:** [07-web-client-fixes-and-structure.md](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/07-web-client-fixes-and-structure.md).
+
+**Связанные записи / зависимости исходного плана:** [TI-008](#ti-008), [TI-032](#ti-032), [TI-035](#ti-035), [TI-037](#ti-037), [TI-048](#ti-048).
+
+<a id="ti-077"></a>
+
+### TI-077 — Жизненный цикл проекта не включает удаление/архивирование
+
+**Тип:** Политика продукта. **Статус:** РЕШЕНИЕ. **Приоритет:** P3.
+
+**Источники:** [FI: матрица паритета](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/review-5-ai-ready.md:44).
+
+**Где:** [src/shared/schemas.ts](/Users/dmitriy/code/taskindex/src/shared/schemas.ts); [src/server/app.ts](/Users/dmitriy/code/taskindex/src/server/app.ts); [src/web/app/dialogs.tsx](/Users/dmitriy/code/taskindex/src/web/app/dialogs.tsx).
+
+**Проблема и последствия.** В матрице Fable отмечено, что удаления проекта нет ни в UI, ни в API/CLI. Это не разрыв каналов и не баг существующего create/update, но после завершения проектов каталог может требовать уборки.
+
+**Проверка и ограничения.** Отсутствие операции подтверждено исходным обзором. Запроса владельца на конкретную семантику удаления пока нет.
+
+**Предлагаемая работа.** Решить, нужна ли архивация, скрытие или удаление проекта. Определить судьбу задач, ссылок, origin, истории, undo и повторного использования имени; допускается оставить текущий scope с явным решением.
+
+**Критерии закрытия:**
+
+- Записан выбор владельца: реализовать конкретный жизненный цикл либо отложить без обещания функции.
+- При реализации UI/CLI/API имеют одинаковые права и правила для непустого проекта.
+- Исторические события и задачи не получают висячие ссылки; restore/undo согласованы.
+
+**План:** минимальный объём и критерии записаны в этой карточке; отдельный подробный файл для этого пункта пока не создан.
+
+**Связанные записи / зависимости исходного плана:** [TI-010](#ti-010), [TI-014](#ti-014), [TI-027](#ti-027), [TI-040](#ti-040).
+
+<a id="ti-078"></a>
+
+### TI-078 — Вид «Стол» для экрана Focus по макету «Фокус»
+
+**Тип:** Продуктовая работа. **Статус:** РЕШЕНИЕ. **Приоритет:** P2.
+
+**Источники:** Решение владельца 2026-09-10 («раскладка макета „Фокус“ нужна как новый вид экрана Focus»; [README планов, строка «Вид „Стол“ по макету „Фокус“»](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/README.md:162)); макет [docs/reference/visions-2026-09-08/focus.html](/Users/dmitriy/code/taskindex/docs/reference/visions-2026-09-08/focus.html), его обоснование [rationale/focus.md](/Users/dmitriy/code/taskindex/docs/reference/visions-2026-09-08/rationale/focus.md) и обзор четырёх вариантов [visions-2026-09-08/README.md](/Users/dmitriy/code/taskindex/docs/reference/visions-2026-09-08/README.md) (восстановлены 2026-09-10 из архива, названного в [README.md:119](/Users/dmitriy/code/taskindex/README.md:119)); план [13-focus-desk-view.md](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/13-focus-desk-view.md).
+
+**Где:** [src/shared/queries.ts:64](/Users/dmitriy/code/taskindex/src/shared/queries.ts:64) (текущий `focusGroups`, строки 64–92), [src/web/app/overview.tsx](/Users/dmitriy/code/taskindex/src/web/app/overview.tsx), [src/shared/domain-schemas.ts:51](/Users/dmitriy/code/taskindex/src/shared/domain-schemas.ts:51) (`focus: boolean`, порядка нет), [src/cli/run.ts:281](/Users/dmitriy/code/taskindex/src/cli/run.ts:281) (`focus` читает `/api/focus` с группами, строки 281–283), [src/cli/run.ts:431](/Users/dmitriy/code/taskindex/src/cli/run.ts:431) (`task focus ID` = `task.update {focus: true}`, строки 431–433).
+
+**Проблема и последствия.** Экран Focus сегодня показывает четыре группы карточек («Выбрано мной», «Новое от агентов», «Пора сделать», «Пора вернуться») и отвечает на вопрос «что попало в фокус», но не «что я делаю сейчас и что дальше». Макет «Фокус» требует одну текущую задачу со следующим шагом и прогрессом, две следующие («Потом»), ожидания с человеком и датой возврата, «Легко вернуться» и ящик «Все контексты». Для этого в модели нет порядка среди задач в фокусе (`focus` — булево поле, «текущая» неопределима детерминированно) и момента выхода из фокуса (из журнала событий вычислим только полным сканом, который план 01 как раз убирает). Любая новая операция вида обязана быть доступна агенту через API и CLI: полный паритет владельца и агента.
+
+**Проверка и ограничения.** Разрыв между макетом и моделью проверен планом 13 по `src/shared/domain-schemas.ts` и `src/shared/schemas.ts` 2026-09-10 (таблица §1). Макет — самодостаточный HTML с демонстрационными данными от 2026-09-08, не проверка на живом workspace; «minutes» и «decision» в нём иллюстративны. Реализация не начата; оценка плана — L, 4–6 дней.
+
+**Предлагаемая работа.** По плану 13: поля `tasks.focus_key` (ключ порядка через `fractional-indexing`, уникальный частичный индекс) и `tasks.focus_left_at`; `focusPosition: { first: true } | { after: id } | { before: id }` в `task.update`/`task.save`, снятие фокуса внутри `task.move done`/`task.archive` с восстановлением через undo; чистый селектор `focusDesk(tasks, today)` → `{ current, next, waiting, recent, counts }` в `src/shared/queries.ts` (`focusGroups` остаётся для `digest`); `/api/focus` отдаёт форму стола плюс прежние `groups`, форма описана Zod-схемой в `domain-schemas.ts`; CLI `taskindex focus` печатает стол, `taskindex task focus ID --first | --after ID | --before ID | --off`; компоненты `Desk`, `DeskCurrent`, `DeskNext`, `DeskRail`, `ContextsDrawer` в `src/web/app/desk/`, CSS `src/web/skin/desk.css` в `@layer skin` только на токенах; ящик переиспользует существующий список с фильтрами через URL; клавиатура (Space, N, Esc); мобильная раскладка в одну колонку.
+
+**Критерий закрытия.** Выполнены пункты 1–10 раздела 2 плана 13: порядок фокуса на сервере с инвариантами `focus === (focusKey !== null)` и уникальности `focusKey`; форма стола в `/api/focus` описана схемой; CLI печатает стол и меняет позицию; стол показывает шаг, прогресс, заметку и срок, «Взять в фокус» меняет `focusKey` одной командой, прежняя текущая получает `focusLeftAt`; ящик — существующий список; скриншоты desktop и mobile добавлены явным режимом публикации; клавиатура без потери фокуса; завершение/архивирование текущей назначает следующую и откатывается undo; стоимость `/api/focus` не зависит от размера журнала; доска остаётся стартовым экраном.
+
+**Проверки при реализации:**
+
+- Property-тест: случайные последовательности `focus`/`focusPosition`/`move done`/`archive`/`undo` сохраняют уникальность `focusKey` и инвариант `focus === (focusKey !== null)`; проекция равна состоянию.
+- API: три задачи в фокусе, одна `waiting` с `followUp` вчера, одна снята с фокуса 3 дня назад → `current` с минимальным ключом, `next` две, `waiting` одна, `recent` одна; агент `write` с `focusPosition` получает 403 `forbidden`, `task.sync` с `focus` → `skipped: owner`.
+- CLI: `task focus B --before A`, затем `focus` — B стала `current`; `--off` снимает и ставит `focusLeftAt`.
+- E2E `tests/e2e/desk.spec.ts`: шаг отмечается пробелом командой `checklist.toggle`, N берёт первую из «Потом», прежняя появляется в «Легко вернуться»; «Отложенные контексты» открывает ящик с `status=todo&focus=false` в URL; ширина 390 — одна колонка.
+- Производительность: расширить `probes/repro/perf.mts` до 4 000 событий — `/api/focus` не читает `events`, время не растёт с журналом.
+
+**Детали и оговорки:**
+
+- Принято 2026-09-10; решение делегировано владельцем Fable, владелец отдельно подтвердил скины и раскладку «Фокус». Выбранный вариант: раскладка макета — отдельный вид экрана Focus по плану 13; стартовый экран остаётся доской (решение BACKLOG, [BACKLOG.md:83](/Users/dmitriy/code/taskindex/BACKLOG.md:83)); настраиваемый стартовый экран, если понадобится, — предпочтение аккаунта по контракту `astra-25`, не localStorage. Последствия: две новые колонки и миграция по правилам планов 06 и 09 с фикстурой экспорта прежней версии (TI-013, TI-014, TI-054); `focusPosition` — владельческое поле (TI-027). Оставшийся объём: шаги 1–10 плана 13; шаг 11 (скин «Фокус») учтён в [TI-026](#ti-026).
+- Намеренно не переносится из макета (план 13 §3.4): оценка «минут» (поля нет, на столе показывается «осталось N шагов»; `estimateMinutes` — отдельное решение владельца) и флаг «требует решения» (канал отчётов агентов — комментарии, «Новое от агентов» уже выделяет непросмотренное; отдельный флаг — продуктовое решение вне плана). Демонстрационные данные и логика макета (`takeFocus`, `parked` как флаг) не переносятся, переносятся раскладка и взаимодействия.
+- Вид независим от скинов: в Classic стол выглядит как остальной интерфейс; палитра и типографика макета — скин «Фокус» каталога плана 08 ([TI-026](#ti-026)). Отвергнуто планом 13 (§3.1): клиентский порядок в localStorage (агенты его не видят), переиспользование `orderKey` (уникален в паре область/статус, фокус пересекает области), вычисление «недавно снятых» из `events` (полный скан на каждый показ).
+- Зависимость от плана 02 обязательна: без запрета агентского `focus` стол показал бы задачи, выбранные агентами, как «текущие» владельца (план 13 §6). Откат: поля nullable, старый интерфейс читает `focus` как прежде, `WorkspaceOverview` возвращается одной правкой `shell.tsx`. Остальные три макета (`atlas`, `dispatch`, `evolution`) сохранены как справка, решений по ним нет.
+
+**Связанные планы:** [13-focus-desk-view.md](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/13-focus-desk-view.md); [02-agent-permissions-and-sync-semantics.md](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/02-agent-permissions-and-sync-semantics.md); [08-styling-skin-and-dark-theme.md](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/08-styling-skin-and-dark-theme.md); [astra-29-focus-counter-semantics.md](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/astra-29-focus-counter-semantics.md).
+
+**Связанные записи / зависимости исходного плана:** [TI-027](#ti-027) (агент не ставит фокус и его порядок), [TI-029](#ti-029) (счётчик = `counts.focus`), [TI-025](#ti-025), [TI-026](#ti-026) (палитра «Фокус» как скин), [TI-012](#ti-012) (стоимость `/api/focus` без чтения `events`).
+
+Исходная оценка в плане: P2, продуктовая работа после волны 1.
+
+<a id="source-coverage"></a>
+
+## Покрытие исходных отчётов
+
+Учтены все **26 ID Astra**, **86 именованных пунктов FS/FA/FB/FI**, а также **11 разделов и 10 итоговых рекомендаций FQ**. Положительные выводы и неподтверждённые гипотезы получили явное объяснение вместо искусственных задач на исправление. Два дополнительных замечания из матрицы паритета FI — TI-076 и TI-077. Это проверка переноса пунктов, не метрика полноты обнаружения всех багов проекта. Дополнение 2026-09-10: сверка Fable (три отчёта `compare-*.md`, повторы проб, планы 01–12 с разделами «Сверка с ревью Astra» и новый план 11) сопоставлена с существующими карточками в подразделе «FC» ниже; новых причин не выявлено, новые ID не выдавались. Дополнение 2026-09-10 (второй проход): по решению владельца выдан [TI-078](#ti-078) (NEW-FOCUS-VIEW, план 13); строка в подразделе «BACKLOG и запросы владельца».
+
+### Astra — исходные ID
+
+| Исходный пункт | Записи / результат сопоставления |
+|---|---|
+| [Astra:S-01](/Users/dmitriy/code/taskindex/docs/audits/2026-09-08-multiside-review/01-stack.md:43) | [TI-012](#ti-012) |
+| [Astra:S-02](/Users/dmitriy/code/taskindex/docs/audits/2026-09-08-multiside-review/01-stack.md:74) | [TI-002](#ti-002) |
+| [Astra:S-03](/Users/dmitriy/code/taskindex/docs/audits/2026-09-08-multiside-review/01-stack.md:91) | [TI-013](#ti-013) |
+| [Astra:S-04](/Users/dmitriy/code/taskindex/docs/audits/2026-09-08-multiside-review/01-stack.md:101) | [TI-005](#ti-005) |
+| [Astra:S-05](/Users/dmitriy/code/taskindex/docs/audits/2026-09-08-multiside-review/01-stack.md:116) | [TI-018](#ti-018) |
+| [Astra:S-06](/Users/dmitriy/code/taskindex/docs/audits/2026-09-08-multiside-review/01-stack.md:128) | [TI-016](#ti-016) |
+| [Astra:S-07](/Users/dmitriy/code/taskindex/docs/audits/2026-09-08-multiside-review/01-stack.md:138) | [TI-024](#ti-024) |
+| [Astra:A-01](/Users/dmitriy/code/taskindex/docs/audits/2026-09-08-multiside-review/02-architecture.md:49) | [TI-007](#ti-007) |
+| [Astra:A-02](/Users/dmitriy/code/taskindex/docs/audits/2026-09-08-multiside-review/02-architecture.md:67) | [TI-012](#ti-012) |
+| [Astra:A-03](/Users/dmitriy/code/taskindex/docs/audits/2026-09-08-multiside-review/02-architecture.md:88) | [TI-014](#ti-014) |
+| [Astra:A-04](/Users/dmitriy/code/taskindex/docs/audits/2026-09-08-multiside-review/02-architecture.md:102) | [TI-015](#ti-015) |
+| [Astra:A-05](/Users/dmitriy/code/taskindex/docs/audits/2026-09-08-multiside-review/02-architecture.md:114) | [TI-019](#ti-019) |
+| [Astra:B-01](/Users/dmitriy/code/taskindex/docs/audits/2026-09-08-multiside-review/03-bugs.md:22) | [TI-001](#ti-001) |
+| [Astra:B-02](/Users/dmitriy/code/taskindex/docs/audits/2026-09-08-multiside-review/03-bugs.md:49) | [TI-003](#ti-003) |
+| [Astra:B-03](/Users/dmitriy/code/taskindex/docs/audits/2026-09-08-multiside-review/03-bugs.md:78) | [TI-004](#ti-004) |
+| [Astra:B-04](/Users/dmitriy/code/taskindex/docs/audits/2026-09-08-multiside-review/03-bugs.md:96) | [TI-008](#ti-008) |
+| [Astra:B-05](/Users/dmitriy/code/taskindex/docs/audits/2026-09-08-multiside-review/03-bugs.md:121) | [TI-009](#ti-009) |
+| [Astra:B-06](/Users/dmitriy/code/taskindex/docs/audits/2026-09-08-multiside-review/03-bugs.md:146) | [TI-010](#ti-010) |
+| [Astra:B-07](/Users/dmitriy/code/taskindex/docs/audits/2026-09-08-multiside-review/03-bugs.md:168) | [TI-011](#ti-011) |
+| [Astra:B-08](/Users/dmitriy/code/taskindex/docs/audits/2026-09-08-multiside-review/03-bugs.md:187) | [TI-006](#ti-006) |
+| [Astra:Q-01](/Users/dmitriy/code/taskindex/docs/audits/2026-09-08-multiside-review/04-code-quality.md:31) | [TI-019](#ti-019) |
+| [Astra:Q-02](/Users/dmitriy/code/taskindex/docs/audits/2026-09-08-multiside-review/04-code-quality.md:49) | [TI-020](#ti-020) |
+| [Astra:Q-03](/Users/dmitriy/code/taskindex/docs/audits/2026-09-08-multiside-review/04-code-quality.md:63) | [TI-021](#ti-021) |
+| [Astra:Q-04](/Users/dmitriy/code/taskindex/docs/audits/2026-09-08-multiside-review/04-code-quality.md:77) | [TI-022](#ti-022) |
+| [Astra:Q-05](/Users/dmitriy/code/taskindex/docs/audits/2026-09-08-multiside-review/04-code-quality.md:91) | [TI-017](#ti-017) |
+| [Astra:Q-06](/Users/dmitriy/code/taskindex/docs/audits/2026-09-08-multiside-review/04-code-quality.md:117) | [TI-023](#ti-023) |
+
+### FS — Fable
+
+| Исходный пункт | Записи / результат сопоставления |
+|---|---|
+| [FS:D1](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/review-1-stack.md:51) | [TI-012](#ti-012) |
+| [FS:D2](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/review-1-stack.md:60) | [TI-054](#ti-054), [TI-064](#ti-064) |
+| [FS:D3](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/review-1-stack.md:66) | [TI-064](#ti-064) |
+| [FS:S1](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/review-1-stack.md:74) | [TI-036](#ti-036) |
+| [FS:S2](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/review-1-stack.md:81) | [TI-036](#ti-036) |
+| [FS:S3](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/review-1-stack.md:87) | [TI-049](#ti-049) |
+| [FS:S4](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/review-1-stack.md:93) | [TI-019](#ti-019) |
+| [FS:S5](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/review-1-stack.md:95) | [TI-067](#ti-067) |
+| [FS:F1](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/review-1-stack.md:99) | [TI-025](#ti-025) |
+| [FS:F2](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/review-1-stack.md:104) | [TI-065](#ti-065) |
+| [FS:F3](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/review-1-stack.md:108) | [TI-024](#ti-024), [TI-056](#ti-056) |
+| [FS:F4](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/review-1-stack.md:113) | [TI-066](#ti-066) |
+| [FS:F5](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/review-1-stack.md:117) | Сохранить основу frontend: store/useSyncExternalStore, Base UI, DnD. Положительная оценка не закрывает конкретные UI/синхронизационные баги. [TI-003](#ti-003), [TI-007](#ti-007), [TI-018](#ti-018), [TI-042](#ti-042). |
+| [FS:Y1](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/review-1-stack.md:121) | SSE остаётся подходящим транспортом. Общее «реализация корректна» ограничено подтверждёнными revoke/snapshot и CLOSED/backlog сценариями. [TI-001](#ti-001), [TI-003](#ti-003), [TI-012](#ti-012), [TI-043](#ti-043). |
+| [FS:T1](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/review-1-stack.md:125) | [TI-066](#ti-066) |
+| [FS:T2](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/review-1-stack.md:127) | [TI-017](#ti-017) |
+| [FS:T3](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/review-1-stack.md:129) | В tsdown/tsx/oxfmt исходное ревью не нашло отдельной проблемы. Замена не планируется. |
+| [FS:P1](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/review-1-stack.md:133) | [TI-068](#ti-068) |
+| [FS:P2](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/review-1-stack.md:135) | [TI-068](#ti-068) |
+| [FS:P3](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/review-1-stack.md:137) | [TI-056](#ti-056) |
+| [FS:P4](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/review-1-stack.md:139) | Docker/Compose оправдан текущей схемой. Общая оценка rollback не закрывает идентичность config и проверку entrypoint. [TI-015](#ti-015), [TI-017](#ti-017), [TI-068](#ti-068). |
+| [FS:P5](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/review-1-stack.md:141) | Выбор Litestream сохраняется; file:// drill не подтверждает рабочие S3/VPS и постоянный контроль репликации. [TI-002](#ti-002), [TI-034](#ti-034). |
+| [FS:Z1](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/review-1-stack.md:145) | Точные пины и согласованный lockfile подтверждены исходным замером. Отдельной задачи на переписывание pin policy нет. [TI-028](#ti-028), [TI-065](#ti-065). |
+| [FS:Z2](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/review-1-stack.md:147) | [TI-024](#ti-024), [TI-065](#ti-065) |
+| [FS:Q1](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/review-1-stack.md:151) | Разбиение тестов по слоям и настоящие SQLite/Auth — сильная сторона. Конкретные слепые зоны учтены отдельно. [TI-021](#ti-021), [TI-069](#ti-069), [TI-070](#ti-070). |
+| [FS:Q2](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/review-1-stack.md:153) | [TI-069](#ti-069) |
+
+### FA — Fable
+
+| Исходный пункт | Записи / результат сопоставления |
+|---|---|
+| [FA:K1](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/review-2-architecture.md:59) | [TI-012](#ti-012) |
+| [FA:V1](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/review-2-architecture.md:67) | [TI-037](#ti-037) |
+| [FA:V2](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/review-2-architecture.md:72) | [TI-059](#ti-059) |
+| [FA:V3](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/review-2-architecture.md:74) | [TI-036](#ti-036) |
+| [FA:V4](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/review-2-architecture.md:78) | [TI-020](#ti-020) |
+| [FA:V5](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/review-2-architecture.md:81) | [TI-043](#ti-043) |
+| [FA:V6](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/review-2-architecture.md:84) | [TI-054](#ti-054) |
+| [FA:V7](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/review-2-architecture.md:87) | [TI-075](#ti-075) |
+| [FA:V8](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/review-2-architecture.md:90) | [TI-055](#ti-055) |
+| [FA:V9](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/review-2-architecture.md:93) | [TI-074](#ti-074) |
+| [FA:Ж1](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/review-2-architecture.md:97) | [TI-073](#ti-073) |
+| [FA:Ж2](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/review-2-architecture.md:98) | [TI-012](#ti-012) |
+| [FA:Ж3](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/review-2-architecture.md:99) | [TI-063](#ti-063) |
+| [FA:Ж4](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/review-2-architecture.md:100) | [TI-033](#ti-033) |
+| [FA:Ж5](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/review-2-architecture.md:101) | [TI-012](#ti-012) |
+| [FA:Ж6](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/review-2-architecture.md:102) | [TI-020](#ti-020), [TI-033](#ti-033), [TI-062](#ti-062) |
+| [FA:Ж7](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/review-2-architecture.md:103) | [TI-027](#ti-027) |
+| [FA:Ж8](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/review-2-architecture.md:104) | [TI-033](#ti-033) |
+| [FA:Ж9](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/review-2-architecture.md:105) | [TI-033](#ti-033) |
+| [FA:Ж10](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/review-2-architecture.md:106) | [TI-056](#ti-056) |
+| [FA:Ж11](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/review-2-architecture.md:107) | [TI-014](#ti-014) |
+| [FA:Ж12](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/review-2-architecture.md:108) | [TI-033](#ti-033) |
+| [FA:Ж13](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/review-2-architecture.md:109) | [TI-033](#ti-033) |
+
+### FB — Fable
+
+| Исходный пункт | Записи / результат сопоставления |
+|---|---|
+| [FB:B-01](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/review-3-bugs.md:9) | [TI-027](#ti-027) |
+| [FB:B-02](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/review-3-bugs.md:28) | [TI-027](#ti-027) |
+| [FB:B-03](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/review-3-bugs.md:44) | [TI-012](#ti-012) |
+| [FB:B-04](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/review-3-bugs.md:68) | [TI-038](#ti-038) |
+| [FB:B-05](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/review-3-bugs.md:86) | [TI-039](#ti-039) |
+| [FB:B-06](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/review-3-bugs.md:102) | [TI-040](#ti-040) |
+| [FB:B-07](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/review-3-bugs.md:117) | [TI-041](#ti-041) |
+| [FB:B-08](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/review-3-bugs.md:135) | [TI-042](#ti-042) |
+| [FB:B-09](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/review-3-bugs.md:145) | [TI-037](#ti-037) |
+| [FB:B-10](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/review-3-bugs.md:155) | [TI-056](#ti-056) |
+| [FB:B-11](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/review-3-bugs.md:165) | [TI-012](#ti-012) |
+| [FB:B-12](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/review-3-bugs.md:175) | [TI-057](#ti-057) |
+
+### FQ — Fable
+
+| Исходный пункт | Записи / результат сопоставления |
+|---|---|
+| [FQ:§1](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/review-4-quality.md:24) | [TI-059](#ti-059) |
+| [FQ:§2](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/review-4-quality.md:49) | [TI-010](#ti-010), [TI-029](#ti-029), [TI-060](#ti-060), [TI-071](#ti-071) |
+| [FQ:§3](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/review-4-quality.md:75) | [TI-004](#ti-004), [TI-019](#ti-019), [TI-023](#ti-023), [TI-046](#ti-046), [TI-059](#ti-059), [TI-060](#ti-060), [TI-061](#ti-061), [TI-070](#ti-070), [TI-071](#ti-071) |
+| [FQ:§4](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/review-4-quality.md:100) | [TI-005](#ti-005), [TI-019](#ti-019), [TI-022](#ti-022), [TI-071](#ti-071) |
+| [FQ:§5](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/review-4-quality.md:118) | [TI-020](#ti-020), [TI-046](#ti-046) |
+| [FQ:§6](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/review-4-quality.md:130) | [TI-023](#ti-023), [TI-025](#ti-025), [TI-059](#ti-059), [TI-071](#ti-071), [TI-074](#ti-074) |
+| [FQ:§7](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/review-4-quality.md:144) | [TI-012](#ti-012), [TI-062](#ti-062) |
+| [FQ:§8](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/review-4-quality.md:154) | [TI-044](#ti-044), [TI-045](#ti-045), [TI-059](#ti-059) |
+| [FQ:§9](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/review-4-quality.md:166) | [TI-021](#ti-021), [TI-058](#ti-058), [TI-069](#ti-069), [TI-070](#ti-070) |
+| [FQ:§10](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/review-4-quality.md:184) | [TI-017](#ti-017), [TI-024](#ti-024), [TI-033](#ti-033), [TI-062](#ti-062), [TI-066](#ti-066), [TI-071](#ti-071), [TI-072](#ti-072) |
+| [FQ:§11](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/review-4-quality.md:198) | Раздел содержит образцы хорошего и слабого кода; слабые места уже представлены в тематических записях, похвала не преобразуется в issue. [TI-012](#ti-012), [TI-019](#ti-019), [TI-020](#ti-020), [TI-059](#ti-059), [TI-071](#ti-071). |
+| [FQ:R1](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/review-4-quality.md:280) | [TI-019](#ti-019) |
+| [FQ:R2](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/review-4-quality.md:281) | [TI-019](#ti-019) |
+| [FQ:R3](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/review-4-quality.md:282) | [TI-049](#ti-049), [TI-059](#ti-059) |
+| [FQ:R4](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/review-4-quality.md:283) | [TI-059](#ti-059) |
+| [FQ:R5](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/review-4-quality.md:284) | [TI-023](#ti-023), [TI-059](#ti-059) |
+| [FQ:R6](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/review-4-quality.md:285) | [TI-025](#ti-025) |
+| [FQ:R7](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/review-4-quality.md:286) | [TI-060](#ti-060), [TI-062](#ti-062) |
+| [FQ:R8](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/review-4-quality.md:287) | [TI-005](#ti-005), [TI-022](#ti-022) |
+| [FQ:R9](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/review-4-quality.md:288) | [TI-024](#ti-024), [TI-071](#ti-071) |
+| [FQ:R10](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/review-4-quality.md:289) | [TI-044](#ti-044), [TI-045](#ti-045), [TI-052](#ti-052), [TI-058](#ti-058), [TI-059](#ti-059), [TI-061](#ti-061), [TI-070](#ti-070) |
+
+### FI — Fable
+
+| Исходный пункт | Записи / результат сопоставления |
+|---|---|
+| [FI:A1](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/review-5-ai-ready.md:62) | [TI-035](#ti-035) |
+| [FI:A2](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/review-5-ai-ready.md:66) | [TI-045](#ti-045) |
+| [FI:A3](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/review-5-ai-ready.md:70) | [TI-046](#ti-046) |
+| [FI:A4](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/review-5-ai-ready.md:74) | [TI-044](#ti-044), [TI-045](#ti-045) |
+| [FI:A5](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/review-5-ai-ready.md:78) | [TI-044](#ti-044) |
+| [FI:A6](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/review-5-ai-ready.md:82) | [TI-047](#ti-047) |
+| [FI:A7](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/review-5-ai-ready.md:86) | [TI-048](#ti-048) |
+| [FI:A8](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/review-5-ai-ready.md:90) | [TI-046](#ti-046) |
+| [FI:A9](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/review-5-ai-ready.md:94) | [TI-049](#ti-049) |
+| [FI:A10](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/review-5-ai-ready.md:98) | [TI-050](#ti-050) |
+| [FI:A11](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/review-5-ai-ready.md:102) | [TI-051](#ti-051) |
+| [FI:A12](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/review-5-ai-ready.md:104) | [TI-027](#ti-027) |
+| [FI:A13](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/review-5-ai-ready.md:107) | [TI-033](#ti-033), [TI-034](#ti-034), [TI-052](#ti-052) |
+| [FI:A14](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/review-5-ai-ready.md:111) | [TI-048](#ti-048) |
+| [FI:A15](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/review-5-ai-ready.md:113) | [TI-052](#ti-052) |
+| [FI:B1](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/review-5-ai-ready.md:117) | [TI-028](#ti-028), [TI-052](#ti-052) |
+| [FI:B2](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/review-5-ai-ready.md:121) | [TI-053](#ti-053) |
+| [FI:B3](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/review-5-ai-ready.md:125) | [TI-019](#ti-019) |
+| [FI:B4](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/review-5-ai-ready.md:129) | [TI-054](#ti-054) |
+| [FI:B5](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/review-5-ai-ready.md:133) | [TI-059](#ti-059) |
+| [FI:B6](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/review-5-ai-ready.md:137) | [TI-020](#ti-020), [TI-033](#ti-033), [TI-045](#ti-045), [TI-052](#ti-052), [TI-062](#ti-062) |
+| [FI:B7](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/review-5-ai-ready.md:145) | [TI-071](#ti-071) |
+| [FI:B8](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/review-5-ai-ready.md:148) | [TI-052](#ti-052), [TI-071](#ti-071) |
+| [FI:B9](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/review-5-ai-ready.md:151) | [TI-046](#ti-046) |
+| [FI:B10](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/review-5-ai-ready.md:154) | [TI-072](#ti-072) |
+
+### BACKLOG и запросы владельца
+
+| Исходное основание | Записи |
+|---|---|
+| NEW-DARK — запрос владельца | [TI-025](#ti-025) |
+| NEW-SKINS — запрос владельца | [TI-026](#ti-026) |
+| BL-AUTHORITY — [BACKLOG](/Users/dmitriy/code/taskindex/BACKLOG.md) | [TI-027](#ti-027) |
+| BL-NODE — [BACKLOG](/Users/dmitriy/code/taskindex/BACKLOG.md) | [TI-028](#ti-028) |
+| BL-FOCUS — [BACKLOG](/Users/dmitriy/code/taskindex/BACKLOG.md) | [TI-029](#ti-029) |
+| BL-LOCALIZATION — [BACKLOG](/Users/dmitriy/code/taskindex/BACKLOG.md) | [TI-030](#ti-030) |
+| BL-PLURALS — [BACKLOG](/Users/dmitriy/code/taskindex/BACKLOG.md) | [TI-031](#ti-031) |
+| BL-HISTORY — [BACKLOG](/Users/dmitriy/code/taskindex/BACKLOG.md) | [TI-032](#ti-032) |
+| BL-DOCS — [BACKLOG](/Users/dmitriy/code/taskindex/BACKLOG.md) | [TI-033](#ti-033) |
+| BL-ACCEPTANCE — [BACKLOG](/Users/dmitriy/code/taskindex/BACKLOG.md) | [TI-034](#ti-034) |
+| NEW-FOCUS-VIEW — решение владельца 2026-09-10, макет [focus.html](/Users/dmitriy/code/taskindex/docs/reference/visions-2026-09-08/focus.html), [план 13](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/13-focus-desk-view.md) | [TI-078](#ti-078) |
+
+### FC — сверка Fable (compare-bugs, compare-stack-arch, compare-quality-method) и планы 01–12
+
+Добавлено 2026-09-10. Каждая строка — пункт сверки или дополнение плана, которого реестр 2026-09-08 22:26 не мог видеть; все сопоставлены с существующими причинами. Ссылки на строки планов указывают на дополнительные шаги разделов «Сверка с ревью Astra».
+
+| Пункт сверки / дополнение плана | Источник | Записи |
+|---|---|---|
+| Повтор probe Astra B-01 с настоящим Better Auth (403 / 200 / `receivedPostRevocationTitle true`); тяжесть средняя для продукта (CLI опрашивает `/api/events`, не открывает SSE); проектировать вместе с кэшем `verifyApiKey`; подписчик SSE с `actor`/`credential`/`check` | [compare-bugs «Их B-01»](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/compare-bugs.md:51); [план 05, доп. шаги 10–12](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/05-auth-and-agent-keys.md:195); [план 06, доп. шаг 13](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/06-server-structure-config-logging.md:242) | [TI-001](#ti-001), [TI-036](#ti-036) |
+| Ключи `heartbeat-url`/`heartbeat-interval`/`addr` подтверждены в Litestream 0.5.12; конфигурация, `:?`-guard, приёмник в drill, раздел RPO | [compare-stack-arch S-02](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/compare-stack-arch.md:70); [план 11 §3.1](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/11-deploy-and-ops.md:98) | [TI-002](#ti-002) |
+| Откат после старого snapshot самовосстанавливается на следующем событии через `catchUp`; `refresh → catchUp()`, не понижать `seq` в одной generation | [compare-bugs «Их B-02»](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/compare-bugs.md:67); `extra-probes.mts` (c); [план 07, доп. шаг 22](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/07-web-client-fixes-and-structure.md:271) | [TI-003](#ti-003) |
+| Повтор probe B-03 (`maintenance` → exit 0, конверт удалён); схема ответа и `operationId`/`generation` перед `outbox.remove` | [compare-bugs «Их B-03»](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/compare-bugs.md:73); [план 03, доп. шаг 16](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/03-cli-outbox-and-ergonomics.md:291) | [TI-004](#ti-004) |
+| Клиентская валидация snapshot/SSE/ответов сохраняется; вариант «только сервер» снят; `zod/mini` по замеру; связность `operationId`/`generation` | [compare-stack-arch S-04](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/compare-stack-arch.md:104); [ASTRA-VS-FABLE §4.5](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/ASTRA-VS-FABLE.md:133); [план 04, доп. шаг 14](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/04-api-contract-and-schemas.md:291); [план 07, доп. шаг 26](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/07-web-client-fixes-and-structure.md:275) | [TI-005](#ti-005), [TI-024](#ti-024) |
+| Повтор probe B-08; отказ `submit` при `storage === undefined` и баннер | [compare-bugs «Их B-08»](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/compare-bugs.md:91); [план 07, доп. шаг 23](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/07-web-client-fixes-and-structure.md:272) | [TI-006](#ti-006) |
+| Детерминированный вариант A-01 без гонки: после отклонённого `task.move` база редактора застревает и переживает закрытие карточки через черновик; база из `confirmed` | [compare/a01-rejected-variant.mts](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/probes/compare/a01-rejected-variant.mts); [план 07, доп. шаг 24](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/07-web-client-fixes-and-structure.md:273) | [TI-007](#ti-007) |
+| `until=1` показывает все три операции, `since=0` — только `initial`, `digest` никогда не показывает отказы/no-op; `operationSeq`, страховка `since=0` = всё, правило для агентов, курсор CLI | `extra-probes.mts` (b); [план 04, доп. шаг 11](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/04-api-contract-and-schemas.md:288); [план 01, доп. шаг 15](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/01-performance-history-and-pagination.md:237); [план 02, доп. шаг 17](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/02-agent-permissions-and-sync-semantics.md:303); [план 03, доп. шаг 17](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/03-cli-outbox-and-ergonomics.md:292); [план 12, доп. шаг 13](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/12-ai-readiness-and-docs.md:440) | [TI-008](#ti-008), [TI-047](#ti-047) |
+| Второй путь к B-05: `checklist.add` с уже занятым `id` → 400 `invalid`, `operation get` 404, id переиспользуем; `assertInvariants` → `fail('invalid')` | `extra-probes.mts` (a); [план 04, доп. шаг 12](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/04-api-contract-and-schemas.md:289) | [TI-009](#ti-009) |
+| `by-origin` ломает только одиночный GET (`/history`, `/comments`, поиск работают); `RESERVED_IDS` и перенос маршрута на `/api/tasks/lookup/by-origin`; `ProjectFilter` как защита типов | `extra-probes.mts` (d); [план 04, доп. шаг 13](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/04-api-contract-and-schemas.md:290); [план 10, шаг 7](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/10-code-quality-and-tests.md:228) | [TI-010](#ti-010), [TI-011](#ti-011) |
+| Второй набор измерений Fable (14 / 32 / 65 мс; 3,3 → 35,7 мс; 95 / 108 мс), повтор бенчмарка Astra в пределах 7 %; правила «без retention ради скорости» и семантика пагинации по видам лент; маркер `list_changed_during_walk` | [compare-stack-arch «Бенчмарки»](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/compare-stack-arch.md:59); [ASTRA-VS-FABLE §4.6](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/ASTRA-VS-FABLE.md:139); [план 01, доп. шаги 12–16](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/01-performance-history-and-pagination.md:234) | [TI-012](#ti-012), [TI-037](#ti-037) |
+| S-03 и A-03 подтверждены повтором; `sha256` в журнале миграций с backfill; правило миграций данных, фикстура прежней версии, тест `migration-compat`; `schemaVersion` в снимке (сегодня только в `/health`) | [compare-stack-arch S-03, A-03](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/compare-stack-arch.md:76); [план 09, доп. шаги 11–12](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/09-data-layer-and-dependencies.md:213); [план 04, доп. шаг 15](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/04-api-contract-and-schemas.md:292); [план 06, доп. шаг 15](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/06-server-structure-config-logging.md:244) | [TI-013](#ti-013), [TI-014](#ti-014), [TI-054](#ti-054) |
+| `on_failure` не возвращает checkout: VPS остаётся на detached HEAD кандидата сразу после первого неудачного релиза; helpers в образе берутся из старого образа; снимок релиза и откат из него | [compare-stack-arch A-04](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/compare-stack-arch.md:87); [план 11 §3.2](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/11-deploy-and-ops.md:111) | [TI-015](#ti-015) |
+| Harness настоящего `deploy.sh` с матрицей `TASKINDEX_FAIL_AT` (две новые точки); CI-gate и образ `linux/amd64` вне VPS с label ревизии; `lint:shell`, `tsc` для `deploy/*.mjs`; `bash -n` чистый, shellcheck не установлен | [compare-quality-method Q-05](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/compare-quality-method.md:56); [compare-stack-arch S-06](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/compare-stack-arch.md:94); [план 11 §3.3–3.4](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/11-deploy-and-ops.md:123); [план 10, доп. шаги 20, 22](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/10-code-quality-and-tests.md:341) | [TI-016](#ti-016), [TI-017](#ti-017), [TI-068](#ti-068) |
+| Поправка: касания тестируются в Chromium-эмуляции (`isMobile`, `hasTouch`, CDP), не проверен именно WebKit; проект `webkit`; оценка Fable P3 при P2 реестра | [compare-stack-arch S-05](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/compare-stack-arch.md:98); [план 10, доп. шаг 21](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/10-code-quality-and-tests.md:342); [план 08, доп. шаг 17](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/08-styling-skin-and-dark-theme.md:251) | [TI-018](#ti-018) |
+| Следствие для неизвестной команды — `not_found`, не «молча»; `satisfies`/`keyof` для списков полей; инлайн-литералов ошибок 19, не 13 | [compare-quality-method Q-01](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/compare-quality-method.md:62); [план 10, доп. шаг 25](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/10-code-quality-and-tests.md:346) | [TI-019](#ti-019) |
+| Blanket `retryable:false` для не-SQLite ошибок отвергнут; граница — известность исхода, `post_commit_error` | [ASTRA-VS-FABLE §4.7](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/ASTRA-VS-FABLE.md:145); [план 06, доп. шаг 14](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/06-server-structure-config-logging.md:243) | [TI-020](#ti-020) |
+| Независимый оракул undo: явный список полей плюс страж, эталонная модель, движущееся время, генераторы с акторами и отказами | [compare-quality-method Q-03](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/compare-quality-method.md:54); [план 10, доп. шаг 19](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/10-code-quality-and-tests.md:340); [план 02, доп. шаг 18](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/02-agent-permissions-and-sync-semantics.md:304) | [TI-021](#ti-021) |
+| Повтор probe Q-04 побайтно совпал; три теста формы persisted данных, сырое значение сохраняется; схема конверта CLI и `.corrupt` | [compare-quality-method Q-04](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/compare-quality-method.md:58); [план 04, доп. шаг 16](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/04-api-contract-and-schemas.md:293); [план 03, доп. шаг 18](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/03-cli-outbox-and-ergonomics.md:293) | [TI-022](#ti-022), [TI-039](#ti-039) |
+| Три формы по-разному обращаются с `operationId` после `retryable:false`; одна таблица состояний намерения | [compare-quality-method Q-06](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/compare-quality-method.md:60); [план 07, доп. шаг 25](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/07-web-client-fixes-and-structure.md:274) | [TI-023](#ti-023) |
+| Факты плана 08: каскад вне `@layer`, 27 `!important`, 248 hex (126 уникальных), 78 селекторов в примитивы против 16 `data-slot`, мёртвый `.dark` и 33 `dark:`, 93 дубля, 25 мёртвых классов, `767px` ×6; одна база токенов, тема → скины; решение владельца тумблер/аккаунт/каталог | [план 08, сверка и доп. шаги 13–17](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/08-styling-skin-and-dark-theme.md:225); [README планов, «Решения владельца»](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/README.md:152) | [TI-025](#ti-025), [TI-026](#ti-026) |
+| Права агентов как дефект контракта (`/api/context` обещает сохранение ручных решений при undo, `app.ts:902`); единая матрица = `astra-27`; P0-часть не ждёт решения по прямым командам; Ж7/Ж8/Ж9 переоценены | [compare-bugs «Наши B-01/B-02»](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/compare-bugs.md:59); [ASTRA-VS-FABLE §4.8](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/ASTRA-VS-FABLE.md:151); [план 02, доп. шаги 16–18](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/02-agent-permissions-and-sync-semantics.md:302) | [TI-027](#ti-027) |
+| `dryRun` в `command_hash` — явный контракт, документировать; таблица сверки документации | [ASTRA-VS-FABLE §5 (Ж4)](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/ASTRA-VS-FABLE.md:174); [план 12, доп. шаг 11](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/12-ai-readiness-and-docs.md:438) | [TI-033](#ti-033) |
+| Собственный повтор общего outbox (`createdBy agent:codex`, A получает «Сохранённый конверт не найден»); каталог по серверу и агенту, `actorId` в конверте, `serverId()` не используется | [compare-bugs «Наш A1»](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/compare-bugs.md:63); [compare/shared-outbox.mts](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/probes/compare/shared-outbox.mts); [план 03 §3.1](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/03-cli-outbox-and-ergonomics.md:75) | [TI-035](#ti-035) |
+| Repro-скрипты Fable для дефектов web и CLI (`store-foreign-pending`, `outbox-stray*`, `name-conflict-current`, `drafts-scope`) и шаги планов; поправка Astra «линейный рост, не удвоение» принята | [probes/repro/](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/probes/README.md); [план 07, шаги 1–7](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/07-web-client-fixes-and-structure.md:153); [план 03, шаги 1, 3](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/03-cli-outbox-and-ergonomics.md:160) | [TI-038](#ti-038), [TI-039](#ti-039), [TI-040](#ti-040), [TI-041](#ti-041), [TI-042](#ti-042), [TI-043](#ti-043) |
+| Эргономика CLI и агента: `today`/`has-follow-up`, `me`, `spec.ts`/`help.ts`, `issues` и русская локаль Zod (проба `z.config(z.locales.ru())`), курсор, `inbox`, EPIPE, `--follow`, sandbox | [план 03, шаги 4–12](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/03-cli-outbox-and-ergonomics.md:171); [план 04, шаги 5–6](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/04-api-contract-and-schemas.md:186); [план 12 §3.3, шаг 3](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/12-ai-readiness-and-docs.md:261) | [TI-044](#ti-044), [TI-045](#ti-045), [TI-046](#ti-046), [TI-047](#ti-047), [TI-048](#ti-048), [TI-050](#ti-050), [TI-051](#ti-051), [TI-053](#ti-053) |
+| Поправка Astra 01-stack: потребители OpenAPI сегодня — два теста и `hc` для двух POST; `/api/context` через `z.toJSONSchema`; решение «оставить и сделать полезным»; проба `$ref`/`$defs` при `.meta({id})` | [compare-stack-arch S3](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/compare-stack-arch.md:123); [ASTRA-VS-FABLE §4.4](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/ASTRA-VS-FABLE.md:127); [план 04, сверка](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/04-api-contract-and-schemas.md:264) | [TI-049](#ti-049) |
+| `CLAUDE.md` направляет к `issues.md`, README планов и `ASTRA-INDEX.md`; namespace обязателен | [план 12, доп. шаг 12](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/12-ai-readiness-and-docs.md:439) | [TI-052](#ti-052) |
+| Allowlist `/health` в nginx, HSTS/`http2`/gzip, `secure-headers` и `Cache-Control` в приложении; dev bind `127.0.0.1`; содержимое `/health` не меняется | [compare-bugs, строки 10 и 12](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/compare-bugs.md:28); [ASTRA-VS-FABLE §4.9](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/ASTRA-VS-FABLE.md:155); [план 11 §3.5](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/11-deploy-and-ops.md:146); [план 06, шаг 4](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/06-server-structure-config-logging.md:135) | [TI-056](#ti-056), [TI-057](#ti-057) |
+| Оба ревью перезаписали `docs/reference/v2-validation` (Fable ~20:15, Astra 20:40:55); SHA-контроль 112 файлов без `docs/`; 4 из 8 сцен недетерминированы | [compare-quality-method (c)](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/compare-quality-method.md:68); [план 10, доп. шаг 24](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/10-code-quality-and-tests.md:345) | [TI-058](#ti-058), [TI-070](#ti-070) |
+| `TIMEZONE` только в migrate, `LOG_LEVEL` не читается, `BUILD ?? BUILD_ID`; `'Europe/Moscow'` ×4 в `src/` | [compare-quality-method, строка 27](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/compare-quality-method.md:47); [план 06, шаг 1](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/06-server-structure-config-logging.md:102); [план 11 §3.8](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/11-deploy-and-ops.md:169) | [TI-062](#ti-062) |
+| Инвалидация комментариев по `taskId` | [план 07, критерий 6](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/07-web-client-fixes-and-structure.md:62) | [TI-063](#ti-063) |
+| Гейт замером перед удалением `events` из `result` | [план 09, доп. шаг 13](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/09-data-layer-and-dependencies.md:215) | [TI-073](#ti-073) |
+| Три замера WAL на `/health` (0 байт на холостой `UPDATE`, 4 152 байта на реальную запись); объяснение через грязные страницы SQLite и `changes: 1` better-sqlite3 | [compare/health-wal-probe.mts](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/probes/compare/health-wal-probe.mts); [compare-stack-arch V7](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/compare-stack-arch.md:112) | [TI-075](#ti-075) |
+| `11-deploy-and-ops.md` целиком (heartbeat, снимок релиза, harness, gate и образ, nginx и заголовки, `--omit=optional`, `health.mjs` и гигиена shell, `--plan`/`bootstrap.sh`, env compose, `generation` вручную) | [11-deploy-and-ops.md](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/11-deploy-and-ops.md) | [TI-002](#ti-002), [TI-015](#ti-015), [TI-016](#ti-016), [TI-017](#ti-017), [TI-056](#ti-056), [TI-057](#ti-057), [TI-062](#ti-062), [TI-068](#ti-068), [TI-072](#ti-072); только ссылка: [TI-028](#ti-028), [TI-034](#ti-034) |
+
+Кандидаты в новые карточки, отклонённые после сопоставления с причиной: «SSE-хаб без актора у подписчика» — часть [TI-001](#ti-001); «хардкод `'Europe/Moscow'` ×4» — [TI-062](#ti-062); «комментарии: два источника правды» — [TI-063](#ti-063); «EPIPE» — [TI-050](#ti-050); «e2e-скриншоты недетерминированы в 4 сценах» — [TI-058](#ti-058), [TI-070](#ti-070); «`--json` no-op» — [TI-045](#ti-045), [TI-033](#ti-033); «`dryRun` входит в `command_hash`» — явный контракт, [TI-033](#ti-033). Новых ID не выдано.
+
+<a id="maintenance"></a>
+
+## Как вести реестр дальше
+
+1. Новую находку сначала сопоставлять с существующей причиной. При совпадении добавлять источник/сценарий в текущую карточку; новый ID выдавать последовательно и никогда не переиспользовать удалённый номер.
+2. Актуальные статус и критерий закрытия хранить здесь. Не синхронизировать вручную чекбоксы всех исторических отчётов и BACKLOG. Отчёты сохраняют состояние на дату проверки.
+3. Ссылка на план означает связанную работу, иногда частично покрывающую issue. Перед реализацией актуализировать выбранный план под карточку и решение владельца; наличие двух планов не означает две независимые переделки.
+4. Переход в «В РАБОТЕ» сопровождать ссылкой на ветку/задачу или рабочий план. В «ИСПРАВЛЕНО» — только после реализации со ссылкой на commit/PR или проверенный diff, результатом исходного сценария и датой. В этом документе сейчас нет записей «ИСПРАВЛЕНО».
+5. Для «РЕШЕНИЕ» записывать выбранный вариант, кем/когда принят, последствия и оставшийся объём. Для «ОТЛОЖЕНО»/«ОТКЛОНЕНО» сохранять причину. Для «СНЯТО» — доказательство, а не просто отсутствие повторного наблюдения.
+6. В рабочую приёмку включать все критерии соответствующей записи: зелёный unit-тест не подменяет browser, production serving, реальный телефон или проверку резервирования. Не повторять проверки без изменения/новой неопределённости только ради увеличения счётчика.
+
+### Журнал изменений
+
+**2026-09-10 — дополнение Fable по итогам сверки.** Основание: [compare-bugs.md](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/compare-bugs.md), [compare-stack-arch.md](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/compare-stack-arch.md), [compare-quality-method.md](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/compare-quality-method.md), разделы «Сверка с ревью Astra (2026-09-08)» планов 01–12 и новый [11-deploy-and-ops.md](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/11-deploy-and-ops.md), артефакты в [probes/](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/probes/README.md). Все `файл:строка` сверены с рабочим деревом 2026-09-10. Текст Astra не менялся и не удалялся; дополнения помечены «Сверка Fable:» или «Дополнение 2026-09-10».
+
+- Карточек затронуто: 58. Новых карточек нет; все кандидаты сопоставлены с существующими причинами (список в подразделе «FC» покрытия). Статусы и приоритеты индекса не менялись.
+- Поля «Источники», «Проверка и ограничения», «Детали и оговорки», «Связанные планы»: [TI-001](#ti-001), [TI-002](#ti-002), [TI-003](#ti-003), [TI-004](#ti-004), [TI-005](#ti-005), [TI-006](#ti-006), [TI-007](#ti-007), [TI-008](#ti-008), [TI-009](#ti-009), [TI-010](#ti-010), [TI-011](#ti-011), [TI-013](#ti-013), [TI-014](#ti-014), [TI-015](#ti-015), [TI-016](#ti-016), [TI-017](#ti-017), [TI-018](#ti-018), [TI-021](#ti-021), [TI-022](#ti-022), [TI-023](#ti-023), [TI-037](#ti-037), [TI-062](#ti-062), [TI-068](#ti-068).
+- Поля «Источники», «Проверка и ограничения», «Детали и оговорки» (раздел «Детали» добавлен по шаблону там, где его не было): [TI-012](#ti-012), [TI-020](#ti-020), [TI-025](#ti-025), [TI-026](#ti-026), [TI-027](#ti-027), [TI-035](#ti-035), [TI-036](#ti-036), [TI-038](#ti-038), [TI-039](#ti-039), [TI-040](#ti-040), [TI-041](#ti-041), [TI-042](#ti-042), [TI-043](#ti-043), [TI-049](#ti-049), [TI-058](#ti-058).
+- Поля «Источники», «Проверка и ограничения», «Связанные планы»: [TI-024](#ti-024). Поля «Источники», «Проверка и ограничения»: [TI-019](#ti-019), [TI-033](#ti-033), [TI-044](#ti-044), [TI-045](#ti-045), [TI-046](#ti-046), [TI-047](#ti-047), [TI-048](#ti-048), [TI-050](#ti-050), [TI-051](#ti-051), [TI-052](#ti-052), [TI-053](#ti-053), [TI-054](#ti-054), [TI-063](#ti-063), [TI-070](#ti-070).
+- Поля «Источники», «Проверка и ограничения», «План» (ссылка на появившийся подробный план): [TI-056](#ti-056), [TI-057](#ti-057), [TI-072](#ti-072), [TI-073](#ti-073), [TI-075](#ti-075); у [TI-056](#ti-056), [TI-072](#ti-072) также «Детали и оговорки».
+- Предложения по приоритету, ждут решения владельца, индекс не менялся: [TI-027](#ti-027) P2 → P1 (решение блокирует приёмку; текст правил `/api/context` обещает то, чего код не обеспечивает); [TI-036](#ti-036) P2 → P1 (auth-запись минует порядок `writes: held`, правится тем же кодом, что TI-001, до переключения); [TI-056](#ti-056) P3 → P2 (allowlist `/health` и заголовки — P0 до переключения по плану 11, цена одна правка nginx и один middleware). Записаны внутри карточек строкой «Предложение Fable» и кратко в «С чего начать».
+- Разногласия по тяжести записаны в обе стороны без правки индекса: Astra B-01 (TI-001) средняя по продукту при P1 реестра; S-05 (TI-018) P3 по Fable при P2 реестра; TI-003/TI-004/TI-006/TI-009 низкая по сверке при P2 реестра, исправления тем не менее в ближних волнах планов из-за малой цены.
+- Поправки фактов: TI-018 «touch drag не проверен» неточно; TI-049 «OpenAPI потребляется агентами/CLI» не соответствует коду; TI-058 оба ревью перезаписали `docs/reference/v2-validation`, SHA-контроль не включал `docs/`; TI-041 «удвоение» → линейный рост (поправка Astra принята); TI-014 `schemaVersion` в `Snapshot` отсутствует, только в `/health`.
+- Шапка: две строки в таблице источников (FC, пробы Fable), фраза о пробах Fable в абзаце «Сохранённые проверки»; «Покрытие исходных отчётов»: подраздел «FC» и фраза во вводном абзаце.
+
+**2026-09-10 — решения владельца (делегированы Fable).** Основание: владелец 2026-09-10 делегировал спорные решения Fable и отдельно подтвердил, что нужны скины и раскладка макета «Фокус» ([README планов, «Решения владельца»](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/README.md:148)); разделы «Решение владельца (2026-09-10, делегировано Fable)» в планах [01](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/01-performance-history-and-pagination.md:240), [02](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/02-agent-permissions-and-sync-semantics.md:306), [04](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/04-api-contract-and-schemas.md:295), [05](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/05-auth-and-agent-keys.md:199), [06](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/06-server-structure-config-logging.md:246), [07](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/07-web-client-fixes-and-structure.md:277), [08](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/08-styling-skin-and-dark-theme.md:253), [09](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/09-data-layer-and-dependencies.md:217), [11](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/11-deploy-and-ops.md:398), [12](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/12-ai-readiness-and-docs.md:443); новый план [13-focus-desk-view.md](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/13-focus-desk-view.md) и восстановленные макеты [docs/reference/visions-2026-09-08/](/Users/dmitriy/code/taskindex/docs/reference/visions-2026-09-08/README.md). Атрибуция в карточках: «Принято 2026-09-10; решение делегировано владельцем Fable, владелец отдельно подтвердил скины и раскладку „Фокус“» (полная форма у карточек РЕШЕНИЕ и TI-078, короткая «принято 2026-09-10; решение делегировано владельцем Fable» в строках «Решение»). Все `файл:строка` сверены с рабочим деревом 2026-09-10. Прежний текст карточек не менялся и не удалялся; правки in-place только в поле «Приоритет» трёх карточек, соответствующих ячейках индекса и таблице «С чего начать».
+
+- Изменения приоритета (индекс + карточка): [TI-027](#ti-027) P2 → P1, [TI-036](#ti-036) P2 → P1, [TI-056](#ti-056) P3 → P2 — три предложения Fable первого прохода приняты. Статусы не менялись.
+- Новая карточка: [TI-078](#ti-078) — Вид «Стол» для экрана Focus по макету «Фокус» (Продуктовая работа, РЕШЕНИЕ, P2, план 13); строка в индексе, строка NEW-FOCUS-VIEW в «Покрытие исходных отчётов» → «BACKLOG и запросы владельца», очередь 7 в «С чего начать», строка в таблице источников.
+- Абзац «Выбранный вариант» (правило 5: вариант, кем/когда, последствия, оставшийся объём) у карточек со статусом РЕШЕНИЕ: [TI-025](#ti-025), [TI-026](#ti-026), [TI-027](#ti-027), [TI-029](#ti-029), [TI-056](#ti-056), [TI-057](#ti-057), [TI-064](#ti-064), [TI-068](#ti-068). [TI-073](#ti-073) без изменений (гейт замера уже записан строкой «Сверка Fable»); [TI-077](#ti-077) без решения.
+- Строка «Решение» в «Детали и оговорки»: [TI-001](#ti-001), [TI-002](#ti-002), [TI-005](#ti-005), [TI-008](#ti-008), [TI-012](#ti-012), [TI-013](#ti-013), [TI-014](#ti-014), [TI-015](#ti-015), [TI-016](#ti-016), [TI-017](#ti-017), [TI-020](#ti-020), [TI-024](#ti-024), [TI-033](#ti-033), [TI-036](#ti-036), [TI-037](#ti-037), [TI-045](#ti-045), [TI-049](#ti-049), [TI-052](#ti-052), [TI-054](#ti-054) (раздел «Детали и оговорки» добавлен по шаблону), [TI-062](#ti-062). Итого затронуто 28 существующих карточек и добавлена одна.
+- Шапка: 77 → 78 записей; пересчёт состава: **48 открытых замечаний, 18 предложений, 11 вопросов для решения, 1 снятая гипотеза**; приоритеты в индексе: P1 — 5 (TI-001, TI-002, TI-027, TI-035, TI-036), P2 — 57, P3 — 15, без приоритета — 1 (TI-075). «С чего начать»: очередь 1 получила TI-036 и TI-027, очередь 5 оставлена с TI-012, очередь 6 уточнена по решению, добавлены очереди 7 (TI-078) и 8 (TI-056, TI-057); абзац о предложениях Fable помечен как первый проход, добавлен абзац второго прохода. Таблица источников: строка «Решения владельца 2026-09-10, план 13 и макеты».

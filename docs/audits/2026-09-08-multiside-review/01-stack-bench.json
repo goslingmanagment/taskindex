@@ -1,0 +1,89 @@
+{
+  "node": "v24.20.0",
+  "platform": "darwin",
+  "arch": "arm64",
+  "note": "Synthetic in-memory SQLite; no network, fsync or HTTP/auth included. Seeded history is structurally representative, not a domain-valid export.",
+  "results": [
+    {
+      "taskCount": 100,
+      "eventCountBefore": 0,
+      "singleUpdateMedianMs": 1.3025420000000167,
+      "timingsMs": [
+        2.810333000000014,
+        1.4789580000000342,
+        5.887167000000034,
+        1.3922919999999976,
+        1.3025420000000167,
+        1.2624999999999886,
+        1.1274589999999876
+      ]
+    },
+    {
+      "taskCount": 1000,
+      "eventCountBefore": 0,
+      "singleUpdateMedianMs": 8.498707999999965,
+      "timingsMs": [
+        10.046917000000008,
+        8.461332999999968,
+        8.673374999999965,
+        8.498707999999965,
+        8.539915999999948,
+        8.423999999999978,
+        8.383624999999938
+      ]
+    },
+    {
+      "taskCount": 5000,
+      "eventCountBefore": 0,
+      "singleUpdateMedianMs": 63.186500000000024,
+      "timingsMs": [
+        61.407375,
+        64.88149999999996,
+        63.5763750000001,
+        58.98241699999994,
+        63.268542000000025,
+        62.70383300000003,
+        63.186500000000024
+      ]
+    },
+    {
+      "taskCount": 1,
+      "eventCountBefore": 1000,
+      "singleUpdateMedianMs": 4.803667000000132,
+      "timingsMs": [
+        5.113374999999905,
+        4.6319579999999405,
+        4.803667000000132,
+        4.536624999999958,
+        5.001875000000155
+      ],
+      "operationLookupFullScanMs": 21.237124999999878
+    },
+    {
+      "taskCount": 1,
+      "eventCountBefore": 10000,
+      "singleUpdateMedianMs": 45.040083000000095,
+      "timingsMs": [
+        42.962041,
+        43.38358399999993,
+        45.040083000000095,
+        46.9541670000001,
+        42.98933299999999
+      ],
+      "operationLookupFullScanMs": 228.71683400000006
+    },
+    {
+      "taskCount": 1,
+      "eventCountBefore": 50000,
+      "singleUpdateMedianMs": 250.41800000000012,
+      "timingsMs": [
+        249.93754199999967,
+        255.19066599999996,
+        244.01575000000003,
+        240.9090000000001,
+        250.41800000000012
+      ],
+      "operationLookupFullScanMs": 1039.482625
+    }
+  ]
+}

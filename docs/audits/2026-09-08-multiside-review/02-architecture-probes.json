@@ -1,0 +1,84 @@
+{
+  "runtime": "v24.20.0",
+  "optimisticRevisionUsedAsPrecondition": {
+    "before": {
+      "confirmedRevision": 1,
+      "editorBaseRevision": 2,
+      "pendingIds": [
+        "delayed-move"
+      ]
+    },
+    "rejected": {
+      "status": 400,
+      "detail": {
+        "ok": false,
+        "code": "invalid",
+        "message": "Базовая версия из будущего.",
+        "retryable": false,
+        "operationId": "dependent-editor-save",
+        "generation": "55608201-02a3-4057-abbe-65c0ef3fcb6b"
+      }
+    },
+    "firstAccepted": true,
+    "after": {
+      "id": "task-1",
+      "area": "agency",
+      "projectId": null,
+      "title": "Original",
+      "status": "doing",
+      "note": "",
+      "due": null,
+      "waitingFor": "",
+      "followUp": null,
+      "orderKey": "a0",
+      "focus": false,
+      "archived": false,
+      "originSystem": null,
+      "originRef": null,
+      "originUrl": null,
+      "originVersion": null,
+      "createdBy": "owner",
+      "createdByLabel": "Synthetic Owner",
+      "ownerTouchedAt": "2026-09-08T17:45:11.936Z",
+      "ownerFields": [
+        "archived",
+        "area",
+        "checklist",
+        "due",
+        "focus",
+        "followUp",
+        "note",
+        "orderKey",
+        "originUrl",
+        "projectId",
+        "status",
+        "title",
+        "waitingFor"
+      ],
+      "revision": 2,
+      "createdAt": "2026-09-08T17:45:11.936Z",
+      "updatedAt": "2026-09-08T17:45:11.946Z",
+      "checklist": [],
+      "commentCount": 0
+    },
+    "unresolvedStorage": []
+  },
+  "rowOnlyDataMigrationContract": {
+    "healthy": {
+      "ok": true,
+      "generation": "90fb429e-3fc3-451f-9ab8-b80821b7be21",
+      "seq": 1,
+      "dbWritable": true,
+      "schemaVersion": 1,
+      "build": "development",
+      "writes": "open"
+    },
+    "generationUnchanged": true,
+    "exportProduced": true,
+    "importRejected": {
+      "name": "DomainError",
+      "message": "Повреждённый экспорт: состояние записей не совпадает с журналом событий."
+    },
+    "classification": "Architectural risk for future data/schema migrations; deliberately simulated row-only transform, not a present v1 corruption."
+  }
+}

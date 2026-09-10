@@ -1,0 +1,120 @@
+import { randomUUID } from 'node:crypto';
+import {
+  openDatabase,
+  migrate,
+  generation,
+  readState,
+} from '../../src/server/db.js';
+import { createApp } from '../../src/server/app.js';
+import type {
+  Actor,
+  Command,
+  OperationResponse,
+  OperationSuccess,
+} from '../../src/shared/model.js';
+export const owner: Actor = {
+  id: 'owner',
+  label: 'Владелец',
+  kind: 'owner',
+  scope: 'write',
+};
+export const agent: Actor = {
+  id: 'agent:test-agent',
+  agentId: 'test-agent',
+  label: 'Тестовый агент',
+  kind: 'agent',
+  scope: 'write',
+};
+export function fixture(mode: 'held' | 'open' = 'open') {
+  const db = openDatabase(':memory:');
+  migrate(db);
+  const app = createApp({
+    db,
+    baseURL: 'http://localhost:3001',
+    trustedOrigins: ['http://localhost:5173'],
+    writes: mode,
+    deploymentId: 'test-deploy',
+    now: () => '2026-09-08T12:00:00.000Z',
+    authorize: (r) =>
+      r.headers.get('x-test-role') === 'none'
+        ? null
+        : r.headers.get('x-test-role') === 'agent'
+          ? agent
+          : r.headers.get('x-test-role') === 'tasks'
+            ? { ...agent, scope: 'tasks' }
+            : r.headers.get('x-test-role') === 'read'
+              ? { ...agent, scope: 'read' }
+              : owner,
+  });
+  async function post(
+    command: Command,
+    options: {
+      id?: string;
+      gen?: string;
+      role?: string;
+      dryRun?: boolean;
+    } = {},
+  ) {
+    const response = await app.request('/api/commands', {
+      method: 'POST',
+      headers: {
+        'content-type': 'application/json',
+        origin: 'http://localhost:5173',
+        'x-test-role': options.role ?? 'owner',
+      },
+      body: JSON.stringify({
+        ...command,
+        operationId: options.id ?? randomUUID(),
+        generation: options.gen ?? generation(db),
+        dryRun: options.dryRun ?? false,
+      }),
+    });
+    return {
+      status: response.status,
+      body: (await response.json()) as OperationResponse,
+    };
+  }
+  async function batch(
+    commands: Command[],
+    options: {
+      id?: string;
+      role?: string;
+      gen?: string;
+      dryRun?: boolean;
+    } = {},
+  ) {
+    const response = await app.request('/api/commands/batch', {
+      method: 'POST',
+      headers: {
+        'content-type': 'application/json',
+        origin: 'http://localhost:5173',
+        'x-test-role': options.role ?? 'owner',
+      },
+      body: JSON.stringify({
+        commands,
+        operationId: options.id ?? randomUUID(),
+        generation: options.gen ?? generation(db),
+        dryRun: options.dryRun ?? false,
+      }),
+    });
+    return {
+      status: response.status,
+      body: (await response.json()) as OperationResponse,
+    };
+  }
+  return {
+    db,
+    app,
+    post,
+    batch,
+    state: () => readState(db),
+    close: () => {
+      app.closeStreams();
+      db.close();
+    },
+  };
+}
+export const success = (r: { body: OperationResponse }): OperationSuccess => {
+  if (!r.body.ok) throw new Error(JSON.stringify(r.body));
+  return r.body;
+};

@@ -1,0 +1,62 @@
+name: taskindex
+services:
+  app:
+    image: ${TASKINDEX_IMAGE:?Set TASKINDEX_IMAGE to an immutable release tag}
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile
+      args:
+        BUILD: ${TASKINDEX_BUILD:-local}
+    environment:
+      DATABASE_PATH: /data/taskindex.db
+      BASE_URL: ${BASE_URL:?Set the real HTTPS URL}
+      BETTER_AUTH_SECRET: ${BETTER_AUTH_SECRET:?Supply using op run}
+      TIMEZONE: ${TIMEZONE:-Europe/Moscow}
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+      BUILD: ${TASKINDEX_BUILD:-local}
+      PORT: '3000'
+      TASKINDEX_WRITES: held
+      TASKINDEX_DEPLOYMENT: ${TASKINDEX_DEPLOYMENT:?Set a unique deployment attempt ID}
+    ports:
+      - '127.0.0.1:3100:3000'
+    volumes:
+      - data:/data
+    restart: unless-stopped
+    stop_grace_period: 20s
+    healthcheck:
+      test:
+        [
+          'CMD',
+          'node',
+          '-e',
+          "fetch('http://127.0.0.1:3000/health').then(async r=>{const h=await r.json();process.exit(r.ok&&h.ok?0:1)}).catch(()=>process.exit(1))",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+      start_period: 10s
+    logging:
+      driver: json-file
+      options: { max-size: '10m', max-file: '3' }
+  litestream:
+    image: litestream/litestream:0.5.12
+    user: '1000:1000'
+    command: ['replicate', '-config', '/etc/litestream.yml']
+    environment:
+      LITESTREAM_REPLICA_URL: ${LITESTREAM_REPLICA_URL:?Set an isolated S3 replica prefix}
+      LITESTREAM_S3_ENDPOINT: ${LITESTREAM_S3_ENDPOINT:-}
+      LITESTREAM_S3_REGION: ${LITESTREAM_S3_REGION:-us-east-1}
+      LITESTREAM_FORCE_PATH_STYLE: ${LITESTREAM_FORCE_PATH_STYLE:-false}
+      AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID:?Supply using op run}
+      AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY:?Supply using op run}
+    volumes:
+      - data:/data
+      - ./litestream.yml:/etc/litestream.yml:ro
+    restart: unless-stopped
+    stop_grace_period: 40s
+    logging:
+      driver: json-file
+      options: { max-size: '10m', max-file: '3' }
+volumes:
+  data:
+    name: ${TASKINDEX_VOLUME:-taskindex_data}

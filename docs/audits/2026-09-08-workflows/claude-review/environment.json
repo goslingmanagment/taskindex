@@ -1,0 +1,21 @@
+{
+  "archive": {
+    "path": "/Users/dmitriy/Backups/taskindex/before-main-consolidation-20260908-171413.tar.gz",
+    "sizeBytes": 3397294,
+    "mode": "0o600",
+    "gzipIntegrity": "passed",
+    "regularFiles": 289,
+    "containsWranglerState": true,
+    "containsVisions": true,
+    "envFiles": 1,
+    "restoreTested": false
+  },
+  "node": {
+    "temporary24": "v24.20.0",
+    "default": "v26.7.0",
+    "homebrewNode24": "v26.7.0"
+  },
+  "head": "4b780e42292e8702eee0f906acb77d5aa34ab7c1",
+  "branches": "* main\n  remotes/origin/main",
+  "worktrees": "worktree /Users/dmitriy/code/taskindex\nHEAD 4b780e42292e8702eee0f906acb77d5aa34ab7c1\nbranch refs/heads/main"
+}

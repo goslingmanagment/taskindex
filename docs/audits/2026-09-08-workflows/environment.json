@@ -1,0 +1,22 @@
+{
+  "auditedAt": "2026-09-08",
+  "timezone": "Europe/Moscow",
+  "root": "/Users/dmitriy/code/taskindex",
+  "gitHead": "4b780e42292e8702eee0f906acb77d5aa34ab7c1",
+  "subject": "uncommitted TaskIndex v2 working tree, not HEAD alone",
+  "node": "24.20.0",
+  "nodeBin": "/tmp/taskindex-v2-tools/node-v24.20.0-darwin-arm64/bin",
+  "manualOrigin": "http://localhost:4173",
+  "compiledOrigin": "http://localhost:4211",
+  "existingE2EOrigin": "http://localhost:4197",
+  "regressionOrigin": "http://localhost:4198",
+  "realProductionTouched": false,
+  "sourceFilesHashed": 98,
+  "manualFixtureDirectory": "/var/folders/7y/wmt08_d95vn9dlsf0n6yc8rr0000gn/T/taskindex-e2e-9qSy86",
+  "cleanup": {
+    "manualAndCompiledServers": "SIGTERM sent to audit-owned PIDs 94967 and 17976",
+    "viewportOverride": "reset",
+    "offlineEmulation": "restored online",
+    "dockerDrill": "stopped by drill script; volume retained"
+  }
+}

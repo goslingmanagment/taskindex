@@ -1,0 +1,37 @@
+{
+  "baseline": "../source-sha256.json",
+  "changed": [
+    "src/server/app.ts",
+    "src/server/operations.ts",
+    "src/web/app/activity.tsx",
+    "src/web/app/board.tsx",
+    "src/web/app/dialogs.tsx",
+    "src/web/app/drafts.ts",
+    "src/web/app/editor.tsx",
+    "src/web/app/store.ts",
+    "src/web/app/sync.ts",
+    "src/web/main.tsx",
+    "src/web/styles.css",
+    "tests/api/recovery-and-history.test.ts",
+    "tests/e2e/workspace.spec.ts"
+  ],
+  "addedTests": [
+    "tests/web/drafts.test.ts",
+    "tests/e2e/regressions.spec.ts"
+  ],
+  "updatedContract": "docs/plans/2026-09-08-taskindex-v2.md",
+  "check": {
+    "testsPassed": 75,
+    "testFilesPassed": 14,
+    "typecheck": "passed",
+    "lint": "passed",
+    "format": "passed"
+  },
+  "e2e": {
+    "passed": 18,
+    "baseline": 8,
+    "regressions": 10
+  },
+  "build": "passed",
+  "node": "24.20.0"
+}

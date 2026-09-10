@@ -1,0 +1,104 @@
+- generic: TaskIndex
+- list:
+  - button "Фокус":
+    - generic: Фокус
+  - button "Активность":
+    - generic: Активность
+  - button "Агентство":
+    - generic: Агентство
+  - button "Разработка":
+    - generic: Разработка
+  - button "Личное":
+    - generic: Личное
+- generic: Проекты
+- list:
+  - button "Все задачи":
+    - generic: Все задачи
+  - button "QA Продукт":
+    - generic: QA Продукт
+  - button "Без направления":
+    - generic: Без направления
+- button "Добавить проект":
+  - text: Добавить проект
+- button "Архив":
+  - text: Архив
+- button "Дмитрий"
+- generic: Приватно
+- main:
+  - button "Разработка":
+    - text: Разработка
+  - heading "QA Продукт" [level=1]
+  - button "Открыть поиск":
+  - textbox "Найти во всех областях":
+    - /placeholder: Найти во всех областях…
+  - generic: ⌘ K
+  - button "Добавить задачу":
+    - generic: Задача
+  - tablist "Вид задач":
+    - tab "Доска" [selected]:
+      - text: Доска
+    - tab "Список":
+      - text: Список
+  - tabpanel "Доска": Задачи по колонкам
+  - checkbox "На сегодня"
+  - checkbox
+  - generic: На сегодня
+  - button "Настройки доски":
+  - heading "Очередь" [level=2]
+  - generic: "3"
+  - article:
+    - 'button "Открыть: QA Сегодня проверить сборку"'
+    - 'button "Завершить: QA Сегодня проверить сборку"':
+    - heading "QA Сегодня проверить сборку" [level=3]
+    - text: Сегодня
+    - 'button "Действия: QA Сегодня проверить сборку"': ···
+    - 'button "Перетащить: QA Сегодня проверить сборку"':
+  - article:
+    - 'button "Открыть: QA Потом проверить импорт"'
+    - 'button "Завершить: QA Потом проверить импорт"':
+    - heading "QA Потом проверить импорт" [level=3]
+    - text: 15 сент
+    - 'button "Действия: QA Потом проверить импорт"': ···
+    - 'button "Перетащить: QA Потом проверить импорт"':
+  - article:
+    - 'button "Открыть: QA Один раз"'
+    - 'button "Завершить: QA Один раз"':
+    - heading "QA Один раз" [level=3]
+    - 'button "Действия: QA Один раз"': ···
+    - 'button "Перетащить: QA Один раз"':
+  - textbox "Название новой задачи" [active]:
+    - /placeholder: Что нужно сделать?
+    - text: QA Один раз
+  - button "Добавить"
+  - button "Закрыть добавление":
+  - heading "В работе" [level=2]
+  - generic: "1"
+  - article:
+    - 'button "Открыть: QA В работе документация"'
+    - 'button "Завершить: QA В работе документация"':
+    - heading "QA В работе документация" [level=3]
+    - 'button "Действия: QA В работе документация"': ···
+    - 'button "Перетащить: QA В работе документация"':
+  - button "Добавить задачу":
+    - text: Добавить задачу
+  - heading "Жду" [level=2]
+  - generic: "0"
+  - generic: Ничего не ждёт ответа
+  - button "Добавить задачу":
+    - text: Добавить задачу
+  - heading "Готово" [level=2]
+  - generic: "1"
+  - article:
+    - 'button "Открыть: QA Готовая задача"'
+    - button "Вернуть в очередь":
+    - heading "QA Готовая задача" [level=3]
+    - 'button "Действия: QA Готовая задача"': ···
+    - 'button "Перетащить: QA Готовая задача"':
+  - button "Добавить задачу":
+    - text: Добавить задачу
+  - status
+- region "Notifications":
+  - dialog "Задача добавлена":
+    - heading "Задача добавлена" [level=2]
+    - button "Открыть"
+    - button:

@@ -1,0 +1,14 @@
+### E1. sync v4 after owner locked status/title (owner also touched -> projectId/status/area locked)
+{"ok":true,"r":{"applied":["note","due"],"skipped":[{"field":"area","reason":"locked"},{"field":"projectId","reason":"locked"},{"field":"title","reason":"owner"},{"field":"status","reason":"owner"}],"reason":null,"rec":{"status":"done","title":"Заголовок владельца","note":"v4","projectId":null,"due":"2026-09-12","originVersion":"4"}}}
+### E2. stale repeat (v4 again) shows reason
+{"applied":null,"skipped":"all","reason":"stale"}
+### E3. EPIPE reproduction: taskindex tasks --all | head -c 50
+{"generation":"95194beb-005f-4f54-84b8-ba46ae3f8c2
+--- CLI stderr (first 4 lines):
+node:events:505
+    throw er; // Unhandled 'error' event
+    ^
+
+--- exit code of CLI: 0
+### E4. follow noise: 3 polls
+       2

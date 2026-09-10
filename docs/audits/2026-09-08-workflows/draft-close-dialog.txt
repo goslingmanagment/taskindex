@@ -1,0 +1,119 @@
+- generic: TaskIndex
+- list:
+  - button:
+    - generic: Фокус
+  - button:
+    - generic: Активность
+  - button:
+    - generic: Агентство
+  - button:
+    - generic: Разработка
+  - button:
+    - generic: Личное
+- generic: Направления
+- list:
+  - button:
+    - generic: Все задачи
+  - button:
+    - generic: QA Запуск
+- button:
+  - text: Добавить направление
+- button:
+  - text: Архив
+- button: Дмитрий
+- generic: Приватно
+- main:
+  - heading [level=1]: Фокус
+  - button:
+  - textbox:
+    - /placeholder: Найти во всех областях…
+  - generic: ⌘ K
+  - button:
+    - generic: Задача
+  - status: Все области · 1 задач
+  - button:
+  - region:
+    - heading [level=2]:
+      - text: Выбрано мной
+      - generic: "1"
+    - article:
+      - button
+      - button:
+      - heading [level=3]: QA Версия А
+      - paragraph:
+        - text: Проверки команды
+      - generic: Агентство · Жду
+      - text: В фокусе
+      - generic: QA Запуск
+      - text: Завтра
+      - text: Вернуться сегодня
+      - text: 1/2
+      - button: ···
+  - status
+- region "Notifications"
+- dialog:
+  - generic: ЗАДАЧА
+  - button:
+  - heading [level=2]: Редактирование задачи
+  - paragraph: Задача, состояние, заметки и шаги
+  - textbox:
+    - /placeholder: Что нужно сделать?
+    - text: QA Несохранённый важный текст А
+  - text: Состояние
+  - combobox:
+    - generic: Жду
+    - img: ▼
+  - textbox: waiting
+  - generic: Агентство / QA Запуск
+  - button: Переместить
+  - heading [level=3]:
+    - text: Чего ждём?
+  - textbox:
+    - /placeholder: Например, ответ дизайнера
+    - text: Проверки команды
+  - text: Когда вернуться к задаче
+  - textbox: 2026-09-08
+  - paragraph: Это дата проверки, а не дедлайн.
+  - heading [level=3]:
+    - text: Заметка
+  - textbox:
+    - /placeholder: Контекст, ссылки или мысли…
+    - text: "Контекст QA: проверить запуск, перенос и восстановление."
+  - heading [level=3]:
+    - text: Срок
+  - textbox: 2026-09-09
+  - button: Убрать срок
+  - heading [level=3]:
+    - text: Шаги
+    - generic: 1 / 2
+  - progressbar: x
+  - checkbox [checked]:
+  - checkbox [checked]
+  - textbox: Проверить форму
+  - button:
+  - checkbox
+  - checkbox
+  - textbox: Проверить уведомления
+  - button:
+  - textbox:
+    - /placeholder: Добавить шаг…
+  - button [disabled]:
+  - button [disabled]:
+    - text: В начало очереди
+  - button [disabled]:
+    - text: В архив
+  - button:
+    - text: Комментарии
+    - generic: "1"
+  - button: История
+  - contentinfo:
+    - generic: Есть изменения
+    - button: Закрыть
+    - button:
+      - text: Сохранить
+- alertdialog "Сохранить изменения?":
+  - heading "Сохранить изменения?" [level=2]
+  - paragraph: В карточке остались несохранённые правки.
+  - button "Продолжить" [active]
+  - button "Закрыть с черновиком"
+  - button "Сохранить"

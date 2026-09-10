@@ -1,0 +1,2 @@
+{"ok":false,"code":"not_found","message":"Запись не найдена.","retryable":false,"operationId":"a5dbaa6f-3791-47fd-92bb-29fce9afc211","generation":"1c00af79-fc39-42c8-ae4d-0f812d1f4028"}
+{"id":"a5dbaa6f-3791-47fd-92bb-29fce9afc211","actorId":"owner","actorLabel":"Дмитрий","command":"task.update","status":404,"firstSeq":null,"lastSeq":null,"createdAt":"2026-09-08T14:34:02.555Z","ok":false,"errorCode":"not_found","errorMessage":"Запись не найдена.","taskCount":0,"titles":[]}

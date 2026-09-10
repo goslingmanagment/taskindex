@@ -1,0 +1,2290 @@
+[
+  {
+    "args": [
+      "context"
+    ],
+    "code": 0,
+    "output": [
+      {
+        "formatVersion": 1,
+        "generation": "1c00af79-fc39-42c8-ae4d-0f812d1f4028",
+        "seq": 29,
+        "today": "2026-09-08",
+        "timezone": "Europe/Moscow",
+        "areas": [
+          {
+            "id": "agency",
+            "name": "Агентство",
+            "color": "#3763df",
+            "description": "Команда и ежедневная работа"
+          },
+          {
+            "id": "development",
+            "name": "Разработка",
+            "color": "#7855c7",
+            "description": "Продукты и инструменты"
+          },
+          {
+            "id": "personal",
+            "name": "Личное",
+            "color": "#248168",
+            "description": "Время для своих дел"
+          }
+        ],
+        "statuses": [
+          {
+            "id": "todo",
+            "name": "Очередь",
+            "hint": "Следующее — сверху",
+            "color": "#8290a4"
+          },
+          {
+            "id": "doing",
+            "name": "В работе",
+            "hint": "То, чем занимаешься сейчас",
+            "color": "#416ae3"
+          },
+          {
+            "id": "waiting",
+            "name": "Жду",
+            "hint": "Мяч на другой стороне",
+            "color": "#bd811d"
+          },
+          {
+            "id": "done",
+            "name": "Готово",
+            "hint": "Можно выдохнуть",
+            "color": "#298467"
+          }
+        ],
+        "projects": [
+          {
+            "id": "91901f42-b81d-4344-9ad6-3612e8588f30",
+            "area": "agency",
+            "name": "QA Запуск",
+            "description": "Проверка полного рабочего цикла",
+            "color": "#3763df",
+            "revision": 1,
+            "createdAt": "2026-09-08T14:20:14.817Z",
+            "updatedAt": "2026-09-08T14:20:14.817Z"
+          },
+          {
+            "id": "qa-dev",
+            "area": "development",
+            "name": "QA Имя другой сессии",
+            "description": "",
+            "color": "#3465df",
+            "revision": 3,
+            "createdAt": "2026-09-08T14:27:31.748Z",
+            "updatedAt": "2026-09-08T14:29:35.837Z"
+          },
+          {
+            "id": "qa-home",
+            "area": "personal",
+            "name": "QA Дом",
+            "description": "",
+            "color": "#3465df",
+            "revision": 1,
+            "createdAt": "2026-09-08T14:27:31.748Z",
+            "updatedAt": "2026-09-08T14:27:31.748Z"
+          }
+        ],
+        "originSystems": [],
+        "fields": {
+          "$schema": "https://json-schema.org/draft/2020-12/schema",
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9_-]{1,80}$",
+              "description": "Устойчивый идентификатор, до 80 символов"
+            },
+            "area": {
+              "type": "string",
+              "enum": [
+                "agency",
+                "development",
+                "personal"
+              ],
+              "description": "Область задачи или проекта"
+            },
+            "projectId": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "pattern": "^[A-Za-z0-9_-]{1,80}$",
+                  "description": "Устойчивый идентификатор, до 80 символов"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Проект или null"
+            },
+            "title": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 240,
+              "description": "Название"
+            },
+            "status": {
+              "type": "string",
+              "enum": [
+                "todo",
+                "doing",
+                "waiting",
+                "done"
+              ],
+              "description": "Состояние задачи"
+            },
+            "note": {
+              "type": "string",
+              "maxLength": 16000,
+              "description": "Заметка"
+            },
+            "due": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Календарная дата YYYY-MM-DD или null"
+            },
+            "waitingFor": {
+              "type": "string",
+              "maxLength": 240,
+              "description": "Чего ждём"
+            },
+            "followUp": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Календарная дата YYYY-MM-DD или null"
+            },
+            "orderKey": {
+              "type": "string",
+              "minLength": 1,
+              "description": "Серверный бинарно сортируемый ключ порядка"
+            },
+            "focus": {
+              "type": "boolean",
+              "description": "Выбрано в Focus"
+            },
+            "archived": {
+              "type": "boolean",
+              "description": "В архиве"
+            },
+            "checklist": {
+              "maxItems": 100,
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "type": "string",
+                    "pattern": "^[A-Za-z0-9_-]{1,80}$",
+                    "description": "Устойчивый идентификатор, до 80 символов"
+                  },
+                  "text": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 500,
+                    "description": "Текст шага"
+                  },
+                  "done": {
+                    "type": "boolean",
+                    "description": "Шаг выполнен"
+                  }
+                },
+                "required": [
+                  "id",
+                  "text",
+                  "done"
+                ],
+                "additionalProperties": false
+              },
+              "description": "До 100 шагов задачи"
+            },
+            "commentCount": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 9007199254740991,
+              "description": "Количество неудалённых комментариев"
+            },
+            "originSystem": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "pattern": "^[a-z0-9_-]{1,40}$"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Система источника"
+            },
+            "originRef": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 200
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Идентификатор в источнике"
+            },
+            "originUrl": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "maxLength": 2000,
+                  "format": "uri"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Ссылка на источник"
+            },
+            "originVersion": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "maxLength": 120
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Наибольшая обработанная версия источника"
+            },
+            "createdBy": {
+              "type": "string",
+              "description": "Актор создания"
+            },
+            "createdByLabel": {
+              "type": "string",
+              "description": "Метка автора создания"
+            },
+            "ownerTouchedAt": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "date-time",
+                  "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$",
+                  "description": "Момент времени UTC"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Первое ручное изменение"
+            },
+            "ownerFields": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "description": "Защищённые ручными правками поля"
+            },
+            "revision": {
+              "type": "integer",
+              "exclusiveMinimum": 0,
+              "maximum": 9007199254740991,
+              "description": "Версия записи"
+            },
+            "createdAt": {
+              "type": "string",
+              "format": "date-time",
+              "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$",
+              "description": "Момент времени UTC"
+            },
+            "updatedAt": {
+              "type": "string",
+              "format": "date-time",
+              "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$",
+              "description": "Момент времени UTC"
+            }
+          },
+          "required": [
+            "id",
+            "area",
+            "projectId",
+            "title",
+            "status",
+            "note",
+            "due",
+            "waitingFor",
+            "followUp",
+            "orderKey",
+            "focus",
+            "archived",
+            "checklist",
+            "commentCount",
+            "originSystem",
+            "originRef",
+            "originUrl",
+            "originVersion",
+            "createdBy",
+            "createdByLabel",
+            "ownerTouchedAt",
+            "ownerFields",
+            "revision",
+            "createdAt",
+            "updatedAt"
+          ],
+          "additionalProperties": false
+        },
+        "commands": [
+          {
+            "command": "project.create",
+            "payload": {
+              "$schema": "https://json-schema.org/draft/2020-12/schema",
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "pattern": "^[A-Za-z0-9_-]{1,80}$",
+                  "description": "Устойчивый идентификатор, до 80 символов"
+                },
+                "area": {
+                  "type": "string",
+                  "enum": [
+                    "agency",
+                    "development",
+                    "personal"
+                  ],
+                  "description": "Область задачи или проекта"
+                },
+                "name": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 60,
+                  "description": "Название проекта"
+                },
+                "color": {
+                  "type": "string",
+                  "pattern": "^#[a-fA-F0-9]{6}$",
+                  "description": "Цвет #rrggbb"
+                },
+                "description": {
+                  "description": "Что складывать в проект",
+                  "type": "string",
+                  "minLength": 0,
+                  "maxLength": 500
+                }
+              },
+              "required": [
+                "area",
+                "name",
+                "color"
+              ],
+              "additionalProperties": false
+            }
+          },
+          {
+            "command": "project.update",
+            "payload": {
+              "$schema": "https://json-schema.org/draft/2020-12/schema",
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "pattern": "^[A-Za-z0-9_-]{1,80}$",
+                  "description": "Устойчивый идентификатор, до 80 символов"
+                },
+                "baseRevision": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 9007199254740991,
+                  "description": "Базовая версия прочитанной записи"
+                },
+                "name": {
+                  "description": "Название проекта",
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 60
+                },
+                "color": {
+                  "description": "Цвет проекта",
+                  "type": "string",
+                  "pattern": "^#[a-fA-F0-9]{6}$"
+                },
+                "description": {
+                  "description": "Описание проекта",
+                  "type": "string",
+                  "minLength": 0,
+                  "maxLength": 500
+                }
+              },
+              "required": [
+                "id",
+                "baseRevision"
+              ],
+              "additionalProperties": false
+            }
+          },
+          {
+            "command": "task.create",
+            "payload": {
+              "$schema": "https://json-schema.org/draft/2020-12/schema",
+              "type": "object",
+              "properties": {
+                "area": {
+                  "type": "string",
+                  "enum": [
+                    "agency",
+                    "development",
+                    "personal"
+                  ],
+                  "description": "Область задачи или проекта"
+                },
+                "projectId": {
+                  "description": "Проект или null",
+                  "anyOf": [
+                    {
+                      "type": "string",
+                      "pattern": "^[A-Za-z0-9_-]{1,80}$",
+                      "description": "Устойчивый идентификатор, до 80 символов"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "title": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 240,
+                  "description": "Название задачи"
+                },
+                "note": {
+                  "description": "Заметка",
+                  "type": "string",
+                  "minLength": 0,
+                  "maxLength": 16000
+                },
+                "due": {
+                  "anyOf": [
+                    {
+                      "type": "string",
+                      "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ],
+                  "description": "Календарная дата YYYY-MM-DD или null"
+                },
+                "waitingFor": {
+                  "description": "Чего ждём",
+                  "type": "string",
+                  "minLength": 0,
+                  "maxLength": 240
+                },
+                "followUp": {
+                  "anyOf": [
+                    {
+                      "type": "string",
+                      "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ],
+                  "description": "Календарная дата YYYY-MM-DD или null"
+                },
+                "focus": {
+                  "description": "Выбрано владельцем в Focus",
+                  "type": "boolean"
+                },
+                "status": {
+                  "type": "string",
+                  "enum": [
+                    "todo",
+                    "doing",
+                    "waiting",
+                    "done"
+                  ],
+                  "description": "Состояние задачи"
+                },
+                "checklist": {
+                  "maxItems": 100,
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "id": {
+                        "type": "string",
+                        "pattern": "^[A-Za-z0-9_-]{1,80}$",
+                        "description": "Устойчивый идентификатор, до 80 символов"
+                      },
+                      "text": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 500,
+                        "description": "Текст шага"
+                      },
+                      "done": {
+                        "type": "boolean",
+                        "description": "Шаг выполнен"
+                      }
+                    },
+                    "required": [
+                      "id",
+                      "text",
+                      "done"
+                    ],
+                    "additionalProperties": false
+                  },
+                  "description": "До 100 шагов задачи"
+                },
+                "id": {
+                  "type": "string",
+                  "pattern": "^[A-Za-z0-9_-]{1,80}$",
+                  "description": "Устойчивый идентификатор, до 80 символов"
+                },
+                "origin": {
+                  "type": "object",
+                  "properties": {
+                    "system": {
+                      "type": "string",
+                      "pattern": "^[a-z0-9_-]{1,40}$",
+                      "description": "Слаг источника"
+                    },
+                    "ref": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 200,
+                      "description": "Устойчивый идентификатор объекта источника"
+                    },
+                    "url": {
+                      "description": "Ссылка на источник",
+                      "type": "string",
+                      "maxLength": 2000,
+                      "format": "uri"
+                    },
+                    "version": {
+                      "description": "Упорядоченная версия самого источника, не время наблюдения",
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 120
+                    }
+                  },
+                  "required": [
+                    "system",
+                    "ref"
+                  ],
+                  "additionalProperties": false
+                },
+                "position": {
+                  "anyOf": [
+                    {
+                      "type": "object",
+                      "properties": {
+                        "before": {
+                          "type": "string",
+                          "pattern": "^[A-Za-z0-9_-]{1,80}$",
+                          "description": "Устойчивый идентификатор, до 80 символов"
+                        }
+                      },
+                      "required": [
+                        "before"
+                      ],
+                      "additionalProperties": false
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "after": {
+                          "type": "string",
+                          "pattern": "^[A-Za-z0-9_-]{1,80}$",
+                          "description": "Устойчивый идентификатор, до 80 символов"
+                        }
+                      },
+                      "required": [
+                        "after"
+                      ],
+                      "additionalProperties": false
+                    }
+                  ],
+                  "description": "Положение относительно соседней задачи"
+                }
+              },
+              "required": [
+                "area",
+                "title"
+              ],
+              "additionalProperties": false
+            }
+          },
+          {
+            "command": "task.sync",
+            "payload": {
+              "$schema": "https://json-schema.org/draft/2020-12/schema",
+              "type": "object",
+              "properties": {
+                "origin": {
+                  "type": "object",
+                  "properties": {
+                    "system": {
+                      "type": "string",
+                      "pattern": "^[a-z0-9_-]{1,40}$",
+                      "description": "Слаг источника"
+                    },
+                    "ref": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 200,
+                      "description": "Устойчивый идентификатор объекта источника"
+                    },
+                    "url": {
+                      "description": "Ссылка на источник",
+                      "type": "string",
+                      "maxLength": 2000,
+                      "format": "uri"
+                    },
+                    "version": {
+                      "description": "Упорядоченная версия самого источника, не время наблюдения",
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 120
+                    }
+                  },
+                  "required": [
+                    "system",
+                    "ref"
+                  ],
+                  "additionalProperties": false
+                },
+                "fields": {
+                  "type": "object",
+                  "properties": {
+                    "area": {
+                      "type": "string",
+                      "enum": [
+                        "agency",
+                        "development",
+                        "personal"
+                      ],
+                      "description": "Область задачи или проекта"
+                    },
+                    "projectId": {
+                      "description": "Проект или null",
+                      "anyOf": [
+                        {
+                          "type": "string",
+                          "pattern": "^[A-Za-z0-9_-]{1,80}$",
+                          "description": "Устойчивый идентификатор, до 80 символов"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "title": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 240,
+                      "description": "Название задачи"
+                    },
+                    "note": {
+                      "description": "Заметка",
+                      "type": "string",
+                      "minLength": 0,
+                      "maxLength": 16000
+                    },
+                    "due": {
+                      "anyOf": [
+                        {
+                          "type": "string",
+                          "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ],
+                      "description": "Календарная дата YYYY-MM-DD или null"
+                    },
+                    "waitingFor": {
+                      "description": "Чего ждём",
+                      "type": "string",
+                      "minLength": 0,
+                      "maxLength": 240
+                    },
+                    "followUp": {
+                      "anyOf": [
+                        {
+                          "type": "string",
+                          "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ],
+                      "description": "Календарная дата YYYY-MM-DD или null"
+                    },
+                    "focus": {
+                      "description": "Выбрано владельцем в Focus",
+                      "type": "boolean"
+                    },
+                    "status": {
+                      "type": "string",
+                      "enum": [
+                        "todo",
+                        "doing",
+                        "waiting",
+                        "done"
+                      ],
+                      "description": "Состояние задачи"
+                    },
+                    "checklist": {
+                      "maxItems": 100,
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string",
+                            "pattern": "^[A-Za-z0-9_-]{1,80}$",
+                            "description": "Устойчивый идентификатор, до 80 символов"
+                          },
+                          "text": {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 500,
+                            "description": "Текст шага"
+                          },
+                          "done": {
+                            "type": "boolean",
+                            "description": "Шаг выполнен"
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "text",
+                          "done"
+                        ],
+                        "additionalProperties": false
+                      },
+                      "description": "До 100 шагов задачи"
+                    }
+                  },
+                  "required": [
+                    "area",
+                    "title"
+                  ],
+                  "additionalProperties": false
+                }
+              },
+              "required": [
+                "origin",
+                "fields"
+              ],
+              "additionalProperties": false
+            }
+          },
+          {
+            "command": "task.update",
+            "payload": {
+              "$schema": "https://json-schema.org/draft/2020-12/schema",
+              "type": "object",
+              "properties": {
+                "area": {
+                  "type": "string",
+                  "enum": [
+                    "agency",
+                    "development",
+                    "personal"
+                  ],
+                  "description": "Область задачи или проекта"
+                },
+                "projectId": {
+                  "description": "Проект или null",
+                  "anyOf": [
+                    {
+                      "type": "string",
+                      "pattern": "^[A-Za-z0-9_-]{1,80}$",
+                      "description": "Устойчивый идентификатор, до 80 символов"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "title": {
+                  "description": "Название",
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 240
+                },
+                "note": {
+                  "description": "Заметка",
+                  "type": "string",
+                  "minLength": 0,
+                  "maxLength": 16000
+                },
+                "due": {
+                  "anyOf": [
+                    {
+                      "type": "string",
+                      "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ],
+                  "description": "Календарная дата YYYY-MM-DD или null"
+                },
+                "waitingFor": {
+                  "description": "Чего ждём",
+                  "type": "string",
+                  "minLength": 0,
+                  "maxLength": 240
+                },
+                "followUp": {
+                  "anyOf": [
+                    {
+                      "type": "string",
+                      "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ],
+                  "description": "Календарная дата YYYY-MM-DD или null"
+                },
+                "focus": {
+                  "description": "Выбрано владельцем в Focus",
+                  "type": "boolean"
+                },
+                "id": {
+                  "type": "string",
+                  "pattern": "^[A-Za-z0-9_-]{1,80}$",
+                  "description": "Устойчивый идентификатор, до 80 символов"
+                },
+                "baseRevision": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 9007199254740991,
+                  "description": "Базовая версия прочитанной записи"
+                }
+              },
+              "required": [
+                "id",
+                "baseRevision"
+              ],
+              "additionalProperties": false
+            }
+          },
+          {
+            "command": "task.save",
+            "payload": {
+              "$schema": "https://json-schema.org/draft/2020-12/schema",
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "pattern": "^[A-Za-z0-9_-]{1,80}$",
+                  "description": "Устойчивый идентификатор, до 80 символов"
+                },
+                "baseRevision": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 9007199254740991,
+                  "description": "Базовая версия прочитанной записи"
+                },
+                "fields": {
+                  "type": "object",
+                  "properties": {
+                    "area": {
+                      "type": "string",
+                      "enum": [
+                        "agency",
+                        "development",
+                        "personal"
+                      ],
+                      "description": "Область задачи или проекта"
+                    },
+                    "projectId": {
+                      "description": "Проект или null",
+                      "anyOf": [
+                        {
+                          "type": "string",
+                          "pattern": "^[A-Za-z0-9_-]{1,80}$",
+                          "description": "Устойчивый идентификатор, до 80 символов"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "title": {
+                      "description": "Название",
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 240
+                    },
+                    "note": {
+                      "description": "Заметка",
+                      "type": "string",
+                      "minLength": 0,
+                      "maxLength": 16000
+                    },
+                    "due": {
+                      "anyOf": [
+                        {
+                          "type": "string",
+                          "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ],
+                      "description": "Календарная дата YYYY-MM-DD или null"
+                    },
+                    "waitingFor": {
+                      "description": "Чего ждём",
+                      "type": "string",
+                      "minLength": 0,
+                      "maxLength": 240
+                    },
+                    "followUp": {
+                      "anyOf": [
+                        {
+                          "type": "string",
+                          "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ],
+                      "description": "Календарная дата YYYY-MM-DD или null"
+                    },
+                    "focus": {
+                      "description": "Выбрано владельцем в Focus",
+                      "type": "boolean"
+                    }
+                  },
+                  "additionalProperties": false
+                },
+                "status": {
+                  "type": "string",
+                  "enum": [
+                    "todo",
+                    "doing",
+                    "waiting",
+                    "done"
+                  ],
+                  "description": "Состояние задачи"
+                },
+                "position": {
+                  "anyOf": [
+                    {
+                      "type": "object",
+                      "properties": {
+                        "before": {
+                          "type": "string",
+                          "pattern": "^[A-Za-z0-9_-]{1,80}$",
+                          "description": "Устойчивый идентификатор, до 80 символов"
+                        }
+                      },
+                      "required": [
+                        "before"
+                      ],
+                      "additionalProperties": false
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "after": {
+                          "type": "string",
+                          "pattern": "^[A-Za-z0-9_-]{1,80}$",
+                          "description": "Устойчивый идентификатор, до 80 символов"
+                        }
+                      },
+                      "required": [
+                        "after"
+                      ],
+                      "additionalProperties": false
+                    }
+                  ],
+                  "description": "Положение относительно соседней задачи"
+                },
+                "checklist": {
+                  "maxItems": 100,
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "id": {
+                        "type": "string",
+                        "pattern": "^[A-Za-z0-9_-]{1,80}$",
+                        "description": "Устойчивый идентификатор, до 80 символов"
+                      },
+                      "text": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 500,
+                        "description": "Текст шага"
+                      },
+                      "done": {
+                        "type": "boolean",
+                        "description": "Шаг выполнен"
+                      }
+                    },
+                    "required": [
+                      "id",
+                      "text",
+                      "done"
+                    ],
+                    "additionalProperties": false
+                  },
+                  "description": "До 100 шагов задачи"
+                }
+              },
+              "required": [
+                "id",
+                "baseRevision"
+              ],
+              "additionalProperties": false
+            }
+          },
+          {
+            "command": "task.move",
+            "payload": {
+              "$schema": "https://json-schema.org/draft/2020-12/schema",
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "pattern": "^[A-Za-z0-9_-]{1,80}$",
+                  "description": "Устойчивый идентификатор, до 80 символов"
+                },
+                "baseRevision": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 9007199254740991,
+                  "description": "Базовая версия прочитанной записи"
+                },
+                "status": {
+                  "type": "string",
+                  "enum": [
+                    "todo",
+                    "doing",
+                    "waiting",
+                    "done"
+                  ],
+                  "description": "Состояние задачи"
+                },
+                "before": {
+                  "type": "string",
+                  "pattern": "^[A-Za-z0-9_-]{1,80}$",
+                  "description": "Устойчивый идентификатор, до 80 символов"
+                },
+                "after": {
+                  "type": "string",
+                  "pattern": "^[A-Za-z0-9_-]{1,80}$",
+                  "description": "Устойчивый идентификатор, до 80 символов"
+                }
+              },
+              "required": [
+                "id",
+                "baseRevision",
+                "status"
+              ],
+              "additionalProperties": false
+            }
+          },
+          {
+            "command": "task.archive",
+            "payload": {
+              "$schema": "https://json-schema.org/draft/2020-12/schema",
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "pattern": "^[A-Za-z0-9_-]{1,80}$",
+                  "description": "Устойчивый идентификатор, до 80 символов"
+                },
+                "baseRevision": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 9007199254740991,
+                  "description": "Базовая версия прочитанной записи"
+                }
+              },
+              "required": [
+                "id",
+                "baseRevision"
+              ],
+              "additionalProperties": false
+            }
+          },
+          {
+            "command": "task.restore",
+            "payload": {
+              "$schema": "https://json-schema.org/draft/2020-12/schema",
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "pattern": "^[A-Za-z0-9_-]{1,80}$",
+                  "description": "Устойчивый идентификатор, до 80 символов"
+                },
+                "baseRevision": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 9007199254740991,
+                  "description": "Базовая версия прочитанной записи"
+                }
+              },
+              "required": [
+                "id",
+                "baseRevision"
+              ],
+              "additionalProperties": false
+            }
+          },
+          {
+            "command": "checklist.add",
+            "payload": {
+              "$schema": "https://json-schema.org/draft/2020-12/schema",
+              "type": "object",
+              "properties": {
+                "taskId": {
+                  "type": "string",
+                  "pattern": "^[A-Za-z0-9_-]{1,80}$",
+                  "description": "Устойчивый идентификатор, до 80 символов"
+                },
+                "baseRevision": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 9007199254740991,
+                  "description": "Базовая версия прочитанной записи"
+                },
+                "id": {
+                  "type": "string",
+                  "pattern": "^[A-Za-z0-9_-]{1,80}$",
+                  "description": "Устойчивый идентификатор, до 80 символов"
+                },
+                "text": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 500,
+                  "description": "Текст шага"
+                },
+                "position": {
+                  "description": "Позиция шага, с нуля",
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 100
+                }
+              },
+              "required": [
+                "taskId",
+                "baseRevision",
+                "text"
+              ],
+              "additionalProperties": false
+            }
+          },
+          {
+            "command": "checklist.update",
+            "payload": {
+              "$schema": "https://json-schema.org/draft/2020-12/schema",
+              "type": "object",
+              "properties": {
+                "taskId": {
+                  "type": "string",
+                  "pattern": "^[A-Za-z0-9_-]{1,80}$",
+                  "description": "Устойчивый идентификатор, до 80 символов"
+                },
+                "baseRevision": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 9007199254740991,
+                  "description": "Базовая версия прочитанной записи"
+                },
+                "itemId": {
+                  "type": "string",
+                  "pattern": "^[A-Za-z0-9_-]{1,80}$",
+                  "description": "Устойчивый идентификатор, до 80 символов"
+                },
+                "text": {
+                  "description": "Текст шага",
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 500
+                },
+                "done": {
+                  "description": "Шаг выполнен",
+                  "type": "boolean"
+                }
+              },
+              "required": [
+                "taskId",
+                "baseRevision",
+                "itemId"
+              ],
+              "additionalProperties": false
+            }
+          },
+          {
+            "command": "checklist.remove",
+            "payload": {
+              "$schema": "https://json-schema.org/draft/2020-12/schema",
+              "type": "object",
+              "properties": {
+                "taskId": {
+                  "type": "string",
+                  "pattern": "^[A-Za-z0-9_-]{1,80}$",
+                  "description": "Устойчивый идентификатор, до 80 символов"
+                },
+                "baseRevision": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 9007199254740991,
+                  "description": "Базовая версия прочитанной записи"
+                },
+                "itemId": {
+                  "type": "string",
+                  "pattern": "^[A-Za-z0-9_-]{1,80}$",
+                  "description": "Устойчивый идентификатор, до 80 символов"
+                }
+              },
+              "required": [
+                "taskId",
+                "baseRevision",
+                "itemId"
+              ],
+              "additionalProperties": false
+            }
+          },
+          {
+            "command": "checklist.reorder",
+            "payload": {
+              "$schema": "https://json-schema.org/draft/2020-12/schema",
+              "type": "object",
+              "properties": {
+                "taskId": {
+                  "type": "string",
+                  "pattern": "^[A-Za-z0-9_-]{1,80}$",
+                  "description": "Устойчивый идентификатор, до 80 символов"
+                },
+                "baseRevision": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 9007199254740991,
+                  "description": "Базовая версия прочитанной записи"
+                },
+                "itemIds": {
+                  "maxItems": 100,
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "pattern": "^[A-Za-z0-9_-]{1,80}$",
+                    "description": "Устойчивый идентификатор, до 80 символов"
+                  },
+                  "description": "Все шаги в нужном порядке"
+                }
+              },
+              "required": [
+                "taskId",
+                "baseRevision",
+                "itemIds"
+              ],
+              "additionalProperties": false
+            }
+          },
+          {
+            "command": "comment.add",
+            "payload": {
+              "$schema": "https://json-schema.org/draft/2020-12/schema",
+              "type": "object",
+              "properties": {
+                "taskId": {
+                  "type": "string",
+                  "pattern": "^[A-Za-z0-9_-]{1,80}$",
+                  "description": "Устойчивый идентификатор, до 80 символов"
+                },
+                "id": {
+                  "type": "string",
+                  "pattern": "^[A-Za-z0-9_-]{1,80}$",
+                  "description": "Устойчивый идентификатор, до 80 символов"
+                },
+                "text": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 4000,
+                  "description": "Комментарий или отчёт агента"
+                }
+              },
+              "required": [
+                "taskId",
+                "text"
+              ],
+              "additionalProperties": false
+            }
+          },
+          {
+            "command": "comment.remove",
+            "payload": {
+              "$schema": "https://json-schema.org/draft/2020-12/schema",
+              "type": "object",
+              "properties": {
+                "commentId": {
+                  "type": "string",
+                  "pattern": "^[A-Za-z0-9_-]{1,80}$",
+                  "description": "Устойчивый идентификатор, до 80 символов"
+                }
+              },
+              "required": [
+                "commentId"
+              ],
+              "additionalProperties": false
+            }
+          },
+          {
+            "command": "undo",
+            "payload": {
+              "$schema": "https://json-schema.org/draft/2020-12/schema",
+              "anyOf": [
+                {
+                  "type": "object",
+                  "properties": {
+                    "seq": {
+                      "type": "integer",
+                      "exclusiveMinimum": 0,
+                      "maximum": 9007199254740991,
+                      "description": "Событие для отмены"
+                    }
+                  },
+                  "required": [
+                    "seq"
+                  ],
+                  "additionalProperties": false
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "operationId": {
+                      "type": "string",
+                      "pattern": "^[A-Za-z0-9_-]{1,80}$",
+                      "description": "Операция для отмены"
+                    }
+                  },
+                  "required": [
+                    "operationId"
+                  ],
+                  "additionalProperties": false
+                }
+              ]
+            }
+          }
+        ],
+        "rules": [
+          "Проект выбирается по описанию; при сомнении оставьте без проекта.",
+          "Сначала поиск по origin, затем по тексту, затем создание.",
+          "sync требует упорядоченную версию самого источника; время наблюдения и ETag её не заменяют.",
+          "После conflict перечитайте current и оцените смысл поручения; повторяйте неизвестный исход только с прежним operationId.",
+          "Undo сохраняет наибольшую обработанную версию источника и ручные решения.",
+          "Календарные даты считаются в часовом поясе пространства.",
+          "Focus: выбранное, новое от агентов, срок, дата возврата; каждая задача один раз."
+        ],
+        "counts": {
+          "tasks": 10,
+          "archived": 0,
+          "projects": 3,
+          "areas": {
+            "agency": 1,
+            "development": 7,
+            "personal": 2
+          },
+          "statuses": {
+            "todo": 7,
+            "doing": 1,
+            "waiting": 1,
+            "done": 1
+          },
+          "focus": [
+            {
+              "id": "selected",
+              "count": 2
+            },
+            {
+              "id": "new",
+              "count": 0
+            },
+            {
+              "id": "due",
+              "count": 1
+            },
+            {
+              "id": "follow-ups",
+              "count": 0
+            }
+          ]
+        },
+        "links": {
+          "openapi": "/api/openapi.json",
+          "snapshot": "/api/snapshot",
+          "events": "/api/events",
+          "export": "/api/export"
+        }
+      }
+    ]
+  },
+  {
+    "args": [
+      "digest"
+    ],
+    "code": 0,
+    "output": [
+      {
+        "generation": "1c00af79-fc39-42c8-ae4d-0f812d1f4028",
+        "seq": 29,
+        "today": "2026-09-08",
+        "timezone": "Europe/Moscow",
+        "focus": [
+          {
+            "id": "selected",
+            "title": "Выбрано мной",
+            "tasks": [
+              {
+                "id": "614e9b11-2978-4a7b-9454-eff5568e8aea",
+                "area": "development",
+                "projectId": null,
+                "title": "QA Версия А",
+                "status": "waiting",
+                "note": "Изменение заметки из вкладки Б",
+                "due": "2026-09-09",
+                "waitingFor": "Проверки команды",
+                "followUp": "2026-09-08",
+                "orderKey": "a0",
+                "focus": true,
+                "archived": false,
+                "originSystem": null,
+                "originRef": null,
+                "originUrl": null,
+                "originVersion": null,
+                "createdBy": "owner",
+                "createdByLabel": "Дмитрий",
+                "ownerTouchedAt": "2026-09-08T14:20:34.301Z",
+                "ownerFields": [
+                  "archived",
+                  "area",
+                  "checklist",
+                  "due",
+                  "focus",
+                  "followUp",
+                  "note",
+                  "orderKey",
+                  "originUrl",
+                  "projectId",
+                  "status",
+                  "title",
+                  "waitingFor"
+                ],
+                "revision": 12,
+                "createdAt": "2026-09-08T14:20:34.301Z",
+                "updatedAt": "2026-09-08T14:26:59.166Z",
+                "checklist": [
+                  {
+                    "id": "ba3d4392-5c72-4426-92d8-6239ba09fce4",
+                    "text": "Проверить форму",
+                    "done": true
+                  },
+                  {
+                    "id": "b85fc027-c4eb-4e0e-93d9-e4cd7e65d3f5",
+                    "text": "Проверить уведомления",
+                    "done": false
+                  }
+                ],
+                "commentCount": 1
+              },
+              {
+                "id": "qa-personal",
+                "area": "personal",
+                "projectId": "qa-home",
+                "title": "QA Проверить лампу",
+                "status": "todo",
+                "note": "маркер поиска фотометрия",
+                "due": null,
+                "waitingFor": "",
+                "followUp": null,
+                "orderKey": "a0",
+                "focus": true,
+                "archived": false,
+                "originSystem": null,
+                "originRef": null,
+                "originUrl": null,
+                "originVersion": null,
+                "createdBy": "owner",
+                "createdByLabel": "Дмитрий",
+                "ownerTouchedAt": "2026-09-08T14:27:31.748Z",
+                "ownerFields": [
+                  "archived",
+                  "area",
+                  "checklist",
+                  "due",
+                  "focus",
+                  "followUp",
+                  "note",
+                  "orderKey",
+                  "originUrl",
+                  "projectId",
+                  "status",
+                  "title",
+                  "waitingFor"
+                ],
+                "revision": 1,
+                "createdAt": "2026-09-08T14:27:31.748Z",
+                "updatedAt": "2026-09-08T14:27:31.748Z",
+                "checklist": [],
+                "commentCount": 0
+              }
+            ],
+            "more": false,
+            "nextCursor": null,
+            "href": "/api/focus?group=selected&generation=1c00af79-fc39-42c8-ae4d-0f812d1f4028"
+          },
+          {
+            "id": "new",
+            "title": "Новое от агентов",
+            "tasks": [],
+            "more": false,
+            "nextCursor": null,
+            "href": "/api/focus?group=new&generation=1c00af79-fc39-42c8-ae4d-0f812d1f4028"
+          },
+          {
+            "id": "due",
+            "title": "Пора сделать",
+            "tasks": [
+              {
+                "id": "qa-today",
+                "area": "development",
+                "projectId": "qa-dev",
+                "title": "QA Мобильные правки",
+                "status": "todo",
+                "note": "",
+                "due": "2026-09-08",
+                "waitingFor": "",
+                "followUp": null,
+                "orderKey": "a0",
+                "focus": false,
+                "archived": false,
+                "originSystem": null,
+                "originRef": null,
+                "originUrl": null,
+                "originVersion": null,
+                "createdBy": "owner",
+                "createdByLabel": "Дмитрий",
+                "ownerTouchedAt": "2026-09-08T14:27:31.748Z",
+                "ownerFields": [
+                  "archived",
+                  "area",
+                  "checklist",
+                  "due",
+                  "focus",
+                  "followUp",
+                  "note",
+                  "orderKey",
+                  "originUrl",
+                  "projectId",
+                  "status",
+                  "title",
+                  "waitingFor"
+                ],
+                "revision": 3,
+                "createdAt": "2026-09-08T14:27:31.748Z",
+                "updatedAt": "2026-09-08T14:31:49.833Z",
+                "checklist": [],
+                "commentCount": 0
+              }
+            ],
+            "more": false,
+            "nextCursor": null,
+            "href": "/api/focus?group=due&generation=1c00af79-fc39-42c8-ae4d-0f812d1f4028"
+          },
+          {
+            "id": "follow-ups",
+            "title": "Пора вернуться",
+            "tasks": [],
+            "more": false,
+            "nextCursor": null,
+            "href": "/api/focus?group=follow-ups&generation=1c00af79-fc39-42c8-ae4d-0f812d1f4028"
+          }
+        ],
+        "waiting": {
+          "generation": "1c00af79-fc39-42c8-ae4d-0f812d1f4028",
+          "seq": 29,
+          "items": [
+            {
+              "id": "614e9b11-2978-4a7b-9454-eff5568e8aea",
+              "area": "development",
+              "projectId": null,
+              "title": "QA Версия А",
+              "status": "waiting",
+              "note": "Изменение заметки из вкладки Б",
+              "due": "2026-09-09",
+              "waitingFor": "Проверки команды",
+              "followUp": "2026-09-08",
+              "orderKey": "a0",
+              "focus": true,
+              "archived": false,
+              "originSystem": null,
+              "originRef": null,
+              "originUrl": null,
+              "originVersion": null,
+              "createdBy": "owner",
+              "createdByLabel": "Дмитрий",
+              "ownerTouchedAt": "2026-09-08T14:20:34.301Z",
+              "ownerFields": [
+                "archived",
+                "area",
+                "checklist",
+                "due",
+                "focus",
+                "followUp",
+                "note",
+                "orderKey",
+                "originUrl",
+                "projectId",
+                "status",
+                "title",
+                "waitingFor"
+              ],
+              "revision": 12,
+              "createdAt": "2026-09-08T14:20:34.301Z",
+              "updatedAt": "2026-09-08T14:26:59.166Z",
+              "checklist": [
+                {
+                  "id": "ba3d4392-5c72-4426-92d8-6239ba09fce4",
+                  "text": "Проверить форму",
+                  "done": true
+                },
+                {
+                  "id": "b85fc027-c4eb-4e0e-93d9-e4cd7e65d3f5",
+                  "text": "Проверить уведомления",
+                  "done": false
+                }
+              ],
+              "commentCount": 1
+            }
+          ],
+          "more": false,
+          "nextCursor": null,
+          "href": "/api/tasks?status=waiting&hasFollowUp=true&generation=1c00af79-fc39-42c8-ae4d-0f812d1f4028"
+        },
+        "counts": {
+          "tasks": 10,
+          "archived": 0,
+          "projects": 3
+        },
+        "operations": {
+          "generation": "1c00af79-fc39-42c8-ae4d-0f812d1f4028",
+          "seq": 29,
+          "items": [
+            {
+              "id": "6f7e3031-dd65-4a26-b9be-8312aa368110",
+              "actorId": "owner",
+              "actorLabel": "Дмитрий",
+              "command": "task.create",
+              "status": 200,
+              "firstSeq": 29,
+              "lastSeq": 29,
+              "createdAt": "2026-09-08T14:32:32.517Z",
+              "ok": true,
+              "taskCount": 1,
+              "titles": [
+                "QA Нет сети"
+              ]
+            },
+            {
+              "id": "9bf78f33-b72a-4a8f-99df-1baafe6e3b34",
+              "actorId": "owner",
+              "actorLabel": "Дмитрий",
+              "command": "task.save",
+              "status": 200,
+              "firstSeq": 28,
+              "lastSeq": 28,
+              "createdAt": "2026-09-08T14:31:49.833Z",
+              "ok": true,
+              "taskCount": 1,
+              "titles": [
+                "QA Мобильные правки"
+              ]
+            },
+            {
+              "id": "fa487654-d1b5-401c-ab93-8f75193ee610",
+              "actorId": "owner",
+              "actorLabel": "Дмитрий",
+              "command": "task.update",
+              "status": 200,
+              "firstSeq": 27,
+              "lastSeq": 27,
+              "createdAt": "2026-09-08T14:31:34.581Z",
+              "ok": true,
+              "taskCount": 1,
+              "titles": [
+                "QA Мобильные правки"
+              ]
+            },
+            {
+              "id": "09644c3c-911e-47b3-b2a9-6d15a0e35073",
+              "actorId": "owner",
+              "actorLabel": "Дмитрий",
+              "command": "project.update",
+              "status": 200,
+              "firstSeq": 26,
+              "lastSeq": 26,
+              "createdAt": "2026-09-08T14:29:35.837Z",
+              "ok": true,
+              "taskCount": 0,
+              "titles": []
+            },
+            {
+              "id": "fab3086e-deb8-48eb-a9d1-56b03843b600",
+              "actorId": "owner",
+              "actorLabel": "Дмитрий",
+              "command": "project.update",
+              "status": 200,
+              "firstSeq": 25,
+              "lastSeq": 25,
+              "createdAt": "2026-09-08T14:28:57.385Z",
+              "ok": true,
+              "taskCount": 0,
+              "titles": []
+            },
+            {
+              "id": "cc033cf1-d62e-4904-bfb6-68f8a26261a8",
+              "actorId": "owner",
+              "actorLabel": "Дмитрий",
+              "command": "task.create",
+              "status": 200,
+              "firstSeq": 24,
+              "lastSeq": 24,
+              "createdAt": "2026-09-08T14:28:43.125Z",
+              "ok": true,
+              "taskCount": 1,
+              "titles": [
+                "QA Один раз"
+              ]
+            },
+            {
+              "id": "88b11861-b719-4afa-b791-1b53dd901f01",
+              "actorId": "owner",
+              "actorLabel": "Дмитрий",
+              "command": "task.create",
+              "status": 200,
+              "firstSeq": 23,
+              "lastSeq": 23,
+              "createdAt": "2026-09-08T14:28:30.469Z",
+              "ok": true,
+              "taskCount": 1,
+              "titles": [
+                "QA Один раз"
+              ]
+            },
+            {
+              "id": "b050e986-9863-4daa-a998-b0895aa6a689",
+              "actorId": "owner",
+              "actorLabel": "Дмитрий",
+              "command": "batch",
+              "status": 200,
+              "firstSeq": 15,
+              "lastSeq": 22,
+              "createdAt": "2026-09-08T14:27:31.748Z",
+              "ok": true,
+              "taskCount": 6,
+              "titles": [
+                "QA Мобильные правки",
+                "QA Потом проверить импорт",
+                "QA В работе документация"
+              ]
+            },
+            {
+              "id": "69e1d960-3bd0-4f11-a72e-b5c5fd6b9ab6",
+              "actorId": "owner",
+              "actorLabel": "Дмитрий",
+              "command": "task.restore",
+              "status": 200,
+              "firstSeq": 14,
+              "lastSeq": 14,
+              "createdAt": "2026-09-08T14:26:59.166Z",
+              "ok": true,
+              "taskCount": 1,
+              "titles": [
+                "QA Версия А"
+              ]
+            },
+            {
+              "id": "0d44a3a4-a371-4975-888f-e062f05cd374",
+              "actorId": "owner",
+              "actorLabel": "Дмитрий",
+              "command": "task.archive",
+              "status": 200,
+              "firstSeq": 13,
+              "lastSeq": 13,
+              "createdAt": "2026-09-08T14:26:12.171Z",
+              "ok": true,
+              "taskCount": 1,
+              "titles": [
+                "QA Версия А"
+              ]
+            },
+            {
+              "id": "8ef89fb9-0679-4e43-8e08-d7fe1a63a5e6",
+              "actorId": "owner",
+              "actorLabel": "Дмитрий",
+              "command": "task.save",
+              "status": 200,
+              "firstSeq": 12,
+              "lastSeq": 12,
+              "createdAt": "2026-09-08T14:26:08.764Z",
+              "ok": true,
+              "taskCount": 1,
+              "titles": [
+                "QA Версия А"
+              ]
+            },
+            {
+              "id": "ef6f1908-4774-4917-9d2a-c858593f7dcf",
+              "actorId": "owner",
+              "actorLabel": "Дмитрий",
+              "command": "task.save",
+              "status": 200,
+              "firstSeq": 11,
+              "lastSeq": 11,
+              "createdAt": "2026-09-08T14:24:33.968Z",
+              "ok": true,
+              "taskCount": 1,
+              "titles": [
+                "QA Версия А"
+              ]
+            },
+            {
+              "id": "92097a14-116c-4c2a-8441-e436dfd0f743",
+              "actorId": "owner",
+              "actorLabel": "Дмитрий",
+              "command": "task.save",
+              "status": 200,
+              "firstSeq": 10,
+              "lastSeq": 10,
+              "createdAt": "2026-09-08T14:24:13.126Z",
+              "ok": true,
+              "taskCount": 1,
+              "titles": [
+                "QA Версия А"
+              ]
+            },
+            {
+              "id": "8e89857d-17a2-4269-b82e-1dd719503f26",
+              "actorId": "owner",
+              "actorLabel": "Дмитрий",
+              "command": "task.save",
+              "status": 200,
+              "firstSeq": 9,
+              "lastSeq": 9,
+              "createdAt": "2026-09-08T14:23:50.357Z",
+              "ok": true,
+              "taskCount": 1,
+              "titles": [
+                "QA Версия А"
+              ]
+            },
+            {
+              "id": "54dfc08e-d3b6-4b45-b077-96b61a930995",
+              "actorId": "owner",
+              "actorLabel": "Дмитрий",
+              "command": "undo",
+              "status": 200,
+              "firstSeq": 8,
+              "lastSeq": 8,
+              "createdAt": "2026-09-08T14:23:39.344Z",
+              "ok": true,
+              "taskCount": 1,
+              "titles": [
+                "QA Версия А"
+              ]
+            },
+            {
+              "id": "a25098b3-76d6-4e0e-b347-bd54c7801475",
+              "actorId": "owner",
+              "actorLabel": "Дмитрий",
+              "command": "task.move",
+              "status": 200,
+              "firstSeq": 7,
+              "lastSeq": 7,
+              "createdAt": "2026-09-08T14:23:38.999Z",
+              "ok": true,
+              "taskCount": 1,
+              "titles": [
+                "QA Версия А"
+              ]
+            },
+            {
+              "id": "05640348-b25e-4b2f-a39a-6e0ab98b43b3",
+              "actorId": "owner",
+              "actorLabel": "Дмитрий",
+              "command": "task.save",
+              "status": 200,
+              "firstSeq": 6,
+              "lastSeq": 6,
+              "createdAt": "2026-09-08T14:23:22.845Z",
+              "ok": true,
+              "taskCount": 1,
+              "titles": [
+                "QA Версия А"
+              ]
+            },
+            {
+              "id": "ff632b42-55c3-45f8-91bf-3a933b9e73cd",
+              "actorId": "owner",
+              "actorLabel": "Дмитрий",
+              "command": "task.save",
+              "status": 200,
+              "firstSeq": 5,
+              "lastSeq": 5,
+              "createdAt": "2026-09-08T14:22:48.962Z",
+              "ok": true,
+              "taskCount": 1,
+              "titles": [
+                "QA Версия А"
+              ]
+            },
+            {
+              "id": "510d5f2c-62a9-4414-b8da-4d7a6da23bf8",
+              "actorId": "owner",
+              "actorLabel": "Дмитрий",
+              "command": "comment.add",
+              "status": 200,
+              "firstSeq": 4,
+              "lastSeq": 4,
+              "createdAt": "2026-09-08T14:22:05.881Z",
+              "ok": true,
+              "taskCount": 1,
+              "titles": [
+                "QA Версия А"
+              ]
+            },
+            {
+              "id": "470894d3-3f45-494b-8f89-3481f2707ff6",
+              "actorId": "owner",
+              "actorLabel": "Дмитрий",
+              "command": "task.save",
+              "status": 200,
+              "firstSeq": 3,
+              "lastSeq": 3,
+              "createdAt": "2026-09-08T14:21:37.634Z",
+              "ok": true,
+              "taskCount": 1,
+              "titles": [
+                "QA Версия А"
+              ]
+            },
+            {
+              "id": "d18cbdca-9a9e-4ce1-89d3-dbe12d327dc9",
+              "actorId": "owner",
+              "actorLabel": "Дмитрий",
+              "command": "task.create",
+              "status": 200,
+              "firstSeq": 2,
+              "lastSeq": 2,
+              "createdAt": "2026-09-08T14:20:34.301Z",
+              "ok": true,
+              "taskCount": 1,
+              "titles": [
+                "QA Версия А"
+              ]
+            },
+            {
+              "id": "7d695a5d-68ae-42f4-9cd8-7c9a2807d369",
+              "actorId": "owner",
+              "actorLabel": "Дмитрий",
+              "command": "project.create",
+              "status": 200,
+              "firstSeq": 1,
+              "lastSeq": 1,
+              "createdAt": "2026-09-08T14:20:14.817Z",
+              "ok": true,
+              "taskCount": 0,
+              "titles": []
+            }
+          ],
+          "more": false,
+          "nextCursor": null,
+          "href": "/api/operations?since=0&until=29&generation=1c00af79-fc39-42c8-ae4d-0f812d1f4028"
+        }
+      }
+    ]
+  },
+  {
+    "args": [
+      "task",
+      "sync",
+      "--origin",
+      "{\"system\":\"audit\",\"ref\":\"qa-live-source\",\"version\":\"1\"}",
+      "--fields",
+      "{\"area\":\"agency\",\"title\":\"QA Проверить источник агента\",\"status\":\"todo\",\"note\":\"Источник версия 1\"}"
+    ],
+    "code": 0,
+    "output": [
+      {
+        "ok": true,
+        "operationId": "22b997f5-3cc0-4110-87d6-0aa7f8cfcd37",
+        "generation": "1c00af79-fc39-42c8-ae4d-0f812d1f4028",
+        "firstSeq": 30,
+        "lastSeq": 30,
+        "results": [
+          {
+            "record": {
+              "id": "950bf2d7-e98c-4077-b033-d803d7db222a",
+              "area": "agency",
+              "projectId": null,
+              "title": "QA Проверить источник агента",
+              "status": "todo",
+              "note": "Источник версия 1",
+              "due": null,
+              "waitingFor": "",
+              "followUp": null,
+              "orderKey": "a1",
+              "focus": false,
+              "archived": false,
+              "checklist": [],
+              "commentCount": 0,
+              "originSystem": "audit",
+              "originRef": "qa-live-source",
+              "originUrl": null,
+              "originVersion": "1",
+              "createdBy": "agent:qa-live-cli",
+              "createdByLabel": "QA Агент",
+              "ownerTouchedAt": null,
+              "ownerFields": [],
+              "revision": 1,
+              "createdAt": "2026-09-08T14:35:03.854Z",
+              "updatedAt": "2026-09-08T14:35:03.854Z"
+            },
+            "changes": {
+              "id": {
+                "from": null,
+                "to": "950bf2d7-e98c-4077-b033-d803d7db222a"
+              },
+              "area": {
+                "from": null,
+                "to": "agency"
+              },
+              "projectId": {
+                "from": null,
+                "to": null
+              },
+              "title": {
+                "from": null,
+                "to": "QA Проверить источник агента"
+              },
+              "status": {
+                "from": null,
+                "to": "todo"
+              },
+              "note": {
+                "from": null,
+                "to": "Источник версия 1"
+              },
+              "due": {
+                "from": null,
+                "to": null
+              },
+              "waitingFor": {
+                "from": null,
+                "to": ""
+              },
+              "followUp": {
+                "from": null,
+                "to": null
+              },
+              "orderKey": {
+                "from": null,
+                "to": "a1"
+              },
+              "focus": {
+                "from": null,
+                "to": false
+              },
+              "archived": {
+                "from": null,
+                "to": false
+              },
+              "checklist": {
+                "from": null,
+                "to": []
+              },
+              "originSystem": {
+                "from": null,
+                "to": "audit"
+              },
+              "originRef": {
+                "from": null,
+                "to": "qa-live-source"
+              },
+              "originUrl": {
+                "from": null,
+                "to": null
+              },
+              "originVersion": {
+                "from": null,
+                "to": "1"
+              },
+              "createdBy": {
+                "from": null,
+                "to": "agent:qa-live-cli"
+              },
+              "createdByLabel": {
+                "from": null,
+                "to": "QA Агент"
+              },
+              "ownerTouchedAt": {
+                "from": null,
+                "to": null
+              },
+              "ownerFields": {
+                "from": null,
+                "to": []
+              },
+              "createdAt": {
+                "from": null,
+                "to": "2026-09-08T14:35:03.854Z"
+              }
+            },
+            "applied": [
+              "area",
+              "title",
+              "note",
+              "status"
+            ],
+            "skipped": []
+          }
+        ],
+        "events": [
+          {
+            "entityKind": "task",
+            "entityId": "950bf2d7-e98c-4077-b033-d803d7db222a",
+            "command": "task.sync",
+            "changes": {
+              "id": {
+                "from": null,
+                "to": "950bf2d7-e98c-4077-b033-d803d7db222a"
+              },
+              "area": {
+                "from": null,
+                "to": "agency"
+              },
+              "projectId": {
+                "from": null,
+                "to": null
+              },
+              "title": {
+                "from": null,
+                "to": "QA Проверить источник агента"
+              },
+              "status": {
+                "from": null,
+                "to": "todo"
+              },
+              "note": {
+                "from": null,
+                "to": "Источник версия 1"
+              },
+              "due": {
+                "from": null,
+                "to": null
+              },
+              "waitingFor": {
+                "from": null,
+                "to": ""
+              },
+              "followUp": {
+                "from": null,
+                "to": null
+              },
+              "orderKey": {
+                "from": null,
+                "to": "a1"
+              },
+              "focus": {
+                "from": null,
+                "to": false
+              },
+              "archived": {
+                "from": null,
+                "to": false
+              },
+              "checklist": {
+                "from": null,
+                "to": []
+              },
+              "originSystem": {
+                "from": null,
+                "to": "audit"
+              },
+              "originRef": {
+                "from": null,
+                "to": "qa-live-source"
+              },
+              "originUrl": {
+                "from": null,
+                "to": null
+              },
+              "originVersion": {
+                "from": null,
+                "to": "1"
+              },
+              "createdBy": {
+                "from": null,
+                "to": "agent:qa-live-cli"
+              },
+              "createdByLabel": {
+                "from": null,
+                "to": "QA Агент"
+              },
+              "ownerTouchedAt": {
+                "from": null,
+                "to": null
+              },
+              "ownerFields": {
+                "from": null,
+                "to": []
+              },
+              "createdAt": {
+                "from": null,
+                "to": "2026-09-08T14:35:03.854Z"
+              }
+            },
+            "recordRevision": 1,
+            "generation": "1c00af79-fc39-42c8-ae4d-0f812d1f4028",
+            "seq": 30,
+            "at": "2026-09-08T14:35:03.854Z",
+            "actorId": "agent:qa-live-cli",
+            "actorLabel": "QA Агент",
+            "operationId": "22b997f5-3cc0-4110-87d6-0aa7f8cfcd37",
+            "firstSeq": 30,
+            "lastSeq": 30
+          }
+        ]
+      }
+    ]
+  }
+]

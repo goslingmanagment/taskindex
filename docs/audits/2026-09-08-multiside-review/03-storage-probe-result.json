@@ -1,0 +1,9 @@
+{
+  "runtime": "v24.20.0",
+  "storageGetter": "SecurityError",
+  "resolvedStorage": "undefined",
+  "postCount": 4,
+  "beforeReloadPending": 1,
+  "afterReloadPending": 0,
+  "draftPersistedAcrossInstance": false
+}

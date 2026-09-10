@@ -1,0 +1,141 @@
+- generic: TaskIndex
+- list:
+  - button:
+    - generic: Фокус
+  - button:
+    - generic: Активность
+  - button:
+    - generic: Агентство
+  - button:
+    - generic: Разработка
+  - button:
+    - generic: Личное
+- generic: Направления
+- list:
+  - button:
+    - generic: Все задачи
+  - button:
+    - generic: QA Запуск
+- button:
+  - text: Добавить направление
+- button:
+  - text: Архив
+- button: Дмитрий
+- generic: Приватно
+- main:
+  - button:
+    - text: Агентство
+  - heading [level=1]: QA Запуск
+  - button:
+  - textbox:
+    - /placeholder: Найти во всех областях…
+  - generic: ⌘ K
+  - button:
+    - generic: Задача
+  - tablist:
+    - tab [selected]:
+      - text: Доска
+    - tab:
+      - text: Список
+  - tabpanel: Задачи по колонкам
+  - checkbox
+  - checkbox
+  - generic: На сегодня
+  - button:
+  - heading [level=2]: Очередь
+  - generic: "0"
+  - generic: Место для следующего дела
+  - button:
+    - text: Добавить задачу
+  - heading [level=2]: В работе
+  - generic: "0"
+  - generic: Начни с одной задачи
+  - button:
+    - text: Добавить задачу
+  - heading [level=2]: Жду
+  - generic: "1"
+  - article:
+    - button
+    - button:
+    - heading [level=3]: QA Подготовить релиз
+    - paragraph:
+      - text: Проверки команды
+    - text: 1/2
+    - button: ···
+    - button:
+  - button:
+    - text: Добавить задачу
+  - heading [level=2]: Готово
+  - generic: "0"
+  - generic: Здесь будут маленькие победы
+  - button:
+    - text: Добавить задачу
+  - status
+- region "Notifications"
+- dialog "Редактирование задачи":
+  - generic: ЗАДАЧА
+  - button "Закрыть карточку":
+  - heading "Редактирование задачи" [level=2]
+  - paragraph: Задача, состояние, заметки и шаги
+  - textbox "Название задачи":
+    - /placeholder: Что нужно сделать?
+    - text: QA Подготовить релиз
+  - text: Состояние
+  - combobox "Состояние задачи":
+    - generic: Жду
+    - img: ▼
+  - textbox: waiting
+  - generic: Агентство / QA Запуск
+  - button "Переместить"
+  - heading "Чего ждём?" [level=3]:
+    - text: Чего ждём?
+  - textbox "От кого или чего ждём":
+    - /placeholder: Например, ответ дизайнера
+    - text: Проверки команды
+  - text: Когда вернуться к задаче
+  - textbox "Когда вернуться к задаче" [active]: 2026-09-08
+  - paragraph: Это дата проверки, а не дедлайн.
+  - button "Срок":
+    - text: Срок
+  - heading "Заметка" [level=3]:
+    - text: Заметка
+  - textbox "Заметка к задаче":
+    - /placeholder: Контекст, ссылки или мысли…
+    - text: "Контекст QA: проверить запуск, перенос и восстановление."
+  - heading "Шаги 1 / 2" [level=3]:
+    - text: Шаги
+    - generic: 1 / 2
+  - progressbar "Выполненные шаги": x
+  - 'checkbox "Выполнено: Проверить форму" [checked]':
+  - checkbox [checked]
+  - textbox "Название шага": Проверить форму
+  - button "Убрать шаг Проверить форму":
+  - 'checkbox "Выполнено: Проверить уведомления"'
+  - checkbox
+  - textbox "Название шага": Проверить уведомления
+  - button "Убрать шаг Проверить уведомления":
+  - textbox "Новый шаг":
+    - /placeholder: Добавить шаг…
+  - button "Добавить шаг" [disabled]:
+  - button "В начало очереди" [disabled]:
+    - text: В начало очереди
+  - button "В архив" [disabled]:
+    - text: В архив
+  - button "Комментарии 1" [expanded]:
+    - text: Комментарии
+    - generic: "1"
+  - list:
+    - strong: Дмитрий
+    - time: 8 сент., 17:22
+    - paragraph: Первый комментарий QA
+    - button "Удалить"
+  - textbox "Новый комментарий":
+    - /placeholder: Комментарий или поручение…
+    - text: Удалённый черновик не должен вернуться
+  - button "Добавить комментарий"
+  - button "История"
+  - contentinfo:
+    - generic: Есть изменения
+    - button "Закрыть"
+    - button "Сохранить":
+      - text: Сохранить

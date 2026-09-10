@@ -1,0 +1,542 @@
+{
+  "config": {
+    "argv": [
+      "/private/tmp/taskindex-v2-tools/node-v24.20.0-darwin-arm64/bin/node",
+      "/Users/dmitriy/code/taskindex/node_modules/@playwright/test/cli.js",
+      "test",
+      "--config",
+      "docs/audits/2026-09-08-workflows/regressions/playwright.config.ts"
+    ],
+    "configFile": "/Users/dmitriy/code/taskindex/docs/audits/2026-09-08-workflows/regressions/playwright.config.ts",
+    "rootDir": "/Users/dmitriy/code/taskindex/docs/audits/2026-09-08-workflows/regressions",
+    "failOnFlakyTests": false,
+    "forbidOnly": false,
+    "fullyParallel": false,
+    "globalSetup": null,
+    "globalTeardown": null,
+    "globalTimeout": 0,
+    "grep": {},
+    "grepInvert": null,
+    "maxFailures": 0,
+    "metadata": {
+      "actualWorkers": 1
+    },
+    "preserveOutput": "always",
+    "projects": [
+      {
+        "outputDir": "/Users/dmitriy/code/taskindex/docs/audits/2026-09-08-workflows/regressions/results",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "actualWorkers": 1
+        },
+        "id": "",
+        "name": "",
+        "testDir": "/Users/dmitriy/code/taskindex/docs/audits/2026-09-08-workflows/regressions",
+        "testIgnore": [],
+        "testMatch": [
+          "regressions.spec.ts"
+        ],
+        "timeout": 20000
+      }
+    ],
+    "quiet": false,
+    "reporter": [
+      [
+        "list",
+        null
+      ],
+      [
+        "json",
+        {
+          "outputFile": "./results.json"
+        }
+      ]
+    ],
+    "reportSlowTests": {
+      "max": 5,
+      "threshold": 300000
+    },
+    "shard": null,
+    "tags": [],
+    "updateSnapshots": "missing",
+    "updateSourceMethod": "patch",
+    "version": "1.63.0",
+    "workers": 1,
+    "webServer": {
+      "cwd": "/Users/dmitriy/code/taskindex",
+      "command": "node node_modules/tsx/dist/cli.mjs docs/audits/2026-09-08-workflows/regressions/server.ts",
+      "url": "http://127.0.0.1:4198",
+      "reuseExistingServer": false,
+      "timeout": 30000
+    }
+  },
+  "suites": [
+    {
+      "title": "regressions.spec.ts",
+      "file": "regressions.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "B01 saving tab B must not delete the unsaved task draft in tab A",
+          "ok": false,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 20000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "failed",
+                  "duration": 4842,
+                  "error": {
+                    "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoHaveValue\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m failed\n\nLocator:  getByRole('textbox', { name: 'Название задачи', exact: true })\nExpected: \u001b[32m\"B01 \u001b[7mважный несохранённый текст\u001b[27m\"\u001b[39m\nReceived: \u001b[31m\"B01 \u001b[7mсохранено в Б\u001b[27m\"\u001b[39m\nTimeout:  3000ms\n\nCall log:\n\u001b[2m  - Expect \"toHaveValue\" getByRole('textbox', { name: 'Название задачи', exact: true }) with timeout 3000ms\u001b[22m\n\u001b[2m  - waiting for getByRole('textbox', { name: 'Название задачи', exact: true })\u001b[22m\n\u001b[2m    10 × locator resolved to <textarea rows=\"2\" maxlength=\"240\" class=\"editor-title\" aria-label=\"Название задачи\" placeholder=\"Что нужно сделать?\">B01 сохранено в Б</textarea>\u001b[22m\n\u001b[2m       - unexpected value \"B01 сохранено в Б\"\u001b[22m\n",
+                    "stack": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoHaveValue\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m failed\n\nLocator:  getByRole('textbox', { name: 'Название задачи', exact: true })\nExpected: \u001b[32m\"B01 \u001b[7mважный несохранённый текст\u001b[27m\"\u001b[39m\nReceived: \u001b[31m\"B01 \u001b[7mсохранено в Б\u001b[27m\"\u001b[39m\nTimeout:  3000ms\n\nCall log:\n\u001b[2m  - Expect \"toHaveValue\" getByRole('textbox', { name: 'Название задачи', exact: true }) with timeout 3000ms\u001b[22m\n\u001b[2m  - waiting for getByRole('textbox', { name: 'Название задачи', exact: true })\u001b[22m\n\u001b[2m    10 × locator resolved to <textarea rows=\"2\" maxlength=\"240\" class=\"editor-title\" aria-label=\"Название задачи\" placeholder=\"Что нужно сделать?\">B01 сохранено в Б</textarea>\u001b[22m\n\u001b[2m       - unexpected value \"B01 сохранено в Б\"\u001b[22m\n\n    at /Users/dmitriy/code/taskindex/docs/audits/2026-09-08-workflows/regressions/regressions.spec.ts:53:85",
+                    "location": {
+                      "file": "/Users/dmitriy/code/taskindex/docs/audits/2026-09-08-workflows/regressions/regressions.spec.ts",
+                      "column": 85,
+                      "line": 53
+                    },
+                    "snippet": "  51 |   await page.getByRole('button', { name: 'Закрыть с черновиком', exact: true }).click();\n  52 |   await open(page, 'B01 сохранено в Б');\n> 53 |   await expect(page.getByRole('textbox', { name: 'Название задачи', exact: true })).toHaveValue('B01 важный несохранённый текст');\n     |                                                                                     ^\n  54 | });\n  55 |\n  56 | test('B02 clearing a comment draft must stay cleared after reopening', async ({ page }) => {"
+                  },
+                  "errors": [
+                    {
+                      "location": {
+                        "file": "/Users/dmitriy/code/taskindex/docs/audits/2026-09-08-workflows/regressions/regressions.spec.ts",
+                        "column": 85,
+                        "line": 53
+                      },
+                      "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoHaveValue\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m failed\n\nLocator:  getByRole('textbox', { name: 'Название задачи', exact: true })\nExpected: \u001b[32m\"B01 \u001b[7mважный несохранённый текст\u001b[27m\"\u001b[39m\nReceived: \u001b[31m\"B01 \u001b[7mсохранено в Б\u001b[27m\"\u001b[39m\nTimeout:  3000ms\n\nCall log:\n\u001b[2m  - Expect \"toHaveValue\" getByRole('textbox', { name: 'Название задачи', exact: true }) with timeout 3000ms\u001b[22m\n\u001b[2m  - waiting for getByRole('textbox', { name: 'Название задачи', exact: true })\u001b[22m\n\u001b[2m    10 × locator resolved to <textarea rows=\"2\" maxlength=\"240\" class=\"editor-title\" aria-label=\"Название задачи\" placeholder=\"Что нужно сделать?\">B01 сохранено в Б</textarea>\u001b[22m\n\u001b[2m       - unexpected value \"B01 сохранено в Б\"\u001b[22m\n\n\n  51 |   await page.getByRole('button', { name: 'Закрыть с черновиком', exact: true }).click();\n  52 |   await open(page, 'B01 сохранено в Б');\n> 53 |   await expect(page.getByRole('textbox', { name: 'Название задачи', exact: true })).toHaveValue('B01 важный несохранённый текст');\n     |                                                                                     ^\n  54 | });\n  55 |\n  56 | test('B02 clearing a comment draft must stay cleared after reopening', async ({ page }) => {\n    at /Users/dmitriy/code/taskindex/docs/audits/2026-09-08-workflows/regressions/regressions.spec.ts:53:85"
+                    }
+                  ],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-09-08T14:39:57.957Z",
+                  "annotations": [],
+                  "attachments": [
+                    {
+                      "name": "screenshot",
+                      "contentType": "image/png",
+                      "path": "/Users/dmitriy/code/taskindex/docs/audits/2026-09-08-workflows/regressions/results/regressions-B01-saving-tab-8116c-unsaved-task-draft-in-tab-A/test-failed-1.png"
+                    },
+                    {
+                      "name": "screenshot",
+                      "contentType": "image/png",
+                      "path": "/Users/dmitriy/code/taskindex/docs/audits/2026-09-08-workflows/regressions/results/regressions-B01-saving-tab-8116c-unsaved-task-draft-in-tab-A/test-failed-2.png"
+                    },
+                    {
+                      "name": "error-context",
+                      "contentType": "text/markdown",
+                      "path": "/Users/dmitriy/code/taskindex/docs/audits/2026-09-08-workflows/regressions/results/regressions-B01-saving-tab-8116c-unsaved-task-draft-in-tab-A/error-context.md"
+                    },
+                    {
+                      "name": "trace",
+                      "contentType": "application/zip",
+                      "path": "/Users/dmitriy/code/taskindex/docs/audits/2026-09-08-workflows/regressions/results/regressions-B01-saving-tab-8116c-unsaved-task-draft-in-tab-A/trace.zip"
+                    }
+                  ],
+                  "errorLocation": {
+                    "file": "/Users/dmitriy/code/taskindex/docs/audits/2026-09-08-workflows/regressions/regressions.spec.ts",
+                    "column": 85,
+                    "line": 53
+                  }
+                }
+              ],
+              "status": "unexpected"
+            }
+          ],
+          "id": "a34af78d704591628420-f12a5536e35830de0cd0",
+          "file": "regressions.spec.ts",
+          "line": 38,
+          "column": 1
+        },
+        {
+          "title": "B02 clearing a comment draft must stay cleared after reopening",
+          "ok": false,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 20000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "parallelIndex": 0,
+                  "status": "failed",
+                  "duration": 3808,
+                  "error": {
+                    "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoHaveValue\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m failed\n\nLocator:  getByRole('textbox', { name: 'Новый комментарий', exact: true })\nExpected: \u001b[32m\"\"\u001b[39m\nReceived: \u001b[31m\"B02 текст удалён пользователем\"\u001b[39m\nTimeout:  3000ms\n\nCall log:\n\u001b[2m  - Expect \"toHaveValue\" getByRole('textbox', { name: 'Новый комментарий', exact: true }) with timeout 3000ms\u001b[22m\n\u001b[2m  - waiting for getByRole('textbox', { name: 'Новый комментарий', exact: true })\u001b[22m\n\u001b[2m    10 × locator resolved to <textarea maxlength=\"4000\" data-slot=\"textarea\" aria-label=\"Новый комментарий\" placeholder=\"Комментарий или поручение…\" class=\"flex field-sizing-content min-h-16 w-full rounded-lg border border-input bg-transparent px-2.5 py-2 text-base transition-colors outline-none placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 disabled:cursor-not-allowed disabled:bg-input/50 disabled:opacity-50 aria-invalid:border-destructive aria-invalid:ring-3 aria-invali…>B02 текст удалён пользователем</textarea>\u001b[22m\n\u001b[2m       - unexpected value \"B02 текст удалён пользователем\"\u001b[22m\n",
+                    "stack": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoHaveValue\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m failed\n\nLocator:  getByRole('textbox', { name: 'Новый комментарий', exact: true })\nExpected: \u001b[32m\"\"\u001b[39m\nReceived: \u001b[31m\"B02 текст удалён пользователем\"\u001b[39m\nTimeout:  3000ms\n\nCall log:\n\u001b[2m  - Expect \"toHaveValue\" getByRole('textbox', { name: 'Новый комментарий', exact: true }) with timeout 3000ms\u001b[22m\n\u001b[2m  - waiting for getByRole('textbox', { name: 'Новый комментарий', exact: true })\u001b[22m\n\u001b[2m    10 × locator resolved to <textarea maxlength=\"4000\" data-slot=\"textarea\" aria-label=\"Новый комментарий\" placeholder=\"Комментарий или поручение…\" class=\"flex field-sizing-content min-h-16 w-full rounded-lg border border-input bg-transparent px-2.5 py-2 text-base transition-colors outline-none placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 disabled:cursor-not-allowed disabled:bg-input/50 disabled:opacity-50 aria-invalid:border-destructive aria-invalid:ring-3 aria-invali…>B02 текст удалён пользователем</textarea>\u001b[22m\n\u001b[2m       - unexpected value \"B02 текст удалён пользователем\"\u001b[22m\n\n    at /Users/dmitriy/code/taskindex/docs/audits/2026-09-08-workflows/regressions/regressions.spec.ts:66:23",
+                    "location": {
+                      "file": "/Users/dmitriy/code/taskindex/docs/audits/2026-09-08-workflows/regressions/regressions.spec.ts",
+                      "column": 23,
+                      "line": 66
+                    },
+                    "snippet": "  64 |   await open(page, 'B02 комментарий');\n  65 |   await page.getByRole('button', { name: 'Комментарии 0', exact: true }).click();\n> 66 |   await expect(field).toHaveValue('');\n     |                       ^\n  67 | });\n  68 |\n  69 | test('B03 quick-create must consume the inline draft after creating its task', async ({ page }) => {"
+                  },
+                  "errors": [
+                    {
+                      "location": {
+                        "file": "/Users/dmitriy/code/taskindex/docs/audits/2026-09-08-workflows/regressions/regressions.spec.ts",
+                        "column": 23,
+                        "line": 66
+                      },
+                      "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoHaveValue\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m failed\n\nLocator:  getByRole('textbox', { name: 'Новый комментарий', exact: true })\nExpected: \u001b[32m\"\"\u001b[39m\nReceived: \u001b[31m\"B02 текст удалён пользователем\"\u001b[39m\nTimeout:  3000ms\n\nCall log:\n\u001b[2m  - Expect \"toHaveValue\" getByRole('textbox', { name: 'Новый комментарий', exact: true }) with timeout 3000ms\u001b[22m\n\u001b[2m  - waiting for getByRole('textbox', { name: 'Новый комментарий', exact: true })\u001b[22m\n\u001b[2m    10 × locator resolved to <textarea maxlength=\"4000\" data-slot=\"textarea\" aria-label=\"Новый комментарий\" placeholder=\"Комментарий или поручение…\" class=\"flex field-sizing-content min-h-16 w-full rounded-lg border border-input bg-transparent px-2.5 py-2 text-base transition-colors outline-none placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 disabled:cursor-not-allowed disabled:bg-input/50 disabled:opacity-50 aria-invalid:border-destructive aria-invalid:ring-3 aria-invali…>B02 текст удалён пользователем</textarea>\u001b[22m\n\u001b[2m       - unexpected value \"B02 текст удалён пользователем\"\u001b[22m\n\n\n  64 |   await open(page, 'B02 комментарий');\n  65 |   await page.getByRole('button', { name: 'Комментарии 0', exact: true }).click();\n> 66 |   await expect(field).toHaveValue('');\n     |                       ^\n  67 | });\n  68 |\n  69 | test('B03 quick-create must consume the inline draft after creating its task', async ({ page }) => {\n    at /Users/dmitriy/code/taskindex/docs/audits/2026-09-08-workflows/regressions/regressions.spec.ts:66:23"
+                    }
+                  ],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-09-08T14:40:03.266Z",
+                  "annotations": [],
+                  "attachments": [
+                    {
+                      "name": "screenshot",
+                      "contentType": "image/png",
+                      "path": "/Users/dmitriy/code/taskindex/docs/audits/2026-09-08-workflows/regressions/results/regressions-B02-clearing-a-673ce-tay-cleared-after-reopening/test-failed-1.png"
+                    },
+                    {
+                      "name": "error-context",
+                      "contentType": "text/markdown",
+                      "path": "/Users/dmitriy/code/taskindex/docs/audits/2026-09-08-workflows/regressions/results/regressions-B02-clearing-a-673ce-tay-cleared-after-reopening/error-context.md"
+                    },
+                    {
+                      "name": "trace",
+                      "contentType": "application/zip",
+                      "path": "/Users/dmitriy/code/taskindex/docs/audits/2026-09-08-workflows/regressions/results/regressions-B02-clearing-a-673ce-tay-cleared-after-reopening/trace.zip"
+                    }
+                  ],
+                  "errorLocation": {
+                    "file": "/Users/dmitriy/code/taskindex/docs/audits/2026-09-08-workflows/regressions/regressions.spec.ts",
+                    "column": 23,
+                    "line": 66
+                  }
+                }
+              ],
+              "status": "unexpected"
+            }
+          ],
+          "id": "a34af78d704591628420-749174d034f6c70048eb",
+          "file": "regressions.spec.ts",
+          "line": 56,
+          "column": 1
+        },
+        {
+          "title": "B03 quick-create must consume the inline draft after creating its task",
+          "ok": false,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 20000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 2,
+                  "parallelIndex": 0,
+                  "status": "failed",
+                  "duration": 3885,
+                  "error": {
+                    "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoHaveValue\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m failed\n\nLocator:  getByRole('textbox', { name: 'Название новой задачи', exact: true })\nExpected: \u001b[32m\"\"\u001b[39m\nReceived: \u001b[31m\"B03 создать ровно один раз\"\u001b[39m\nTimeout:  3000ms\n\nCall log:\n\u001b[2m  - Expect \"toHaveValue\" getByRole('textbox', { name: 'Название новой задачи', exact: true }) with timeout 3000ms\u001b[22m\n\u001b[2m  - waiting for getByRole('textbox', { name: 'Название новой задачи', exact: true })\u001b[22m\n\u001b[2m    10 × locator resolved to <input maxlength=\"240\" data-slot=\"input\" id=\"base-ui-_r_1k_\" placeholder=\"Что нужно сделать?\" aria-label=\"Название новой задачи\" value=\"B03 создать ровно один раз\" class=\"h-8 w-full min-w-0 rounded-lg border border-input bg-transparent px-2.5 py-1 text-base transition-colors outline-none file:inline-flex file:h-6 file:border-0 file:bg-transparent file:text-sm file:font-medium file:text-foreground placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/…/>\u001b[22m\n\u001b[2m       - unexpected value \"B03 создать ровно один раз\"\u001b[22m\n",
+                    "stack": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoHaveValue\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m failed\n\nLocator:  getByRole('textbox', { name: 'Название новой задачи', exact: true })\nExpected: \u001b[32m\"\"\u001b[39m\nReceived: \u001b[31m\"B03 создать ровно один раз\"\u001b[39m\nTimeout:  3000ms\n\nCall log:\n\u001b[2m  - Expect \"toHaveValue\" getByRole('textbox', { name: 'Название новой задачи', exact: true }) with timeout 3000ms\u001b[22m\n\u001b[2m  - waiting for getByRole('textbox', { name: 'Название новой задачи', exact: true })\u001b[22m\n\u001b[2m    10 × locator resolved to <input maxlength=\"240\" data-slot=\"input\" id=\"base-ui-_r_1k_\" placeholder=\"Что нужно сделать?\" aria-label=\"Название новой задачи\" value=\"B03 создать ровно один раз\" class=\"h-8 w-full min-w-0 rounded-lg border border-input bg-transparent px-2.5 py-1 text-base transition-colors outline-none file:inline-flex file:h-6 file:border-0 file:bg-transparent file:text-sm file:font-medium file:text-foreground placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/…/>\u001b[22m\n\u001b[2m       - unexpected value \"B03 создать ровно один раз\"\u001b[22m\n\n    at /Users/dmitriy/code/taskindex/docs/audits/2026-09-08-workflows/regressions/regressions.spec.ts:81:23",
+                    "location": {
+                      "file": "/Users/dmitriy/code/taskindex/docs/audits/2026-09-08-workflows/regressions/regressions.spec.ts",
+                      "column": 23,
+                      "line": 81
+                    },
+                    "snippet": "  79 |   await expect(page.getByRole('dialog', { name: 'Новая задача', exact: true })).toBeHidden();\n  80 |   await add.nth(1).click();\n> 81 |   await expect(field).toHaveValue('');\n     |                       ^\n  82 | });\n  83 |\n  84 | test('B04 a project conflict must recover after reopening on the current revision', async ({ page }) => {"
+                  },
+                  "errors": [
+                    {
+                      "location": {
+                        "file": "/Users/dmitriy/code/taskindex/docs/audits/2026-09-08-workflows/regressions/regressions.spec.ts",
+                        "column": 23,
+                        "line": 81
+                      },
+                      "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoHaveValue\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m failed\n\nLocator:  getByRole('textbox', { name: 'Название новой задачи', exact: true })\nExpected: \u001b[32m\"\"\u001b[39m\nReceived: \u001b[31m\"B03 создать ровно один раз\"\u001b[39m\nTimeout:  3000ms\n\nCall log:\n\u001b[2m  - Expect \"toHaveValue\" getByRole('textbox', { name: 'Название новой задачи', exact: true }) with timeout 3000ms\u001b[22m\n\u001b[2m  - waiting for getByRole('textbox', { name: 'Название новой задачи', exact: true })\u001b[22m\n\u001b[2m    10 × locator resolved to <input maxlength=\"240\" data-slot=\"input\" id=\"base-ui-_r_1k_\" placeholder=\"Что нужно сделать?\" aria-label=\"Название новой задачи\" value=\"B03 создать ровно один раз\" class=\"h-8 w-full min-w-0 rounded-lg border border-input bg-transparent px-2.5 py-1 text-base transition-colors outline-none file:inline-flex file:h-6 file:border-0 file:bg-transparent file:text-sm file:font-medium file:text-foreground placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/…/>\u001b[22m\n\u001b[2m       - unexpected value \"B03 создать ровно один раз\"\u001b[22m\n\n\n  79 |   await expect(page.getByRole('dialog', { name: 'Новая задача', exact: true })).toBeHidden();\n  80 |   await add.nth(1).click();\n> 81 |   await expect(field).toHaveValue('');\n     |                       ^\n  82 | });\n  83 |\n  84 | test('B04 a project conflict must recover after reopening on the current revision', async ({ page }) => {\n    at /Users/dmitriy/code/taskindex/docs/audits/2026-09-08-workflows/regressions/regressions.spec.ts:81:23"
+                    }
+                  ],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-09-08T14:40:07.364Z",
+                  "annotations": [],
+                  "attachments": [
+                    {
+                      "name": "screenshot",
+                      "contentType": "image/png",
+                      "path": "/Users/dmitriy/code/taskindex/docs/audits/2026-09-08-workflows/regressions/results/regressions-B03-quick-crea-c05f1-aft-after-creating-its-task/test-failed-1.png"
+                    },
+                    {
+                      "name": "error-context",
+                      "contentType": "text/markdown",
+                      "path": "/Users/dmitriy/code/taskindex/docs/audits/2026-09-08-workflows/regressions/results/regressions-B03-quick-crea-c05f1-aft-after-creating-its-task/error-context.md"
+                    },
+                    {
+                      "name": "trace",
+                      "contentType": "application/zip",
+                      "path": "/Users/dmitriy/code/taskindex/docs/audits/2026-09-08-workflows/regressions/results/regressions-B03-quick-crea-c05f1-aft-after-creating-its-task/trace.zip"
+                    }
+                  ],
+                  "errorLocation": {
+                    "file": "/Users/dmitriy/code/taskindex/docs/audits/2026-09-08-workflows/regressions/regressions.spec.ts",
+                    "column": 23,
+                    "line": 81
+                  }
+                }
+              ],
+              "status": "unexpected"
+            }
+          ],
+          "id": "a34af78d704591628420-3918951491bee009531e",
+          "file": "regressions.spec.ts",
+          "line": 69,
+          "column": 1
+        },
+        {
+          "title": "B04 a project conflict must recover after reopening on the current revision",
+          "ok": false,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 20000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 3,
+                  "parallelIndex": 0,
+                  "status": "failed",
+                  "duration": 4328,
+                  "error": {
+                    "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoBeHidden\u001b[2m(\u001b[22m\u001b[2m)\u001b[22m failed\n\nLocator:  getByRole('dialog', { name: 'Переименовать направление', exact: true })\nExpected: hidden\nReceived: visible\nTimeout:  3000ms\n\nCall log:\n\u001b[2m  - Expect \"toBeHidden\" getByRole('dialog', { name: 'Переименовать направление', exact: true }) with timeout 3000ms\u001b[22m\n\u001b[2m  - waiting for getByRole('dialog', { name: 'Переименовать направление', exact: true })\u001b[22m\n\u001b[2m    10 × locator resolved to <div id=\"_r_1j_\" data-open=\"\" role=\"dialog\" tabindex=\"-1\" data-base-ui-focusable=\"\" data-slot=\"dialog-content\" aria-labelledby=\"base-ui-_r_1l_\" aria-describedby=\"base-ui-_r_1m_\" class=\"fixed top-1/2 left-1/2 z-50 grid w-full max-w-[calc(100%-2rem)] -translate-x-1/2 -translate-y-1/2 gap-4 rounded-xl bg-popover p-4 text-sm text-popover-foreground ring-1 ring-foreground/10 duration-100 outline-none sm:max-w-sm data-open:animate-in data-open:fade-in-0 data-open:zoom-in-95 data-closed:animate-out data-c…>…</div>\u001b[22m\n\u001b[2m       - unexpected value \"visible\"\u001b[22m\n",
+                    "stack": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoBeHidden\u001b[2m(\u001b[22m\u001b[2m)\u001b[22m failed\n\nLocator:  getByRole('dialog', { name: 'Переименовать направление', exact: true })\nExpected: hidden\nReceived: visible\nTimeout:  3000ms\n\nCall log:\n\u001b[2m  - Expect \"toBeHidden\" getByRole('dialog', { name: 'Переименовать направление', exact: true }) with timeout 3000ms\u001b[22m\n\u001b[2m  - waiting for getByRole('dialog', { name: 'Переименовать направление', exact: true })\u001b[22m\n\u001b[2m    10 × locator resolved to <div id=\"_r_1j_\" data-open=\"\" role=\"dialog\" tabindex=\"-1\" data-base-ui-focusable=\"\" data-slot=\"dialog-content\" aria-labelledby=\"base-ui-_r_1l_\" aria-describedby=\"base-ui-_r_1m_\" class=\"fixed top-1/2 left-1/2 z-50 grid w-full max-w-[calc(100%-2rem)] -translate-x-1/2 -translate-y-1/2 gap-4 rounded-xl bg-popover p-4 text-sm text-popover-foreground ring-1 ring-foreground/10 duration-100 outline-none sm:max-w-sm data-open:animate-in data-open:fade-in-0 data-open:zoom-in-95 data-closed:animate-out data-c…>…</div>\u001b[22m\n\u001b[2m       - unexpected value \"visible\"\u001b[22m\n\n    at /Users/dmitriy/code/taskindex/docs/audits/2026-09-08-workflows/regressions/regressions.spec.ts:100:94",
+                    "location": {
+                      "file": "/Users/dmitriy/code/taskindex/docs/audits/2026-09-08-workflows/regressions/regressions.spec.ts",
+                      "column": 94,
+                      "line": 100
+                    },
+                    "snippet": "   98 |   await editProject();\n   99 |   await page.getByRole('button', { name: 'Сохранить', exact: true }).click();\n> 100 |   await expect(page.getByRole('dialog', { name: 'Переименовать направление', exact: true })).toBeHidden();\n      |                                                                                              ^\n  101 | });\n  102 |\n  103 | test('B05 current version control must remain on-screen at mobile width', async ({ page }) => {"
+                  },
+                  "errors": [
+                    {
+                      "location": {
+                        "file": "/Users/dmitriy/code/taskindex/docs/audits/2026-09-08-workflows/regressions/regressions.spec.ts",
+                        "column": 94,
+                        "line": 100
+                      },
+                      "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoBeHidden\u001b[2m(\u001b[22m\u001b[2m)\u001b[22m failed\n\nLocator:  getByRole('dialog', { name: 'Переименовать направление', exact: true })\nExpected: hidden\nReceived: visible\nTimeout:  3000ms\n\nCall log:\n\u001b[2m  - Expect \"toBeHidden\" getByRole('dialog', { name: 'Переименовать направление', exact: true }) with timeout 3000ms\u001b[22m\n\u001b[2m  - waiting for getByRole('dialog', { name: 'Переименовать направление', exact: true })\u001b[22m\n\u001b[2m    10 × locator resolved to <div id=\"_r_1j_\" data-open=\"\" role=\"dialog\" tabindex=\"-1\" data-base-ui-focusable=\"\" data-slot=\"dialog-content\" aria-labelledby=\"base-ui-_r_1l_\" aria-describedby=\"base-ui-_r_1m_\" class=\"fixed top-1/2 left-1/2 z-50 grid w-full max-w-[calc(100%-2rem)] -translate-x-1/2 -translate-y-1/2 gap-4 rounded-xl bg-popover p-4 text-sm text-popover-foreground ring-1 ring-foreground/10 duration-100 outline-none sm:max-w-sm data-open:animate-in data-open:fade-in-0 data-open:zoom-in-95 data-closed:animate-out data-c…>…</div>\u001b[22m\n\u001b[2m       - unexpected value \"visible\"\u001b[22m\n\n\n   98 |   await editProject();\n   99 |   await page.getByRole('button', { name: 'Сохранить', exact: true }).click();\n> 100 |   await expect(page.getByRole('dialog', { name: 'Переименовать направление', exact: true })).toBeHidden();\n      |                                                                                              ^\n  101 | });\n  102 |\n  103 | test('B05 current version control must remain on-screen at mobile width', async ({ page }) => {\n    at /Users/dmitriy/code/taskindex/docs/audits/2026-09-08-workflows/regressions/regressions.spec.ts:100:94"
+                    }
+                  ],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-09-08T14:40:11.568Z",
+                  "annotations": [],
+                  "attachments": [
+                    {
+                      "name": "screenshot",
+                      "contentType": "image/png",
+                      "path": "/Users/dmitriy/code/taskindex/docs/audits/2026-09-08-workflows/regressions/results/regressions-B04-a-project--e38d6-ing-on-the-current-revision/test-failed-1.png"
+                    },
+                    {
+                      "name": "error-context",
+                      "contentType": "text/markdown",
+                      "path": "/Users/dmitriy/code/taskindex/docs/audits/2026-09-08-workflows/regressions/results/regressions-B04-a-project--e38d6-ing-on-the-current-revision/error-context.md"
+                    },
+                    {
+                      "name": "trace",
+                      "contentType": "application/zip",
+                      "path": "/Users/dmitriy/code/taskindex/docs/audits/2026-09-08-workflows/regressions/results/regressions-B04-a-project--e38d6-ing-on-the-current-revision/trace.zip"
+                    }
+                  ],
+                  "errorLocation": {
+                    "file": "/Users/dmitriy/code/taskindex/docs/audits/2026-09-08-workflows/regressions/regressions.spec.ts",
+                    "column": 94,
+                    "line": 100
+                  }
+                }
+              ],
+              "status": "unexpected"
+            }
+          ],
+          "id": "a34af78d704591628420-e23690b31f0c0a1cbccd",
+          "file": "regressions.spec.ts",
+          "line": 84,
+          "column": 1
+        },
+        {
+          "title": "B05 current version control must remain on-screen at mobile width",
+          "ok": false,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 20000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 4,
+                  "parallelIndex": 0,
+                  "status": "failed",
+                  "duration": 753,
+                  "error": {
+                    "message": "Error: The current-version control must be reachable without leaving the viewport\n\n\u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBeGreaterThanOrEqual\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m\n\nExpected: >= \u001b[32m0\u001b[39m\nReceived:    \u001b[31m-75.015625\u001b[39m",
+                    "stack": "Error: The current-version control must be reachable without leaving the viewport\n\n\u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBeGreaterThanOrEqual\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m\n\nExpected: >= \u001b[32m0\u001b[39m\nReceived:    \u001b[31m-75.015625\u001b[39m\n    at /Users/dmitriy/code/taskindex/docs/audits/2026-09-08-workflows/regressions/regressions.spec.ts:113:95",
+                    "location": {
+                      "file": "/Users/dmitriy/code/taskindex/docs/audits/2026-09-08-workflows/regressions/regressions.spec.ts",
+                      "column": 95,
+                      "line": 113
+                    },
+                    "snippet": "  111 |   await expect(summary).toBeVisible();\n  112 |   const box = (await summary.boundingBox())!;\n> 113 |   expect(box.x, 'The current-version control must be reachable without leaving the viewport').toBeGreaterThanOrEqual(0);\n      |                                                                                               ^\n  114 | });\n  115 |\n  116 | test('B06 open activity must receive a new rejected operation without a data mutation', async ({ page }) => {"
+                  },
+                  "errors": [
+                    {
+                      "location": {
+                        "file": "/Users/dmitriy/code/taskindex/docs/audits/2026-09-08-workflows/regressions/regressions.spec.ts",
+                        "column": 95,
+                        "line": 113
+                      },
+                      "message": "Error: The current-version control must be reachable without leaving the viewport\n\n\u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBeGreaterThanOrEqual\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m\n\nExpected: >= \u001b[32m0\u001b[39m\nReceived:    \u001b[31m-75.015625\u001b[39m\n\n  111 |   await expect(summary).toBeVisible();\n  112 |   const box = (await summary.boundingBox())!;\n> 113 |   expect(box.x, 'The current-version control must be reachable without leaving the viewport').toBeGreaterThanOrEqual(0);\n      |                                                                                               ^\n  114 | });\n  115 |\n  116 | test('B06 open activity must receive a new rejected operation without a data mutation', async ({ page }) => {\n    at /Users/dmitriy/code/taskindex/docs/audits/2026-09-08-workflows/regressions/regressions.spec.ts:113:95"
+                    }
+                  ],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-09-08T14:40:16.213Z",
+                  "annotations": [],
+                  "attachments": [
+                    {
+                      "name": "screenshot",
+                      "contentType": "image/png",
+                      "path": "/Users/dmitriy/code/taskindex/docs/audits/2026-09-08-workflows/regressions/results/regressions-B05-current-ve-6530a-n-on-screen-at-mobile-width/test-failed-1.png"
+                    },
+                    {
+                      "name": "error-context",
+                      "contentType": "text/markdown",
+                      "path": "/Users/dmitriy/code/taskindex/docs/audits/2026-09-08-workflows/regressions/results/regressions-B05-current-ve-6530a-n-on-screen-at-mobile-width/error-context.md"
+                    },
+                    {
+                      "name": "trace",
+                      "contentType": "application/zip",
+                      "path": "/Users/dmitriy/code/taskindex/docs/audits/2026-09-08-workflows/regressions/results/regressions-B05-current-ve-6530a-n-on-screen-at-mobile-width/trace.zip"
+                    }
+                  ],
+                  "errorLocation": {
+                    "file": "/Users/dmitriy/code/taskindex/docs/audits/2026-09-08-workflows/regressions/regressions.spec.ts",
+                    "column": 95,
+                    "line": 113
+                  }
+                }
+              ],
+              "status": "unexpected"
+            }
+          ],
+          "id": "a34af78d704591628420-82c76bc8840af8e129cd",
+          "file": "regressions.spec.ts",
+          "line": 103,
+          "column": 1
+        },
+        {
+          "title": "B06 open activity must receive a new rejected operation without a data mutation",
+          "ok": false,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 20000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 5,
+                  "parallelIndex": 0,
+                  "status": "failed",
+                  "duration": 3655,
+                  "error": {
+                    "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoHaveCount\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m failed\n\nLocator:  locator('.operation-row[data-outcome=\"rejected\"]')\nExpected: \u001b[32m4\u001b[39m\nReceived: \u001b[31m3\u001b[39m\nTimeout:  3000ms\n\nCall log:\n\u001b[2m  - Expect \"toHaveCount\" locator('.operation-row[data-outcome=\"rejected\"]') with timeout 3000ms\u001b[22m\n\u001b[2m  - waiting for locator('.operation-row[data-outcome=\"rejected\"]')\u001b[22m\n\u001b[2m    10 × locator resolved to 3 elements\u001b[22m\n\u001b[2m       - unexpected value \"3\"\u001b[22m\n",
+                    "stack": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoHaveCount\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m failed\n\nLocator:  locator('.operation-row[data-outcome=\"rejected\"]')\nExpected: \u001b[32m4\u001b[39m\nReceived: \u001b[31m3\u001b[39m\nTimeout:  3000ms\n\nCall log:\n\u001b[2m  - Expect \"toHaveCount\" locator('.operation-row[data-outcome=\"rejected\"]') with timeout 3000ms\u001b[22m\n\u001b[2m  - waiting for locator('.operation-row[data-outcome=\"rejected\"]')\u001b[22m\n\u001b[2m    10 × locator resolved to 3 elements\u001b[22m\n\u001b[2m       - unexpected value \"3\"\u001b[22m\n\n    at /Users/dmitriy/code/taskindex/docs/audits/2026-09-08-workflows/regressions/regressions.spec.ts:122:26",
+                    "location": {
+                      "file": "/Users/dmitriy/code/taskindex/docs/audits/2026-09-08-workflows/regressions/regressions.spec.ts",
+                      "column": 26,
+                      "line": 122
+                    },
+                    "snippet": "  120 |   const before = await rejected.count();\n  121 |   expect((await command(page, 'task.update', { id: randomUUID(), baseRevision: 1, title: 'B06 отказ' })).status()).toBe(404);\n> 122 |   await expect(rejected).toHaveCount(before + 1);\n      |                          ^\n  123 | });\n  124 |"
+                  },
+                  "errors": [
+                    {
+                      "location": {
+                        "file": "/Users/dmitriy/code/taskindex/docs/audits/2026-09-08-workflows/regressions/regressions.spec.ts",
+                        "column": 26,
+                        "line": 122
+                      },
+                      "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoHaveCount\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m failed\n\nLocator:  locator('.operation-row[data-outcome=\"rejected\"]')\nExpected: \u001b[32m4\u001b[39m\nReceived: \u001b[31m3\u001b[39m\nTimeout:  3000ms\n\nCall log:\n\u001b[2m  - Expect \"toHaveCount\" locator('.operation-row[data-outcome=\"rejected\"]') with timeout 3000ms\u001b[22m\n\u001b[2m  - waiting for locator('.operation-row[data-outcome=\"rejected\"]')\u001b[22m\n\u001b[2m    10 × locator resolved to 3 elements\u001b[22m\n\u001b[2m       - unexpected value \"3\"\u001b[22m\n\n\n  120 |   const before = await rejected.count();\n  121 |   expect((await command(page, 'task.update', { id: randomUUID(), baseRevision: 1, title: 'B06 отказ' })).status()).toBe(404);\n> 122 |   await expect(rejected).toHaveCount(before + 1);\n      |                          ^\n  123 | });\n  124 |\n    at /Users/dmitriy/code/taskindex/docs/audits/2026-09-08-workflows/regressions/regressions.spec.ts:122:26"
+                    }
+                  ],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-09-08T14:40:17.246Z",
+                  "annotations": [],
+                  "attachments": [
+                    {
+                      "name": "screenshot",
+                      "contentType": "image/png",
+                      "path": "/Users/dmitriy/code/taskindex/docs/audits/2026-09-08-workflows/regressions/results/regressions-B06-open-activ-a6d15-ion-without-a-data-mutation/test-failed-1.png"
+                    },
+                    {
+                      "name": "error-context",
+                      "contentType": "text/markdown",
+                      "path": "/Users/dmitriy/code/taskindex/docs/audits/2026-09-08-workflows/regressions/results/regressions-B06-open-activ-a6d15-ion-without-a-data-mutation/error-context.md"
+                    },
+                    {
+                      "name": "trace",
+                      "contentType": "application/zip",
+                      "path": "/Users/dmitriy/code/taskindex/docs/audits/2026-09-08-workflows/regressions/results/regressions-B06-open-activ-a6d15-ion-without-a-data-mutation/trace.zip"
+                    }
+                  ],
+                  "errorLocation": {
+                    "file": "/Users/dmitriy/code/taskindex/docs/audits/2026-09-08-workflows/regressions/regressions.spec.ts",
+                    "column": 26,
+                    "line": 122
+                  }
+                }
+              ],
+              "status": "unexpected"
+            }
+          ],
+          "id": "a34af78d704591628420-557b515070e15020f2f6",
+          "file": "regressions.spec.ts",
+          "line": 116,
+          "column": 1
+        }
+      ]
+    }
+  ],
+  "errors": [],
+  "stats": {
+    "startTime": "2026-09-08T14:39:55.816Z",
+    "duration": 25229.692,
+    "expected": 0,
+    "skipped": 0,
+    "unexpected": 6,
+    "flaky": 0
+  }
+}

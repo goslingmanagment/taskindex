@@ -1,0 +1,20 @@
+logging:
+  type: json
+  stderr: true
+snapshot:
+  interval: 24h
+  retention: 720h
+shutdown-sync-timeout: 30s
+socket:
+  enabled: true
+  path: /data/litestream.sock
+  permissions: 0600
+dbs:
+  - path: /data/taskindex.db
+    meta-path: /data/.taskindex.db-litestream
+    replica:
+      url: ${LITESTREAM_REPLICA_URL}
+      endpoint: ${LITESTREAM_S3_ENDPOINT}
+      region: ${LITESTREAM_S3_REGION}
+      force-path-style: ${LITESTREAM_FORCE_PATH_STYLE}
+      auto-recover: false

@@ -1,0 +1,17 @@
+**
+!package.json
+!package-lock.json
+!tsconfig.json
+!tsdown.config.ts
+!vite.config.ts
+!index.html
+!src
+!src/**
+!public
+!public/favicon.svg
+!drizzle
+!drizzle/v2
+!drizzle/v2/**
+!deploy
+!deploy/Dockerfile
+!deploy/database.mjs

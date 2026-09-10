@@ -1,0 +1,227 @@
+import { ArgumentError } from './arguments.js';
+import { hc } from 'hono/client';
+import type { AppType } from '../server/app.js';
+import {
+  batchEnvelopeSchema,
+  commandEnvelopeSchema,
+} from '../shared/schemas.js';
+import { storedOperationSchema } from '../shared/domain-schemas.js';
+import { Outbox, type SavedOperation } from './outbox.js';
+
+export interface ApiReply {
+  status: number;
+  body: Record<string, unknown>;
+}
+export interface ClientOptions {
+  baseUrl: string;
+  token: string;
+  fetch?: typeof fetch;
+  timeoutMs?: number;
+  sleep?: (milliseconds: number) => Promise<void>;
+  outbox: Outbox;
+}
+
+export function exitCode(reply: ApiReply): number {
+  // A successful GET can describe a rejected operation with its own ok: false.
+  if (
+    reply.status >= 200 &&
+    reply.status < 300 &&
+    storedOperationSchema.safeParse(reply.body).success
+  )
+    return 0;
+  const code = reply.body.code;
+  if (
+    reply.status === 401 ||
+    reply.status === 403 ||
+    code === 'unauthorized' ||
+    code === 'forbidden'
+  )
+    return 4;
+  if (reply.status === 409 || code === 'conflict') return 3;
+  return reply.status >= 200 && reply.status < 300 && reply.body.ok !== false
+    ? 0
+    : 1;
+}
+
+export class ApiClient {
+  readonly baseUrl: string;
+  private readonly requestFetch: typeof fetch;
+  private readonly rpc: ReturnType<typeof hc<AppType>>;
+  constructor(readonly options: ClientOptions) {
+    const url = new URL(options.baseUrl);
+    if (
+      !['http:', 'https:'].includes(url.protocol) ||
+      url.username ||
+      url.password ||
+      url.search ||
+      url.hash
+    )
+      throw new ArgumentError(
+        'TASKINDEX_URL: ожидается HTTP(S) URL без credentials, query и hash',
+      );
+    this.baseUrl = url.toString().replace(/\/$/, '');
+    this.requestFetch = options.fetch ?? fetch;
+    this.rpc = hc<AppType>(this.baseUrl, { fetch: this.requestFetch });
+  }
+
+  async request(path: string, envelope?: unknown): Promise<ApiReply> {
+    // Follow pagination only within this API origin, never leak a bearer token.
+    const target = new URL(path, `${this.baseUrl}/`);
+    if (target.origin !== new URL(this.baseUrl).origin)
+      throw new ArgumentError('API вернул ссылку на другой сервер');
+    const request: RequestInit = {
+      method: envelope === undefined ? 'GET' : 'POST',
+      headers: {
+        authorization: `Bearer ${this.options.token}`,
+        accept: 'application/json',
+        ...(envelope === undefined
+          ? {}
+          : { 'content-type': 'application/json' }),
+      },
+      ...(envelope === undefined ? {} : { body: JSON.stringify(envelope) }),
+      signal: AbortSignal.timeout(this.options.timeoutMs ?? 15_000),
+      redirect: 'error',
+    };
+    const rpcOptions = {
+      headers: {
+        authorization: `Bearer ${this.options.token}`,
+        accept: 'application/json',
+      },
+      init: { signal: request.signal, redirect: 'error' as const },
+    };
+    const response =
+      envelope !== undefined && path === '/api/commands'
+        ? await this.rpc.api.commands.$post(
+            { json: commandEnvelopeSchema.parse(envelope) },
+            rpcOptions,
+          )
+        : envelope !== undefined && path === '/api/commands/batch'
+          ? await this.rpc.api.commands.batch.$post(
+              { json: batchEnvelopeSchema.parse(envelope) },
+              rpcOptions,
+            )
+          : await this.requestFetch(target, request);
+    const text = await response.text();
+    let body: unknown;
+    try {
+      body = JSON.parse(text);
+    } catch {
+      return {
+        status: response.status || 502,
+        body: {
+          ok: false,
+          code: 'invalid_response',
+          message: 'Сервер вернул ответ без JSON',
+          retryable: true,
+        },
+      };
+    }
+    if (body === null || typeof body !== 'object' || Array.isArray(body))
+      body = { data: body };
+    return { status: response.status, body: body as Record<string, unknown> };
+  }
+
+  async send(operation: SavedOperation): Promise<ApiReply> {
+    if (operation.baseUrl !== this.baseUrl)
+      throw new ArgumentError(
+        'Сохранённая операция относится к другому TASKINDEX_URL',
+      );
+    await this.options.outbox.put(operation);
+    let finalReply: ApiReply | undefined;
+    let unknown = false;
+    for (let attempt = 0; attempt <= 3; attempt += 1) {
+      if (attempt)
+        await (
+          this.options.sleep ??
+          ((ms) => new Promise((resolve) => setTimeout(resolve, ms)))
+        )(250 * 2 ** (attempt - 1));
+      try {
+        const reply = await this.request(
+          operation.endpoint,
+          operation.envelope,
+        );
+        finalReply = reply;
+        const successful = exitCode(reply) === 0;
+        const definitive = reply.body.retryable === false;
+        if (successful || definitive) {
+          await this.options.outbox.remove(operation.envelope.operationId);
+          return reply;
+        }
+        // A proxy 5xx, malformed response or unspecified failure is not proof
+        // that a commit did not happen. Keep exactly the original envelope.
+        unknown ||=
+          reply.body.retryable !== true ||
+          reply.body.code === 'invalid_response' ||
+          reply.body.status === 'unknown';
+      } catch (error) {
+        if (error instanceof ArgumentError) throw error;
+        unknown = true;
+      }
+    }
+    return {
+      status:
+        finalReply?.status && finalReply.status >= 400
+          ? finalReply.status
+          : 503,
+      body: {
+        ...finalReply?.body,
+        ok: false,
+        operationId: operation.envelope.operationId,
+        retryable: true,
+        ...(unknown || !finalReply
+          ? {
+              status: 'unknown',
+              code: 'network_error',
+              message:
+                'Исход операции неизвестен; используйте operation get или operation resume с тем же ID',
+            }
+          : {}),
+      },
+    };
+  }
+
+  async resume(operation: SavedOperation): Promise<ApiReply> {
+    if (operation.baseUrl !== this.baseUrl)
+      throw new ArgumentError(
+        'Сохранённая операция относится к другому TASKINDEX_URL',
+      );
+    let state: ApiReply;
+    try {
+      state = await this.request(
+        `/api/operations/${encodeURIComponent(operation.envelope.operationId)}`,
+      );
+    } catch {
+      return {
+        status: 503,
+        body: {
+          ok: false,
+          code: 'network_error',
+          retryable: true,
+          status: 'unknown',
+          operationId: operation.envelope.operationId,
+          message:
+            'Не удалось выяснить исход операции; сохранённый конверт оставлен для повтора',
+        },
+      };
+    }
+    if (state.status === 404) return this.send(operation);
+    if (exitCode(state) !== 0) return state;
+    const result = state.body.result;
+    if (result && typeof result === 'object') {
+      const body = result as Record<string, unknown>;
+      if (body.ok === true || body.retryable === false) {
+        await this.options.outbox.remove(operation.envelope.operationId);
+        return {
+          status: body.ok === false ? Number(state.body.status) || 409 : 200,
+          body,
+        };
+      }
+    }
+    if (state.body.ok === true && Array.isArray(state.body.results)) {
+      await this.options.outbox.remove(operation.envelope.operationId);
+      return state;
+    }
+    // Pending/unspecified status is resolved through the idempotent endpoint.
+    return this.send(operation);
+  }
+}

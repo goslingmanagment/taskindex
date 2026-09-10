@@ -1,0 +1,435 @@
+{
+  "projects": [
+    {
+      "id": "hiring",
+      "area": "agency",
+      "name": "Найм",
+      "color": "#9661bf",
+      "revision": 1
+    },
+    {
+      "id": "content",
+      "area": "agency",
+      "name": "Контент",
+      "color": "#397faf",
+      "revision": 1
+    },
+    {
+      "id": "team",
+      "area": "agency",
+      "name": "Чаттеры",
+      "color": "#a97928",
+      "revision": 1
+    },
+    {
+      "id": "traffic",
+      "area": "agency",
+      "name": "Трафик",
+      "color": "#39816d",
+      "revision": 1
+    },
+    {
+      "id": "operations",
+      "area": "agency",
+      "name": "Организационное",
+      "color": "#737c92",
+      "revision": 1
+    },
+    {
+      "id": "hub",
+      "area": "development",
+      "name": "Hub",
+      "color": "#527ee0",
+      "revision": 1
+    },
+    {
+      "id": "chatgoose",
+      "area": "development",
+      "name": "ChatGoose",
+      "color": "#9570c8",
+      "revision": 1
+    },
+    {
+      "id": "contentops",
+      "area": "development",
+      "name": "ContentOps",
+      "color": "#258c8c",
+      "revision": 1
+    },
+    {
+      "id": "telegram",
+      "area": "development",
+      "name": "tg-assistant",
+      "color": "#5e88ad",
+      "revision": 1
+    },
+    {
+      "id": "psyflow",
+      "area": "development",
+      "name": "psyflow",
+      "color": "#b4779b",
+      "revision": 1
+    }
+  ],
+  "tasks": [
+    {
+      "id": "a1",
+      "area": "agency",
+      "projectId": "hiring",
+      "status": "todo",
+      "title": "Выбрать контент-менеджера",
+      "note": "Начать с короткого списка. Сравнить опыт и доступность.",
+      "due": "",
+      "waitingFor": "",
+      "followUp": "",
+      "checklist": [
+        {
+          "id": "ac1",
+          "text": "Собрать короткий список",
+          "done": true
+        },
+        {
+          "id": "ac2",
+          "text": "Посмотреть тестовые",
+          "done": false
+        },
+        {
+          "id": "ac3",
+          "text": "Выбрать, с кем созвониться",
+          "done": false
+        }
+      ],
+      "rank": 0,
+      "demo": true,
+      "archived": false,
+      "revision": 1,
+      "focus": true
+    },
+    {
+      "id": "a2",
+      "area": "agency",
+      "projectId": "content",
+      "status": "todo",
+      "title": "Собрать контент-план на неделю",
+      "note": "Оставить место для правок и новых материалов.",
+      "due": "2026-09-08",
+      "waitingFor": "",
+      "followUp": "",
+      "checklist": [],
+      "rank": 1024,
+      "demo": true,
+      "archived": false,
+      "revision": 1
+    },
+    {
+      "id": "a3",
+      "area": "agency",
+      "projectId": "traffic",
+      "status": "todo",
+      "title": "Выбрать один канал для следующего теста",
+      "note": "",
+      "due": "",
+      "waitingFor": "",
+      "followUp": "",
+      "checklist": [],
+      "rank": 2048,
+      "demo": true,
+      "archived": false,
+      "revision": 1
+    },
+    {
+      "id": "a4",
+      "area": "agency",
+      "projectId": "operations",
+      "status": "todo",
+      "title": "Упростить еженедельную сверку задач",
+      "note": "",
+      "due": "",
+      "waitingFor": "",
+      "followUp": "",
+      "checklist": [],
+      "rank": 3072,
+      "demo": true,
+      "archived": false,
+      "revision": 1
+    },
+    {
+      "id": "a5",
+      "area": "agency",
+      "projectId": "content",
+      "status": "doing",
+      "title": "Согласовать структуру контент-папок",
+      "note": "Проверить, что нужный материал легко найти без подсказок.",
+      "due": "",
+      "waitingFor": "",
+      "followUp": "",
+      "checklist": [
+        {
+          "id": "ac4",
+          "text": "Описать названия папок",
+          "done": true
+        },
+        {
+          "id": "ac5",
+          "text": "Проверить на одном наборе",
+          "done": false
+        }
+      ],
+      "rank": 4096,
+      "demo": true,
+      "archived": false,
+      "revision": 1
+    },
+    {
+      "id": "a6",
+      "area": "agency",
+      "projectId": "hiring",
+      "status": "doing",
+      "title": "Подготовить короткое тестовое",
+      "note": "",
+      "due": "2026-09-09",
+      "waitingFor": "",
+      "followUp": "",
+      "checklist": [],
+      "rank": 5120,
+      "demo": true,
+      "archived": false,
+      "revision": 1
+    },
+    {
+      "id": "a7",
+      "area": "agency",
+      "projectId": "team",
+      "status": "waiting",
+      "title": "Согласовать график команды",
+      "note": "",
+      "due": "",
+      "waitingFor": "Подтверждение команды",
+      "followUp": "2026-09-08",
+      "checklist": [],
+      "rank": 6144,
+      "demo": true,
+      "archived": false,
+      "revision": 1
+    },
+    {
+      "id": "a8",
+      "area": "agency",
+      "projectId": "content",
+      "status": "waiting",
+      "title": "Получить правки к контент-плану",
+      "note": "",
+      "due": "",
+      "waitingFor": "Ответ контент-менеджера",
+      "followUp": "2026-09-10",
+      "checklist": [],
+      "rank": 7168,
+      "demo": true,
+      "archived": false,
+      "revision": 1
+    },
+    {
+      "id": "a9",
+      "area": "agency",
+      "projectId": "operations",
+      "status": "done",
+      "title": "Собрать рабочие ссылки в одном месте",
+      "note": "",
+      "due": "",
+      "waitingFor": "",
+      "followUp": "",
+      "checklist": [],
+      "rank": 8192,
+      "demo": true,
+      "archived": false,
+      "revision": 1
+    },
+    {
+      "id": "d1",
+      "area": "development",
+      "projectId": "contentops",
+      "status": "todo",
+      "title": "Выбрать первый сценарий ContentOps",
+      "note": "Один полный путь: материал появился → его легко найти.",
+      "due": "",
+      "waitingFor": "",
+      "followUp": "",
+      "checklist": [],
+      "rank": 9216,
+      "demo": true,
+      "archived": false,
+      "revision": 1
+    },
+    {
+      "id": "d2",
+      "area": "development",
+      "projectId": "hub",
+      "status": "doing",
+      "title": "Проверить путь новой сессии",
+      "note": "",
+      "due": "",
+      "waitingFor": "",
+      "followUp": "",
+      "checklist": [
+        {
+          "id": "dc1",
+          "text": "Описать ожидаемое поведение",
+          "done": true
+        },
+        {
+          "id": "dc2",
+          "text": "Пройти сценарий целиком",
+          "done": false
+        }
+      ],
+      "rank": 10240,
+      "demo": true,
+      "archived": false,
+      "revision": 1
+    },
+    {
+      "id": "d3",
+      "area": "development",
+      "projectId": "chatgoose",
+      "status": "todo",
+      "title": "Собрать замечания по интерфейсу",
+      "note": "",
+      "due": "",
+      "waitingFor": "",
+      "followUp": "",
+      "checklist": [],
+      "rank": 11264,
+      "demo": true,
+      "archived": false,
+      "revision": 1
+    },
+    {
+      "id": "d4",
+      "area": "development",
+      "projectId": "telegram",
+      "status": "waiting",
+      "title": "Согласовать следующий сценарий найма",
+      "note": "",
+      "due": "",
+      "waitingFor": "Решение по процессу",
+      "followUp": "",
+      "checklist": [],
+      "rank": 12288,
+      "demo": true,
+      "archived": false,
+      "revision": 1
+    },
+    {
+      "id": "d5",
+      "area": "development",
+      "projectId": "psyflow",
+      "status": "todo",
+      "title": "Упростить первый экран",
+      "note": "",
+      "due": "",
+      "waitingFor": "",
+      "followUp": "",
+      "checklist": [],
+      "rank": 13312,
+      "demo": true,
+      "archived": false,
+      "revision": 1
+    },
+    {
+      "id": "d6",
+      "area": "development",
+      "projectId": "contentops",
+      "status": "doing",
+      "title": "Разобрать требования к поиску",
+      "note": "",
+      "due": "",
+      "waitingFor": "",
+      "followUp": "",
+      "checklist": [],
+      "rank": 14336,
+      "demo": true,
+      "archived": false,
+      "revision": 1
+    },
+    {
+      "id": "d7",
+      "area": "development",
+      "projectId": "hub",
+      "status": "done",
+      "title": "Зафиксировать критерии проверки",
+      "note": "",
+      "due": "",
+      "waitingFor": "",
+      "followUp": "",
+      "checklist": [],
+      "rank": 15360,
+      "demo": true,
+      "archived": false,
+      "revision": 1
+    },
+    {
+      "id": "p1",
+      "area": "personal",
+      "projectId": "",
+      "status": "todo",
+      "title": "Спланировать свободный вечер",
+      "note": "",
+      "due": "",
+      "waitingFor": "",
+      "followUp": "",
+      "checklist": [],
+      "rank": 16384,
+      "demo": true,
+      "archived": false,
+      "revision": 1
+    },
+    {
+      "id": "p2",
+      "area": "personal",
+      "projectId": "",
+      "status": "todo",
+      "title": "Разобрать папку загрузок",
+      "note": "",
+      "due": "",
+      "waitingFor": "",
+      "followUp": "",
+      "checklist": [],
+      "rank": 17408,
+      "demo": true,
+      "archived": false,
+      "revision": 1
+    },
+    {
+      "id": "p3",
+      "area": "personal",
+      "projectId": "",
+      "status": "doing",
+      "title": "Выбрать книгу на вечер",
+      "note": "",
+      "due": "",
+      "waitingFor": "",
+      "followUp": "",
+      "checklist": [],
+      "rank": 18432,
+      "demo": true,
+      "archived": false,
+      "revision": 1
+    },
+    {
+      "id": "reference-archive",
+      "area": "agency",
+      "projectId": "operations",
+      "status": "done",
+      "title": "Архив: согласовать прошлую неделю",
+      "note": "",
+      "due": "",
+      "waitingFor": "",
+      "followUp": "",
+      "checklist": [],
+      "rank": 8192,
+      "demo": true,
+      "archived": true,
+      "revision": 1
+    }
+  ]
+}
