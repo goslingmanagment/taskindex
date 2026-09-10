@@ -1,0 +1,119 @@
+/* Палитра TaskIndex. Единственное место, где живут значения цветов: правила
+   скина (src/web/skin/**) читают только токены, поэтому замена этого файла
+   перекрашивает и примитивы, и ручной CSS.
+
+   Текущая палитра называется «classic» и объявлена без селектора скина.
+   Дополнительный скин добавляется парой блоков :root[data-skin='<id>'] и его
+   тёмным вариантом — по одному блоку на пару (скин, режим); других мест с
+   определениями токенов в проекте нет (проверяет scripts/check-skin.mjs).
+   Вариант dark не зависит от data-skin. TI-025, план 08, шаги 2 и 15. */
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-sans-stack);
+  --font-mono: var(--font-mono-stack);
+  --font-heading: var(--font-sans);
+  --color-sidebar-ring: var(--sidebar-ring);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar: var(--sidebar);
+  --color-chart-5: var(--chart-5);
+  --color-chart-4: var(--chart-4);
+  --color-chart-3: var(--chart-3);
+  --color-chart-2: var(--chart-2);
+  --color-chart-1: var(--chart-1);
+  --color-ring: var(--ring);
+  --color-input: var(--input);
+  --color-border: var(--border);
+  --color-destructive: var(--destructive);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-accent: var(--accent);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-muted: var(--muted);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-secondary: var(--secondary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary: var(--primary);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-popover: var(--popover);
+  --color-card-foreground: var(--card-foreground);
+  --color-card: var(--card);
+  --radius-sm: calc(var(--radius) * 0.6);
+  --radius-md: calc(var(--radius) * 0.8);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) * 1.4);
+  --radius-2xl: calc(var(--radius) * 1.8);
+  --radius-3xl: calc(var(--radius) * 2.2);
+  --radius-4xl: calc(var(--radius) * 2.6);
+}
+
+/* Светлая палитра: действующие значения сведены из двух исторических блоков
+   styles.css (базового и «Minimal»); значения не менялись. */
+:root {
+  --background: #f7f8fa;
+  --foreground: #24292f;
+  --card: #fff;
+  --card-foreground: #24292f;
+  --popover: #fff;
+  --popover-foreground: #24292f;
+  --muted: #f0f2f5;
+  --muted-foreground: #667085;
+  --primary: #3b5ccc;
+  --primary-foreground: #fff;
+  --accent: #edf1fb;
+  --accent-foreground: #3554ba;
+  --secondary: #f0f2f5;
+  --secondary-foreground: #424b59;
+  --border: #e4e7ec;
+  --input: #d5dae1;
+  --ring: #3b5ccc;
+  --sidebar: #fafbfc;
+  --sidebar-foreground: #424b59;
+  --sidebar-accent: #edf1fb;
+  --sidebar-accent-foreground: #3554ba;
+  --sidebar-border: #e4e7ec;
+  --sidebar-primary: #3b5ccc;
+  --radius: 0.5rem;
+  --destructive: #bc3c45;
+  --sidebar-primary-foreground: #fff;
+  --sidebar-ring: #3763df;
+  --font-sans-stack:
+    -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;
+  --font-mono-stack: ui-monospace, monospace;
+}
+
+/* Тёмная палитра. Пока подключается только классом .dark, который приложение
+   не ставит: полноценный режим — шаг 10 плана 08. */
+.dark {
+  --background: #191d24;
+  --foreground: #e6e9ee;
+  --card: #22272f;
+  --card-foreground: #e6e9ee;
+  --popover: #22272f;
+  --popover-foreground: #e6e9ee;
+  --muted: #2c323c;
+  --muted-foreground: #a9b2c0;
+  --primary: #8ea7f1;
+  --primary-foreground: #19264a;
+  --accent: #2d3b5c;
+  --accent-foreground: #c3d3ff;
+  --secondary: #2c323c;
+  --secondary-foreground: #e6e9ee;
+  --border: #3a424e;
+  --input: #454f5e;
+  --ring: #8ea7f1;
+  --sidebar: #1f242c;
+  --sidebar-foreground: #d0d7e2;
+  --sidebar-accent: #2d3b5c;
+  --sidebar-accent-foreground: #c3d3ff;
+  --sidebar-border: #3a424e;
+  --destructive: #ff9297;
+  --sidebar-primary: #82a4ff;
+  --sidebar-primary-foreground: #102044;
+  --sidebar-ring: #82a4ff;
+}

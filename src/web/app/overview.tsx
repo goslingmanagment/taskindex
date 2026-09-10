@@ -4,7 +4,6 @@ import type { Task } from '../lib/workspace';
 import { Button } from '../ui/button';
 import { Empty, EmptyTitle, EmptyDescription } from '../ui/empty';
 import { taskCount } from './labels';
-import './workspace-overview.css';
 
 export function WorkspaceOverview({
   searching,
