@@ -4,7 +4,7 @@
 
 Это основное место для ID, актуального статуса, приоритета и критерия закрытия. Отчёты объясняют, откуда взялась находка и как её проверяли; планы описывают последовательность реализации. Вопросы тёмной темы и скинов включены отдельными записями, а подробные планы остаются в общей папке.
 
-Текущий состав (2026-09-11, после исполнения): **71 исправлено, 6 отложено, 1 снятая гипотеза**. У каждой исправленной карточки абзац «Закрытие (дата)»: коммит в `v2-fixes`, тест, результат исходного сценария, оговорки. Отложены с причиной: TI-018, TI-023, TI-063, TI-070 (UI/UX передан Astra по решению владельца 2026-09-11), TI-034 (реальная инфраструктура), TI-077 (нет решения). Сводка исполнения: [EXECUTION-REPORT.md](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/EXECUTION-REPORT.md); реестр регрессий и передача Astra: [docs/acceptance/test-debt.md](/Users/dmitriy/code/taskindex/docs/acceptance/test-debt.md).
+Текущий состав (2026-09-11, после исполнения): **75 исправлено, 2 отложено (TI-034 — реальная приёмка, TI-077 — нет решения), 1 снятая гипотеза**; 2026-09-11 владелец вернул UI-работу исполнителю (ранее отложенные TI-018, TI-023, TI-063, TI-070 и UI-части закрытых карточек сделаны, см. абзацы «Закрытие»). У каждой исправленной карточки абзац «Закрытие (дата)»: коммит в `v2-fixes`, тест, результат исходного сценария, оговорки. Отложены с причиной: TI-034 (реальная приёмка: телефон и живой сервер) и TI-077 (нет решения). Сводка исполнения: [EXECUTION-REPORT.md](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/EXECUTION-REPORT.md); реестр регрессий и передача Astra: [docs/acceptance/test-debt.md](/Users/dmitriy/code/taskindex/docs/acceptance/test-debt.md).
 
 Быстрый переход: [индекс](#issue-index) · [карточки](#issue-cards) · [покрытие исходных отчётов](#source-coverage) · [правила обновления](#maintenance).
 
@@ -90,12 +90,12 @@
 | [TI-015](#ti-015) | P2 | ИСПРАВЛЕНО | Неизменяемая конфигурация выпуска для отката |
 | [TI-016](#ti-016) | P2 | ИСПРАВЛЕНО | Обязательная проверка конкретного выпуска |
 | [TI-017](#ti-017) | P2 | ИСПРАВЛЕНО | Испытания deploy.sh и его аварийных ветвей |
-| [TI-018](#ti-018) | P2 | ОТЛОЖЕНО | WebKit и приёмка на настоящем телефоне |
+| [TI-018](#ti-018) | P2 | ИСПРАВЛЕНО | WebKit и приёмка на настоящем телефоне |
 | [TI-019](#ti-019) | P2 | ИСПРАВЛЕНО | Сохранение точных типов команд до обработчика |
 | [TI-020](#ti-020) | P2 | ИСПРАВЛЕНО | Диагностируемые ошибки и корреляция запросов |
 | [TI-021](#ti-021) | P2 | ИСПРАВЛЕНО | Независимые свойства команд и Undo |
 | [TI-022](#ti-022) | P3 | ИСПРАВЛЕНО | Проверка формата сохранённых черновиков и outbox |
-| [TI-023](#ti-023) | P3 | ОТЛОЖЕНО | Общий жизненный цикл намерения в формах |
+| [TI-023](#ti-023) | P3 | ИСПРАВЛЕНО | Общий жизненный цикл намерения в формах |
 | [TI-024](#ti-024) | P3 | ИСПРАВЛЕНО | Зависимости и измеримая загрузка интерфейса |
 | [TI-025](#ti-025) | P2 | ИСПРАВЛЕНО | Полноценная тёмная тема и общая основа оформления |
 | [TI-026](#ti-026) | P2 | ИСПРАВЛЕНО | Система скинов поверх общей темы |
@@ -135,14 +135,14 @@
 | [TI-060](#ti-060) | P2 | ИСПРАВЛЕНО | Лимиты повторяются в схемах, командах и JSX |
 | [TI-061](#ti-061) | P2 | ИСПРАВЛЕНО | Несколько canonical() могут разойтись в хешировании |
 | [TI-062](#ti-062) | P2 | ИСПРАВЛЕНО | Конфигурация разбросана, часть переменных не отражает runtime |
-| [TI-063](#ti-063) | P3 | ОТЛОЖЕНО | Комментарии дублируются в store и отдельной загрузке по любому seq |
+| [TI-063](#ti-063) | P3 | ИСПРАВЛЕНО | Комментарии дублируются в store и отдельной загрузке по любому seq |
 | [TI-064](#ti-064) | P3 | ИСПРАВЛЕНО | Выбор Drizzle/better-sqlite3 требует измерения, замена не обоснована |
 | [TI-065](#ti-065) | P3 | ИСПРАВЛЕНО | CSS shadcn привязан к пакету генератора и его транзитивным зависимостям |
 | [TI-066](#ti-066) | P3 | ИСПРАВЛЕНО | Dev/build конфигурация содержит лишнюю работу и широкое наблюдение |
 | [TI-067](#ti-067) | P2 | ИСПРАВЛЕНО | Пути runtime/migrations/static зависят от текущего каталога |
 | [TI-068](#ti-068) | P3 | ИСПРАВЛЕНО | Место сборки и состав production image можно упростить |
 | [TI-069](#ti-069) | P2 | ИСПРАВЛЕНО | E2E проверяет Vite dev, но не production static serving |
-| [TI-070](#ti-070) | P2 | ОТЛОЖЕНО | Общее состояние, ожидания и дубли делают E2E хрупкими |
+| [TI-070](#ti-070) | P2 | ИСПРАВЛЕНО | Общее состояние, ожидания и дубли делают E2E хрупкими |
 | [TI-071](#ti-071) | P3 | ИСПРАВЛЕНО | Lint, мёртвый код и соглашения дают неполный сигнал качества |
 | [TI-072](#ti-072) | P2 | ИСПРАВЛЕНО | Нет безопасного обзора deploy-плана и воспроизводимого bootstrap |
 | [TI-073](#ti-073) | P3 | ИСПРАВЛЕНО | События хранятся и отдельно, и в результате операции |
@@ -786,7 +786,7 @@
 
 ### TI-018 — WebKit и приёмка на настоящем телефоне
 
-**Тип:** Приёмка. **Статус:** ОТЛОЖЕНО. **Приоритет:** P2.
+**Тип:** Приёмка. **Статус:** ИСПРАВЛЕНО. **Приоритет:** P2.
 
 **Источники:** [Astra:S-05](/Users/dmitriy/code/taskindex/docs/audits/2026-09-08-multiside-review/01-stack.md:116); [FC:compare-stack-arch S-05](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/compare-stack-arch.md:98); [План 10, доп. шаг 21](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/10-code-quality-and-tests.md:342); [План 08, доп. шаг 17](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/08-styling-skin-and-dark-theme.md:251).
 
@@ -812,6 +812,8 @@
 - Сверка Fable: проект `webkit` (`devices['Desktop Safari']`) для входа/выхода, создания и сохранения с переподключением SSE, восстановления черновика после перезагрузки, редактора, чеклиста, комментариев, индикатора pending; чек-лист телефона (passkey, клавиатура, safe area, ориентация) в `docs/acceptance/phone.md` ([план 10, доп. шаг 21](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/10-code-quality-and-tests.md:342)); тёмные сцены `dark` × `webkit` ([план 08, доп. шаг 17](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/08-styling-skin-and-dark-theme.md:251)).
 
 **Отложено (2026-09-11).** Причина: работа над интерфейсом передана Astra по решению владельца 2026-09-11, а физическая приёмка требует телефона владельца. Сделано: чек-лист `docs/acceptance/phone.md` (13 сцен, что фиксировать, где хранить отчёт; коммит `faacd13`); WebKit 26.6 установлен в кэш Playwright; спека `tests/e2e/webkit.spec.ts` была написана и откачена — доходила до входа, SSE, создания, правки и сохранения, падала на «черновик после перезагрузки» (редактор сворачивает секцию заметки после сохранения, нужен повторный клик по «Заметка»); конфиг чист. Поправка Fable к карточке остаётся: касания проверяются в эмуляции Chromium (`workspace.spec.ts`). Остаток: проект `webkit` в `playwright.config.ts` (план 10 доп. шаг 21) — Astra; отчёт с реального телефона — владелец (вместе с TI-034).
+
+**Закрытие (2026-09-11).** Автоматическая часть, коммиты `57d9bdf`, `ce50aba` (CI ставит WebKit). Проект `webkit` (`devices['Desktop Safari']`, отдельная база): вход по паролю и выход, создание, правка и сохранение при мёртвом SSE с переподключением до `data-connection=online`, черновик переживает перезагрузку (`navigator.locks` проверен явно), чеклист и комментарии, индикатор pending; `webkit-dark` — board/editor/activity в тёмной теме. Причина прошлого отката закрыта: секция «Заметка» рендерится только при `!!task.note`, хелпер раскрывает её явно. Тесты: `tests/e2e/webkit.spec.ts` (5 сцен). Эмуляция не выдаётся за доказательство iOS: отчёт с реального телефона по `docs/acceptance/phone.md` остаётся в TI-034 (владелец).
 
 **Связанные планы:** [astra-18-browser-and-phone-acceptance.md](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/astra-18-browser-and-phone-acceptance.md); [10-code-quality-and-tests.md](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/10-code-quality-and-tests.md); [08-styling-skin-and-dark-theme.md](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/08-styling-skin-and-dark-theme.md).
 
@@ -967,7 +969,7 @@
 
 ### TI-023 — Общий жизненный цикл намерения в формах
 
-**Тип:** Качество кода. **Статус:** ОТЛОЖЕНО. **Приоритет:** P3.
+**Тип:** Качество кода. **Статус:** ИСПРАВЛЕНО. **Приоритет:** P3.
 
 **Источники:** [Astra:Q-06](/Users/dmitriy/code/taskindex/docs/audits/2026-09-08-multiside-review/04-code-quality.md:117); [FQ:§3](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/review-4-quality.md:75); [FQ:§6](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/review-4-quality.md:130); [FQ:R5](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/review-4-quality.md:284); [FC:compare-quality-method Q-06](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/compare-quality-method.md:60); [План 07, доп. шаг 25](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/07-web-client-fixes-and-structure.md:274).
 
@@ -994,6 +996,8 @@
 - Сверка Fable: одна таблица состояний намерения (editing → persisted → sending → success | definitive rejection | unknown); новый `operationId` только после окончательного отказа и изменения payload; `unknown` сохраняет `operationId` и конверт; применить к трём формам через `use-save-intent.ts`/`use-draft.ts` ([план 07, доп. шаг 25](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/07-web-client-fixes-and-structure.md:274)).
 
 **Отложено (2026-09-11).** Причина: рефакторинг форм интерфейса передан Astra по решению владельца 2026-09-11 (план 07 шаги 9, 13, доп. шаг 25; `astra-23`). Состояние на 2026-09-11: жизненный цикл намерения реализован по-прежнему в каждой форме отдельно, но контрактные гарантии уже закреплены тестами (TI-004 для CLI, TI-006/TI-007/TI-038 для web) — общий хук их не меняет. Запись в `docs/acceptance/test-debt.md`, раздел «Передано Astra».
+
+**Закрытие (2026-09-11).** Владелец 2026-09-11 вернул UI-работу исполнителю; коммит `22ce8e0` (план 07 шаги 9, 13, доп. 25). Общий жизненный цикл намерения в `src/web/app/editor/use-save-intent.ts` и `use-draft.ts`: editing → persisted → sending → success | definitive rejection | unknown; новый `operationId` только после окончательного отказа и изменения payload, `unknown` сохраняет конверт (повтор через `store.retry`), успех очищает черновик; применён к редактору, `QuickCreate`, `InlineCreate`, `TaskDiscussion`; предметные поля и разрешение конфликтов остались в формах. Тесты: `tests/web/intent.test.ts` (переходы по таблице), существующие e2e без изменений.
 
 **Связанные планы:** [astra-23-form-intent-lifecycle.md](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/astra-23-form-intent-lifecycle.md); [10-code-quality-and-tests.md](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/10-code-quality-and-tests.md); [07-web-client-fixes-and-structure.md](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/07-web-client-fixes-and-structure.md).
 
@@ -1076,6 +1080,8 @@
 
 **Закрытие (2026-09-11).** Коммиты `afbf0a5`/`8144d58` (вендорная копия `src/web/vendor/shadcn-base.css`), `3973a4d` (одна палитра в `tokens.css`, `@layer skin` без `!important`), `a1339f4` (дедупликация, мёртвые классы), `fab2c3a` (скин по экранам `src/web/skin/*.css`), `2d48261` (брейкпоинты из `@theme`, роли цвета, контракт `data-slot`, `scripts/check-skin.mjs` в `check`), `3982ba5` (тёмная тема, вариант A: `[data-theme]` + `prefers-color-scheme`, `@custom-variant dark`, `color-scheme`, `theme-color`, ранний bootstrap, переключатель система/светлая/тёмная, e2e-проект `dark`), `c5fdfc5` (A: предпочтение в аккаунте). Проверка: 5 детерминированных сцен побайтно совпадают с эталоном после каждого шага; CSS 109 217 → ~101 000 Б; контраст по парам токенов в `check-skin.mjs`. Две находки записаны в план 08 (блок «Minimal» не перекрывал базовый целиком; слияние дублей «последнее значение свойства» ломало padding). Хвосты для Astra: фаза B (сведение оттенков, план 08 шаг 11), WebKit-скриншоты тёмной темы, физическая приёмка на телефоне (TI-034).
 
+**Закрытие (2026-09-11), продолжение.** Остаток (план 08 шаг 11, фаза B, и шаг 6), коммиты `e568d7a`, `de5244e`, `a07f9c8`, `856e500`, `e5b6e62`: 204 объявления-оттенка сведены к ролям (`--text-faint`, `--muted-foreground`, `--line-soft`, `--input`, базовые роли предупреждения), числовых суффиксов в `tokens.css` не осталось; брейкпоинты 1000/1100 → `theme(--breakpoint-lg)`, 1200 → `xl`, 767 → `md`, 1600 → `wide` (доска на 1025–1100 и 1201–1279 стала десктопной — записано в план 08). Дифф снимков проекта `visual` после каждого коммита: доля изменённых пикселей 0,01–0,38 % (максимум 1,82 % в `mobile-focus` — зачёркнутые шаги стола), каталоги диффа в scratchpad; эталон `docs/reference/v2-validation` не переснимался. `check-skin` зелёный после каждого шага.
+
 **Связанные планы:** [astra-25-dark-theme.md](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/astra-25-dark-theme.md); [08-styling-skin-and-dark-theme.md](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/08-styling-skin-and-dark-theme.md).
 
 **Связанные записи / зависимости исходного плана:** [TI-003](#ti-003), [TI-005](#ti-005), [TI-006](#ti-006), [TI-013](#ti-013), [TI-014](#ti-014), [TI-018](#ti-018).
@@ -1117,6 +1123,8 @@
 **Выбранный вариант.** Принято 2026-09-10; решение делегировано владельцем Fable, владелец отдельно подтвердил скины и раскладку «Фокус». Скины нужны. Реестр скинов с предпросмотром по `astra-26` после фазы A плана 08; первый каталог — «Classic» (текущий вид) и «Фокус» (палитра и типографика макета [focus.html](/Users/dmitriy/code/taskindex/docs/reference/visions-2026-09-08/focus.html): тёплая бумага, тёмно-зелёные чернила, терракотовый акцент, засечки в заголовке текущей задачи; переменные `:root` макета (`--paper`, `--ink`, `--warm`, `--green`, `--serif` и остальные) ложатся на токены). Раскладка макета — не скин, а отдельный вид экрана Focus, [TI-078](#ti-078) (план 13). Порядок: фаза A плана 08, затем реестр и предпочтения, затем скин «Фокус»; двойной миграции CSS нет. Оставшийся объём: реестр `SkinDefinition`, preview/apply/cancel, второй скин; критерии закрытия карточки без изменений ([план 08, решение владельца](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/08-styling-skin-and-dark-theme.md:253); [план 13, шаг 11](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/13-focus-desk-view.md:96); [README планов, строка «Тема и скины»](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/README.md:161)).
 
 **Закрытие (2026-09-11).** Коммиты `c5fdfc5` (A: сущность `appearance` `{mode, skinId, revision}` владельца, команда `appearance.update` общим конвейером с undo и экспортом (формат 3), `GET /api/appearance` и поле в снимке, агент → 403, реестр `SKINS` в `src/shared/appearance.ts` с предпросмотром: `classic` и `focus`), `3982ba5` (web: выбор режима и скина в меню аккаунта, `data-skin` на корне, локальный кэш только для первого paint). Тесты: `tests/api/appearance.test.ts` (10), `tests/unit/shared.test.ts` (реестр). Остаток для Astra: CSS-палитра скина «Фокус» (`:root[data-skin='focus']` по `SKINS.focus.preview` и макету) и карточки предпросмотра в каталоге; CLI `appearance get|set` — B4.
+
+**Закрытие (2026-09-11), продолжение.** Остаток (CSS скина «Фокус»), коммит `c24381c`: `:root[data-skin='focus']` с тёмной парой в `tokens.css` по `SKINS.focus.preview` и макету (бумага, чернила, терракота, зелёный), `--font-heading` с засечками для заголовка стола, карточки предпросмотра из `SKINS.preview`, кэш для первого кадра; `check-skin.mjs` проверяет контраст обеих палитр обоих скинов и совпадение тёмных блоков. Тест: `tests/e2e/skin.spec.ts › the Focus skin is chosen in the account menu, survives a reload and paints board and desk` (падал до: `menuitem Классический не найден`); снимки `test-results/e2e-skin`. Скин меняет палитру и шрифт заголовка, форму элементов не меняет (по заданию). CLI `appearance get|set` — `9896c88`.
 
 **Связанные планы:** [astra-26-skins-system.md](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/astra-26-skins-system.md); [08-styling-skin-and-dark-theme.md](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/08-styling-skin-and-dark-theme.md).
 
@@ -1231,6 +1239,8 @@
 **Выбранный вариант.** Принято 2026-09-10; решение делегировано владельцем Fable, владелец отдельно подтвердил скины и раскладку «Фокус». Счётчик Focus в сайдбаре — `counts.focus` селектора `focusDesk` плана 13 (всего задач в фокусе); список и badge берут одно значение из общего селектора; сегодняшний `focusCount`, считающий только «Новое от агентов» ([src/web/app/shell.tsx:304](/Users/dmitriy/code/taskindex/src/web/app/shell.tsx:304), строки 304–311), заменяется ([план 13 §3.3](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/13-focus-desk-view.md:62), [шаг 9](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/13-focus-desk-view.md:94)). Последствия: `astra-29` закрывается планом 13; смысл badge — «сколько задач в фокусе», группы «Новое от агентов», «Пора сделать», «Пора вернуться» остаются в `focusGroups` для `digest`; редизайн экрана — отдельная карточка [TI-078](#ti-078), стартовый экран не меняется. Оставшийся объём: шаг 9 плана 13 и e2e-проверка числа.
 
 **Закрытие (2026-09-11).** Выбранный вариант реализован в ядре: `focusDesk().counts.focus` (всего в фокусе), `parked` (`status=todo && !focus`), `waiting` — общий источник для списка и индикатора, отдаётся `/api/focus` и `digest` (коммит `67d5cce`, тест `tests/unit/shared.test.ts › lays out the desk…`, `tests/api/recovery-and-history.test.ts › serves the desk…`). Смысл индикатора записан в плане 13 §3.3 и SKILL.md. Переключение бейджа сайдбара с «Новое от агентов» на `counts.focus` (план 13 шаг 9, `src/web/app/shell.tsx`) — UI, передано Astra 2026-09-11.
+
+**Закрытие (2026-09-11), продолжение.** UI-часть, коммит `c54f462`: бейдж Focus в сайдбаре считает `focusDesk(...).counts.focus`, `newFromAgentsCount` удалён; e2e `tests/e2e/desk.spec.ts` сверяет `.focus-count` с `counts.focus` из `/api/focus`. Смысл индикатора один для списка, бейджа, API и CLI.
 
 **Связанные планы:** [astra-29-focus-counter-semantics.md](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/astra-29-focus-counter-semantics.md).
 
@@ -2203,6 +2213,8 @@
 
 **Закрытие (2026-09-11).** Сервер и CLI разрезаны, web передан Astra. Коммиты `d0867fd` (A: `createApp` 132 строки — только сборка; `src/server/http/{errors,auth-middleware,request-log,pagination,openapi,deps,document}.ts`, `routes/{health,commands,reads,history,operations,stream,context,digest,focus}.ts`, `sse.ts`, `context.ts`, `digest.ts`; `admin.ts` — barrel над `owner/agents/backup/deployment`; `db.ts` → `sqlite.ts`/`migrations.ts`/`db.ts`, позже `events.ts`/`journal.ts`; `withWrite`/`withRead`), `e794b60` (B: `run.ts` 99 строк — argv, справка, `dispatch`; `session.ts`, `reads.ts`, `writes.ts`, `operations.ts`, `cursor.ts`, `errors.ts`, `help.ts`, `spec.ts`; клиент без `hono/client` и типов сервера, `grep -rn "server/" src/cli/*.ts` → только `admin-run.ts`). Тесты: `tests/unit/server-shape.test.ts` (каждый серверный модуль ≤ 400 строк, `createApp` ≤ 150; падал до: `app.ts` 1 391, `admin.ts` 463), `tests/api/durability.test.ts › rolls a failed withWrite back whole…`; поведение, `AppType` и все существующие тесты без изменений. **Остаток — `src/web/app/shell.tsx` (752) и `editor.tsx` (730), план 07 шаги 10–17 (хуки, селекторы, `editor/`), — передан Astra по решению владельца 2026-09-11** (`docs/acceptance/test-debt.md`).
 
+**Закрытие (2026-09-11), продолжение.** Остаток (web), коммиты `22ce8e0`, `43bce06`, `c7cadaa`: план 07 шаги 9–17, 19, 21 — билдеры команд и `useDraft`, селекторы, `NavigationProvider`, `use-workspace-commands`, `use-keyboard-shortcuts`, `workspace-header.tsx`/`workspace-empty.tsx`, `src/web/app/editor/` (`editor.tsx` ≤ 350 строк), общая панель конфликта, эффекты через `useSyncExternalStore`, a11y (`type="button"`, `htmlFor`, `<output>`), ленивые чанки `activity`/`editor` (index 194 907/57 200 gzip → 172 120/52 060 + activity 14 639/5 310 + editor 15 451/5 413, записано в план 07 §3.10), `catch (error)`/`no-shadow` в `src/web/app` — 0 предупреждений (было 21). `shell.tsx` ≈ 280 строк. Поведение и e2e без изменений (46/46).
+
 **Связанные планы:** [06-server-structure-config-logging.md](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/06-server-structure-config-logging.md); [07-web-client-fixes-and-structure.md](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/07-web-client-fixes-and-structure.md); [10-code-quality-and-tests.md](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/10-code-quality-and-tests.md).
 
 **Связанные записи / зависимости исходного плана:** [TI-019](#ti-019), [TI-020](#ti-020), [TI-023](#ti-023), [TI-042](#ti-042), [TI-045](#ti-045), [TI-049](#ti-049), [TI-063](#ti-063).
@@ -2305,7 +2317,7 @@
 
 ### TI-063 — Комментарии дублируются в store и отдельной загрузке по любому seq
 
-**Тип:** Архитектура UI. **Статус:** ОТЛОЖЕНО. **Приоритет:** P3.
+**Тип:** Архитектура UI. **Статус:** ИСПРАВЛЕНО. **Приоритет:** P3.
 
 **Источники:** [FA:Ж3](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/review-2-architecture.md:99); [План 07, критерий 6](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/07-web-client-fixes-and-structure.md:62).
 
@@ -2324,6 +2336,8 @@
 - Смена taskId и запоздалый ответ не подменяют комментарии другой задачи.
 
 **Отложено (2026-09-11).** Причина: перестройка загрузки обсуждения в интерфейсе передана Astra по решению владельца 2026-09-11 (план 07 §3.6 и шаг 9). Состояние на 2026-09-11: серверная сторона готова — история и комментарии читаются точечно по индексам (TI-012, коммит `0df0a30`), стоимость перечитывания обсуждения не растёт с журналом; остаётся клиентский выбор источника (`relevantSeq` из `lastEvents` store либо fetch с инвалидацией по `taskId`). Запись в `docs/acceptance/test-debt.md`.
+
+**Закрытие (2026-09-11).** Владелец 2026-09-11 вернул UI-работу исполнителю; коммит `22ce8e0` (план 07 §3.6, шаг 9; план 01 доп. 16). Обсуждение задачи перечитывается только по событиям своей задачи (`relevantSeq` из `lastEvents` store: `entityKind === 'task' && entityId === task.id` или `taskId === task.id`) и при `connected: false → true`; «Активность» при 409 перечитывает с первой страницы и показывает «Список изменился во время загрузки» при разных `Page.seq`; пагинация, удаления и восстановление сохранены. Серверная сторона — точечные чтения по индексам (TI-012).
 
 **Связанные планы:** [07-web-client-fixes-and-structure.md](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/07-web-client-fixes-and-structure.md).
 
@@ -2514,7 +2528,7 @@
 
 ### TI-070 — Общее состояние, ожидания и дубли делают E2E хрупкими
 
-**Тип:** Качество тестов. **Статус:** ОТЛОЖЕНО. **Приоритет:** P2.
+**Тип:** Качество тестов. **Статус:** ИСПРАВЛЕНО. **Приоритет:** P2.
 
 **Источники:** [FQ:§3](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/review-4-quality.md:75); [FQ:§9](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/review-4-quality.md:166); [FQ:R10](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/review-4-quality.md:289); [FC:compare-quality-method, побочный эффект e2e](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/compare-quality-method.md:68); [План 10, шаг 15](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/10-code-quality-and-tests.md:236).
 
@@ -2537,6 +2551,8 @@
 - Не заменять сильные интеграционные сценарии большим числом тестов, зеркалящих функции. Property oracle закрывается отдельно в TI-021.
 
 **Отложено (2026-09-11).** Сделано (коммит `d0e14ca`, C, раунд 1): общие хелперы `tests/e2e/helpers.ts` (вход с `x-real-ip` из хеша `testId`, `snapshot`/`postCommand`/`command`), три копии хелперов убраны, ожидания вместо `waitForTimeout` в touch-drag; проекты `functional`/`static`/`dark`. Причина отложения остатка: перестройка e2e на проекты `setup`/`visual` со `storageState` и отдельной чистой базой (план 10 шаг 15) затрагивает те же спеки, что UI-работа, переданная Astra 2026-09-11; сейчас база e2e общая, поэтому новая спека, создающая задачи, идёт после `workspace.spec.ts` (так сделаны `dark.spec.ts` и тест скина). Четыре сцены со временем остаются недетерминированными. Запись в `docs/acceptance/test-debt.md`.
+
+**Закрытие (2026-09-11).** Владелец 2026-09-11 вернул UI-работу исполнителю; коммит `57d9bdf`. Шесть проектов Playwright (`setup`, `functional`, `visual`, `static`, `dark`, `webkit`), каждый на своей чистой базе и своей сессии (`server.ts` берёт имя, порты, `now` и каталог из env; `setup` пишет только cookies в `test-results/e2e-auth/<база>.json`); порядок спек снят (`dark.spec.ts` наполняет пространство сама через `seedReferenceData`); часы заморожены с двух сторон (`TASKINDEX_E2E_NOW` → `createApp.now` и `page.clock.setFixedTime`); две гонки кадра устранены (догрузка истории редактора, закрывающаяся навигация в `mobile-focus`). Доказательство детерминированности: три прогона `--project visual` подряд дали побайтно равные `screenshots-sha256.json` (до правок расходились 4 из 8 снимков). Тесты: `tests/e2e/setup.spec.ts`, `tests/e2e/visual.spec.ts`. README и `docs/reference/v2-validation/README.md` описывают проекты и `npm run e2e:publish-reference`. Эталонные PNG не переснимались (кадры отличаются из-за чистой базы) — одна команда владельца после просмотра.
 
 **Связанные планы:** [10-code-quality-and-tests.md](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/10-code-quality-and-tests.md).
 
@@ -2785,6 +2801,8 @@
 - Зависимость от плана 02 обязательна: без запрета агентского `focus` стол показал бы задачи, выбранные агентами, как «текущие» владельца (план 13 §6). Откат: поля nullable, старый интерфейс читает `focus` как прежде, `WorkspaceOverview` возвращается одной правкой `shell.tsx`. Остальные три макета (`atlas`, `dispatch`, `evolution`) сохранены как справка, решений по ним нет.
 
 **Закрытие (2026-09-11).** Ядро и CLI. Коммиты `67d5cce` (план 13 шаги 1–6: миграция `0004_focus_desk.sql` — `focus_key` с частичным уникальным индексом и `focus_left_at`, backfill ключей в порядке доски; `Task.focusKey`/`focusLeftAt`; `focusPosition: {first}|{after}|{before}` в `task.update`/`task.save`; `focus: true` без позиции — в конец; `done`/`archive` снимают фокус с `focusLeftAt`, undo возвращает оба поля; инварианты уникальности ключа и `focus === (focusKey !== null)`; агентам 403; селектор `focusDesk(tasks, today) → {current, next, waiting, recent, counts}`; `/api/focus` отдаёт стол и `groups`, `digest` — `current`/`next`; формат экспорта 4), `e0bbada`, `2bd1bb3` (CLI: `taskindex focus` печатает стол, `--group` читает группу постранично, `task focus` снята по решению плана 02). Тесты: `tests/unit/shared.test.ts › lays out the desk…` (границы), `tests/api/commands.test.ts › desk order` (2), `tests/api/recovery-and-history.test.ts › serves the desk…` (`/api/focus` не читает `events`), `tests/api/permissions.test.ts` (3), `tests/property/commands.test.ts` (инварианты фокуса), `tests/api/migration-compat.test.ts › 0004_focus_desk backfill` (2), `tests/cli/cli.test.ts › стол Focus в CLI (TI-078)`. **Вид «Стол» в интерфейсе (план 13 шаги 8, 11: компоненты `Desk*`, `desk.css`, e2e `desk.spec.ts`, скин «Фокус») передан Astra по решению владельца 2026-09-11** — контракт полей и `/api/focus` записан в плане 13 и `docs/acceptance/test-debt.md`.
+
+**Закрытие (2026-09-11), продолжение.** UI-часть, владелец 2026-09-11 вернул исполнителю; коммит `c54f462` (план 13 шаги 8–9). `src/web/app/desk/` (`Desk`, `DeskCurrent`, `DeskNext`, `DeskRail`, `ContextsDrawer`) заменяет `WorkspaceOverview` на экране Focus (стартовый экран не изменился, сетка групп осталась в поиске и дайджесте); клавиатура (пробел — шаг через `checklist.update`, N — следующая), одна колонка на 390px, ящик «Все контексты» с адресом `contexts=1&status=todo&parked=1` (примечание в плане 13: `focus=1` уже обозначает экран); CSS в `src/web/skin/desk.css` только токенами. Тесты: `tests/e2e/desk.spec.ts › the desk shows one current task, takes the next one, marks steps and opens the contexts drawer` (падал до: белый экран — `focusDesk` бросал `RangeError` на пустой дате до первого снимка), `tests/web/selectors.test.ts`, `tests/web/url.test.ts`; снимки desktop/mobile в `test-results/e2e-desk`. Отклонение от макета: после N прежняя текущая остаётся в «Потом» (селектор §3.3), записано в план.
 
 **Связанные планы:** [13-focus-desk-view.md](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/13-focus-desk-view.md); [02-agent-permissions-and-sync-semantics.md](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/02-agent-permissions-and-sync-semantics.md); [08-styling-skin-and-dark-theme.md](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/08-styling-skin-and-dark-theme.md); [astra-29-focus-counter-semantics.md](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/astra-29-focus-counter-semantics.md).
 
