@@ -26,7 +26,8 @@ jobs:
       # check = typecheck + lint + format:check + lint:shell (bash -n, shellcheck, tsc для deploy) + vitest
       - run: npm run check
       - run: npm run build
-      - run: npx playwright install --with-deps chromium
+      # Проекты e2e: chromium (functional/visual/static/dark) и webkit (TI-018).
+      - run: npx playwright install --with-deps chromium webkit
       - run: npm run e2e
       - uses: actions/upload-artifact@v4
         if: always()
