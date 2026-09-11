@@ -475,7 +475,7 @@
 .task-done .task-title-row h3 {
   text-decoration: line-through;
   padding-left: 0;
-  color: var(--success-foreground-2);
+  color: var(--text-faint);
 }
 .card-menu {
   position: absolute;
@@ -547,7 +547,7 @@
   color: var(--muted-foreground);
 }
 .card-meta .overdue {
-  color: var(--destructive-text-2);
+  color: var(--destructive-text);
 }
 .card-meta .check-now {
   border-radius: 4px;

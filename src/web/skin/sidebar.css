@@ -1,6 +1,6 @@
 /* Навигация: боковая панель, области, направления, профиль. Файл подключается со слоем skin из styles.css. */
 .today-toggle.active {
-  color: var(--accent-strong-2);
+  color: var(--accent-strong);
 }
 .today-toggle [data-slot='checkbox'] {
   width: 15px;

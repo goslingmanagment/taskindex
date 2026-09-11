@@ -119,7 +119,6 @@
      элементов управления, --accent-border-hover для рамки при наведении. */
   --text-faint: #7d899e;
   --accent-strong: #3763df;
-  --accent-strong-2: #345fcc;
   --accent-on-primary: #d8e3ff;
   --accent-border-soft: #c4d2ea;
   --accent-border-hover: #bbcbea;
@@ -132,12 +131,9 @@
   --warning-soft: #fff8e9;
   --warning-border: #dcc492;
   --success-foreground: #258169;
-  --success-foreground-2: #6c7d73;
-  --success-foreground-3: #879a8f;
   --success-soft: #f2f6f2;
   --success-border: #799a86;
   --destructive-text: #b44b53;
-  --destructive-text-2: #ad444c;
   --destructive-soft: #fff2f2;
   --surface-hover: #fbfcff;
   --surface-shadow: #1d253a12;
@@ -182,7 +178,6 @@
   --sidebar-ring: #82a4ff;
   --text-faint: #9aa4b5;
   --accent-strong: #8ea7f1;
-  --accent-strong-2: #8ea7f1;
   --accent-on-primary: #dce6ff;
   --accent-border-soft: #3d4c74;
   --accent-border-hover: #4a5c8c;
@@ -195,12 +190,9 @@
   --warning-soft: #2e2a20;
   --warning-border: #55482f;
   --success-foreground: #7fd0b1;
-  --success-foreground-2: #7fd0b1;
-  --success-foreground-3: #7fd0b1;
   --success-soft: #1f2a26;
   --success-border: #46705f;
   --destructive-text: #ff9297;
-  --destructive-text-2: #ff9297;
   --destructive-soft: #33222a;
   --surface-hover: #262c35;
   --surface-shadow: #00000059;
@@ -242,7 +234,6 @@
     --sidebar-ring: #82a4ff;
     --text-faint: #9aa4b5;
     --accent-strong: #8ea7f1;
-    --accent-strong-2: #8ea7f1;
     --accent-on-primary: #dce6ff;
     --accent-border-soft: #3d4c74;
     --accent-border-hover: #4a5c8c;
@@ -255,12 +246,9 @@
     --warning-soft: #2e2a20;
     --warning-border: #55482f;
     --success-foreground: #7fd0b1;
-    --success-foreground-2: #7fd0b1;
-    --success-foreground-3: #7fd0b1;
     --success-soft: #1f2a26;
     --success-border: #46705f;
     --destructive-text: #ff9297;
-    --destructive-text-2: #ff9297;
     --destructive-soft: #33222a;
     --surface-hover: #262c35;
     --surface-shadow: #00000059;
@@ -332,10 +320,6 @@
   --line-dashed: #cfd2c5;
   --line-dashed-strong: #c5c8bb;
   --line-on-primary: #fffef944;
-  --accent-strong-2: var(--accent-strong);
-  --success-foreground-2: var(--success-foreground);
-  --success-foreground-3: var(--success-foreground);
-  --destructive-text-2: var(--destructive-text);
 }
 
 /* Скин «Фокус»: тёмная пара, те же два блока, что у classic (явный выбор и
@@ -395,10 +379,6 @@
   --line-dashed: #3d4945;
   --line-dashed-strong: #45524d;
   --line-on-primary: #1b232133;
-  --accent-strong-2: var(--accent-strong);
-  --success-foreground-2: var(--success-foreground);
-  --success-foreground-3: var(--success-foreground);
-  --destructive-text-2: var(--destructive-text);
 }
 @media (prefers-color-scheme: dark) {
   :root[data-skin='focus']:not([data-theme='light']) {
@@ -456,9 +436,5 @@
     --line-dashed: #3d4945;
     --line-dashed-strong: #45524d;
     --line-on-primary: #1b232133;
-    --accent-strong-2: var(--accent-strong);
-    --success-foreground-2: var(--success-foreground);
-    --success-foreground-3: var(--success-foreground);
-    --destructive-text-2: var(--destructive-text);
   }
 }
