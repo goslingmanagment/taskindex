@@ -18,9 +18,15 @@ import {
   DropdownMenuLabel,
   DropdownMenuGroup,
 } from '../ui/dropdown-menu';
-import { APPEARANCE_MODES } from '@shared/appearance';
+import { APPEARANCE_MODES, DEFAULT_SKIN_ID, SKINS } from '@shared/appearance';
 import { workspaceStore } from './store';
-import { APPEARANCE_LABELS, applyMode, chooseMode } from './appearance';
+import {
+  APPEARANCE_LABELS,
+  applyMode,
+  applySkin,
+  chooseMode,
+  chooseSkin,
+} from './appearance';
 import { toast } from '../ui/toast';
 import { authErrorMessage } from './auth-errors';
 const authClient = createAuthClient({ plugins: [passkeyClient()] });
@@ -121,7 +127,14 @@ export function AccountMenu() {
     workspaceStore.getSnapshot,
   );
   const mode = data.appearance[0]?.mode ?? 'system';
+  const skinId = data.appearance[0]?.skinId ?? DEFAULT_SKIN_ID;
   useEffect(() => applyMode(mode), [mode]);
+  useEffect(() => applySkin(skinId), [skinId]);
+  const report = (e: unknown) =>
+    toast.add({
+      title: e instanceof Error ? e.message : 'Не удалось сохранить.',
+      type: 'error',
+    });
   async function addPasskey() {
     try {
       const result = await authClient.passkey.addPasskey({ name: 'TaskIndex' });
@@ -156,18 +169,51 @@ export function AccountMenu() {
             <DropdownMenuItem
               key={value}
               data-active={mode === value ? '' : undefined}
-              onClick={() =>
-                void chooseMode(value).catch((e: unknown) =>
-                  toast.add({
-                    title:
-                      e instanceof Error ? e.message : 'Не удалось сохранить.',
-                    type: 'error',
-                  }),
-                )
-              }
+              onClick={() => void chooseMode(value).catch(report)}
             >
               {APPEARANCE_LABELS[value]}
               {mode === value && ' ·'}
+            </DropdownMenuItem>
+          ))}
+        </DropdownMenuGroup>
+        <DropdownMenuSeparator />
+        <DropdownMenuGroup>
+          <DropdownMenuLabel>Скин</DropdownMenuLabel>
+          {/* TI-026: каталог с карточкой предпросмотра — четыре цвета из
+              реестра, сама палитра живёт в tokens.css. */}
+          {SKINS.map((skin) => (
+            <DropdownMenuItem
+              key={skin.id}
+              className="skin-choice"
+              data-active={skinId === skin.id ? '' : undefined}
+              onClick={() => void chooseSkin(skin.id).catch(report)}
+            >
+              <span
+                className="skin-preview"
+                aria-hidden="true"
+                style={{
+                  background: skin.preview.background,
+                  borderColor: skin.preview.foreground,
+                }}
+              >
+                <span
+                  className="skin-preview-card"
+                  style={{
+                    background: skin.preview.surface,
+                    borderColor: skin.preview.foreground,
+                  }}
+                >
+                  <span style={{ background: skin.preview.foreground }} />
+                  <span style={{ background: skin.preview.accent }} />
+                </span>
+              </span>
+              <span className="skin-text">
+                <span className="skin-name">
+                  {skin.label}
+                  {skinId === skin.id && ' ·'}
+                </span>
+                <span className="skin-description">{skin.description}</span>
+              </span>
             </DropdownMenuItem>
           ))}
         </DropdownMenuGroup>

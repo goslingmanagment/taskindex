@@ -216,8 +216,10 @@ for (const file of skinFiles) {
 }
 
 // 6. Токены определяются только в tokens.css, по блоку на пару (скин, режим).
-const ALLOWED_BLOCKS =
-  /^(:root|\.dark|:root\[data-skin='[a-z0-9-]+'\]|:root\[data-skin='[a-z0-9-]+'\]\.dark|:root\[data-theme='[a-z]+'\]|@theme[a-z ]*|@media \(prefers-color-scheme: dark\)|:root:not\(\[data-theme='light'\]\))$/;
+const SKIN = "(?:\\[data-skin='[a-z0-9-]+'\\])?";
+const ALLOWED_BLOCKS = new RegExp(
+  `^(:root${SKIN}|:root${SKIN}\\[data-theme='[a-z]+'\\]|:root${SKIN}:not\\(\\[data-theme='light'\\]\\)|@theme[a-z ]*|@media \\(prefers-color-scheme: dark\\))$`,
+);
 const tokensCss = read(TOKENS);
 const definedIn = new Map();
 for (const rule of rules(tokensCss)) {
@@ -276,41 +278,55 @@ for (const file of skinFiles) {
     }
 }
 
-// 8. Контраст WCAG 2.2 по парам ролей (доп. шаг 13 плана 08).
-const palette = new Map();
-const darkBlocks = [];
+// 8. Контраст WCAG 2.2 по парам ролей (доп. шаг 13 плана 08). Палитра
+// собирается на каждую пару (скин, режим): блок скина наследует всё, чего не
+// переопределил, от classic того же режима, поэтому проверяются итоговые
+// значения, а не только литералы блока (TI-026).
+const SKIN_OF = /^:root(?:\[data-skin='([a-z0-9-]+)'\])?/;
+const blocks = [];
 for (const rule of rules(tokensCss)) {
+  const skin = rule.prelude.match(SKIN_OF);
+  if (!skin) continue;
   const dark =
-    rule.prelude === ":root[data-theme='dark']" ||
-    rule.prelude === ":root:not([data-theme='light'])";
-  if (rule.prelude !== ':root' && !dark) continue;
+    rule.prelude.endsWith("[data-theme='dark']") ||
+    rule.prelude.endsWith(":not([data-theme='light'])");
   const values = new Map();
   for (const hit of rule.body.matchAll(
     /(--[a-z0-9-]+)\s*:\s*(#[0-9a-fA-F]{3,8})\s*;/g,
   ))
     values.set(hit[1], hit[2]);
-  if (dark) darkBlocks.push({ rule, values });
-  for (const [name, value] of values)
-    palette.set(`${dark ? 'dark' : 'light'}${name}`, value);
+  blocks.push({ rule, skin: skin[1] ?? 'classic', dark, values });
 }
-// Тёмная палитра объявлена дважды (явный выбор и системное предпочтение).
-// Блоки обязаны совпадать: иначе одна из двух дорог покрасит интерфейс иначе.
-if (darkBlocks.length !== 2)
-  fail(
-    TOKENS,
-    0,
-    `тёмных блоков ${darkBlocks.length}, ожидались два (data-theme и prefers-color-scheme)`,
-  );
-else {
-  const [a, b] = darkBlocks;
-  for (const name of new Set([...a.values.keys(), ...b.values.keys()]))
-    if (a.values.get(name) !== b.values.get(name))
+const skins = [...new Set(blocks.map((b) => b.skin))];
+const palette = new Map();
+for (const skin of skins)
+  for (const dark of [false, true]) {
+    const own = blocks.filter((b) => b.skin === skin && b.dark === dark);
+    // Тёмная палитра объявлена дважды (явный выбор и системное предпочтение).
+    // Блоки обязаны совпадать: иначе одна из двух дорог покрасит интерфейс иначе.
+    if (dark && own.length !== 2)
       fail(
         TOKENS,
-        lineOf(tokensCss, b.rule.index),
-        `тёмные блоки расходятся по ${name}: ${a.values.get(name) ?? '—'} и ${b.values.get(name) ?? '—'}`,
+        0,
+        `тёмных блоков скина «${skin}» ${own.length}, ожидались два (data-theme и prefers-color-scheme)`,
       );
-}
+    if (dark && own.length === 2) {
+      const [a, b] = own;
+      for (const name of new Set([...a.values.keys(), ...b.values.keys()]))
+        if (a.values.get(name) !== b.values.get(name))
+          fail(
+            TOKENS,
+            lineOf(tokensCss, b.rule.index),
+            `тёмные блоки скина «${skin}» расходятся по ${name}: ${a.values.get(name) ?? '—'} и ${b.values.get(name) ?? '—'}`,
+          );
+    }
+    const base = skin === 'classic' ? [] : [['classic', dark]];
+    const resolved = new Map();
+    for (const [from, mode] of [...base, [skin, dark]])
+      for (const b of blocks.filter((x) => x.skin === from && x.dark === mode))
+        for (const [name, value] of b.values) resolved.set(name, value);
+    palette.set(`${skin}/${dark ? 'dark' : 'light'}`, resolved);
+  }
 function channel(value) {
   const c = value / 255;
   return c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4;
@@ -343,26 +359,27 @@ const PAIRS = [
   ['--success-foreground', '--success-soft', 3],
   ['--accent-strong', '--card', 3],
 ];
-for (const mode of ['light', 'dark'])
+for (const [key, values] of palette)
   for (const [fg, bg, threshold] of PAIRS) {
-    const a = palette.get(`${mode}${fg}`);
-    const b = palette.get(`${mode}${bg}`);
-    // Тёмная палитра пока определяет только набор shadcn; роли скина
-    // появляются в ней на шаге 10, до тех пор пара пропускается.
-    if (!a || !b) continue;
+    const a = values.get(fg);
+    const b = values.get(bg);
+    if (!a || !b) {
+      fail(TOKENS, 0, `пара ${fg}/${bg} не определена для ${key}`);
+      continue;
+    }
     const ratio = contrast(a, b);
     if (ratio + 1e-9 < threshold)
       fail(
         TOKENS,
         0,
-        `контраст ${fg} на ${bg} (${mode}) = ${ratio.toFixed(2)}:1, нужно ${threshold}:1`,
+        `контраст ${fg} на ${bg} (${key}) = ${ratio.toFixed(2)}:1, нужно ${threshold}:1`,
       );
   }
 
-// 9. Собранный CSS не растёт (план 08, тест 10). Предел: замер после стола
-// Focus (TI-078, desk.css) 121 441 Б плюс 2 % на округление; новый экран или
-// скин поднимает его осознанно, вместе с записью в план 08.
-const BUNDLE_LIMIT = 123_900;
+// 9. Собранный CSS не растёт (план 08, тест 10). Предел: замер после скина
+// «Фокус» (TI-026, два блока tokens.css) 129 994 Б плюс 2 % на округление;
+// новый экран или скин поднимает его осознанно, вместе с записью в план 08.
+const BUNDLE_LIMIT = 132_600;
 const assets = 'dist/web/assets';
 if (!existsSync(assets)) {
   console.error(

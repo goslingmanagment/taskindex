@@ -6,7 +6,13 @@
    Дополнительный скин добавляется парой блоков :root[data-skin='<id>'] и его
    тёмным вариантом — по одному блоку на пару (скин, режим); других мест с
    определениями токенов в проекте нет (проверяет scripts/check-skin.mjs).
-   Вариант dark не зависит от data-skin. TI-025, план 08, шаги 2 и 15. */
+   Вариант dark не зависит от data-skin. TI-025, план 08, шаги 2 и 15.
+
+   Каталог: «classic» (блоки без селектора скина) и «focus» (TI-026, план 08
+   доп. шаг 15, план 13 шаг 11): бумага, тёмно-зелёные чернила, один
+   терракотовый акцент и засечки в заголовке текущей задачи. Блок скина
+   переопределяет только роли; числовые оттенки ролей ссылаются на базовую
+   роль через var() до фазы B (план 08, шаг 11). */
 
 @theme static {
   /* Брейкпоинты скина. static — чтобы Tailwind вывел переменные в :root и их мог
@@ -26,7 +32,7 @@
   --color-foreground: var(--foreground);
   --font-sans: var(--font-sans-stack);
   --font-mono: var(--font-mono-stack);
-  --font-heading: var(--font-sans);
+  --font-heading: var(--font-heading-stack);
   --color-sidebar-ring: var(--sidebar-ring);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
@@ -98,6 +104,9 @@
   --font-sans-stack:
     -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;
   --font-mono-stack: ui-monospace, monospace;
+  /* Заголовок текущей задачи стола: в classic тот же гротеск, скин «Фокус»
+     подставляет засечки. */
+  --font-heading-stack: var(--font-sans-stack);
 
   /* Обводка цветной точки: в светлой теме её не видно (фон и так светлый), в
      тёмной она отделяет тёмный цвет направления от подложки. Доп. шаг 16. */
@@ -350,5 +359,284 @@
     --line-soft-11: #3a424e;
     --line-on-primary: #ffffff33;
     --surface-ring: #ffffff33;
+  }
+}
+
+/* Скин «Фокус» (TI-026): светлая палитра. Значения из макета
+   docs/reference/visions-2026-09-08/focus.html: бумага #f4f3ed, карточка
+   #fffef9, чернила #243b39, терракота #ac5738, зелёный #58745c. */
+:root[data-skin='focus'] {
+  --background: #f4f3ed;
+  --foreground: #303c38;
+  --card: #fffef9;
+  --card-foreground: #303c38;
+  --popover: #fffef9;
+  --popover-foreground: #303c38;
+  --muted: #ecebe3;
+  --muted-foreground: #666d63;
+  --primary: #243b39;
+  --primary-foreground: #fffef9;
+  --accent: #f0e5d7;
+  --accent-foreground: #8a4429;
+  --secondary: #ecebe3;
+  --secondary-foreground: #3b4a44;
+  --border: #dcded3;
+  --input: #c9ccbe;
+  --ring: #ac5738;
+  --sidebar: #eeede5;
+  --sidebar-foreground: #3b4a44;
+  --sidebar-accent: #e3e8dc;
+  --sidebar-accent-foreground: #243b39;
+  --sidebar-border: #dcded3;
+  --sidebar-primary: #243b39;
+  --sidebar-primary-foreground: #fffef9;
+  --sidebar-ring: #ac5738;
+  --destructive: #a8403c;
+  --font-heading-stack: Georgia, 'Times New Roman', serif;
+  --surface-ring: transparent;
+  --text-faint: #7f867b;
+  --accent-strong: #ac5738;
+  --accent-on-primary: #f0e5d7;
+  --accent-border-soft: #e2c9b8;
+  --accent-border-hover: #c9a48f;
+  --accent-underline: #e2c9b8;
+  --primary-shadow: #243b3914;
+  --ring-soft: #c98a70;
+  --ring-medium: #ba6546;
+  --drop-outline: #ba6546;
+  --warning-foreground: #7d5a2e;
+  --warning-soft: #f7efe0;
+  --warning-border: #dcc7a4;
+  --success-foreground: #58745c;
+  --success-soft: #e9efe6;
+  --success-border: #9db4a0;
+  --destructive-text: #a8403c;
+  --destructive-soft: #f9ebe7;
+  --surface-hover: #fbfaf4;
+  --surface-shadow: #243b3914;
+  --surface-shadow-soft: #243b390a;
+  --marker-neutral: #c5c8bb;
+  --line-soft: #e6e7dd;
+  --line-dashed: #cfd2c5;
+  --line-dashed-strong: #c5c8bb;
+  --line-on-primary: #fffef944;
+  --text-faint-2: var(--text-faint);
+  --text-faint-3: var(--text-faint);
+  --text-faint-4: var(--text-faint);
+  --text-faint-5: var(--text-faint);
+  --text-faint-6: var(--text-faint);
+  --text-faint-7: var(--text-faint);
+  --text-faint-8: var(--text-faint);
+  --text-faint-9: var(--text-faint);
+  --text-faint-10: var(--text-faint);
+  --text-faint-11: var(--text-faint);
+  --text-faint-12: var(--text-faint);
+  --text-faint-13: var(--text-faint);
+  --text-faint-14: var(--text-faint);
+  --text-faint-15: var(--text-faint);
+  --text-faint-16: var(--text-faint);
+  --accent-strong-2: var(--accent-strong);
+  --warning-foreground-2: var(--warning-foreground);
+  --warning-foreground-3: var(--warning-foreground);
+  --warning-foreground-4: var(--warning-foreground);
+  --warning-soft-2: var(--warning-soft);
+  --warning-border-2: var(--warning-border);
+  --success-foreground-2: var(--success-foreground);
+  --success-foreground-3: var(--success-foreground);
+  --destructive-text-2: var(--destructive-text);
+  --line-soft-2: var(--line-soft);
+  --line-soft-3: var(--line-soft);
+  --line-soft-4: var(--line-soft);
+  --line-soft-5: var(--line-soft);
+  --line-soft-6: var(--line-soft);
+  --line-soft-7: var(--line-soft);
+  --line-soft-8: var(--line-soft);
+  --line-soft-9: var(--line-soft);
+  --line-soft-10: var(--line-soft);
+  --line-soft-11: var(--line-soft);
+}
+
+/* Скин «Фокус»: тёмная пара, те же два блока, что у classic (явный выбор и
+   системное предпочтение); их совпадение проверяет scripts/check-skin.mjs. */
+:root[data-skin='focus'][data-theme='dark'] {
+  --background: #1b2321;
+  --foreground: #e4e6dd;
+  --card: #232c29;
+  --card-foreground: #e4e6dd;
+  --popover: #232c29;
+  --popover-foreground: #e4e6dd;
+  --muted: #2c3633;
+  --muted-foreground: #a3aa9e;
+  --primary: #e4e6dd;
+  --primary-foreground: #1b2321;
+  --accent: #3a4a45;
+  --accent-foreground: #f0e5d7;
+  --secondary: #2c3633;
+  --secondary-foreground: #e4e6dd;
+  --border: #36423e;
+  --input: #43504b;
+  --ring: #d98a6c;
+  --sidebar: #202927;
+  --sidebar-foreground: #d3d7cf;
+  --sidebar-accent: #34423d;
+  --sidebar-accent-foreground: #f0e5d7;
+  --sidebar-border: #36423e;
+  --sidebar-primary: #d98a6c;
+  --sidebar-primary-foreground: #1b2321;
+  --sidebar-ring: #d98a6c;
+  --destructive: #f0968f;
+  --font-heading-stack: Georgia, 'Times New Roman', serif;
+  --surface-ring: #ffffff33;
+  --text-faint: #97a094;
+  --accent-strong: #e09a7c;
+  --accent-on-primary: #3a2a22;
+  --accent-border-soft: #5a4239;
+  --accent-border-hover: #7a5748;
+  --accent-underline: #5a4239;
+  --primary-shadow: #00000066;
+  --ring-soft: #c98a70;
+  --ring-medium: #d98a6c;
+  --drop-outline: #d98a6c;
+  --warning-foreground: #e0bd84;
+  --warning-soft: #2e2a21;
+  --warning-border: #5a4d33;
+  --success-foreground: #9dc3a1;
+  --success-soft: #1f2a24;
+  --success-border: #4b6a52;
+  --destructive-text: #f0968f;
+  --destructive-soft: #33231f;
+  --surface-hover: #28322f;
+  --surface-shadow: #00000059;
+  --surface-shadow-soft: #00000040;
+  --marker-neutral: #4a5652;
+  --line-soft: #36423e;
+  --line-dashed: #3d4945;
+  --line-dashed-strong: #45524d;
+  --line-on-primary: #1b232133;
+  --text-faint-2: var(--text-faint);
+  --text-faint-3: var(--text-faint);
+  --text-faint-4: var(--text-faint);
+  --text-faint-5: var(--text-faint);
+  --text-faint-6: var(--text-faint);
+  --text-faint-7: var(--text-faint);
+  --text-faint-8: var(--text-faint);
+  --text-faint-9: var(--text-faint);
+  --text-faint-10: var(--text-faint);
+  --text-faint-11: var(--text-faint);
+  --text-faint-12: var(--text-faint);
+  --text-faint-13: var(--text-faint);
+  --text-faint-14: var(--text-faint);
+  --text-faint-15: var(--text-faint);
+  --text-faint-16: var(--text-faint);
+  --accent-strong-2: var(--accent-strong);
+  --warning-foreground-2: var(--warning-foreground);
+  --warning-foreground-3: var(--warning-foreground);
+  --warning-foreground-4: var(--warning-foreground);
+  --warning-soft-2: var(--warning-soft);
+  --warning-border-2: var(--warning-border);
+  --success-foreground-2: var(--success-foreground);
+  --success-foreground-3: var(--success-foreground);
+  --destructive-text-2: var(--destructive-text);
+  --line-soft-2: var(--line-soft);
+  --line-soft-3: var(--line-soft);
+  --line-soft-4: var(--line-soft);
+  --line-soft-5: var(--line-soft);
+  --line-soft-6: var(--line-soft);
+  --line-soft-7: var(--line-soft);
+  --line-soft-8: var(--line-soft);
+  --line-soft-9: var(--line-soft);
+  --line-soft-10: var(--line-soft);
+  --line-soft-11: var(--line-soft);
+}
+@media (prefers-color-scheme: dark) {
+  :root[data-skin='focus']:not([data-theme='light']) {
+    --background: #1b2321;
+    --foreground: #e4e6dd;
+    --card: #232c29;
+    --card-foreground: #e4e6dd;
+    --popover: #232c29;
+    --popover-foreground: #e4e6dd;
+    --muted: #2c3633;
+    --muted-foreground: #a3aa9e;
+    --primary: #e4e6dd;
+    --primary-foreground: #1b2321;
+    --accent: #3a4a45;
+    --accent-foreground: #f0e5d7;
+    --secondary: #2c3633;
+    --secondary-foreground: #e4e6dd;
+    --border: #36423e;
+    --input: #43504b;
+    --ring: #d98a6c;
+    --sidebar: #202927;
+    --sidebar-foreground: #d3d7cf;
+    --sidebar-accent: #34423d;
+    --sidebar-accent-foreground: #f0e5d7;
+    --sidebar-border: #36423e;
+    --sidebar-primary: #d98a6c;
+    --sidebar-primary-foreground: #1b2321;
+    --sidebar-ring: #d98a6c;
+    --destructive: #f0968f;
+    --font-heading-stack: Georgia, 'Times New Roman', serif;
+    --surface-ring: #ffffff33;
+    --text-faint: #97a094;
+    --accent-strong: #e09a7c;
+    --accent-on-primary: #3a2a22;
+    --accent-border-soft: #5a4239;
+    --accent-border-hover: #7a5748;
+    --accent-underline: #5a4239;
+    --primary-shadow: #00000066;
+    --ring-soft: #c98a70;
+    --ring-medium: #d98a6c;
+    --drop-outline: #d98a6c;
+    --warning-foreground: #e0bd84;
+    --warning-soft: #2e2a21;
+    --warning-border: #5a4d33;
+    --success-foreground: #9dc3a1;
+    --success-soft: #1f2a24;
+    --success-border: #4b6a52;
+    --destructive-text: #f0968f;
+    --destructive-soft: #33231f;
+    --surface-hover: #28322f;
+    --surface-shadow: #00000059;
+    --surface-shadow-soft: #00000040;
+    --marker-neutral: #4a5652;
+    --line-soft: #36423e;
+    --line-dashed: #3d4945;
+    --line-dashed-strong: #45524d;
+    --line-on-primary: #1b232133;
+    --text-faint-2: var(--text-faint);
+    --text-faint-3: var(--text-faint);
+    --text-faint-4: var(--text-faint);
+    --text-faint-5: var(--text-faint);
+    --text-faint-6: var(--text-faint);
+    --text-faint-7: var(--text-faint);
+    --text-faint-8: var(--text-faint);
+    --text-faint-9: var(--text-faint);
+    --text-faint-10: var(--text-faint);
+    --text-faint-11: var(--text-faint);
+    --text-faint-12: var(--text-faint);
+    --text-faint-13: var(--text-faint);
+    --text-faint-14: var(--text-faint);
+    --text-faint-15: var(--text-faint);
+    --text-faint-16: var(--text-faint);
+    --accent-strong-2: var(--accent-strong);
+    --warning-foreground-2: var(--warning-foreground);
+    --warning-foreground-3: var(--warning-foreground);
+    --warning-foreground-4: var(--warning-foreground);
+    --warning-soft-2: var(--warning-soft);
+    --warning-border-2: var(--warning-border);
+    --success-foreground-2: var(--success-foreground);
+    --success-foreground-3: var(--success-foreground);
+    --destructive-text-2: var(--destructive-text);
+    --line-soft-2: var(--line-soft);
+    --line-soft-3: var(--line-soft);
+    --line-soft-4: var(--line-soft);
+    --line-soft-5: var(--line-soft);
+    --line-soft-6: var(--line-soft);
+    --line-soft-7: var(--line-soft);
+    --line-soft-8: var(--line-soft);
+    --line-soft-9: var(--line-soft);
+    --line-soft-10: var(--line-soft);
+    --line-soft-11: var(--line-soft);
   }
 }

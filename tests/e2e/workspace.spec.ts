@@ -175,6 +175,9 @@ test('mobile navigation, focus/search/archive and keyboard task movement', async
       (await (await page.request.get(`/api/tasks/${task.id}`)).json()) as Task
     ).revision,
     focus: true,
+    // TI-078: экран Focus это стол — видна текущая задача и две следующие,
+    // поэтому задача ставится в начало стола, а не в конец очереди.
+    focusPosition: { first: true },
   });
   await page.setViewportSize({ width: 390, height: 844 });
   await page

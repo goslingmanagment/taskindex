@@ -24,6 +24,11 @@
         var mode = localStorage.getItem('taskindex/appearance-mode');
         if (mode === 'light' || mode === 'dark')
           document.documentElement.dataset.theme = mode;
+        // TI-026: скин тоже до первой отрисовки; значение — id из каталога
+        // src/shared/appearance.ts, неизвестный id красит как classic.
+        var skin = localStorage.getItem('taskindex/appearance-skin');
+        if (skin && /^[a-z0-9-]+$/.test(skin))
+          document.documentElement.dataset.skin = skin;
       } catch (error) {
         /* Приватный режим: остаётся системная тема. */
       }
