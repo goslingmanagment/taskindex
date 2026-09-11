@@ -16,14 +16,11 @@
 
 @theme static {
   /* Брейкпоинты скина. static — чтобы Tailwind вывел переменные в :root и их мог
-     прочитать use-mobile.ts. Значения равны прежним пиксельным порогам:
-     48rem = 768px (медиазапросы были max-width: 767px), 100rem = 1600px.
-     Промежуточные пороги доски пока названы, но не сведены к lg/xl: это меняет
-     раскладку и относится к фазе B (план 08, шаг 6). */
+     прочитать use-mobile.ts. 48rem = 768px (медиазапросы были max-width: 767px),
+     100rem = 1600px. Промежуточные пороги доски 1000/1100/1200px сведены к
+     стандартным lg (64rem) и xl (80rem) темы Tailwind — фаза B (план 08,
+     шаги 6 и 11, TI-025): скин пишет `theme(--breakpoint-lg)`. */
   --breakpoint-md: 48rem;
-  --breakpoint-board-2col: 75rem;
-  --breakpoint-board-narrow: 68.75rem;
-  --breakpoint-board-single: 62.5rem;
   --breakpoint-wide: 100rem;
 }
 

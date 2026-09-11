@@ -57,7 +57,7 @@
   box-shadow: none;
   background: var(--surface-hover);
 }
-@media (min-width: 1600px) {
+@media (width >= theme(--breakpoint-wide)) {
   .kanban {
     gap: 22px;
   }
@@ -68,7 +68,7 @@
     padding: 25px 32px;
   }
 }
-@media (max-width: 1100px) {
+@media (width < theme(--breakpoint-lg)) {
   .board-heading {
     padding-left: 24px;
     padding-right: 24px;
@@ -84,7 +84,7 @@
     width: 200px;
   }
 }
-@media (max-width: 767px) {
+@media (width < theme(--breakpoint-md)) {
   .search-box .search-field,
   .search-box kbd {
     display: none;
@@ -196,7 +196,7 @@
 .list-view .column-empty {
   display: none;
 }
-@media (max-width: 1200px) {
+@media (width < theme(--breakpoint-xl)) {
   .list-view .waiting-line {
     display: none;
   }
@@ -204,7 +204,7 @@
     min-width: 0;
   }
 }
-@media (max-width: 767px) {
+@media (width < theme(--breakpoint-md)) {
   .search-open kbd {
     display: none;
   }
@@ -653,7 +653,7 @@
   top: 50%;
   transform: translateY(-50%);
 }
-@media (max-width: 1200px) {
+@media (width < theme(--breakpoint-xl)) {
   .heading-actions {
     gap: 15px;
   }
@@ -675,7 +675,7 @@
     max-width: 150px;
   }
 }
-@media (max-width: 1000px) {
+@media (width < theme(--breakpoint-lg)) {
   .kanban {
     grid-template-columns: repeat(4, 260px);
   }
@@ -691,7 +691,7 @@
     padding-right: 22px;
   }
 }
-@media (max-width: 767px) {
+@media (width < theme(--breakpoint-md)) {
   .board-heading {
     padding: 18px 16px 0;
   }
@@ -849,7 +849,7 @@
   border: 0;
   touch-action: pan-y;
 }
-@media (max-width: 767px) {
+@media (width < theme(--breakpoint-md)) {
   .drag-handle {
     opacity: 0.55;
   }

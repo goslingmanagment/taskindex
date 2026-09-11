@@ -296,12 +296,12 @@
   font-size: 14px;
   font-weight: 600;
 }
-@media (width < 62.5rem) {
+@media (width < theme(--breakpoint-lg)) {
   .desk-workbench {
     grid-template-columns: minmax(0, 1fr);
   }
 }
-@media (width < 48rem) {
+@media (width < theme(--breakpoint-md)) {
   .desk-card {
     padding: 18px 16px;
   }
