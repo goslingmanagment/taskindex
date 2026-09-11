@@ -41,7 +41,7 @@
   margin-top: 2px;
 }
 .check-date {
-  color: var(--warning-foreground-2);
+  color: var(--warning-foreground);
 }
 .list-view .project-tag {
   margin: 0;
@@ -551,7 +551,7 @@
 }
 .card-meta .check-now {
   border-radius: 4px;
-  color: var(--warning-foreground-3);
+  color: var(--warning-foreground);
   background: none;
   padding: 0;
 }

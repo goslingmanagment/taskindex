@@ -42,12 +42,12 @@
 }
 .conflict-box {
   padding: 11px;
-  border: 1px solid var(--warning-border-2);
+  border: 1px solid var(--warning-border);
   border-radius: 7px;
   margin-bottom: 12px;
-  background: var(--warning-soft-2);
+  background: var(--warning-soft);
   font-size: 13px;
-  color: var(--warning-foreground-4);
+  color: var(--warning-foreground);
 }
 .conflict-box p {
   margin-bottom: 9px;
