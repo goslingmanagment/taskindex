@@ -78,7 +78,7 @@ export function DragBoard({
         ? target
         : undefined;
     void move(task, status, after ? undefined : target, after).catch(
-      (e: Error) => toast.add({ title: e.message, type: 'error' }),
+      (error: Error) => toast.add({ title: error.message, type: 'error' }),
     );
   };
   return (
@@ -194,13 +194,13 @@ function InlineCreate({
       );
       intent.dispatch({ type: 'success' });
       clearDraft(key);
-    } catch (error) {
+    } catch (error_) {
       intent.dispatch({
         type: 'reject',
-        retryable: !(error instanceof ApiError) || error.detail.retryable,
+        retryable: !(error_ instanceof ApiError) || error_.detail.retryable,
       });
       setError(
-        error instanceof Error ? error.message : 'Не удалось сохранить.',
+        error_ instanceof Error ? error_.message : 'Не удалось сохранить.',
       );
     } finally {
       setBusy(false);

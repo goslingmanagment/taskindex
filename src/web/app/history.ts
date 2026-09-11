@@ -76,8 +76,8 @@ const TECHNICAL_FIELDS = new Set([
 // only stores the id, so the name may have changed since.
 const CURRENT_NAMES = 'название на сегодня';
 
-function quote(value: string): string {
-  const text = value.length > 80 ? `${value.slice(0, 79)}…` : value;
+function quote(raw: string): string {
+  const text = raw.length > 80 ? `${raw.slice(0, 79)}…` : raw;
   return `«${text}»`;
 }
 function areaName(id: unknown): string | null {
@@ -86,12 +86,12 @@ function areaName(id: unknown): string | null {
 function statusName(id: unknown): string | null {
   return STATUSES.find((s) => s.id === id)?.name ?? null;
 }
-function day(value: string): string {
+function day(raw: string): string {
   // A date field is a plain calendar day; read it as UTC so the workspace time
   // zone cannot move it to the previous one.
-  const date = new Date(`${value}T00:00:00Z`);
+  const date = new Date(`${raw}T00:00:00Z`);
   return Number.isNaN(date.getTime())
-    ? value
+    ? raw
     : date.toLocaleDateString('ru-RU', {
         timeZone: 'UTC',
         day: 'numeric',
@@ -100,9 +100,9 @@ function day(value: string): string {
       });
 }
 type Item = { id: string; text: string; done: boolean };
-function items(value: unknown): Item[] | null {
-  if (!Array.isArray(value)) return null;
-  return value.every(
+function items(raw: unknown): Item[] | null {
+  if (!Array.isArray(raw)) return null;
+  return raw.every(
     (i) =>
       i !== null &&
       typeof i === 'object' &&
@@ -110,7 +110,7 @@ function items(value: unknown): Item[] | null {
       typeof (i as Item).text === 'string' &&
       typeof (i as Item).done === 'boolean',
   )
-    ? (value as Item[])
+    ? (raw as Item[])
     : null;
 }
 // Checklist steps are matched by their id, never by their position, so a step
@@ -181,13 +181,13 @@ function value(
 // A creation has no previous state: every field would read «не задано → …».
 // Such an event is told as the values it started with, empty ones omitted.
 const CREATING = new Set(['task.create', 'project.create', 'comment.add']);
-function empty(value: unknown): boolean {
+function empty(raw: unknown): boolean {
   return (
-    value === null ||
-    value === undefined ||
-    value === '' ||
-    value === false ||
-    (Array.isArray(value) && value.length === 0)
+    raw === null ||
+    raw === undefined ||
+    raw === '' ||
+    raw === false ||
+    (Array.isArray(raw) && raw.length === 0)
   );
 }
 function line(
@@ -284,5 +284,5 @@ export function actorOptions(
   for (const operation of operations)
     if (!options.has(operation.actorId))
       options.set(operation.actorId, `${operation.actorLabel} (нет в списке)`);
-  return [...options].map(([value, label]) => ({ value, label }));
+  return [...options].map(([id, label]) => ({ value: id, label }));
 }

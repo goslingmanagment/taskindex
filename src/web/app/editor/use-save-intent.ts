@@ -82,21 +82,17 @@ export function useSaveIntent(
       form.dispatch({ type: 'success' });
       form.accept(next);
       if (close) onClose();
-    } catch (failure) {
+    } catch (error_) {
       const retryable =
-        !(failure instanceof ApiError) || failure.detail.retryable;
+        !(error_ instanceof ApiError) || error_.detail.retryable;
       form.dispatch({ type: 'reject', retryable });
       if (!retryable) form.setSubmission(null);
+      if (error_ instanceof ApiError && error_.status === 409 && error_.current)
+        setConflict(error_.current as Task);
       if (
-        failure instanceof ApiError &&
-        failure.status === 409 &&
-        failure.current
-      )
-        setConflict(failure.current as Task);
-      if (
-        failure instanceof ApiError &&
-        failure.detail.code === 'invalid' &&
-        isFutureBaseError(failure.detail.message)
+        error_ instanceof ApiError &&
+        error_.detail.code === 'invalid' &&
+        isFutureBaseError(error_.detail.message)
       ) {
         // База обогнала сервер: возвращаемся на подтверждённую ревизию
         // (эффект черновика перепишет `baseRevision`) и предлагаем повтор.
@@ -106,7 +102,7 @@ export function useSaveIntent(
         );
         return;
       }
-      setError(failure instanceof Error ? failure.message : 'Не сохранилось.');
+      setError(error_ instanceof Error ? error_.message : 'Не сохранилось.');
     } finally {
       setBusy(false);
     }
@@ -117,8 +113,8 @@ export function useSaveIntent(
     try {
       await action();
       onClose();
-    } catch (failure) {
-      setError(failure instanceof Error ? failure.message : message);
+    } catch (error_) {
+      setError(error_ instanceof Error ? error_.message : message);
     } finally {
       setBusy(false);
     }

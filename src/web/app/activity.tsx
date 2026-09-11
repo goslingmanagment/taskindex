@@ -62,9 +62,9 @@ async function undo(payload: { seq: number } | { operationId: string }) {
   try {
     await workspaceStore.submit(undoCommand(payload));
     toast.add({ title: 'Изменение отменено', type: 'success' });
-  } catch (error) {
+  } catch (error_) {
     toast.add({
-      title: error instanceof Error ? error.message : 'Не удалось отменить.',
+      title: error_ instanceof Error ? error_.message : 'Не удалось отменить.',
       type: 'error',
     });
   }
@@ -198,8 +198,8 @@ export function Activity({
           setError('');
         }
       })
-      .catch((e) => {
-        if (flight.active) setError(e.message);
+      .catch((error_: Error) => {
+        if (flight.active) setError(error_.message);
       })
       .finally(() => {
         if (flight.active) {
@@ -229,10 +229,10 @@ export function Activity({
         // склеен из разных состояний, и об этом честнее сказать.
         setChanged(next.seq !== page.seq);
       }
-    } catch (error) {
+    } catch (error_) {
       // Курсор устарел (журнал усечён или сменилось поколение): единственный
       // согласованный ответ — перечитать с первой страницы.
-      if (error instanceof ApiError && error.status === 409) {
+      if (error_ instanceof ApiError && error_.status === 409) {
         try {
           const restart = await request(
             first,
@@ -245,17 +245,19 @@ export function Activity({
             setError('');
           }
           return;
-        } catch (retry) {
+        } catch (retryError) {
           if (flight.active)
             setError(
-              retry instanceof Error ? retry.message : 'Не удалось загрузить.',
+              retryError instanceof Error
+                ? retryError.message
+                : 'Не удалось загрузить.',
             );
           return;
         }
       }
       if (flight.active)
         setError(
-          error instanceof Error ? error.message : 'Не удалось загрузить.',
+          error_ instanceof Error ? error_.message : 'Не удалось загрузить.',
         );
     } finally {
       if (flight.active) setBusy(false);
@@ -340,8 +342,8 @@ function OperationRow({ operation }: { operation: OperationSummary }) {
       .then((value) => {
         if (active) setDetail(value);
       })
-      .catch((e) => {
-        if (active) setError(e.message);
+      .catch((error_: Error) => {
+        if (active) setError(error_.message);
       });
     return () => {
       active = false;
@@ -453,11 +455,11 @@ export function TaskDiscussion({ task }: { task: Task }) {
           if (active) setHistory(value);
         }
         if (active) setError('');
-      } catch (error) {
+      } catch (error_) {
         if (active)
           setError(
-            error instanceof Error
-              ? error.message
+            error_ instanceof Error
+              ? error_.message
               : 'Не удалось загрузить историю.',
           );
       }
@@ -483,13 +485,13 @@ export function TaskDiscussion({ task }: { task: Task }) {
       draft.dispatch({ type: 'success' });
       draft.clear();
       setText('');
-    } catch (error) {
+    } catch (error_) {
       draft.dispatch({
         type: 'reject',
-        retryable: !(error instanceof ApiError) || error.detail.retryable,
+        retryable: !(error_ instanceof ApiError) || error_.detail.retryable,
       });
       setError(
-        error instanceof Error ? error.message : 'Не удалось отправить.',
+        error_ instanceof Error ? error_.message : 'Не удалось отправить.',
       );
     } finally {
       setBusy(false);
@@ -498,8 +500,10 @@ export function TaskDiscussion({ task }: { task: Task }) {
   async function remove(comment: Comment) {
     try {
       await workspaceStore.submit(commentRemoveCommand(comment.id));
-    } catch (error) {
-      setError(error instanceof Error ? error.message : 'Не удалось удалить.');
+    } catch (error_) {
+      setError(
+        error_ instanceof Error ? error_.message : 'Не удалось удалить.',
+      );
     }
   }
   // Каждая страница проверяется своей схемой: комментарии и события — разные
@@ -522,9 +526,9 @@ export function TaskDiscussion({ task }: { task: Task }) {
           items: [...(history?.items ?? []), ...next.items],
         });
       }
-    } catch (error) {
+    } catch (error_) {
       setError(
-        error instanceof Error ? error.message : 'Не удалось загрузить.',
+        error_ instanceof Error ? error_.message : 'Не удалось загрузить.',
       );
     }
   }

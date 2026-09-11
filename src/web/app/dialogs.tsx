@@ -88,15 +88,15 @@ export function QuickCreate({
       draft.dispatch({ type: 'success' });
       draft.clear();
       onClose();
-    } catch (error) {
+    } catch (error_) {
       // TI-023: новый идентификатор операции появится только после правки
       // текста, и только если отказ был окончательным.
       draft.dispatch({
         type: 'reject',
-        retryable: !(error instanceof ApiError) || error.detail.retryable,
+        retryable: !(error_ instanceof ApiError) || error_.detail.retryable,
       });
       setError(
-        error instanceof Error ? error.message : 'Не удалось сохранить.',
+        error_ instanceof Error ? error_.message : 'Не удалось сохранить.',
       );
     } finally {
       setBusy(false);
@@ -273,15 +273,15 @@ export function ProjectDialog({
       draft.dispatch({ type: 'success' });
       draft.clear();
       onClose();
-    } catch (error) {
+    } catch (error_) {
       draft.dispatch({
         type: 'reject',
-        retryable: !(error instanceof ApiError) || error.detail.retryable,
+        retryable: !(error_ instanceof ApiError) || error_.detail.retryable,
       });
-      if (error instanceof ApiError && error.status === 409 && error.current)
-        setConflict(error.current as Project);
+      if (error_ instanceof ApiError && error_.status === 409 && error_.current)
+        setConflict(error_.current as Project);
       setError(
-        error instanceof Error ? error.message : 'Не удалось сохранить.',
+        error_ instanceof Error ? error_.message : 'Не удалось сохранить.',
       );
     } finally {
       setBusy(false);

@@ -53,8 +53,8 @@ export function AuthGate({ children }: { children: ReactNode }) {
         return;
       }
       await session.refetch();
-    } catch (error) {
-      setError(authErrorMessage(error, passkey ? 'passkey' : 'signIn'));
+    } catch (error_) {
+      setError(authErrorMessage(error_, passkey ? 'passkey' : 'signIn'));
     } finally {
       setBusy(false);
     }
@@ -146,9 +146,9 @@ export function AccountMenu() {
         return;
       }
       toast.add({ title: 'Passkey добавлен', type: 'success' });
-    } catch (error) {
+    } catch (error_) {
       toast.add({
-        title: authErrorMessage(error, 'addPasskey'),
+        title: authErrorMessage(error_, 'addPasskey'),
         type: 'error',
       });
     }

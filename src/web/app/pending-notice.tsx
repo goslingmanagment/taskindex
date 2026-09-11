@@ -76,8 +76,8 @@ export function PendingNotice() {
                     onClick={() =>
                       void workspaceStore
                         .retry(p.envelope.operationId)
-                        .catch((e) =>
-                          toast.add({ title: e.message, type: 'error' }),
+                        .catch((error: Error) =>
+                          toast.add({ title: error.message, type: 'error' }),
                         )
                     }
                   >
