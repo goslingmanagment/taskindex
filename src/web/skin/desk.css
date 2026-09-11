@@ -44,14 +44,14 @@
 .desk-rail-caption,
 .desk-rail-empty {
   font-size: 13px;
-  color: var(--text-faint-3);
+  color: var(--text-faint);
 }
 .desk-project-line {
   display: flex;
   align-items: center;
   gap: 10px;
   font-size: 13px;
-  color: var(--text-faint-5);
+  color: var(--muted-foreground);
 }
 .desk-project-line b {
   color: var(--secondary-foreground);
@@ -79,7 +79,7 @@
   font-size: 11px;
   letter-spacing: 0.07em;
   text-transform: uppercase;
-  color: var(--text-faint-6);
+  color: var(--text-faint);
 }
 .desk-next-action p {
   margin: 3px 0 0;
@@ -97,7 +97,7 @@
   align-items: center;
   gap: 12px;
   font-size: 13px;
-  color: var(--text-faint-3);
+  color: var(--text-faint);
 }
 .desk-progress {
   flex: 1;
@@ -111,7 +111,7 @@
   cursor: pointer;
 }
 .desk-step .step-done {
-  color: var(--text-faint-9);
+  color: var(--text-faint);
   text-decoration: line-through;
 }
 .desk-card-footer {
@@ -139,7 +139,7 @@
 }
 .desk-section-heading span {
   font-size: 13px;
-  color: var(--text-faint-3);
+  color: var(--text-faint);
 }
 .desk-choices {
   display: grid;
@@ -171,7 +171,7 @@
   justify-content: space-between;
   gap: 10px;
   font-size: 12px;
-  color: var(--text-faint-6);
+  color: var(--text-faint);
 }
 .desk-choice h4 {
   margin: 0;
@@ -228,13 +228,13 @@
 .desk-wait-person,
 .desk-resume-note {
   font-size: 12px;
-  color: var(--text-faint-6);
+  color: var(--text-faint);
 }
 .desk-resume-project {
   font-size: 11px;
   letter-spacing: 0.06em;
   text-transform: uppercase;
-  color: var(--text-faint-9);
+  color: var(--text-faint);
 }
 .desk-footer {
   display: flex;
@@ -244,7 +244,7 @@
   border-top: 1px solid var(--line-soft);
   padding-top: 14px;
   font-size: 13px;
-  color: var(--text-faint-3);
+  color: var(--text-faint);
 }
 .contexts-drawer {
   max-width: 42rem;
@@ -261,7 +261,7 @@
   flex-direction: column;
   gap: 5px;
   font-size: 13px;
-  color: var(--text-faint-3);
+  color: var(--text-faint);
 }
 .contexts-parked {
   flex-direction: row;
@@ -290,7 +290,7 @@
 .contexts-item small,
 .contexts-item-status {
   font-size: 12px;
-  color: var(--text-faint-6);
+  color: var(--text-faint);
 }
 .contexts-item strong {
   font-size: 14px;

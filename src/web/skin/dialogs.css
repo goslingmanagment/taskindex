@@ -1,11 +1,11 @@
 /* Диалоги: создание задачи, направление, подтверждения. Файл подключается со слоем skin из styles.css. */
 .create-dialog [data-slot='dialog-description'] {
   font-size: 14px;
-  color: var(--text-faint-8);
+  color: var(--text-faint);
 }
 .dialog-separator {
   padding: 0 8px;
-  color: var(--text-faint-9);
+  color: var(--text-faint);
 }
 .create-dialog [data-slot='input'],
 .create-dialog .color-field {
@@ -24,7 +24,7 @@
 }
 .dialog-actions > span {
   font-size: 12px;
-  color: var(--text-faint-10);
+  color: var(--text-faint);
   margin-right: auto;
 }
 .dialog-actions [data-slot='button'] {

@@ -76,7 +76,7 @@ h1 {
 .main-empty [data-slot='empty-description'] {
   font-size: 16px;
   max-width: 440px;
-  color: var(--text-faint-2);
+  color: var(--text-faint);
 }
 .form-error {
   font-size: 14px;
