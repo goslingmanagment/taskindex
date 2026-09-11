@@ -20,6 +20,7 @@ import { WorkspaceSidebar } from './sidebar';
 import { TaskCard, TaskCardContent } from './card';
 import { Board, DragBoard } from './board';
 import { WorkspaceOverview } from './overview';
+import { Desk } from './desk/desk';
 import { QuickCreate, ProjectDialog } from './dialogs';
 import { PendingNotice } from './pending-notice';
 import { WorkspaceHeader } from './workspace-header';
@@ -50,6 +51,8 @@ export function Workspace() {
 // `key={state.generation}` у доски, редактора и диалогов — это сброс локального
 // состояния форм при смене поколения базы: другая база значит другие записи,
 // и незавершённый ввод не должен переехать на них молча.
+// oxlint-disable-next-line jsx-a11y/prefer-tag-over-role -- план 07, §3.9: как в activity.tsx, `<output>` это элемент формы, а здесь статус загрузки
+const activityFallback = <p role="status">Загружаем активность…</p>;
 function WorkspaceBody() {
   const state = useWorkspace(),
     { data, loading, error, today, pending } = state;
@@ -177,12 +180,16 @@ function WorkspaceBody() {
           ) : activity && !searching ? (
             // Запасной вид повторяет подпись самого экрана: пока грузится
             // чанк, владелец (и тест) видят то же «Загружаем активность…».
-            <Suspense fallback={<p role="status">Загружаем активность…</p>}>
+            <Suspense fallback={activityFallback}>
               <Activity
                 actor={location.actor}
                 onActor={(next) => update({ actor: next })}
               />
             </Suspense>
+          ) : focusView && !searching ? (
+            // TI-078: экран Focus это стол, а не сетка групп. Стартовый экран
+            // не меняется, сетка осталась в поиске и в дайджесте.
+            <Desk />
           ) : (
             <DragBoard
               tasks={tasks}

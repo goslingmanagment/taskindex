@@ -83,6 +83,32 @@ export function taskRestoreCommand(task: Task): Command {
     payload: { id: task.id, baseRevision: task.revision },
   };
 }
+/** TI-078: место на столе Focus; `first` — в начало, остальные — рядом с соседом. */
+export function taskFocusCommand(
+  task: Task,
+  position: { first: true } | { before: string } | { after: string },
+): Command {
+  return {
+    command: 'task.update',
+    payload: {
+      id: task.id,
+      baseRevision: task.revision,
+      focus: true,
+      focusPosition: position,
+    },
+  };
+}
+/** Отметка шага на столе: отдельная команда, а не сохранение всей карточки. */
+export function checklistToggleCommand(
+  task: Task,
+  itemId: string,
+  done: boolean,
+): Command {
+  return {
+    command: 'checklist.update',
+    payload: { taskId: task.id, baseRevision: task.revision, itemId, done },
+  };
+}
 export function projectSaveCommand(project: Project): Command {
   return project.revision
     ? {

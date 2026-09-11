@@ -1,5 +1,5 @@
 import type { DomainEvent, Project, Task } from '@shared/model';
-import { byOrder, focusGroups, searchTasks } from '@shared/queries';
+import { byOrder, focusDesk, focusGroups, searchTasks } from '@shared/queries';
 import type { LocationState } from './url';
 // TI-059 (план 07, шаг 10): что видно на экране — чистая функция от данных,
 // адреса и «сегодня». Ни store, ни DOM: то же самое решение принимает тест.
@@ -60,16 +60,6 @@ export function selectVisibleTasks(
     .filter((t) => !location.today || dueToday(t, today))
     .toSorted(byOrder);
 }
-/** Активные задачи, созданные агентом и ещё не тронутые владельцем. */
-export function newFromAgentsCount(tasks: Task[]): number {
-  return tasks.filter(
-    (t) =>
-      t.createdBy.startsWith('agent:') &&
-      !t.ownerTouchedAt &&
-      !t.archived &&
-      t.status !== 'done',
-  ).length;
-}
 /**
  * TI-063 (план 07, §3.6): позиция журнала, на которой в последний раз менялась
  * именно эта задача. Обсуждение перечитывает комментарии и историю по ней, а не
@@ -87,4 +77,16 @@ export function latestSeqForTask(
     )
       seq = event.seq;
   return seq;
+}
+/**
+ * TI-078, TI-029: стол Focus по задачам пространства — тот же расчёт, что у
+ * `GET /api/focus`. До первого снимка в store нет даты (`today === ''`), а
+ * селектор строит из неё границу «недавно снятых», поэтому пустая дата
+ * подменяется календарной датой браузера, а не роняет сайдбар.
+ */
+export function deskOf(
+  tasks: Task[],
+  today: string,
+): ReturnType<typeof focusDesk> {
+  return focusDesk(tasks, today || new Date().toISOString().slice(0, 10));
 }

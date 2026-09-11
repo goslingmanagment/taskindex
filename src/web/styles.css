@@ -10,6 +10,7 @@
 @import './skin/base.css' layer(skin);
 @import './skin/sidebar.css' layer(skin);
 @import './skin/board.css' layer(skin);
+@import './skin/desk.css' layer(skin);
 @import './skin/editor.css' layer(skin);
 @import './skin/activity.css' layer(skin);
 @import './skin/dialogs.css' layer(skin);

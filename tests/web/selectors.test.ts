@@ -2,10 +2,10 @@ import { describe, it, expect } from 'vitest';
 import type { DomainEvent, Project } from '../../src/shared/model';
 import { defaultLocation, type LocationState } from '../../src/web/app/url';
 import {
+  deskOf,
   effectiveProject,
   isProjectId,
   latestSeqForTask,
-  newFromAgentsCount,
   selectVisibleTasks,
 } from '../../src/web/app/selectors';
 import { makeTask } from './fixtures';
@@ -136,13 +136,15 @@ describe('selectors', () => {
     expect(isProjectId('all')).toBe(false);
     expect(isProjectId('p1')).toBe(true);
   });
-  it('counts only untouched agent tasks', () => {
-    expect(newFromAgentsCount(tasks)).toBe(1);
-    expect(
-      newFromAgentsCount(
-        tasks.map((t) => ({ ...t, ownerTouchedAt: '2026-09-10T00:00:00Z' })),
-      ),
-    ).toBe(0);
+  // TI-078, TI-029: the sidebar renders before the first snapshot, when the
+  // store has no date yet; the desk must not throw on it.
+  it('the desk tolerates an empty date and counts the focused tasks', () => {
+    expect(() => deskOf(tasks, '')).not.toThrow();
+    const focused = tasks.map((t, i) =>
+      i === 0 ? { ...t, focusKey: 'a0', focus: true } : t,
+    );
+    expect(deskOf(focused, '').counts.focus).toBe(1);
+    expect(deskOf(focused, '2026-09-11').current?.id).toBe(focused[0]!.id);
   });
   it('the position of a task in the journal ignores other tasks', () => {
     const event = (seq: number, entityId: string, taskId?: string) =>

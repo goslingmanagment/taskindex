@@ -13,6 +13,12 @@ export type LocationState = {
   activity: boolean;
   /** TI-076: author filter of the activity feed; '' is everyone. */
   actor: string;
+  /** TI-078: ящик «Все контексты» открыт поверх стола. */
+  contexts: boolean;
+  /** Фильтр ящика по состоянию задачи; '' — любое. */
+  status: string;
+  /** Фильтр ящика «не на столе» (`focus: false`), счётчик `counts.parked`. */
+  parked: boolean;
 };
 /** @internal for tests */
 export const defaultLocation: LocationState = {
@@ -27,6 +33,9 @@ export const defaultLocation: LocationState = {
   archiveSearch: false,
   activity: false,
   actor: '',
+  contexts: false,
+  status: '',
+  parked: false,
 };
 const savedKey = 'taskindex/location';
 // TI-042: two ways to read the location. The URL is the only source for
@@ -44,11 +53,17 @@ export function parseLocation(search: string): LocationState {
     task: p.get('task') || '',
     q: p.get('q') || '',
     actor: p.get('actor') || '',
+    status: p.get('status') || '',
     ...Object.fromEntries(
-      ['focus', 'archive', 'today', 'archiveSearch', 'activity'].map((k) => [
-        k,
-        p.get(k) === '1',
-      ]),
+      [
+        'focus',
+        'archive',
+        'today',
+        'archiveSearch',
+        'activity',
+        'contexts',
+        'parked',
+      ].map((k) => [k, p.get(k) === '1']),
     ),
   };
 }
@@ -72,6 +87,8 @@ function rememberLocation(query: string) {
     const saved = new URLSearchParams(query);
     saved.delete('task');
     saved.delete('q');
+    // TI-078: ящик контекстов — временное окно поверх стола, как карточка.
+    saved.delete('contexts');
     localStorage.setItem(savedKey, saved.toString());
   } catch {
     /* Optional preference. */

@@ -23,8 +23,9 @@ import { Button } from '../ui/button';
 import { AREAS, type Project, type Task } from '@shared/model';
 import { AccountMenu } from './auth';
 import { taskCount } from './labels';
-import { newFromAgentsCount } from './selectors';
+import { deskOf } from './selectors';
 import { useNavigation } from './navigation';
+import { useWorkspace } from './use-workspace';
 const icons = {
   agency: BriefcaseBusiness,
   development: Code2,
@@ -45,9 +46,12 @@ export function WorkspaceSidebar({
 }) {
   const { location, navigate, showFocus, showActivity, showArchive } =
     useNavigation();
+  const { today } = useWorkspace();
   const { area, project: projectId, archive, focus, activity, q } = location,
     globalView = !!q.trim() || focus || activity,
-    focusCount = newFromAgentsCount(tasks),
+    // TI-029: счётчик показывает то же, что экран Focus, — размер стола, а не
+    // «новое от агентов». Считает тот же селектор, что и `GET /api/focus`.
+    focusCount = deskOf(tasks, today).counts.focus,
     archivedCount = tasks.filter((t) => t.area === area && t.archived).length;
   return (
     <Sidebar className="workspace-sidebar">

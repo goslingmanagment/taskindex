@@ -1,0 +1,320 @@
+/* Вид «Стол» экрана Focus и ящик контекстов. Файл подключается со слоем skin
+   из styles.css; значения цвета — только токены (план 08, TI-025). */
+.desk {
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+  padding: 4px 0 28px;
+}
+.desk-workbench {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 20rem;
+  gap: 24px;
+  align-items: start;
+}
+.desk-main {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  min-width: 0;
+}
+.desk-card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: calc(var(--radius) * 1.6);
+  padding: 24px 26px;
+  box-shadow: 0 6px 20px var(--surface-shadow-soft);
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.desk-card-top {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 16px;
+}
+.desk-eyebrow {
+  font-size: 11px;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--accent-strong);
+}
+.desk-card-hint,
+.desk-rail-caption,
+.desk-rail-empty {
+  font-size: 13px;
+  color: var(--text-faint-3);
+}
+.desk-project-line {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 13px;
+  color: var(--text-faint-5);
+}
+.desk-project-line b {
+  color: var(--secondary-foreground);
+  font-weight: 600;
+}
+.desk-title {
+  font-family: var(--font-heading);
+  font-size: 27px;
+  line-height: 1.2;
+  letter-spacing: -0.02em;
+  margin: 0;
+  color: var(--foreground);
+}
+.desk-next-action {
+  display: flex;
+  gap: 10px;
+  border-left: 2px solid var(--accent-border-soft);
+  padding-left: 14px;
+}
+.desk-next-action span[aria-hidden] {
+  color: var(--accent-strong);
+}
+.desk-next-action small {
+  display: block;
+  font-size: 11px;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--text-faint-6);
+}
+.desk-next-action p {
+  margin: 3px 0 0;
+  font-size: 15px;
+}
+.desk-steps {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  border-top: 1px solid var(--line-soft);
+  padding-top: 14px;
+}
+.desk-steps-head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 13px;
+  color: var(--text-faint-3);
+}
+.desk-progress {
+  flex: 1;
+  height: 5px;
+}
+.desk-step {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  font-size: 14px;
+  cursor: pointer;
+}
+.desk-step .step-done {
+  color: var(--text-faint-9);
+  text-decoration: line-through;
+}
+.desk-card-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  border-top: 1px solid var(--line-soft);
+  padding-top: 14px;
+}
+.desk-empty {
+  align-items: center;
+}
+.desk-section-heading {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 10px;
+}
+.desk-section-heading h3 {
+  font-size: 15px;
+  font-weight: 600;
+  margin: 0;
+}
+.desk-section-heading span {
+  font-size: 13px;
+  color: var(--text-faint-3);
+}
+.desk-choices {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr));
+  gap: 14px;
+}
+.desk-choice {
+  text-align: left;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 15px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+  cursor: pointer;
+  transition: border-color 0.15s ease;
+}
+.desk-choice:hover,
+.desk-waiting-item:hover,
+.desk-resume-item:hover,
+.contexts-item:hover {
+  border-color: var(--accent-border-hover);
+}
+.desk-choice-meta,
+.desk-choice-bottom {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  font-size: 12px;
+  color: var(--text-faint-6);
+}
+.desk-choice h4 {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+}
+.desk-rail {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  min-width: 0;
+}
+.desk-rail-section h3 {
+  font-size: 15px;
+  font-weight: 600;
+  margin: 0;
+}
+.desk-rail-caption {
+  margin: 3px 0 10px;
+}
+.desk-waiting-item,
+.desk-resume-item {
+  width: 100%;
+  text-align: left;
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  justify-content: space-between;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 12px 14px;
+  margin-bottom: 9px;
+  cursor: pointer;
+}
+.desk-waiting-item > span,
+.desk-resume-item > span {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+.desk-return-date {
+  flex: none;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--warning-foreground);
+}
+.desk-wait-title,
+.desk-resume-title {
+  font-size: 14px;
+  font-weight: 600;
+}
+.desk-wait-person,
+.desk-resume-note {
+  font-size: 12px;
+  color: var(--text-faint-6);
+}
+.desk-resume-project {
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-faint-9);
+}
+.desk-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  border-top: 1px solid var(--line-soft);
+  padding-top: 14px;
+  font-size: 13px;
+  color: var(--text-faint-3);
+}
+.contexts-drawer {
+  max-width: 42rem;
+}
+.contexts-filters {
+  display: flex;
+  align-items: flex-end;
+  gap: 18px;
+  flex-wrap: wrap;
+  margin-bottom: 14px;
+}
+.contexts-filters label {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  font-size: 13px;
+  color: var(--text-faint-3);
+}
+.contexts-parked {
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+}
+.contexts-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: 24rem;
+  overflow-y: auto;
+}
+.contexts-item {
+  text-align: left;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 11px 13px;
+  cursor: pointer;
+}
+.contexts-item small,
+.contexts-item-status {
+  font-size: 12px;
+  color: var(--text-faint-6);
+}
+.contexts-item strong {
+  font-size: 14px;
+  font-weight: 600;
+}
+@media (width < 62.5rem) {
+  .desk-workbench {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+@media (width < 48rem) {
+  .desk-card {
+    padding: 18px 16px;
+  }
+  .desk-title {
+    font-size: 22px;
+  }
+  .desk-choices {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .desk-card-footer,
+  .desk-footer {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+  }
+}

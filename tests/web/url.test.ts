@@ -17,6 +17,10 @@ describe('TI-042 location is parsed from the URL only', () => {
       '?area=agency&project=all&view=board&today=1&activity=1',
       // TI-076: the author filter of the activity feed lives in the URL.
       '?area=agency&project=all&view=board&activity=1&actor=agent%3Aworker',
+      // TI-078: the contexts drawer of the desk and its filters live in the URL
+      // (`parked=1` stands for «not on the desk»: `focus=1` already names the
+      // screen itself).
+      '?area=agency&project=all&view=board&focus=1&contexts=1&status=todo&parked=1',
     ]) {
       const state = parseLocation(query);
       expect(serializeLocation(state)).toBe(query);

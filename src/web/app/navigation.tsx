@@ -73,6 +73,9 @@ export function NavigationProvider({ children }: { children: ReactNode }) {
           archive: false,
           today: false,
           task: '',
+          contexts: false,
+          status: '',
+          parked: false,
         });
         closeNavigation();
       },
@@ -89,7 +92,15 @@ export function NavigationProvider({ children }: { children: ReactNode }) {
         closeNavigation();
       },
       showActivity: () => {
-        update({ activity: true, focus: false, q: '', archive: false });
+        update({
+          activity: true,
+          focus: false,
+          q: '',
+          archive: false,
+          contexts: false,
+          status: '',
+          parked: false,
+        });
         closeNavigation();
       },
       showArchive: () => {
@@ -101,6 +112,9 @@ export function NavigationProvider({ children }: { children: ReactNode }) {
           q: '',
           today: false,
           project: 'all',
+          contexts: false,
+          status: '',
+          parked: false,
         });
         closeNavigation();
       },
