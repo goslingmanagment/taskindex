@@ -17,7 +17,7 @@
   border-radius: 50%;
 }
 .workspace-sidebar {
-  border-right: 1px solid var(--line-soft-11);
+  border-right: 1px solid var(--line-soft);
   border-color: var(--border);
 }
 .brand {

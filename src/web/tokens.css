@@ -114,7 +114,9 @@
 
   /* Роли скина (план 08, шаг 7). Фаза B (шаг 11, TI-025) сводит числовые
      оттенки одной роли к одному токену; серые сведены: --muted-foreground для
-     подписей, --text-faint для более светлого вторичного текста. */
+     подписей, --text-faint для более светлого вторичного текста; линии
+     сведены: --line-soft для внутренних разделителей, --input для рамок
+     элементов управления, --accent-border-hover для рамки при наведении. */
   --text-faint: #7d899e;
   --accent-strong: #3763df;
   --accent-strong-2: #345fcc;
@@ -149,16 +151,6 @@
   --line-soft: #e3e8ef;
   --line-dashed: #ced8e6;
   --line-dashed-strong: #d5dce6;
-  --line-soft-2: #e5eaf2;
-  --line-soft-3: #d7dfe9;
-  --line-soft-4: #cbd2dc;
-  --line-soft-5: #bbc5d4;
-  --line-soft-6: #d9e1eb;
-  --line-soft-7: #e8ecf3;
-  --line-soft-8: #e3e8f0;
-  --line-soft-9: #e2e7f0;
-  --line-soft-10: #e8ecf2;
-  --line-soft-11: #e3e8f1;
   --line-on-primary: #ffffff44;
 }
 
@@ -227,16 +219,6 @@
   --line-soft: #3a424e;
   --line-dashed: #3f4756;
   --line-dashed-strong: #454e5d;
-  --line-soft-2: #3a424e;
-  --line-soft-3: #3a424e;
-  --line-soft-4: #3a424e;
-  --line-soft-5: #3a424e;
-  --line-soft-6: #3a424e;
-  --line-soft-7: #3a424e;
-  --line-soft-8: #3a424e;
-  --line-soft-9: #3a424e;
-  --line-soft-10: #3a424e;
-  --line-soft-11: #3a424e;
   --line-on-primary: #ffffff33;
   --surface-ring: #ffffff33;
 }
@@ -302,16 +284,6 @@
     --line-soft: #3a424e;
     --line-dashed: #3f4756;
     --line-dashed-strong: #454e5d;
-    --line-soft-2: #3a424e;
-    --line-soft-3: #3a424e;
-    --line-soft-4: #3a424e;
-    --line-soft-5: #3a424e;
-    --line-soft-6: #3a424e;
-    --line-soft-7: #3a424e;
-    --line-soft-8: #3a424e;
-    --line-soft-9: #3a424e;
-    --line-soft-10: #3a424e;
-    --line-soft-11: #3a424e;
     --line-on-primary: #ffffff33;
     --surface-ring: #ffffff33;
   }
@@ -384,16 +356,6 @@
   --success-foreground-2: var(--success-foreground);
   --success-foreground-3: var(--success-foreground);
   --destructive-text-2: var(--destructive-text);
-  --line-soft-2: var(--line-soft);
-  --line-soft-3: var(--line-soft);
-  --line-soft-4: var(--line-soft);
-  --line-soft-5: var(--line-soft);
-  --line-soft-6: var(--line-soft);
-  --line-soft-7: var(--line-soft);
-  --line-soft-8: var(--line-soft);
-  --line-soft-9: var(--line-soft);
-  --line-soft-10: var(--line-soft);
-  --line-soft-11: var(--line-soft);
 }
 
 /* Скин «Фокус»: тёмная пара, те же два блока, что у classic (явный выбор и
@@ -462,16 +424,6 @@
   --success-foreground-2: var(--success-foreground);
   --success-foreground-3: var(--success-foreground);
   --destructive-text-2: var(--destructive-text);
-  --line-soft-2: var(--line-soft);
-  --line-soft-3: var(--line-soft);
-  --line-soft-4: var(--line-soft);
-  --line-soft-5: var(--line-soft);
-  --line-soft-6: var(--line-soft);
-  --line-soft-7: var(--line-soft);
-  --line-soft-8: var(--line-soft);
-  --line-soft-9: var(--line-soft);
-  --line-soft-10: var(--line-soft);
-  --line-soft-11: var(--line-soft);
 }
 @media (prefers-color-scheme: dark) {
   :root[data-skin='focus']:not([data-theme='light']) {
@@ -538,15 +490,5 @@
     --success-foreground-2: var(--success-foreground);
     --success-foreground-3: var(--success-foreground);
     --destructive-text-2: var(--destructive-text);
-    --line-soft-2: var(--line-soft);
-    --line-soft-3: var(--line-soft);
-    --line-soft-4: var(--line-soft);
-    --line-soft-5: var(--line-soft);
-    --line-soft-6: var(--line-soft);
-    --line-soft-7: var(--line-soft);
-    --line-soft-8: var(--line-soft);
-    --line-soft-9: var(--line-soft);
-    --line-soft-10: var(--line-soft);
-    --line-soft-11: var(--line-soft);
   }
 }
