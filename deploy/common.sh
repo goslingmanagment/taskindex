@@ -72,6 +72,9 @@ snapshot_release() {
   for name in "${release_files[@]}"; do
     [[ -f $source_dir/$name ]] || { printf 'Missing release file: %s/%s\n' "$source_dir" "$name" >&2; return 1; }
     cp "$source_dir/$name" "$target/$name"
+    # Snapshots are written under umask 077, but litestream.yml is bind-mounted into a
+    # container running as uid 1000 (real Linux honours the mode; Docker Desktop hid this).
+    [[ $name != litestream.yml ]] || chmod 644 "$target/$name"
     files=$(jq --arg name "$name" --arg sha "$(file_sha256 "$target/$name")" '. + {($name): $sha}' <<<"$files")
   done
   commit=$(git -C "$source_dir" rev-parse HEAD 2>/dev/null || printf 'unknown')

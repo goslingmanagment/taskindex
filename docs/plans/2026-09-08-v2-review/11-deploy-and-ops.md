@@ -409,3 +409,5 @@ Heredoc-программы уходят в `deploy/drill/agent-create.mjs`, `com
 - Сборка образа: GitHub Actions на Node 24.20.0, `npm run check` как гейт релиза, образ `linux/amd64` переносится `docker save | ssh docker load`; `--build-here` только аварийно. Реестр GHCR не заводится.
 - `/health` только с `127.0.0.1` через Nginx, HSTS без `includeSubDomains`, dev на `127.0.0.1`. Первая волна. Приоритет TI-056 в реестре поднимается до P2.
 - Ротация `generation` остаётся ручной через `mark-restored`; сайдкар-маркер поколения делается по плану 09 как страховка, не как замена runbook.
+
+2026-09-11 (первая установка на VPS): (1) снимок релиза пишется под `umask 077`, а `litestream.yml` монтируется в контейнер с uid 1000 — на настоящем Linux `permission denied`, Docker Desktop это скрывал; `common.sh` теперь ставит 0644. (2) Решение владельца: внешнего хранилища и heartbeat нет — реплика `file://` на том же диске, off-site копии снимает мак (`deploy/pull-backup.sh`), `LITESTREAM_HEARTBEAT_URL` и `AWS_*` в compose необязательны. (3) Let's Encrypt не валидирует sslip.io/nip.io (DNS-ошибки на вторичных валидаторах) — нужна A-запись настоящего домена.

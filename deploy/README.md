@@ -77,9 +77,15 @@ database rollback is forbidden`, работает C, запись открыта
 ## Первая установка на VPS
 
 Подготовить Docker Engine/Compose, Nginx, certbot, git, curl, jq и flock. Порт
-3100 привязан только к 127.0.0.1. Определить HTTPS домен и создать отдельный
-S3 prefix только для этой базы. UID 1000 контейнеров должен владеть volume;
-Dockerfile задаёт владельца `/data` для нового named volume.
+3100 привязан только к 127.0.0.1. Определить HTTPS домен (Let's Encrypt не
+проверяет имена sslip.io/nip.io с части своих валидаторов — нужна настоящая
+A-запись) и место реплики: отдельный S3 prefix либо `file:///data/replica/NAME`
+на том же диске плюс копии на мак (раздел «Копии на маке»). UID 1000 контейнеров
+должен владеть volume; Dockerfile задаёт владельца `/data` для нового named volume.
+Снимок релиза пишется под `umask 077`, поэтому `common.sh` делает
+`litestream.yml` читаемым (0644): контейнер Litestream работает от uid 1000, и на
+настоящем Linux 0600 даёт `permission denied` (первая установка 2026-09-11);
+Docker Desktop на macOS этого не показывает.
 Better Auth использует `X-Real-IP`, который Nginx перезаписывает адресом клиента,
 для ограничения частоты входа и сессий. Node доступен только через этот proxy
 и локальный порт хоста; клиентский `X-Forwarded-For` не определяет его IP.
@@ -326,6 +332,23 @@ open-writes автоматический rollback запрещён; границ
 `TASKINDEX_COMPOSE_PROJECT` (harness `deploy/drill/deploy-drill.sh`). Перед
 рабочим переключением остаётся обязательный drill на выбранном S3 backend: успех
 локального file backend его не заменяет.
+
+## Копии на маке (решение владельца 2026-09-11)
+
+Внешнего хранилища и получателя heartbeat нет: реплика Litestream лежит на том же
+диске (`LITESTREAM_REPLICA_URL=file:///data/replica/taskindex`, точечное
+восстановление и учения работают как прежде), а off-site копию снимает мак:
+
+```sh
+bash deploy/pull-backup.sh            # → ~/Backups/taskindex/<UTC>/{taskindex.db,export.json}
+```
+
+Скрипт делает согласованную копию через SQLite backup API внутри работающего
+контейнера и `taskindex-admin export`, проверяет размер и JSON, хранит последние
+30 копий. Запускать по расписанию с мака (launchd, раз в сутки) или руками перед
+рискованными операциями. `LITESTREAM_HEARTBEAT_URL` при этом пустой — heartbeat
+выключен (проверено на 0.5.12), `AWS_*` не нужны. Восстановление из копии —
+раздел «Восстановление»: `quarantine-and-install <копия>` плюс `mark-restored`.
 
 ## Мониторинг репликации и RPO
 
