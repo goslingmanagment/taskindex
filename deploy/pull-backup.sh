@@ -18,9 +18,12 @@ stamp=$(date -u +%Y%m%dT%H%M%SZ)
 target="${TASKINDEX_BACKUP_DIR:-$HOME/Backups/taskindex}/$stamp"
 mkdir -p "$target"
 remote_copy="/data/backups/pull-$stamp.db"
-# Both commands run through the release compose file (deploy/compose.sh) so the image, volume
-# and env come from deploy/.runtime/current.json, exactly like deploy.sh.
-app="cd '$repo_on_host' && bash deploy/compose.sh exec -T app"
+# Both commands run through the release compose file (deploy/compose.sh): image, volume and
+# deployment come from deploy/.runtime/current.json, exactly like deploy.sh; compose still
+# interpolates BASE_URL and BETTER_AUTH_SECRET, so the server env file (root-only, outside
+# git) is sourced first.
+remote_env=${TASKINDEX_REMOTE_ENV:-/etc/taskindex/taskindex.env}
+app="cd '$repo_on_host' && set -a && . '$remote_env' && set +a && bash deploy/compose.sh exec -T app"
 ssh "$host" "$app node deploy/database.mjs backup '$remote_copy' >/dev/null \
   && $app cat '$remote_copy' && $app rm -f '$remote_copy'" > "$target/taskindex.db"
 ssh "$host" "$app taskindex-admin export" > "$target/export.json"
