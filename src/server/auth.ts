@@ -1,4 +1,4 @@
-import { betterAuth } from 'better-auth';
+import { betterAuth, type BetterAuthOptions } from 'better-auth';
 import { drizzleAdapter } from 'better-auth/adapters/drizzle';
 import { passkey } from '@better-auth/passkey';
 import * as schema from './schema.js';
@@ -10,7 +10,7 @@ export function createAuth(
   db: DatabaseHandle,
   options: { baseURL: string; secret: string; trustedOrigins?: string[] },
 ) {
-  return betterAuth({
+  const config = {
     appName: 'TaskIndex',
     baseURL: options.baseURL,
     secret: options.secret,
@@ -27,7 +27,16 @@ export function createAuth(
         origin: options.trustedOrigins ?? [options.baseURL],
       }),
     ],
+  } satisfies BetterAuthOptions;
+  const auth = betterAuth(config);
+  // disableRefresh alone still deletes expired sessions. Deferred GETs also
+  // skip that cleanup, while Better Auth still checks the signed cookie and
+  // current database row. Keep the ordinary auth instance's refresh behavior.
+  const readOnly = betterAuth({
+    ...config,
+    session: { deferSessionRefresh: true, cookieCache: { enabled: false } },
   });
+  return { ...auth, readSession: readOnly.api.getSession };
 }
 export type Auth = ReturnType<typeof createAuth>;
 // Private identity of a connection: never part of domain events or responses.
@@ -51,6 +60,7 @@ export async function authorizeRequest(
   db: DatabaseHandle,
   auth: Auth,
   request: Request,
+  { readOnly = false }: { readOnly?: boolean } = {},
 ): Promise<Authorized | null> {
   const bearer = request.headers.get('authorization');
   const token =
@@ -63,18 +73,24 @@ export async function authorizeRequest(
       check: () => agentKeyIsActive(db, credential.keyId),
     };
   }
-  const s = await auth.api.getSession({ headers: request.headers });
+  const s = await (readOnly ? auth.readSession : auth.api.getSession)({
+    headers: request.headers,
+  });
   if (!s || s.user.id !== 'owner') return null;
   const headers = new Headers(request.headers);
   return {
     actor: { id: 'owner', label: s.user.name, kind: 'owner', scope: 'write' },
     credential: { kind: 'session', sessionId: s.session.id },
     check: async () => {
-      const current = await auth.api.getSession({
+      const current = await auth.readSession({
         headers,
         query: { disableRefresh: true },
       });
-      return Boolean(current && current.user.id === 'owner');
+      return Boolean(
+        current &&
+        current.user.id === 'owner' &&
+        current.session.id === s.session.id,
+      );
     },
   };
 }

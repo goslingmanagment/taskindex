@@ -18,8 +18,21 @@ export const createAuthMiddleware = (deps: Deps) =>
           'not_found',
           'Ключи агентов выдаются только командой taskindex-admin.',
         );
-      if (!opened() && !safeMethods.includes(c.req.method))
+      if (!opened()) {
+        // Auth GETs are not generally read-only: passkey options persist a
+        // challenge. Only session inspection is available while writes are held.
+        if (
+          options.auth &&
+          c.req.path === '/api/auth/get-session' &&
+          ['GET', 'HEAD'].includes(c.req.method)
+        )
+          return await options.auth.readSession({
+            headers: c.req.raw.headers,
+            query: { disableRefresh: true },
+            asResponse: true,
+          });
         fail('unavailable', 'Запись закрыта на время обновления.');
+      }
       return await next();
     }
     // /api/openapi.json is served with the same key as every other read:
@@ -27,7 +40,9 @@ export const createAuthMiddleware = (deps: Deps) =>
     const authorized = options.authorize
       ? await options.authorize(c.req.raw)
       : options.auth
-        ? await authorizeRequest(db, options.auth, c.req.raw)
+        ? await authorizeRequest(db, options.auth, c.req.raw, {
+            readOnly: !opened(),
+          })
         : null;
     if (!authorized)
       fail('unauthorized', 'Войдите в TaskIndex или передайте ключ агента.');
