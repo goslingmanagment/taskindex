@@ -1,4 +1,4 @@
-FROM node:24.20.0-bookworm AS build
+FROM node:26.7.0-bookworm AS build
 WORKDIR /app
 RUN apt-get update && apt-get install -y --no-install-recommends python3 make g++ && rm -rf /var/lib/apt/lists/*
 COPY package.json package-lock.json ./
@@ -9,7 +9,7 @@ COPY public/favicon.svg ./public/favicon.svg
 # --omit=optional намеренно нет: платформенные реализации пакетов живут в optional (TI-068).
 RUN npm run build && npm prune --omit=dev
 
-FROM node:24.20.0-bookworm-slim AS runtime
+FROM node:26.7.0-bookworm-slim AS runtime
 WORKDIR /app
 RUN apt-get update && apt-get install -y --no-install-recommends tini sqlite3 ca-certificates && rm -rf /var/lib/apt/lists/* \
     && mkdir -p /data && chown node:node /data

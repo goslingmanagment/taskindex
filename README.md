@@ -17,7 +17,7 @@
 ## Стек и код
 
 React 19, TypeScript, Vite, Tailwind 4 и используемые компоненты Base UI/shadcn.
-Hono, Zod 4, Drizzle и better-sqlite3 на Node 24; Better Auth с passkey и ключами
+Hono, Zod 4, Drizzle и better-sqlite3 на Node 26; Better Auth с passkey и ключами
 агентов. SQLite работает с WAL и synchronous=FULL. На VPS — один процесс Node,
 Docker Compose, Nginx и Litestream.
 
@@ -37,20 +37,21 @@ Docker Compose, Nginx и Litestream.
 
 ## Локальный запуск
 
-Нужны Node **24.20.0** и npm. Версия закреплена в `.node-version` и `.nvmrc`;
-`package.json` задаёт границу `>=24.11.0 <25`, `.npmrc` включает
+Нужны Node **26.7.0** и npm. Версия закреплена в `.node-version` и `.nvmrc`;
+`package.json` задаёт границу `>=26.0.0 <27`, `.npmrc` включает
 `engine-strict`, поэтому `npm ci` под другой мажорной версией останавливается
 с `EBADENGINE`. В новом терминале из корня репозитория:
 
 ```sh
 fnm use        # или: nvm use — оба читают .node-version
-node --version # v24.20.0; имя каталога менеджера версий само по себе ничего не подтверждает
+node --version # v26.7.0; имя каталога менеджера версий само по себе ничего не подтверждает
 npm ci
 ```
 
 `npm run check`, `npm test`, `npm run dev`, `npm run e2e` и `npm run sandbox`
-сначала выполняют `scripts/preflight.mjs`: под Node 26 команда завершается
-кодом 1 с русским сообщением до загрузки нативного `better-sqlite3`.
+сначала выполняют `scripts/preflight.mjs`: под другой мажорной версией
+(например, Node 24) команда завершается кодом 1 с русским сообщением до
+загрузки нативного `better-sqlite3`.
 Для браузерных тестов дополнительно нужен Chromium Playwright, для проверки
 развёртывания — Docker. Инструкция для агентов-разработчиков: `CLAUDE.md`
 (`AGENTS.md` ссылается на него).

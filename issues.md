@@ -10,6 +10,8 @@
 
 **Второй раунд QA 2026-09-12:** добавлены [TI-082](#ti-082) (owner-session меняется при held, P2; независимо подтверждены refresh и expiry cleanup) и [TI-083](#ti-083) (длительный catch-up большого списка после серии агентских записей, P2). TI-083 — подтверждённая проблема производительности P2: повтор с MutationObserver без ARIA-поиска зафиксировал attachment через 56,76 с при 100 серверных записях за 881 мс; черновик и save сохранены. Численный SLA, точное время paint, утечка памяти и постоянное зависание не установлены. TI-036 остаётся исправленной: прежняя причина относилась к ключам агентов. Статусы и исторические закрытия остальных карточек не менялись.
 
+**Окружение 2026-09-12 (вечер):** по решению владельца добавлена и закрыта [TI-084](#ti-084) (переход на Node 26, P3): контракт `>=26.0.0 <27`, пин 26.7.0. Состав: 84 записи — **77 исправлено, 4 открыто, 2 отложено, 1 снятая гипотеза**. Хвост TI-028 (постоянный Node 24 на машине владельца) снят этой же карточкой; остальные статусы не менялись.
+
 Быстрый переход: [индекс](#issue-index) · [карточки](#issue-cards) · [покрытие исходных отчётов](#source-coverage) · [правила обновления](#maintenance).
 
 ## С чего начать
@@ -161,6 +163,7 @@
 | [TI-081](#ti-081) | P3 | ОТКРЫТО | В runtime-дереве остаётся esbuild с advisory GHSA-67mh-4wv8-2f99 |
 | [TI-082](#ti-082) | P2 | ИСПРАВЛЕНО | Owner-session обновляется или удаляется при закрытой записи |
 | [TI-083](#ti-083) | P2 | ИСПРАВЛЕНО | Длительное обновление большого списка после серии агентских записей |
+| [TI-084](#ti-084) | P3 | ИСПРАВЛЕНО | Переход проекта на Node 26 |
 
 <a id="issue-cards"></a>
 
@@ -1214,6 +1217,8 @@
 - Состояние окружения могло измениться после аудита, поэтому сначала свежая проверка. Не чинить один проект глобальной заменой Homebrew node или удалением других runtime.
 
 **Закрытие (2026-09-10).** Коммит `f337ab2` (репозиторная часть). `scripts/preflight.mjs` подключён как `precheck`/`pretest`/`predev`/`pree2e`/`presandbox`; `.npmrc` `engine-strict=true`; `.nvmrc`/`.node-version` = 24.20.0; README и CLAUDE.md описывают запуск через `fnm use`/`nvm use`. Тесты: `tests/cli/preflight.test.ts` (3 теста: `checkNode` для 26.7.0/24.10.9/25.0.0/22.12.0 → русское сообщение без `/private/tmp`; под 24.20.0 тихо; под настоящим Node 26 машины → код 1 «TaskIndex требует Node >=24.11.0 <25; запущен v26.7.0» без трассы). Хвост владельца (вне репозитория, `astra-28` шаги 1–2, 5–6): на машине `node` → `~/.hermes/node` (26.7.0), `/opt/homebrew/opt/node@24` указывает на Cellar 26.7.0, менеджера версий нет; нужен fnm/nvm с `.node-version`, после чего упоминание `/private/tmp/taskindex-v2-tools` удаляется из CLAUDE.md (план 12, доп. шаг 10). Записано в BACKLOG.
+
+**Дополнение (2026-09-12).** Хвост владельца (постоянный Node 24 на машине) снят: проект переведён на Node 26 решением владельца, см. [TI-084](#ti-084). Системный Node на Mac уже 26.7.0; упоминание `/private/tmp` удалено из CLAUDE.md.
 
 **Связанные планы:** [astra-28-permanent-node-runtime.md](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/astra-28-permanent-node-runtime.md); [12-ai-readiness-and-docs.md](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/12-ai-readiness-and-docs.md).
 
@@ -2951,6 +2956,30 @@
 **Связанные записи:** [TI-012](#ti-012), [TI-024](#ti-024), [TI-063](#ti-063), [TI-080](#ti-080). Их статусы, владельческие решения и датированные результаты не изменены.
 
 **Закрытие (2026-09-12, по поручению владельца «фикси»).** Revision: база `1adecab3897067abea0bc493d5f288b307972690` + незакоммиченный diff ветки `qa-20260912`, SHA-256 patch `1028468cddcf8f8d928bce2014ada3a7db7c691d92bca609032d262a073db21d`; [полный diff](/Users/dmitriy/code/.worktrees/taskindex-qa-20260912/qa/2026-09-12-fixes/changes.patch), [хеши исходников](/Users/dmitriy/code/.worktrees/taskindex-qa-20260912/qa/2026-09-12-fixes/code-evidence.json). Устранены массовое копирование неизменившихся записей в applyEvent и лишние полные подписки карточек; дорогое содержимое карточки мемоизировано отдельно от DnD. Только доска объединяет обычные уведомления по animation frame, при этом generation, write controls, pending/ACK и соединение уведомляют немедленно. Store, seq и обработка событий остаются синхронными. Регрессии `tests/web/replay-identity.test.ts` и `tests/web/frame-subscription.test.ts` воспроизведены red до соответствующих правок и проходят; полный web/property 132/132. Тот же observer workload: 2000 задач, 1800 карточек, 100 отдельных POST за 911 мс; последняя карточка attached через **1084,9 мс вместо 56 761,1 мс**. Отдельный профильный повтор — 970,7 мс. Оба сохраняют draft/note/revision 2 и 1900 итоговых карточек, без ошибок; guard 5 с PASS. Это технический бюджет локальной синтетической регрессии, не production SLA или paint timestamp. Check 397/397, E2E 46/46, пользовательские U01–U10 10/10, metadata/pending 8/8, выбранные M/R 6/6; импорт P14 сохраняет состояние и журналы. [Итоговый отчёт](/Users/dmitriy/code/.worktrees/taskindex-qa-20260912/qa/2026-09-12-fixes/REPORT.md), [observer](/Users/dmitriy/code/.worktrees/taskindex-qa-20260912/qa/2026-09-12-fixes/TI-083/stage-c2/results.json). На момент локального закрытия коммит, push и deploy ещё не выполнялись. Подготовка релиза и revision коммитов указаны в дополнении ниже.
+
+<a id="ti-084"></a>
+
+### TI-084 — Переход проекта на Node 26
+
+**Тип:** Окружение. **Статус:** ИСПРАВЛЕНО. **Приоритет:** P3.
+
+**Источники:** вопрос владельца 2026-09-12 «а ноду до 26 не стоит поднять?»; проверка Fable на копии репозитория и второе мнение Codex в той же сессии; [TI-028](#ti-028).
+
+**Где:** [package.json](/Users/dmitriy/code/taskindex/package.json) (`engines`, `@types/node`), [.node-version](/Users/dmitriy/code/taskindex/.node-version), [.nvmrc](/Users/dmitriy/code/taskindex/.nvmrc), [deploy/Dockerfile](/Users/dmitriy/code/taskindex/deploy/Dockerfile), [tests/cli/preflight.test.ts](/Users/dmitriy/code/taskindex/tests/cli/preflight.test.ts), [tests/cli/docs.test.ts](/Users/dmitriy/code/taskindex/tests/cli/docs.test.ts), README.md, CLAUDE.md, BACKLOG.md.
+
+**Проблема и последствия.** Контракт `>=24.11.0 <25` требовал Node 24, а на Mac владельца все доступные `node` (Homebrew, `~/.hermes`, `~/.local/bin`) дают 26.7.0. Node 24.20.0 существовал только во временных каталогах `/private/tmp/taskindex-*-tools`, которые каждая сессия клала заново; биндинг better-sqlite3 в основном чекауте собран под ABI 137 и под системным Node не загружается. Хвост TI-028 (менеджер версий на машине) выполнен не был.
+
+**Проверка перед решением (2026-09-12, копия `e447555`, Node 26.7.0).** Свежий `npm ci` ставит better-sqlite3 12.11.1 из готового бинарника: релиз содержит `node-v147` для darwin-arm64 и linux-x64. `npm run check` проходит целиком, кроме трёх тестов, сверяющих старые пины; e2e 46/46. В lock-файле нет зависимостей, исключающих 26; tsdown и rolldown объявляют `>=26.0.0`. Удалённые в 26 API (`writeHeader`, `_stream_*`, `module.register`) в коде не используются. Выигрыша в коде нет: `node:sqlite` и в 24, и в 26 остаётся release candidate (1.2), у drizzle-orm 0.45.2 нет драйвера для него; Temporal недоступен коду `src/shared` и web. Node 26 — Current до 2026-10-28, затем LTS; 24 в Maintenance с 2026-10-20 до 2028-04-30. Среди 26.x после 26.7.0 security-релизов нет (26.8.0–26.8.2 обычные).
+
+**Решение владельца (2026-09-12).** Перейти сейчас, не дожидаясь LTS. Предложение Codex «постоянный Node 24 через fnm, переход после LTS в октябре» владелец не выбрал.
+
+**Работа.** `engines` → `>=26.0.0 <27` (Node 25 исключён: tsdown его не поддерживает); `.node-version` и `.nvmrc` → 26.7.0 (совпадает с системным Node на Mac; образы `node:26.7.0-bookworm` и `-slim` есть на Docker Hub); обе стадии Dockerfile → 26.7.0; `@types/node` → 26.5.1; тесты пинов; README, CLAUDE.md, BACKLOG, примечание в плане astra-28. `scripts/preflight.mjs` не менялся: его регулярное выражение принимает новую границу, текст сообщения остаётся верным. Два побочных эффекта Node 26 в инструментах: (1) `localStorage` без `--localstorage-file` стал бросающим getter с `ExperimentalWarning` на каждый воркер vitest, поэтому `vitest.config.ts` передаёт воркерам `--no-experimental-webstorage` (семантика Node 24: `typeof localStorage === 'undefined'`; путь бросающего getter покрыт `tests/web/store.test.ts`); (2) `vite build` печатает одну строку `[DEP0205] module.register() is deprecated` из `@tailwindcss/node` 4.2.1 при загрузке конфига, это зависимость, поведение сборки не меняется, правится обновлением tailwind отдельно.
+
+**Критерий закрытия.** `npm run check` и `npm run e2e` зелёные под системным Node 26 без временного runtime; образ собирается на `node:26.7.0`, локальная репетиция деплоя проходит; CI берёт версию из `.node-version`.
+
+**Связанные записи:** [TI-028](#ti-028).
+
+**Закрытие (2026-09-12, решение владельца «мб щас перейдём»).** Ветка `node26`, worktree `../.worktrees/taskindex-node26`; коммит и hash добавляются дополнением после слова владельца. Под системным Node 26.7.0 без временного runtime: `npm ci` ставит better-sqlite3 из готового бинарника (SQLite 3.53.2), `npm run check` 397/397 (63 файла) без предупреждений Node, `npm run e2e` 46/46 (chromium, webkit, visual, dark). `bash deploy/local-drill.sh` на образе `node:26.7.0-bookworm(-slim)`: сборка, снимок релиза, откат мигрированного кандидата, восстановление из реплики, отказ отката после `open-writes` — `ok: true`, 1 мин 38 с; `node --version` внутри образа `v26.7.0`. Тесты карточки: `tests/cli/preflight.test.ts` (границы `>=26.0.0 <27`, тишина под пином, отказ под чужим мажором при его наличии; кандидаты дополнены каталогами fnm и nvm) и `tests/cli/docs.test.ts` «pins one Node version everywhere»; оба падали на старых пинах и проходят на новых. После мерджа в основном чекауте нужен `npm ci` под Node 26 (биндинг там собран под ABI 137); для production это пересборка образа и обычный релиз через `deploy.sh`, деплой по отдельному поручению.
 
 <a id="source-coverage"></a>
 

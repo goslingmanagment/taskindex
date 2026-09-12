@@ -31,21 +31,20 @@
 
 ## Окружение
 
-- Node строго 24.20.0 (`.node-version`, `.nvmrc`); `engines` в `package.json`
-  задаёт границу `>=24.11.0 <25` (нижняя из-за tsdown). Сначала
-  `node --version`: имя каталога менеджера версий само по себе не
-  подтверждает версию. На Mac владельца системный `node` и Homebrew
-  `node@24` фактически запускают 26.x, с ним `better-sqlite3` не
-  загружается. Переключение: `fnm use` или `nvm use` в корне репозитория
-  (читают `.node-version`). До того как владелец закрепит постоянный Node 24
-  на машине (TI-028), рабочая копия лежит в
-  `/private/tmp/taskindex-v2-tools/node-v24.20.0-darwin-arm64/bin`
-  (`export PATH=<этот путь>:$PATH`); это временно. `npm run check`,
-  `npm test`, `npm run dev`, `npm run e2e` и `npm run sandbox` сами проверяют
-  версию (`scripts/preflight.mjs`) и под другой мажорной версией
-  останавливаются с русским сообщением и кодом 1.
+- Node строго 26.7.0 (`.node-version`, `.nvmrc`); `engines` в `package.json`
+  задаёт границу `>=26.0.0 <27` (нижняя: tsdown объявляет `>=26.0.0`, а
+  better-sqlite3 12.11 поставляет готовый бинарник для ABI 147; переход с
+  24 на 26 описан в TI-084). Сначала `node --version`: имя каталога
+  менеджера версий само по себе не подтверждает версию. На Mac владельца
+  системный `node` (Homebrew и `~/.hermes`) сейчас даёт 26.7.0, отдельный
+  runtime не нужен; при обновлении системного Node на другой мажор
+  переключение через `fnm use` или `nvm use` в корне репозитория (читают
+  `.node-version`). `npm run check`, `npm test`, `npm run dev`,
+  `npm run e2e` и `npm run sandbox` сами проверяют версию
+  (`scripts/preflight.mjs`) и под другой мажорной версией останавливаются
+  с русским сообщением и кодом 1.
 - `npm ci`, не `npm install`. `.npmrc` включает `engine-strict`, поэтому
-  `npm ci` под Node 26 останавливается с `EBADENGINE`.
+  `npm ci` под другой мажорной версией останавливается с `EBADENGINE`.
 - Одноразовое окружение для любых проверок CLI и API:
   `eval "$(npm run -s sandbox)"` поднимает сервер на свободном порту с
   временной базой в `$TMPDIR` и экспортирует `TASKINDEX_URL`,

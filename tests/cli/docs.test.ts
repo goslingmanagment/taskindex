@@ -42,7 +42,7 @@ describe('documentation against the code', () => {
     const pkg = JSON.parse(await readFile('package.json', 'utf8')) as {
       engines: { node: string };
     };
-    expect(pkg.engines.node).toBe('>=24.11.0 <25');
+    expect(pkg.engines.node).toBe('>=26.0.0 <27');
     expect(await readFile('README.md', 'utf8')).toContain(nodeVersion);
     expect(await readlink('AGENTS.md')).toBe('CLAUDE.md');
     expect(await readFile('.npmrc', 'utf8')).toContain('engine-strict=true');
