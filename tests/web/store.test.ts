@@ -95,6 +95,88 @@ const unavailable = () =>
 const noopPage = { generation: 'gen1', events: [], latestSeq: 0, more: false };
 const spin = () => new Promise((resolve) => setTimeout(resolve, 0));
 describe('ordered operation store', () => {
+  it('TI-085 retains untouched records during optimistic writes and status publishes', () => {
+    const store = new WorkspaceStore(
+      <T>() => new Promise<T>(() => {}),
+      new MemoryStorage(),
+    );
+    const untouched = { ...task(), id: 'untouched', orderKey: 'a1' };
+    store.loadSnapshot({ ...snapshot(), tasks: [task(), untouched] });
+    const before = store.getSnapshot().data;
+    void store.submit(
+      {
+        command: 'task.update',
+        payload: { id: 'task1', baseRevision: 1, title: 'Новое' },
+      },
+      'optimistic-change',
+    );
+    expect(store.getSnapshot().data.tasks[0]!.title).toBe('Новое');
+    expect(store.getSnapshot().confirmed.tasks[0]!.title).toBe('Исходное');
+    expect(store.getSnapshot().data.tasks[1]).toBe(before.tasks[1]);
+    expect(store.getSnapshot().data.appearance).toBe(before.appearance);
+    store.setConnected(true);
+    expect(store.getSnapshot().data.tasks[1]).toBe(before.tasks[1]);
+  });
+
+  it('TI-085 optimistic comment effects update only their parent count and preserve confirmed state', () => {
+    const store = new WorkspaceStore(
+      <T>() => new Promise<T>(() => {}),
+      new MemoryStorage(),
+    );
+    store.loadSnapshot({
+      ...snapshot(),
+      tasks: [task(), { ...task(), id: 'untouched', orderKey: 'a1' }],
+    });
+    const before = store.getSnapshot().data;
+    void store.submit(
+      {
+        command: 'comment.add',
+        payload: {
+          id: 'comment-preview',
+          taskId: 'task1',
+          text: 'Комментарий',
+        },
+      },
+      'optimistic-comment',
+    );
+    expect(store.getSnapshot().data.comments[0]!.text).toBe('Комментарий');
+    expect(store.getSnapshot().data.tasks[0]!.commentCount).toBe(1);
+    expect(store.getSnapshot().data.tasks[1]).toBe(before.tasks[1]);
+    expect(before.tasks[0]!.commentCount).toBe(0);
+    expect(before.comments).toHaveLength(0);
+  });
+
+  it('TI-085 discards every preview effect when a recovered batch has an invalid later command', () => {
+    const storage = new MemoryStorage();
+    storage.setItem(
+      'taskindex/ops/invalid-batch',
+      JSON.stringify({
+        operationId: 'invalid-batch',
+        generation: 'gen1',
+        commands: [
+          {
+            command: 'task.update',
+            payload: { id: 'task1', baseRevision: 1, title: 'Предварительное' },
+          },
+          {
+            command: 'task.move',
+            payload: { id: 'missing', baseRevision: 1, status: 'doing' },
+          },
+        ],
+      }),
+    );
+    const store = new WorkspaceStore(
+      <T>() => new Promise<T>(() => {}),
+      storage,
+    );
+    store.loadSnapshot(snapshot());
+    const before = store.getSnapshot().data;
+    void store.recover();
+    expect(store.getSnapshot().pending).toHaveLength(1);
+    expect(store.getSnapshot().data).toBe(before);
+    expect(store.getSnapshot().data.tasks[0]!.title).toBe('Исходное');
+  });
+
   it('applies a whole batch in one confirmed update and never removes pending on its first event', async () => {
     const storage = new MemoryStorage();
     let resolve!: (value: OperationSuccess) => void;

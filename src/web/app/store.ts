@@ -146,7 +146,7 @@ export class WorkspaceStore {
       try {
         let preview = data;
         for (const command of commands) {
-          preview = applyCommand(
+          const applied = applyCommand(
             preview,
             { command: command.command, payload: command.payload } as Command,
             {
@@ -160,7 +160,15 @@ export class WorkspaceStore {
               },
               actor: this.state.actor ?? FALLBACK_ACTOR,
             },
-          ).state;
+          );
+          // Command validation works on a private clone. Publish only its
+          // effects so unchanged records keep their identity (TI-085).
+          // The same reducer also handles commentCount on the parent task.
+          preview = applied.effects.reduce(
+            (current, effect) =>
+              applyEvent(current, { ...effect, at: pending.previewTime }),
+            preview,
+          );
         }
         data = preview;
       } catch {

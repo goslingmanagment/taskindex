@@ -1,6 +1,15 @@
-import { lazy, Suspense, useEffect, useRef, useState } from 'react';
+import {
+  lazy,
+  Suspense,
+  useDeferredValue,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 import { ignoreRejection } from '@shared/ignore-rejection';
 import { RefreshCw } from 'lucide-react';
+import { Menu } from '@base-ui/react/menu';
 import { SidebarProvider, SidebarInset } from '../ui/sidebar';
 import { Button } from '../ui/button';
 import { Empty, EmptyTitle, EmptyDescription } from '../ui/empty';
@@ -18,6 +27,7 @@ import { selectContextualTasks, selectVisibleTasks } from './selectors';
 import type { NewTask } from './commands';
 import { WorkspaceSidebar } from './sidebar';
 import { TaskCard, TaskCardContent } from './card';
+import { TaskCardMenu } from './card-menu';
 import { Board, DragBoard } from './board';
 import { WorkspaceOverview } from './overview';
 import { Desk } from './desk/desk';
@@ -66,11 +76,13 @@ function WorkspaceBody() {
     archive,
     today: todayOnly,
     activity,
+    archiveSearch,
   } = location;
   const [create, setCreate] = useState<Status | null>(null),
     [projectDialog, setProjectDialog] = useState<Project | 'new' | null>(null),
     [mobileSearch, setMobileSearch] = useState(false);
   const searchRef = useRef<HTMLInputElement>(null);
+  const [cardMenu] = useState(() => Menu.createHandle<string>());
   useEffect(() => startSync(), []);
   const projects = data.projects.filter((p) => p.area === area),
     project = projects.find((p) => p.id === projectId);
@@ -79,9 +91,36 @@ function WorkspaceBody() {
   const confirmedSelected =
     selected &&
     (state.confirmed.tasks.find((task) => task.id === selected.id) ?? selected);
-  const searching = query.trim().length > 0,
+  const deferredQuery = useDeferredValue(query);
+  const searchPending = query !== deferredQuery;
+  const searching = deferredQuery.trim().length > 0,
     globalView = searching || focusView || activity;
-  const tasks = selectVisibleTasks(data, location, today);
+  // Opening a task or changing board/list presentation does not change the
+  // selected records. Preserve the list so DnD consumers stay idle (TI-085).
+  const selection = useMemo(
+    () => ({
+      area,
+      project: projectId,
+      archive,
+      q: deferredQuery,
+      archiveSearch,
+      focus: focusView,
+      today: todayOnly,
+    }),
+    [
+      area,
+      projectId,
+      archive,
+      deferredQuery,
+      archiveSearch,
+      focusView,
+      todayOnly,
+    ],
+  );
+  const tasks = useMemo(
+    () => selectVisibleTasks(data, selection, today),
+    [data, selection, today],
+  );
   const contextual = selectContextualTasks(data, location);
   const pendingTask = (id: string) =>
     pendingTaskLabel(pending, id) !== undefined;
@@ -119,6 +158,8 @@ function WorkspaceBody() {
         project={data.projects.find((p) => p.id === task.projectId)}
         today={today}
         showContext={globalView}
+        showProject={globalView || projectId !== task.projectId}
+        menu={cardMenu}
         pending={pendingTask(task.id)}
         disabled={archive || globalView || pendingTask(task.id)}
       />
@@ -140,11 +181,17 @@ function WorkspaceBody() {
           disabled={disabled}
           searchRef={searchRef}
           mobileSearch={mobileSearch}
+          searchPending={searchPending}
           onMobileSearch={setMobileSearch}
           onCreate={() => setCreate('todo')}
           onEditProject={setProjectDialog}
         />
-        <div className="board-body" ref={bodyRef}>
+        <div
+          className="board-body"
+          ref={bodyRef}
+          aria-busy={searchPending}
+          inert={searchPending || undefined}
+        >
           <PendingNotice />
           {todayOnly && !globalView && (
             <p className="filter-note">
@@ -232,6 +279,11 @@ function WorkspaceBody() {
           )}
         </div>
       </SidebarInset>
+      <TaskCardMenu
+        handle={cardMenu}
+        tasks={data.tasks}
+        isPending={pendingTask}
+      />
       {selected && (
         <Suspense fallback={null}>
           <TaskEditor

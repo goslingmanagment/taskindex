@@ -4,6 +4,10 @@ import type { LocationState } from './url';
 // TI-059 (план 07, шаг 10): что видно на экране — чистая функция от данных,
 // адреса и «сегодня». Ни store, ни DOM: то же самое решение принимает тест.
 type TaskSource = { tasks: Task[]; projects: Project[] };
+type TaskSelection = Pick<
+  LocationState,
+  'area' | 'project' | 'archive' | 'q' | 'archiveSearch' | 'focus' | 'today'
+>;
 /** `all` и `none` — не идентификаторы, а режимы списка направлений. */
 export const isProjectId = (value: string) =>
   value !== 'all' && value !== 'none';
@@ -26,7 +30,7 @@ export function effectiveProject(
 /** Задачи выбранной области, архива и направления — без фильтра «На сегодня». */
 export function selectContextualTasks(
   data: TaskSource,
-  location: LocationState,
+  location: Pick<LocationState, 'area' | 'project' | 'archive'>,
 ): Task[] {
   const project = effectiveProject(location, data.projects);
   return data.tasks.filter(
@@ -44,7 +48,7 @@ const dueToday = (t: Task, today: string) =>
 /** Список карточек текущего экрана: поиск, Focus или доска области. */
 export function selectVisibleTasks(
   data: TaskSource,
-  location: LocationState,
+  location: TaskSelection,
   today: string,
 ): Task[] {
   if (location.q.trim().length > 0)

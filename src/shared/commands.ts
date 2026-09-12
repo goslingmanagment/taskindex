@@ -1023,7 +1023,10 @@ export function applyCommand(
 }
 export function applyEvent(
   input: WorkspaceState,
-  event: DomainEvent,
+  event: Pick<
+    DomainEvent,
+    'entityKind' | 'entityId' | 'taskId' | 'changes' | 'recordRevision' | 'at'
+  >,
 ): WorkspaceState {
   // Replay is immutable, but an unrelated record must retain its identity:
   // web subscribers use that identity to skip unchanged task cards (TI-083).

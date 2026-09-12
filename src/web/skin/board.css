@@ -421,6 +421,26 @@
   min-height: 12px;
   gap: 10px;
 }
+/* TI-085: keep every card searchable and keyboard-accessible while the
+   browser skips offscreen layout/paint. The auto estimate is replaced with
+   the measured block size after a card is rendered. Small boards keep their
+   original layout path, and the active drag source is never skipped. */
+.kanban[data-large] .task-card,
+.workspace-overview[data-large] .task-card {
+  content-visibility: auto;
+  contain-intrinsic-block-size: auto 112px;
+}
+.workspace-overview[data-large] .task-card {
+  contain-intrinsic-block-size: auto 144px;
+}
+.kanban[data-large] .task-card.dragging {
+  content-visibility: visible;
+}
+@media (width >= theme(--breakpoint-md)) {
+  .list-view[data-large] .task-card {
+    contain-intrinsic-block-size: auto 32px;
+  }
+}
 .task-card {
   position: relative;
   cursor: pointer;

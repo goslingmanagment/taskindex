@@ -6,75 +6,105 @@ import {
   Clock3,
   CalendarDays,
   ListChecks,
-  ArrowUp,
-  Archive,
   GripVertical,
 } from 'lucide-react';
-import { memo } from 'react';
+import { memo, useState } from 'react';
+import { Menu } from '@base-ui/react/menu';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { AREAS, STATUSES, type Project, type Task } from '@shared/model';
 import { dateLabel } from '@shared/queries';
 import { Button } from '../ui/button';
-import {
-  DropdownMenu,
-  DropdownMenuTrigger,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-} from '../ui/dropdown-menu';
-import { toast } from '../ui/toast';
+import { runCardAction as safely } from './card-menu';
 import { useWorkspaceCommands } from './use-workspace-commands';
-import { useNavigation } from './navigation';
+import { useOpenTask } from './navigation';
 type TaskCardProps = {
   task: Task;
   project: Project | undefined;
   today: string;
   /** Экран показывает задачи всех областей: подписываем область и состояние. */
   showContext: boolean;
+  showProject: boolean;
   pending: boolean;
   disabled: boolean;
+  menu: Menu.Handle<string>;
 };
-function safely(promise: Promise<unknown>) {
-  void promise.catch((error) =>
-    toast.add({
-      title: error instanceof Error ? error.message : 'Не удалось сохранить.',
-      type: 'error',
-    }),
-  );
-}
 export const TaskCard = memo(function TaskCard(props: TaskCardProps) {
+  // Search and archive cards have no drag interaction. Even a disabled
+  // useSortable registers a container and subscribes to every drag (TI-085).
+  return props.showContext || props.task.archived ? (
+    <TaskCardContent {...props} />
+  ) : (
+    <SortableTaskCard {...props} />
+  );
+});
+type DragBindings = Partial<
+  Pick<
+    ReturnType<typeof useSortable>,
+    | 'attributes'
+    | 'listeners'
+    | 'setNodeRef'
+    | 'setActivatorNodeRef'
+    | 'transition'
+    | 'isDragging'
+  >
+> & { transform?: string };
+function SortableTaskCard(props: TaskCardProps) {
   const sortable = useSortable({
     id: props.task.id,
     disabled: props.disabled,
     data: { task: props.task },
   });
-  return <TaskCardContent {...props} sortable={sortable} />;
-});
-export function TaskCardContent({
+  const offset = sortable.transform;
+  const transform = CSS.Transform.toString(
+    offset &&
+      (offset.x || offset.y || offset.scaleX !== 1 || offset.scaleY !== 1)
+      ? offset
+      : null,
+  );
+  // The vertical strategy returns an identity transform for untouched cards.
+  // Avoid adding transform/transition styles to every card at drag start.
+  // Once displaced, keep DnD's transition for the animation back to its place.
+  const [displaced, setDisplaced] = useState(false);
+  if (transform && !displaced) setDisplaced(true);
+  return (
+    <TaskCardContent
+      {...props}
+      attributes={sortable.attributes}
+      listeners={sortable.listeners}
+      setNodeRef={sortable.setNodeRef}
+      setActivatorNodeRef={sortable.setActivatorNodeRef}
+      transform={transform}
+      transition={displaced ? sortable.transition : undefined}
+      isDragging={sortable.isDragging}
+    />
+  );
+}
+// Only changed drag bindings cross this boundary. An unchanged card does not
+// rerender its buttons and icons for every pointer movement.
+export const TaskCardContent = memo(function TaskCardContent({
   task,
   project,
   today,
   showContext,
+  showProject,
   pending,
   disabled,
-  sortable,
-}: TaskCardProps & { sortable?: ReturnType<typeof useSortable> }) {
-  const {
-    attributes,
-    listeners,
-    setNodeRef,
-    setActivatorNodeRef,
-    transform,
-    transition,
-    isDragging,
-  } = sortable ?? {};
-  const { openTask } = useNavigation();
+  menu,
+  attributes,
+  listeners,
+  setNodeRef,
+  setActivatorNodeRef,
+  transform,
+  transition,
+  isDragging,
+}: TaskCardProps & DragBindings) {
+  const openTask = useOpenTask();
   return (
     <article
       ref={setNodeRef}
       style={{
-        transform: CSS.Transform.toString(transform ?? null),
+        transform,
         transition,
       }}
       className={`task-card ${task.status === 'done' ? 'task-done' : ''} ${isDragging ? 'dragging' : ''}`}
@@ -99,9 +129,11 @@ export function TaskCardContent({
         project={project}
         today={today}
         showContext={showContext}
+        showProject={showProject}
         pending={pending}
+        menu={menu}
       />
-      {!disabled && sortable && (
+      {!disabled && attributes && (
         <button
           type="button"
           ref={setActivatorNodeRef}
@@ -115,7 +147,7 @@ export function TaskCardContent({
       )}
     </article>
   );
-}
+});
 // SortableContext updates every item's drag bindings when a sibling is added.
 // Keep that work outside the menu and labels of an unchanged card (TI-083).
 const TaskCardBody = memo(function TaskCardBody({
@@ -123,11 +155,11 @@ const TaskCardBody = memo(function TaskCardBody({
   project: p,
   today,
   showContext,
+  showProject,
   pending,
+  menu,
 }: Omit<TaskCardProps, 'disabled'>) {
-  const { location } = useNavigation();
-  const { setStatus, toggleArchive, saveFields, moveToQueueTop } =
-    useWorkspaceCommands();
+  const { setStatus, toggleArchive } = useWorkspaceCommands();
   return (
     <>
       <div className="task-title-row">
@@ -185,7 +217,7 @@ const TaskCardBody = memo(function TaskCardBody({
             <Star size={13} fill="currentColor" />В фокусе
           </span>
         )}
-        {p && (showContext || location.project !== p.id) && (
+        {p && showProject && (
           <span className="project-tag">
             <span className="tag-dot" style={{ background: p.color }} />
             {p.name}
@@ -226,62 +258,21 @@ const TaskCardBody = memo(function TaskCardBody({
           </span>
         )}
       </div>
-      <DropdownMenu>
-        <DropdownMenuTrigger
-          render={
-            <Button
-              variant="ghost"
-              className="card-menu"
-              size="icon"
-              aria-label={'Действия: ' + task.title}
-            />
-          }
-        >
-          ···
-        </DropdownMenuTrigger>
-        <DropdownMenuContent align="end">
-          <DropdownMenuItem
-            disabled={pending || task.archived || task.status === 'done'}
-            onClick={() =>
-              safely(
-                saveFields(
-                  task,
-                  { focus: !task.focus },
-                  task.focus ? 'Задача убрана из фокуса' : 'Задача в фокусе',
-                ),
-              )
-            }
-          >
-            <Star />
-            {task.focus ? 'Убрать из фокуса' : 'В фокус'}
-          </DropdownMenuItem>
-          <DropdownMenuSeparator />
-          {STATUSES.map((s) => (
-            <DropdownMenuItem
-              key={s.id}
-              disabled={pending || task.status === s.id}
-              onClick={() => safely(setStatus(task, s.id))}
-            >
-              <span className="status-dot" style={{ background: s.color }} />
-              {s.name}
-            </DropdownMenuItem>
-          ))}
-          <DropdownMenuSeparator />
-          <DropdownMenuItem
-            disabled={pending}
-            onClick={() => safely(moveToQueueTop(task))}
-          >
-            <ArrowUp />В начало очереди
-          </DropdownMenuItem>
-          <DropdownMenuItem
-            disabled={pending}
-            onClick={() => safely(toggleArchive(task))}
-          >
-            <Archive />
-            {task.archived ? 'Вернуть из архива' : 'В архив'}
-          </DropdownMenuItem>
-        </DropdownMenuContent>
-      </DropdownMenu>
+      <Menu.Trigger
+        data-slot="dropdown-menu-trigger"
+        handle={menu}
+        payload={task.id}
+        render={
+          <Button
+            variant="ghost"
+            className="card-menu"
+            size="icon"
+            aria-label={'Действия: ' + task.title}
+          />
+        }
+      >
+        ···
+      </Menu.Trigger>
     </>
   );
 });

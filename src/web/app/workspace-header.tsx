@@ -40,6 +40,7 @@ export function WorkspaceHeader({
   disabled,
   searchRef,
   mobileSearch,
+  searchPending,
   onMobileSearch,
   onCreate,
   onEditProject,
@@ -50,6 +51,7 @@ export function WorkspaceHeader({
   disabled: boolean;
   searchRef: RefObject<HTMLInputElement | null>;
   mobileSearch: boolean;
+  searchPending: boolean;
   onMobileSearch: (open: boolean) => void;
   onCreate: () => void;
   onEditProject: (project: Project) => void;
@@ -158,9 +160,11 @@ export function WorkspaceHeader({
       <div className="toolbar">
         {globalView ? (
           <p className="overview-scope" role="status">
-            {activity && !searching
-              ? 'Изменения пространства'
-              : `Все области · ${taskCount(visible)}${searching && searchArchive ? ' в архиве' : ''}`}
+            {searchPending
+              ? 'Ищем…'
+              : activity && !searching
+                ? 'Изменения пространства'
+                : `Все области · ${taskCount(visible)}${searching && searchArchive ? ' в архиве' : ''}`}
           </p>
         ) : (
           <Tabs

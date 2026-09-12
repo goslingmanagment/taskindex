@@ -31,19 +31,20 @@ export function todayInTimezone(
   const pick = (type: string) => parts.find((x) => x.type === type)?.value;
   return `${pick('year')}-${pick('month')}-${pick('day')}`;
 }
+// Labels share one immutable formatter; constructing Intl for every visible
+// card made navigation and drag renders expensive on large boards (TI-085).
+const taskDateFormat = new Intl.DateTimeFormat('ru-RU', {
+  day: 'numeric',
+  month: 'short',
+  timeZone: 'UTC',
+});
 export function dateLabel(value: string | null, today: string): string {
   if (!value) return '';
   if (value === today) return 'Сегодня';
   const next = new Date(`${today}T12:00:00Z`);
   next.setUTCDate(next.getUTCDate() + 1);
   if (value === next.toISOString().slice(0, 10)) return 'Завтра';
-  return new Intl.DateTimeFormat('ru-RU', {
-    day: 'numeric',
-    month: 'short',
-    timeZone: 'UTC',
-  })
-    .format(new Date(`${value}T12:00:00Z`))
-    .replace('.', '');
+  return taskDateFormat.format(new Date(`${value}T12:00:00Z`)).replace('.', '');
 }
 export function searchTasks(
   tasks: Task[],

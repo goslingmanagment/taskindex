@@ -28,6 +28,14 @@ type Navigation = {
   bodyRef: RefObject<HTMLDivElement | null>;
 };
 const NavigationContext = createContext<Navigation | null>(null);
+// A card opens a task but does not render the current URL. Keep that action
+// independent of changes to search, view and the selected task (TI-085).
+const OpenTaskContext = createContext<Navigation['openTask'] | null>(null);
+export function useOpenTask(): Navigation['openTask'] {
+  const open = useContext(OpenTaskContext);
+  if (!open) throw new Error('NavigationProvider не найден.');
+  return open;
+}
 export function useNavigation(): Navigation {
   const value = useContext(NavigationContext);
   if (!value) throw new Error('NavigationProvider не найден.');
@@ -53,6 +61,7 @@ export function NavigationProvider({ children }: { children: ReactNode }) {
       ),
     [setLocation, project, raw.project],
   );
+  const openTask = useCallback((id: string) => update({ task: id }), [update]);
   const value = useMemo<Navigation>(() => {
     const closeNavigation = () => {
       setOpenMobile(false);
@@ -79,7 +88,7 @@ export function NavigationProvider({ children }: { children: ReactNode }) {
         });
         closeNavigation();
       },
-      openTask: (id: string) => update({ task: id }),
+      openTask,
       closeTask: () => update({ task: '' }),
       showFocus: () => {
         update({
@@ -119,6 +128,10 @@ export function NavigationProvider({ children }: { children: ReactNode }) {
         closeNavigation();
       },
     };
-  }, [location, update, setOpenMobile]);
-  return <NavigationContext value={value}>{children}</NavigationContext>;
+  }, [location, update, openTask, setOpenMobile]);
+  return (
+    <NavigationContext value={value}>
+      <OpenTaskContext value={openTask}>{children}</OpenTaskContext>
+    </NavigationContext>
+  );
 }

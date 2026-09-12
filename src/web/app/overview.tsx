@@ -37,7 +37,7 @@ export function WorkspaceOverview({
       </Empty>
     );
   return (
-    <div className="workspace-overview">
+    <div className="workspace-overview" data-large={total > 200 || undefined}>
       {!searching && !groups[0]?.tasks.length && (
         <p className="focus-hint">
           Для своего короткого списка выбери «В фокус» в меню карточки.

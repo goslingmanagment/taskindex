@@ -1,6 +1,7 @@
 import {
   type ReactNode,
   useCallback,
+  useMemo,
   useRef,
   useState,
   useSyncExternalStore,
@@ -20,7 +21,7 @@ import {
 } from '@dnd-kit/core';
 import {
   SortableContext,
-  rectSortingStrategy,
+  verticalListSortingStrategy,
   sortableKeyboardCoordinates,
 } from '@dnd-kit/sortable';
 import { Plus, X } from 'lucide-react';
@@ -288,10 +289,20 @@ export function Board({
   onCreate: (task: NewTask, operationId: string) => Promise<Task>;
 }) {
   const archive = mode === 'archive';
+  const columns = useMemo(
+    () =>
+      STATUSES.map((status) => {
+        const column = tasks.filter((task) => task.status === status.id);
+        return { status, column, ids: column.map((task) => task.id) };
+      }),
+    [tasks],
+  );
   return (
-    <div className={'kanban ' + (view === 'list' ? 'list-view' : '')}>
-      {STATUSES.map((status) => {
-        const column = tasks.filter((t) => t.status === status.id);
+    <div
+      className={'kanban ' + (view === 'list' ? 'list-view' : '')}
+      data-large={tasks.length > 200 || undefined}
+    >
+      {columns.map(({ status, column, ids }) => {
         return (
           <Column key={status.id} status={status.id} disabled={archive}>
             <div className="column-head">
@@ -304,10 +315,7 @@ export function Board({
                 <span className="column-count">{column.length}</span>
               </div>
             </div>
-            <SortableContext
-              items={column.map((t) => t.id)}
-              strategy={rectSortingStrategy}
-            >
+            <SortableContext items={ids} strategy={verticalListSortingStrategy}>
               <div className="cards">
                 {column.map(renderTask)}
                 {!column.length && !filtered && (
