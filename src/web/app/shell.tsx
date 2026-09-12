@@ -11,7 +11,7 @@ import { focusGroups } from '@shared/queries';
 import { workspaceStore } from './store';
 import { startSync } from './sync';
 import { NavigationProvider, useNavigation } from './navigation';
-import { useWorkspace } from './use-workspace';
+import { useWorkspaceFrame } from './use-workspace';
 import { useWorkspaceCommands } from './use-workspace-commands';
 import { useKeyboardShortcuts } from './use-keyboard-shortcuts';
 import { selectContextualTasks, selectVisibleTasks } from './selectors';
@@ -52,7 +52,7 @@ export function Workspace() {
 // состояния форм при смене поколения базы: другая база значит другие записи,
 // и незавершённый ввод не должен переехать на них молча.
 function WorkspaceBody() {
-  const state = useWorkspace(),
+  const state = useWorkspaceFrame(),
     { data, loading, error, today, pending } = state;
   const { location, update, navigate, openTask, closeTask, bodyRef } =
     useNavigation();
@@ -116,6 +116,8 @@ function WorkspaceBody() {
       <Card
         key={task.id}
         task={task}
+        project={data.projects.find((p) => p.id === task.projectId)}
+        today={today}
         showContext={globalView}
         pending={pendingTask(task.id)}
         disabled={archive || globalView || pendingTask(task.id)}

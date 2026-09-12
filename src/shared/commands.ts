@@ -1025,7 +1025,14 @@ export function applyEvent(
   input: WorkspaceState,
   event: DomainEvent,
 ): WorkspaceState {
-  const state = structuredClone(input);
+  // Replay is immutable, but an unrelated record must retain its identity:
+  // web subscribers use that identity to skip unchanged task cards (TI-083).
+  const state = {
+    ...input,
+    [ENTITIES[event.entityKind].collection]: [
+      ...records(input, event.entityKind),
+    ],
+  };
   const list = records(state, event.entityKind);
   const index = list.findIndex((r) => r.id === event.entityId);
   const prior = index < 0 ? undefined : list[index];
@@ -1037,13 +1044,23 @@ export function applyEvent(
       event.taskId ??
       (patch.taskId as string | undefined) ??
       (prior && isComment(prior) ? prior.taskId : undefined);
-    const task = state.tasks.find((t) => t.id === taskId);
+    const taskIndex = state.tasks.findIndex((t) => t.id === taskId);
+    const task = state.tasks[taskIndex];
     const creation = event.changes.createdAt?.from === null;
     const deletion = event.changes.deletedAt;
-    if (task) {
-      if (creation) task.commentCount += patch.deletedAt ? 0 : 1;
-      else if (deletion)
-        task.commentCount += Number(!deletion.to) - Number(!deletion.from);
+    const delta = creation
+      ? patch.deletedAt
+        ? 0
+        : 1
+      : deletion
+        ? Number(!deletion.to) - Number(!deletion.from)
+        : 0;
+    if (task && delta) {
+      state.tasks = [...state.tasks];
+      state.tasks[taskIndex] = {
+        ...task,
+        commentCount: task.commentCount + delta,
+      };
     }
   }
   if (prior || event.changes.createdAt?.from === null) {

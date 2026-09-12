@@ -11,7 +11,6 @@ import { projectSchema, taskSchema } from '@shared/domain-schemas';
 import { byOrder } from '@shared/queries';
 import { toast } from '../ui/toast';
 import { workspaceStore } from './store';
-import { useWorkspace } from './use-workspace';
 import {
   projectSaveCommand,
   taskArchiveCommand,
@@ -57,8 +56,6 @@ function record<T>(result: OperationSuccess, schema: z.ZodType<T>): T {
   return parsed.data;
 }
 export function useWorkspaceCommands() {
-  const state = useWorkspace();
-  const tasks = state.data.tasks;
   const execute = useCallback(async (command: Command, message: string) => {
     const result = await workspaceStore.submit(command);
     notify(result, message);
@@ -120,8 +117,11 @@ export function useWorkspaceCommands() {
       },
       /** «В начало очереди»: перед первой задачей очереди этой области. */
       moveToQueueTop: (task: Task) => {
-        const before = tasks
-          .filter(
+        // Commands are actions, not workspace subscriptions. Read the current
+        // queue when clicked, including tasks received since this card rendered.
+        const before = workspaceStore
+          .getSnapshot()
+          .data.tasks.filter(
             (t) =>
               t.area === task.area &&
               t.status === 'todo' &&
@@ -132,5 +132,5 @@ export function useWorkspaceCommands() {
         return move(task, 'todo', before);
       },
     };
-  }, [execute, tasks]);
+  }, [execute]);
 }

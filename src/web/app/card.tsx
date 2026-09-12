@@ -10,9 +10,10 @@ import {
   Archive,
   GripVertical,
 } from 'lucide-react';
+import { memo } from 'react';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { AREAS, STATUSES, type Task } from '@shared/model';
+import { AREAS, STATUSES, type Project, type Task } from '@shared/model';
 import { dateLabel } from '@shared/queries';
 import { Button } from '../ui/button';
 import {
@@ -23,11 +24,12 @@ import {
   DropdownMenuSeparator,
 } from '../ui/dropdown-menu';
 import { toast } from '../ui/toast';
-import { useWorkspace } from './use-workspace';
 import { useWorkspaceCommands } from './use-workspace-commands';
 import { useNavigation } from './navigation';
 type TaskCardProps = {
   task: Task;
+  project: Project | undefined;
+  today: string;
   /** Экран показывает задачи всех областей: подписываем область и состояние. */
   showContext: boolean;
   pending: boolean;
@@ -41,16 +43,18 @@ function safely(promise: Promise<unknown>) {
     }),
   );
 }
-export function TaskCard(props: TaskCardProps) {
+export const TaskCard = memo(function TaskCard(props: TaskCardProps) {
   const sortable = useSortable({
     id: props.task.id,
     disabled: props.disabled,
     data: { task: props.task },
   });
   return <TaskCardContent {...props} sortable={sortable} />;
-}
+});
 export function TaskCardContent({
   task,
+  project,
+  today,
   showContext,
   pending,
   disabled,
@@ -65,11 +69,7 @@ export function TaskCardContent({
     transition,
     isDragging,
   } = sortable ?? {};
-  const { data, today } = useWorkspace();
-  const { location, openTask } = useNavigation();
-  const { setStatus, toggleArchive, saveFields, moveToQueueTop } =
-    useWorkspaceCommands();
-  const p = data.projects.find((project) => project.id === task.projectId);
+  const { openTask } = useNavigation();
   return (
     <article
       ref={setNodeRef}
@@ -94,6 +94,42 @@ export function TaskCardContent({
         onClick={() => openTask(task.id)}
         aria-label={'Открыть: ' + task.title}
       />
+      <TaskCardBody
+        task={task}
+        project={project}
+        today={today}
+        showContext={showContext}
+        pending={pending}
+      />
+      {!disabled && sortable && (
+        <button
+          type="button"
+          ref={setActivatorNodeRef}
+          {...attributes}
+          {...listeners}
+          className="drag-handle"
+          aria-label={'Перетащить: ' + task.title}
+        >
+          <GripVertical size={14} />
+        </button>
+      )}
+    </article>
+  );
+}
+// SortableContext updates every item's drag bindings when a sibling is added.
+// Keep that work outside the menu and labels of an unchanged card (TI-083).
+const TaskCardBody = memo(function TaskCardBody({
+  task,
+  project: p,
+  today,
+  showContext,
+  pending,
+}: Omit<TaskCardProps, 'disabled'>) {
+  const { location } = useNavigation();
+  const { setStatus, toggleArchive, saveFields, moveToQueueTop } =
+    useWorkspaceCommands();
+  return (
+    <>
       <div className="task-title-row">
         <button
           type="button"
@@ -246,18 +282,6 @@ export function TaskCardContent({
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
-      {!disabled && sortable && (
-        <button
-          type="button"
-          ref={setActivatorNodeRef}
-          {...attributes}
-          {...listeners}
-          className="drag-handle"
-          aria-label={'Перетащить: ' + task.title}
-        >
-          <GripVertical size={14} />
-        </button>
-      )}
-    </article>
+    </>
   );
-}
+});
