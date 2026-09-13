@@ -354,6 +354,7 @@ function OperationRow({ operation }: { operation: OperationSummary }) {
       open={open}
       onOpenChange={setOpen}
       className="operation-row"
+      data-operation-id={operation.id}
       data-outcome={operation.ok ? 'success' : 'rejected'}
     >
       <div className="operation-heading">

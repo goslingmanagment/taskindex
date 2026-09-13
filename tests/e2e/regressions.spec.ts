@@ -377,8 +377,18 @@ test('B06 live refresh retains loaded activity pages', async ({ page }) => {
   });
   expect(response.status()).toBe(404);
   const latest = (await response.json()) as { operationId: string };
-  // Refresh preserves the opened page depth. With more than 100 operations
-  // from other specs, the two loaded pages stay at 100 rather than grow to 101.
+  // The live refresh puts the new operation first while keeping the opened
+  // page depth. With more than 100 operations from other specs the two loaded
+  // pages stay at 100 rather than grow to 101, so the count alone cannot
+  // prove the refresh happened: wait for the new row itself.
+  const newest = page.locator(
+    `.operation-row[data-operation-id="${latest.operationId}"]`,
+  );
+  await expect(newest).toHaveCount(1);
+  await expect(page.locator('.operation-row').first()).toHaveAttribute(
+    'data-operation-id',
+    latest.operationId,
+  );
   const openedDepth = Math.ceil(before / 50) * 50;
   await expect(page.locator('.operation-row')).toHaveCount(
     Math.min(before + 1, openedDepth),
@@ -387,11 +397,7 @@ test('B06 live refresh retains loaded activity pages', async ({ page }) => {
     (reply) =>
       new URL(reply.url()).pathname === `/api/operations/${latest.operationId}`,
   );
-  await page
-    .locator('.operation-row')
-    .first()
-    .getByRole('button', { name: /Операция отклонена/ })
-    .click();
+  await newest.getByRole('button', { name: /Операция отклонена/ }).click();
   expect((await detail).ok()).toBe(true);
   await expect(page.getByRole('alert')).toHaveCount(0);
 });
