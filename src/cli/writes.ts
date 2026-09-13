@@ -41,6 +41,14 @@ function convert(entry: FlagSpec, value: string | boolean): unknown {
   switch (entry.kind) {
     case 'json':
       return parseJson(String(value), `--${entry.name}`);
+    case 'list': {
+      const text = String(value).trim();
+      if (text.startsWith('[')) return parseJson(text, `--${entry.name}`);
+      return text
+        .split(',')
+        .map((item) => item.trim())
+        .filter(Boolean);
+    }
     case 'boolean':
       if (value === true || value === 'true') return true;
       if (value === false || value === 'false') return false;

@@ -1,0 +1,887 @@
+{
+  "formatVersion": 4,
+  "exportedAt": "2026-09-13T00:00:00.000Z",
+  "generation": "fixture-schema-5",
+  "seq": 3,
+  "settings": {
+    "generation": "fixture-schema-5",
+    "timezone": "Europe/Moscow",
+    "schema_version": "5"
+  },
+  "projects": [],
+  "tasks": [
+    {
+      "id": "old-task",
+      "area": "agency",
+      "projectId": null,
+      "title": "Задача до появления приоритета",
+      "status": "todo",
+      "note": "Старая заметка",
+      "due": null,
+      "waitingFor": "",
+      "followUp": null,
+      "orderKey": "a0",
+      "focus": true,
+      "focusKey": "a0",
+      "focusLeftAt": null,
+      "archived": false,
+      "originSystem": null,
+      "originRef": null,
+      "originUrl": null,
+      "originVersion": null,
+      "createdBy": "owner",
+      "createdByLabel": "Владелец",
+      "ownerTouchedAt": "2026-09-08T12:00:00.000Z",
+      "ownerFields": [
+        "archived",
+        "area",
+        "checklist",
+        "due",
+        "focus",
+        "focusKey",
+        "focusLeftAt",
+        "followUp",
+        "note",
+        "orderKey",
+        "originUrl",
+        "projectId",
+        "status",
+        "title",
+        "waitingFor"
+      ],
+      "revision": 2,
+      "createdAt": "2026-09-08T12:00:00.000Z",
+      "updatedAt": "2026-09-08T12:00:00.000Z",
+      "checklist": [
+        {
+          "id": "old-step",
+          "text": "Сохранить историю",
+          "done": false
+        }
+      ],
+      "commentCount": 0
+    }
+  ],
+  "comments": [],
+  "appearance": [
+    {
+      "id": "owner",
+      "mode": "dark",
+      "skinId": "focus",
+      "revision": 2,
+      "updatedAt": "2026-09-08T12:00:00.000Z"
+    }
+  ],
+  "checklistItems": [
+    {
+      "id": "old-step",
+      "taskId": "old-task",
+      "text": "Сохранить историю",
+      "done": false,
+      "position": 0
+    }
+  ],
+  "agents": [],
+  "events": [
+    {
+      "seq": 1,
+      "at": "2026-09-08T12:00:00.000Z",
+      "actorId": "owner",
+      "actorLabel": "Владелец",
+      "operationId": "old-create",
+      "entityKind": "task",
+      "entityId": "old-task",
+      "command": "task.create",
+      "changes": {
+        "id": {
+          "from": null,
+          "to": "old-task"
+        },
+        "area": {
+          "from": null,
+          "to": "agency"
+        },
+        "projectId": {
+          "from": null,
+          "to": null
+        },
+        "title": {
+          "from": null,
+          "to": "Задача до появления приоритета"
+        },
+        "status": {
+          "from": null,
+          "to": "todo"
+        },
+        "note": {
+          "from": null,
+          "to": ""
+        },
+        "due": {
+          "from": null,
+          "to": null
+        },
+        "waitingFor": {
+          "from": null,
+          "to": ""
+        },
+        "followUp": {
+          "from": null,
+          "to": null
+        },
+        "orderKey": {
+          "from": null,
+          "to": "a0"
+        },
+        "focus": {
+          "from": null,
+          "to": false
+        },
+        "focusKey": {
+          "from": null,
+          "to": null
+        },
+        "focusLeftAt": {
+          "from": null,
+          "to": null
+        },
+        "archived": {
+          "from": null,
+          "to": false
+        },
+        "checklist": {
+          "from": null,
+          "to": [
+            {
+              "id": "old-step",
+              "text": "Сохранить историю",
+              "done": false
+            }
+          ]
+        },
+        "originSystem": {
+          "from": null,
+          "to": null
+        },
+        "originRef": {
+          "from": null,
+          "to": null
+        },
+        "originUrl": {
+          "from": null,
+          "to": null
+        },
+        "originVersion": {
+          "from": null,
+          "to": null
+        },
+        "createdBy": {
+          "from": null,
+          "to": "owner"
+        },
+        "createdByLabel": {
+          "from": null,
+          "to": "Владелец"
+        },
+        "ownerTouchedAt": {
+          "from": null,
+          "to": "2026-09-08T12:00:00.000Z"
+        },
+        "ownerFields": {
+          "from": null,
+          "to": [
+            "archived",
+            "area",
+            "checklist",
+            "due",
+            "focus",
+            "focusKey",
+            "focusLeftAt",
+            "followUp",
+            "note",
+            "orderKey",
+            "originUrl",
+            "projectId",
+            "status",
+            "title",
+            "waitingFor"
+          ]
+        },
+        "createdAt": {
+          "from": null,
+          "to": "2026-09-08T12:00:00.000Z"
+        }
+      },
+      "recordRevision": 1,
+      "firstSeq": 1,
+      "lastSeq": 1,
+      "generation": "fixture-schema-5"
+    },
+    {
+      "seq": 2,
+      "at": "2026-09-08T12:00:00.000Z",
+      "actorId": "owner",
+      "actorLabel": "Владелец",
+      "operationId": "old-update",
+      "entityKind": "task",
+      "entityId": "old-task",
+      "command": "task.update",
+      "changes": {
+        "note": {
+          "from": "",
+          "to": "Старая заметка"
+        },
+        "focus": {
+          "from": false,
+          "to": true
+        },
+        "focusKey": {
+          "from": null,
+          "to": "a0"
+        }
+      },
+      "recordRevision": 2,
+      "firstSeq": 2,
+      "lastSeq": 2,
+      "generation": "fixture-schema-5"
+    },
+    {
+      "seq": 3,
+      "at": "2026-09-08T12:00:00.000Z",
+      "actorId": "owner",
+      "actorLabel": "Владелец",
+      "operationId": "old-appearance",
+      "entityKind": "appearance",
+      "entityId": "owner",
+      "command": "appearance.update",
+      "changes": {
+        "mode": {
+          "from": "system",
+          "to": "dark"
+        },
+        "skinId": {
+          "from": "classic",
+          "to": "focus"
+        }
+      },
+      "recordRevision": 2,
+      "firstSeq": 3,
+      "lastSeq": 3,
+      "generation": "fixture-schema-5"
+    }
+  ],
+  "operations": [
+    {
+      "id": "old-create",
+      "operationSeq": 1,
+      "actorId": "owner",
+      "actorLabel": "Владелец",
+      "command": "task.create",
+      "commandHash": "ccaa7a969c92167cb8f144d72f234bc8d47e39a10e978d47cbc880ace327c61c",
+      "status": 200,
+      "result": {
+        "ok": true,
+        "operationId": "old-create",
+        "generation": "fixture-schema-5",
+        "firstSeq": 1,
+        "lastSeq": 1,
+        "results": [
+          {
+            "record": {
+              "id": "old-task",
+              "area": "agency",
+              "projectId": null,
+              "title": "Задача до появления приоритета",
+              "status": "todo",
+              "note": "",
+              "due": null,
+              "waitingFor": "",
+              "followUp": null,
+              "orderKey": "a0",
+              "focus": false,
+              "focusKey": null,
+              "focusLeftAt": null,
+              "archived": false,
+              "checklist": [
+                {
+                  "id": "old-step",
+                  "text": "Сохранить историю",
+                  "done": false
+                }
+              ],
+              "commentCount": 0,
+              "originSystem": null,
+              "originRef": null,
+              "originUrl": null,
+              "originVersion": null,
+              "createdBy": "owner",
+              "createdByLabel": "Владелец",
+              "ownerTouchedAt": "2026-09-08T12:00:00.000Z",
+              "ownerFields": [
+                "archived",
+                "area",
+                "checklist",
+                "due",
+                "focus",
+                "focusKey",
+                "focusLeftAt",
+                "followUp",
+                "note",
+                "orderKey",
+                "originUrl",
+                "projectId",
+                "status",
+                "title",
+                "waitingFor"
+              ],
+              "revision": 1,
+              "createdAt": "2026-09-08T12:00:00.000Z",
+              "updatedAt": "2026-09-08T12:00:00.000Z"
+            },
+            "changes": {
+              "id": {
+                "from": null,
+                "to": "old-task"
+              },
+              "area": {
+                "from": null,
+                "to": "agency"
+              },
+              "projectId": {
+                "from": null,
+                "to": null
+              },
+              "title": {
+                "from": null,
+                "to": "Задача до появления приоритета"
+              },
+              "status": {
+                "from": null,
+                "to": "todo"
+              },
+              "note": {
+                "from": null,
+                "to": ""
+              },
+              "due": {
+                "from": null,
+                "to": null
+              },
+              "waitingFor": {
+                "from": null,
+                "to": ""
+              },
+              "followUp": {
+                "from": null,
+                "to": null
+              },
+              "orderKey": {
+                "from": null,
+                "to": "a0"
+              },
+              "focus": {
+                "from": null,
+                "to": false
+              },
+              "focusKey": {
+                "from": null,
+                "to": null
+              },
+              "focusLeftAt": {
+                "from": null,
+                "to": null
+              },
+              "archived": {
+                "from": null,
+                "to": false
+              },
+              "checklist": {
+                "from": null,
+                "to": [
+                  {
+                    "id": "old-step",
+                    "text": "Сохранить историю",
+                    "done": false
+                  }
+                ]
+              },
+              "originSystem": {
+                "from": null,
+                "to": null
+              },
+              "originRef": {
+                "from": null,
+                "to": null
+              },
+              "originUrl": {
+                "from": null,
+                "to": null
+              },
+              "originVersion": {
+                "from": null,
+                "to": null
+              },
+              "createdBy": {
+                "from": null,
+                "to": "owner"
+              },
+              "createdByLabel": {
+                "from": null,
+                "to": "Владелец"
+              },
+              "ownerTouchedAt": {
+                "from": null,
+                "to": "2026-09-08T12:00:00.000Z"
+              },
+              "ownerFields": {
+                "from": null,
+                "to": [
+                  "archived",
+                  "area",
+                  "checklist",
+                  "due",
+                  "focus",
+                  "focusKey",
+                  "focusLeftAt",
+                  "followUp",
+                  "note",
+                  "orderKey",
+                  "originUrl",
+                  "projectId",
+                  "status",
+                  "title",
+                  "waitingFor"
+                ]
+              },
+              "createdAt": {
+                "from": null,
+                "to": "2026-09-08T12:00:00.000Z"
+              }
+            }
+          }
+        ],
+        "events": [
+          {
+            "seq": 1,
+            "at": "2026-09-08T12:00:00.000Z",
+            "actorId": "owner",
+            "actorLabel": "Владелец",
+            "operationId": "old-create",
+            "entityKind": "task",
+            "entityId": "old-task",
+            "command": "task.create",
+            "changes": {
+              "id": {
+                "from": null,
+                "to": "old-task"
+              },
+              "area": {
+                "from": null,
+                "to": "agency"
+              },
+              "projectId": {
+                "from": null,
+                "to": null
+              },
+              "title": {
+                "from": null,
+                "to": "Задача до появления приоритета"
+              },
+              "status": {
+                "from": null,
+                "to": "todo"
+              },
+              "note": {
+                "from": null,
+                "to": ""
+              },
+              "due": {
+                "from": null,
+                "to": null
+              },
+              "waitingFor": {
+                "from": null,
+                "to": ""
+              },
+              "followUp": {
+                "from": null,
+                "to": null
+              },
+              "orderKey": {
+                "from": null,
+                "to": "a0"
+              },
+              "focus": {
+                "from": null,
+                "to": false
+              },
+              "focusKey": {
+                "from": null,
+                "to": null
+              },
+              "focusLeftAt": {
+                "from": null,
+                "to": null
+              },
+              "archived": {
+                "from": null,
+                "to": false
+              },
+              "checklist": {
+                "from": null,
+                "to": [
+                  {
+                    "id": "old-step",
+                    "text": "Сохранить историю",
+                    "done": false
+                  }
+                ]
+              },
+              "originSystem": {
+                "from": null,
+                "to": null
+              },
+              "originRef": {
+                "from": null,
+                "to": null
+              },
+              "originUrl": {
+                "from": null,
+                "to": null
+              },
+              "originVersion": {
+                "from": null,
+                "to": null
+              },
+              "createdBy": {
+                "from": null,
+                "to": "owner"
+              },
+              "createdByLabel": {
+                "from": null,
+                "to": "Владелец"
+              },
+              "ownerTouchedAt": {
+                "from": null,
+                "to": "2026-09-08T12:00:00.000Z"
+              },
+              "ownerFields": {
+                "from": null,
+                "to": [
+                  "archived",
+                  "area",
+                  "checklist",
+                  "due",
+                  "focus",
+                  "focusKey",
+                  "focusLeftAt",
+                  "followUp",
+                  "note",
+                  "orderKey",
+                  "originUrl",
+                  "projectId",
+                  "status",
+                  "title",
+                  "waitingFor"
+                ]
+              },
+              "createdAt": {
+                "from": null,
+                "to": "2026-09-08T12:00:00.000Z"
+              }
+            },
+            "recordRevision": 1,
+            "firstSeq": 1,
+            "lastSeq": 1,
+            "generation": "fixture-schema-5"
+          }
+        ]
+      },
+      "firstSeq": 1,
+      "lastSeq": 1,
+      "createdAt": "2026-09-08T12:00:00.000Z",
+      "ok": true,
+      "taskCount": 1,
+      "titles": [
+        "Задача до появления приоритета"
+      ]
+    },
+    {
+      "id": "old-update",
+      "operationSeq": 2,
+      "actorId": "owner",
+      "actorLabel": "Владелец",
+      "command": "task.update",
+      "commandHash": "74d13d2ba25f1f8e38dc2487e70d36f9e54e375eee83fa3c3a19b26c1e13083f",
+      "status": 200,
+      "result": {
+        "ok": true,
+        "operationId": "old-update",
+        "generation": "fixture-schema-5",
+        "firstSeq": 2,
+        "lastSeq": 2,
+        "results": [
+          {
+            "record": {
+              "id": "old-task",
+              "area": "agency",
+              "projectId": null,
+              "title": "Задача до появления приоритета",
+              "status": "todo",
+              "note": "Старая заметка",
+              "due": null,
+              "waitingFor": "",
+              "followUp": null,
+              "orderKey": "a0",
+              "focus": true,
+              "focusKey": "a0",
+              "focusLeftAt": null,
+              "archived": false,
+              "checklist": [
+                {
+                  "id": "old-step",
+                  "text": "Сохранить историю",
+                  "done": false
+                }
+              ],
+              "commentCount": 0,
+              "originSystem": null,
+              "originRef": null,
+              "originUrl": null,
+              "originVersion": null,
+              "createdBy": "owner",
+              "createdByLabel": "Владелец",
+              "ownerTouchedAt": "2026-09-08T12:00:00.000Z",
+              "ownerFields": [
+                "archived",
+                "area",
+                "checklist",
+                "due",
+                "focus",
+                "focusKey",
+                "focusLeftAt",
+                "followUp",
+                "note",
+                "orderKey",
+                "originUrl",
+                "projectId",
+                "status",
+                "title",
+                "waitingFor"
+              ],
+              "revision": 2,
+              "createdAt": "2026-09-08T12:00:00.000Z",
+              "updatedAt": "2026-09-08T12:00:00.000Z"
+            },
+            "changes": {
+              "note": {
+                "from": "",
+                "to": "Старая заметка"
+              },
+              "focus": {
+                "from": false,
+                "to": true
+              },
+              "focusKey": {
+                "from": null,
+                "to": "a0"
+              }
+            }
+          }
+        ],
+        "events": [
+          {
+            "seq": 2,
+            "at": "2026-09-08T12:00:00.000Z",
+            "actorId": "owner",
+            "actorLabel": "Владелец",
+            "operationId": "old-update",
+            "entityKind": "task",
+            "entityId": "old-task",
+            "command": "task.update",
+            "changes": {
+              "note": {
+                "from": "",
+                "to": "Старая заметка"
+              },
+              "focus": {
+                "from": false,
+                "to": true
+              },
+              "focusKey": {
+                "from": null,
+                "to": "a0"
+              }
+            },
+            "recordRevision": 2,
+            "firstSeq": 2,
+            "lastSeq": 2,
+            "generation": "fixture-schema-5"
+          }
+        ]
+      },
+      "firstSeq": 2,
+      "lastSeq": 2,
+      "createdAt": "2026-09-08T12:00:00.000Z",
+      "ok": true,
+      "taskCount": 1,
+      "titles": [
+        "Задача до появления приоритета"
+      ]
+    },
+    {
+      "id": "old-appearance",
+      "operationSeq": 3,
+      "actorId": "owner",
+      "actorLabel": "Владелец",
+      "command": "appearance.update",
+      "commandHash": "e4d6682c7067b69a7e8d9f10382170fe66209a78039943e56b52fbc14c9c3970",
+      "status": 200,
+      "result": {
+        "ok": true,
+        "operationId": "old-appearance",
+        "generation": "fixture-schema-5",
+        "firstSeq": 3,
+        "lastSeq": 3,
+        "results": [
+          {
+            "record": {
+              "id": "owner",
+              "mode": "dark",
+              "skinId": "focus",
+              "revision": 2,
+              "updatedAt": "2026-09-08T12:00:00.000Z"
+            },
+            "changes": {
+              "mode": {
+                "from": "system",
+                "to": "dark"
+              },
+              "skinId": {
+                "from": "classic",
+                "to": "focus"
+              }
+            }
+          }
+        ],
+        "events": [
+          {
+            "seq": 3,
+            "at": "2026-09-08T12:00:00.000Z",
+            "actorId": "owner",
+            "actorLabel": "Владелец",
+            "operationId": "old-appearance",
+            "entityKind": "appearance",
+            "entityId": "owner",
+            "command": "appearance.update",
+            "changes": {
+              "mode": {
+                "from": "system",
+                "to": "dark"
+              },
+              "skinId": {
+                "from": "classic",
+                "to": "focus"
+              }
+            },
+            "recordRevision": 2,
+            "firstSeq": 3,
+            "lastSeq": 3,
+            "generation": "fixture-schema-5"
+          }
+        ]
+      },
+      "firstSeq": 3,
+      "lastSeq": 3,
+      "createdAt": "2026-09-08T12:00:00.000Z",
+      "ok": true,
+      "taskCount": 0,
+      "titles": []
+    },
+    {
+      "id": "old-rejected",
+      "operationSeq": 4,
+      "actorId": "owner",
+      "actorLabel": "Владелец",
+      "command": "task.update",
+      "commandHash": "614db5025bbb69ada039bb89b310d741dd753d5f1d57e966b37341ae0ca3f7ce",
+      "status": 409,
+      "result": {
+        "ok": false,
+        "code": "conflict",
+        "message": "Запись изменилась. Ваш текст остался в форме.",
+        "retryable": false,
+        "current": {
+          "id": "old-task",
+          "area": "agency",
+          "projectId": null,
+          "title": "Задача до появления приоритета",
+          "status": "todo",
+          "note": "Старая заметка",
+          "due": null,
+          "waitingFor": "",
+          "followUp": null,
+          "orderKey": "a0",
+          "focus": true,
+          "focusKey": "a0",
+          "focusLeftAt": null,
+          "archived": false,
+          "checklist": [
+            {
+              "id": "old-step",
+              "text": "Сохранить историю",
+              "done": false
+            }
+          ],
+          "commentCount": 0,
+          "originSystem": null,
+          "originRef": null,
+          "originUrl": null,
+          "originVersion": null,
+          "createdBy": "owner",
+          "createdByLabel": "Владелец",
+          "ownerTouchedAt": "2026-09-08T12:00:00.000Z",
+          "ownerFields": [
+            "archived",
+            "area",
+            "checklist",
+            "due",
+            "focus",
+            "focusKey",
+            "focusLeftAt",
+            "followUp",
+            "note",
+            "orderKey",
+            "originUrl",
+            "projectId",
+            "status",
+            "title",
+            "waitingFor"
+          ],
+          "revision": 2,
+          "createdAt": "2026-09-08T12:00:00.000Z",
+          "updatedAt": "2026-09-08T12:00:00.000Z"
+        },
+        "conflicts": [
+          {
+            "entityKind": "task",
+            "entityId": "old-task",
+            "fields": [
+              "note"
+            ]
+          }
+        ],
+        "operationId": "old-rejected",
+        "generation": "fixture-schema-5"
+      },
+      "firstSeq": null,
+      "lastSeq": null,
+      "createdAt": "2026-09-08T12:00:00.000Z",
+      "ok": false,
+      "errorCode": "conflict",
+      "errorMessage": "Запись изменилась. Ваш текст остался в форме.",
+      "taskCount": 0,
+      "titles": []
+    }
+  ]
+}

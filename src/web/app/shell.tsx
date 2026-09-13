@@ -23,7 +23,13 @@ import { NavigationProvider, useNavigation } from './navigation';
 import { useWorkspaceFrame } from './use-workspace';
 import { useWorkspaceCommands } from './use-workspace-commands';
 import { useKeyboardShortcuts } from './use-keyboard-shortcuts';
-import { selectContextualTasks, selectVisibleTasks } from './selectors';
+import {
+  hiddenP3Count,
+  selectContextualTasks,
+  selectVisibleTasks,
+} from './selectors';
+import { chooseHideP3 } from './appearance';
+import { taskCount } from './labels';
 import type { NewTask } from './commands';
 import { WorkspaceSidebar } from './sidebar';
 import { TaskCard, TaskCardContent } from './card';
@@ -44,6 +50,10 @@ const Activity = lazy(() =>
 const TaskEditor = lazy(() =>
   import('./editor/editor').then((m) => ({ default: m.TaskEditor })),
 );
+const changeHideP3 = (value: boolean) =>
+  void chooseHideP3(value).catch((error: Error) =>
+    toast.add({ title: error.message, type: 'error' }),
+  );
 export function Workspace() {
   return (
     <Toaster>
@@ -95,6 +105,8 @@ function WorkspaceBody() {
   const searchPending = query !== deferredQuery;
   const searching = deferredQuery.trim().length > 0,
     globalView = searching || focusView || activity;
+  const hideP3 = data.appearance[0]?.hideP3 ?? false;
+  const filteringP3 = hideP3 && !archive && !globalView;
   // Opening a task or changing board/list presentation does not change the
   // selected records. Preserve the list so DnD consumers stay idle (TI-085).
   const selection = useMemo(
@@ -106,6 +118,7 @@ function WorkspaceBody() {
       archiveSearch,
       focus: focusView,
       today: todayOnly,
+      hideP3,
     }),
     [
       area,
@@ -115,6 +128,7 @@ function WorkspaceBody() {
       archiveSearch,
       focusView,
       todayOnly,
+      hideP3,
     ],
   );
   const tasks = useMemo(
@@ -122,6 +136,16 @@ function WorkspaceBody() {
     [data, selection, today],
   );
   const contextual = selectContextualTasks(data, location);
+  const hiddenP3 = useMemo(
+    () => hiddenP3Count(data, selection, today),
+    [data, selection, today],
+  );
+  const showAllTasks = () => {
+    update({ today: false }, true);
+    // A P3 task outside today's filter does not contribute to hiddenP3.
+    // Clear the active preference itself, not just the counted hidden tasks.
+    if (filteringP3) changeHideP3(false);
+  };
   const pendingTask = (id: string) =>
     pendingTaskLabel(pending, id) !== undefined;
   // TI-006: without durable browser storage no command may be sent.
@@ -182,6 +206,8 @@ function WorkspaceBody() {
           searchRef={searchRef}
           mobileSearch={mobileSearch}
           searchPending={searchPending}
+          hideP3={hideP3}
+          onHideP3={changeHideP3}
           onMobileSearch={setMobileSearch}
           onCreate={() => setCreate('todo')}
           onEditProject={setProjectDialog}
@@ -196,6 +222,11 @@ function WorkspaceBody() {
           {todayOnly && !globalView && (
             <p className="filter-note">
               Срок или дата проверки — сегодня и раньше
+            </p>
+          )}
+          {filteringP3 && (
+            <p className="filter-note" data-hidden-p3={hiddenP3}>
+              Без задач P3{hiddenP3 ? `: скрыто ${taskCount(hiddenP3)}` : ''}
             </p>
           )}
           {error ? (
@@ -260,8 +291,13 @@ function WorkspaceBody() {
                   onBrowse={() => navigate(area)}
                 />
               ) : tasks.length === 0 &&
-                (todayOnly || archive || !contextual.length) ? (
-                <WorkspaceEmpty onCreate={() => setCreate('todo')} />
+                (todayOnly || filteringP3 || archive || !contextual.length) ? (
+                <WorkspaceEmpty
+                  onCreate={() => setCreate('todo')}
+                  hiddenP3={hiddenP3}
+                  onShowP3={() => changeHideP3(false)}
+                  onShowAll={showAllTasks}
+                />
               ) : (
                 <Board
                   key={state.generation}
@@ -270,7 +306,7 @@ function WorkspaceBody() {
                   area={area}
                   projectId={projectId}
                   mode={archive ? 'archive' : 'board'}
-                  filtered={todayOnly}
+                  filtered={todayOnly || filteringP3}
                   renderTask={renderTask}
                   onCreate={newTask}
                 />

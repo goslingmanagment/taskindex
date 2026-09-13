@@ -42,6 +42,16 @@
   `validateExport` для задачи, которой журнал ни разу не назначал `focusKey`, принимает
   ключ из таблиц (только если задача в фокусе) — назначенный миграцией ключ событиями не
   выражен. Тест: `tests/api/migration-compat.test.ts`, describe `0004_focus_desk backfill`.
+  2026-09-13: `0005_priority_labels_closes` (TI-086, спека `docs/specs/2026-09-12-owner-workflow.md` §4) — вариант (б).
+  Колонки `tasks.priority TEXT NOT NULL DEFAULT 'p2'`, `tasks.labels TEXT NOT NULL DEFAULT '[]'`,
+  `tasks.closes TEXT NULL`, `appearance.hide_p3 INTEGER NOT NULL DEFAULT false` добавляются
+  `ALTER TABLE … ADD` с default, пересборка не нужна. Формат экспорта поднят до 5; `upgradeExport`
+  читает формат 4 через `exportSchemaV4`, значения по умолчанию подставляют сами схемы записей
+  (`taskSchema`, `appearanceSchema` с `.default()`); `applyEvent` при replay события создания без
+  этих полей ставит те же значения, поэтому `validateExport` сходится и для журнала, записанного до
+  миграции. Фикстура `tests/fixtures/export-schema-5.json` создана прежним кодом и включает
+  изменения оформления, результаты задач и сохранённый отказ. Тест:
+  `tests/api/migration-compat.test.ts`, describe `0005_priority_labels_closes backfill`.
 - Журналы, созданные до появления контрольных сумм, получают `sha256` из файлов образа при
   первом `migrate` с записью `warn` `migration_checksum_backfilled` (допустимо только до
   рабочего переключения; после него backfill только по сверке с архивным SQL релиза).

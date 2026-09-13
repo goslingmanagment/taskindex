@@ -4,6 +4,7 @@ import { defaultLocation, type LocationState } from '../../src/web/app/url';
 import {
   deskOf,
   effectiveProject,
+  hiddenP3Count,
   isProjectId,
   latestSeqForTask,
   selectVisibleTasks,
@@ -75,6 +76,148 @@ const where = (patch: Partial<LocationState>): LocationState => ({
 });
 const ids = (list: { id: string }[]) => list.map((t) => t.id);
 describe('selectors', () => {
+  it('TI-086 keeps manual order across priorities and hides P3 only in the selected area and project', () => {
+    const source = {
+      projects: [project],
+      tasks: [
+        makeTask({
+          id: 'urgent',
+          area: 'agency',
+          title: 'Urgent',
+          priority: 'p1',
+          orderKey: 'a2',
+          projectId: 'p1',
+        }),
+        makeTask({
+          id: 'later',
+          area: 'agency',
+          title: 'Later',
+          priority: 'p3',
+          orderKey: 'a0',
+          projectId: 'p1',
+        }),
+        makeTask({
+          id: 'normal',
+          area: 'agency',
+          title: 'Normal',
+          priority: 'p2',
+          orderKey: 'a1',
+          projectId: 'p1',
+        }),
+        makeTask({
+          id: 'other-project',
+          area: 'agency',
+          title: 'Other',
+          priority: 'p3',
+          orderKey: 'a3',
+        }),
+        makeTask({
+          id: 'other-area',
+          title: 'Personal',
+          priority: 'p3',
+          area: 'personal',
+          orderKey: 'a4',
+        }),
+      ],
+    };
+    const selection = { ...where({ project: 'p1' }), hideP3: true };
+    expect(
+      ids(
+        selectVisibleTasks(source, { ...selection, hideP3: false }, at('10')),
+      ),
+    ).toEqual(['later', 'normal', 'urgent']);
+    expect(ids(selectVisibleTasks(source, selection, at('10')))).toEqual([
+      'normal',
+      'urgent',
+    ]);
+    expect(hiddenP3Count(source, selection, at('10'))).toBe(1);
+    expect(
+      hiddenP3Count(source, { ...selection, hideP3: false }, at('10')),
+    ).toBe(0);
+  });
+  it('TI-086 counts only P3 tasks hidden after the today filter, including waiting follow-ups', () => {
+    const source = {
+      projects: [],
+      tasks: [
+        makeTask({
+          id: 'due',
+          area: 'agency',
+          title: 'Due',
+          orderKey: 'a0',
+          priority: 'p3',
+          due: at('09'),
+        }),
+        makeTask({
+          id: 'waiting',
+          area: 'agency',
+          title: 'Waiting',
+          orderKey: 'a1',
+          priority: 'p3',
+          status: 'waiting',
+          followUp: at('10'),
+        }),
+        makeTask({
+          id: 'later',
+          area: 'agency',
+          title: 'Later',
+          orderKey: 'a2',
+          priority: 'p3',
+          due: at('11'),
+        }),
+        makeTask({
+          id: 'done',
+          area: 'agency',
+          title: 'Done',
+          orderKey: 'a3',
+          priority: 'p3',
+          status: 'done',
+          due: at('09'),
+        }),
+      ],
+    };
+    const selection = { ...where({ today: true }), hideP3: true };
+    expect(selectVisibleTasks(source, selection, at('10'))).toEqual([]);
+    expect(hiddenP3Count(source, selection, at('10'))).toBe(2);
+    expect(hiddenP3Count(source, selection, at('08'))).toBe(0);
+    expect(
+      ids(
+        selectVisibleTasks(source, { ...selection, hideP3: false }, at('10')),
+      ),
+    ).toEqual(['due', 'waiting']);
+  });
+  it('TI-086 leaves P3 visible in search, Focus and archive', () => {
+    const source = {
+      projects: [],
+      tasks: [
+        makeTask({
+          id: 'active-p3',
+          area: 'agency',
+          title: 'Когда-нибудь',
+          priority: 'p3',
+          focus: true,
+        }),
+        makeTask({
+          id: 'archived-p3',
+          area: 'agency',
+          title: 'Когда-нибудь архив',
+          priority: 'p3',
+          archived: true,
+        }),
+      ],
+    };
+    for (const [patch, expected] of [
+      [{ q: 'когда' }, 'active-p3'],
+      [{ focus: true }, 'active-p3'],
+      [{ archive: true }, 'archived-p3'],
+      [{ q: 'когда', archiveSearch: true }, 'archived-p3'],
+    ] as const) {
+      const selection = { ...where(patch), hideP3: true };
+      expect(ids(selectVisibleTasks(source, selection, at('10')))).toContain(
+        expected,
+      );
+      expect(hiddenP3Count(source, selection, at('10'))).toBe(0);
+    }
+  });
   it('board shows the tasks of the area', () => {
     expect(ids(selectVisibleTasks(data, where({}), at('10')))).toEqual([
       't1',

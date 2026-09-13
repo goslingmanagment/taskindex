@@ -370,16 +370,29 @@ test('B06 live refresh retains loaded activity pages', async ({ page }) => {
     .poll(() => page.locator('.operation-row').count())
     .toBeGreaterThan(50);
   const before = await page.locator('.operation-row').count();
-  expect(
-    (
-      await command(page, 'task.update', {
-        id: randomUUID(),
-        baseRevision: 1,
-        title: 'B06 new after pagination',
-      })
-    ).status(),
-  ).toBe(404);
-  await expect(page.locator('.operation-row')).toHaveCount(before + 1);
+  const response = await command(page, 'task.update', {
+    id: randomUUID(),
+    baseRevision: 1,
+    title: 'B06 new after pagination',
+  });
+  expect(response.status()).toBe(404);
+  const latest = (await response.json()) as { operationId: string };
+  // Refresh preserves the opened page depth. With more than 100 operations
+  // from other specs, the two loaded pages stay at 100 rather than grow to 101.
+  const openedDepth = Math.ceil(before / 50) * 50;
+  await expect(page.locator('.operation-row')).toHaveCount(
+    Math.min(before + 1, openedDepth),
+  );
+  const detail = page.waitForResponse(
+    (reply) =>
+      new URL(reply.url()).pathname === `/api/operations/${latest.operationId}`,
+  );
+  await page
+    .locator('.operation-row')
+    .first()
+    .getByRole('button', { name: /Операция отклонена/ })
+    .click();
+  expect((await detail).ok()).toBe(true);
   await expect(page.getByRole('alert')).toHaveCount(0);
 });
 

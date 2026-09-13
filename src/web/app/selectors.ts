@@ -7,7 +7,10 @@ type TaskSource = { tasks: Task[]; projects: Project[] };
 type TaskSelection = Pick<
   LocationState,
   'area' | 'project' | 'archive' | 'q' | 'archiveSearch' | 'focus' | 'today'
->;
+> & {
+  /** The owner's preference applies only to the area's board and list. */
+  hideP3?: boolean;
+};
 /** `all` и `none` — не идентификаторы, а режимы списка направлений. */
 export const isProjectId = (value: string) =>
   value !== 'all' && value !== 'none';
@@ -62,7 +65,26 @@ export function selectVisibleTasks(
     return focusGroups(data.tasks, today).flatMap((g) => g.tasks);
   return selectContextualTasks(data, location)
     .filter((t) => !location.today || dueToday(t, today))
+    .filter((t) => !location.hideP3 || location.archive || t.priority !== 'p3')
     .toSorted(byOrder);
+}
+/** Tasks hidden by the P3 preference after the other screen filters. */
+export function hiddenP3Count(
+  data: TaskSource,
+  location: TaskSelection,
+  today: string,
+): number {
+  if (
+    !location.hideP3 ||
+    location.q.trim().length > 0 ||
+    location.focus ||
+    location.archive
+  )
+    return 0;
+  return selectContextualTasks(data, location).filter(
+    (task) =>
+      (!location.today || dueToday(task, today)) && task.priority === 'p3',
+  ).length;
 }
 /**
  * TI-063 (план 07, §3.6): позиция журнала, на которой в последний раз менялась

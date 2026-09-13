@@ -163,6 +163,8 @@ UTC. Календарные даты `due` и `followUp` остаются стр
 | `comment.remove` | `commentId` | `deleted_at`; разрешено автору комментария и владельцу |
 | `undo` | `seq` либо `operationId` | поля отменяемого события или всех событий операции |
 
+2026-09-13 (TI-086): `task.create`, `task.sync` (`fields`), `task.update`, `task.save` (`fields`) принимают `priority` (`p1|p2|p3`, по умолчанию `p2`), `labels` (до 8 слагов каталога `src/shared/labels.ts`) и `closes` (слаг или `null`); `appearance.update` принимает `hideP3`. Приоритет не сортирует колонку. Спека: `docs/specs/2026-09-12-owner-workflow.md` §4.
+
 Дедупликация при создании. Если у `task.create` задан `origin` и задача с
 той же парой `system` и `ref` уже есть, включая архивную, команда возвращает
 её с `existing: true`, ничего не меняет и событие не пишет. Агент сам решает,

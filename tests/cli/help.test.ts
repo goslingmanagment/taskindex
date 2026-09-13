@@ -180,6 +180,22 @@ describe('help is generated from one specification', () => {
     expect(flags).toContain('--today');
     expect(flags).toContain('--has-follow-up');
     expect(flags).toContain('--all');
+    expect(flags).toContain('--priority');
+    expect(flags).toContain('--label');
+    expect(flags).toContain('--closes');
+    expect(tasks.usage).toContain('--priority p1|p2|p3');
+    const create = renderHelp('task', 'create') as Rendered;
+    expect(
+      create.flags!.find((flag) => flag.flag === '--labels'),
+    ).toMatchObject({ type: 'list' });
+    expect(
+      create.flags!.find((flag) => flag.flag === '--priority'),
+    ).toMatchObject({ type: 'p1|p2|p3' });
+    expect(create.usage).toContain('--labels A,B');
+    const reorder = renderHelp('checklist', 'reorder') as Rendered;
+    expect(
+      reorder.flags!.find((flag) => flag.flag === '--item-ids'),
+    ).toMatchObject({ type: 'list' });
     expect(tasks.usage).toContain('--has-follow-up true|false');
     expect(READS.some((read) => read.group === 'me')).toBe(true);
     expect(READS.some((read) => read.group === 'openapi')).toBe(true);

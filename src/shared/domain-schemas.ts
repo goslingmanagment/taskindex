@@ -8,8 +8,13 @@ import {
   originSystemSchema,
   commandNameSchema,
   commandNames,
+  prioritySchema,
+  labelSchema,
+  labelsSchema,
+  closesSchema,
 } from './schemas.js';
 import { LIMITS } from './limits.js';
+import { DEFAULT_PRIORITY } from './labels.js';
 import { ENTITY_KINDS } from './entities.js';
 import {
   appearanceModeSchema,
@@ -71,6 +76,9 @@ export const taskSchema = z
     projectId: idSchema.nullable().describe('Проект или null'),
     title: z.string().min(1).max(LIMITS.taskTitle).describe('Название'),
     status: statusSchema,
+    priority: prioritySchema.default(DEFAULT_PRIORITY),
+    labels: labelsSchema.default([]),
+    closes: closesSchema.default(null),
     note: z.string().max(LIMITS.taskNote).describe('Заметка'),
     due: dateSchema,
     waitingFor: z.string().max(LIMITS.waitingFor).describe('Чего ждём'),
@@ -161,6 +169,10 @@ export const appearanceSchema = z
     id: idSchema.describe('Всегда owner: предпочтение одно на пространство'),
     mode: appearanceModeSchema,
     skinId: z.string().min(1).max(LIMITS.id).describe('Выбранный скин'),
+    hideP3: z
+      .boolean()
+      .default(false)
+      .describe('Скрывать P3 на доске и в списке'),
     revision,
     updatedAt: nullableStamp.describe('Когда владелец менял оформление'),
   })
@@ -173,6 +185,7 @@ export const defaultAppearance = (): z.infer<typeof appearanceSchema> => ({
   id: DEFAULT_APPEARANCE_ID,
   mode: DEFAULT_APPEARANCE_MODE,
   skinId: DEFAULT_SKIN_ID,
+  hideP3: false,
   revision: 1,
   updatedAt: null,
 });
@@ -422,7 +435,7 @@ const legacyExportFields = {
 };
 export const exportSchema = z
   .object({
-    formatVersion: z.literal(4),
+    formatVersion: z.literal(5),
     ...exportFields,
     operations: z.array(exportedOperationSchema),
     appearance: z
@@ -457,6 +470,16 @@ export const exportSchemaV3 = z
   .object({
     formatVersion: z.literal(3),
     ...legacyExportFields,
+    operations: z.array(exportedOperationSchema),
+    appearance: z.array(appearanceSchema),
+  })
+  .strict();
+// Format 4 (schema version 5): defaults restore the new fields without
+// rewriting historical events or saved operation results.
+export const exportSchemaV4 = z
+  .object({
+    formatVersion: z.literal(4),
+    ...exportFields,
     operations: z.array(exportedOperationSchema),
     appearance: z.array(appearanceSchema),
   })
@@ -552,6 +575,17 @@ export const contextSchema = z
     ),
     projects: z.array(projectSchema),
     originSystems: z.array(z.string()),
+    priorities: z.array(
+      z.object({ id: prioritySchema, name: z.string(), hint: z.string() }),
+    ),
+    labels: z.array(
+      z.object({
+        id: labelSchema,
+        name: z.string(),
+        color: z.string(),
+        description: z.string(),
+      }),
+    ),
     fields: jsonSchema.describe('JSON Schema полей задачи'),
     commands: z.array(
       z.object({
@@ -609,6 +643,10 @@ export const digestSchema = z
       tasks: z.number(),
       archived: z.number(),
       projects: z.number(),
+      p1: z.number().describe('Незавершённые P1 вне архива'),
+      otvet: z
+        .number()
+        .describe('Незавершённые задачи с меткой ответ вне архива'),
     }),
     operations: pageSchema(operationSummarySchema).extend({ href }),
     comments: pageSchema(digestCommentSchema)

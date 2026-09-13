@@ -1,4 +1,5 @@
 import { AREAS, STATUSES } from '@shared/model';
+import { LABELS, PRIORITIES } from '@shared/labels';
 import type {
   Agent,
   Changes,
@@ -36,8 +37,11 @@ const FIELD_LABELS: Record<string, string> = {
   name: 'Название',
   text: 'Текст',
   status: 'Состояние',
+  priority: 'Приоритет',
   area: 'Область',
   projectId: 'Направление',
+  labels: 'Метки',
+  closes: 'Закрывает',
   focus: 'Фокус',
   archived: 'Архив',
   due: 'Срок',
@@ -148,6 +152,22 @@ function checklistText(from: unknown, to: unknown): string {
     told.length > 1 ? `; ${told.slice(1).join('; ')}` : ''
   }`;
 }
+// Labels are a set; tell which names were added and removed.
+const labelName = (id: unknown) =>
+  LABELS.find((label) => label.id === id)?.name ?? String(id);
+function labelsText(from: unknown, to: unknown): string {
+  const before = Array.isArray(from) ? from : [],
+    after = Array.isArray(to) ? to : [];
+  const added = after.filter((id) => !before.includes(id)).map(labelName);
+  const removed = before.filter((id) => !after.includes(id)).map(labelName);
+  const told = [
+    ...added.map((name) => `+${name}`),
+    ...removed.map((name) => `−${name}`),
+  ];
+  if (!told.length)
+    return after.length ? after.map(labelName).join(', ') : 'без меток';
+  return told.join(', ');
+}
 function value(
   field: string,
   raw: unknown,
@@ -166,6 +186,12 @@ function value(
       ? { text: quote(project.name), note: CURRENT_NAMES }
       : { text: 'направление, которого больше нет' };
   }
+  if (field === 'priority') {
+    const level = PRIORITIES.find((priority) => priority.id === raw);
+    return { text: level ? level.name : 'другой приоритет' };
+  }
+  if (field === 'closes' && typeof raw === 'string' && raw)
+    return { text: `проблема «${raw}»` };
   if (raw === null || raw === undefined) return { text: 'не задано' };
   if (raw === true) return { text: 'да' };
   if (raw === false) return { text: 'нет' };
@@ -197,6 +223,8 @@ function line(
   creating = false,
 ): HistoryLine {
   const label = FIELD_LABELS[field]!;
+  if (field === 'labels')
+    return { label, text: labelsText(creating ? [] : change.from, change.to) };
   if (creating) {
     const shown = value(field, change.to, ctx);
     return {

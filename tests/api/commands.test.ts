@@ -743,15 +743,18 @@ describe('comments, snapshots, export and stream', () => {
     );
     const row = f.db.sqlite
       .prepare(
-        "SELECT json_extract(result, '$.events') AS e, LENGTH(result) AS n FROM operations WHERE id=?",
+        "SELECT result, json_extract(result, '$.events') AS e, LENGTH(result) AS n FROM operations WHERE id=?",
       )
-      .get('op-big') as { e: string | null; n: number };
+      .get('op-big') as { result: string; e: string | null; n: number };
     expect(row.e).toBe(null);
     // The plan expected under 500 bytes; a task.create result also carries the
     // record and the changes, so the note stays there twice out of three
     // copies. What the step removes is the third one, the journal copy.
     expect(row.n).toBeLessThan(JSON.stringify(created).length * 0.75);
-    expect(row.n).toBeLessThan(4000);
+    // Fields added to tasks legitimately grow the response. Check the stored
+    // content instead of a byte ceiling tied to an earlier task shape.
+    const { events: _events, ...withoutEvents } = created;
+    expect(JSON.parse(row.result)).toEqual(withoutEvents);
     const stored = (await (
       await f.app.request('/api/operations/op-big')
     ).json()) as { result: OperationSuccess };

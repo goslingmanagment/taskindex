@@ -22,6 +22,7 @@ import { assertNever, fail } from './errors.js';
 import { LIMITS } from './limits.js';
 import { DEFAULT_APPEARANCE_ID } from './appearance.js';
 import { ENTITIES } from './entities.js';
+import { DEFAULT_PRIORITY, LABEL_IDS, type LabelId } from './labels.js';
 type ChangeEffect = {
   entityKind: EntityKind;
   entityId: string;
@@ -65,7 +66,14 @@ type CommandContext = {
 // Owner-only fields: agents cannot set them directly; task.sync skips them.
 const ownerOnlyFields = ['focus', 'focusPosition'] as const;
 // Fields the source never overwrites once the owner touched the task.
-const ownerLockedFields = ['status', 'archived', 'focus', 'projectId', 'area'];
+const ownerLockedFields = [
+  'status',
+  'archived',
+  'focus',
+  'projectId',
+  'area',
+  'priority',
+];
 type CommandApplication = {
   state: WorkspaceState;
   result: CommandResult;
@@ -82,6 +90,11 @@ export function isSubjectField(kind: EntityKind, key: string): boolean {
 }
 const equal = (a: unknown, b: unknown) =>
   JSON.stringify(a) === JSON.stringify(b);
+// Order is not part of a label set. Normalize writes only, retaining invalid
+// entries so validation still rejects them instead of silently discarding them.
+function canonicalLabels(labels: readonly LabelId[] = []): LabelId[] {
+  return labels.toSorted((a, b) => LABEL_IDS.indexOf(a) - LABEL_IDS.indexOf(b));
+}
 // Records are told apart by shape: only tasks carry a checklist, only
 // comments a taskId.
 const isTask = (record: Entity): record is Task => 'checklist' in record;
@@ -342,6 +355,13 @@ export function assertInvariants(
         fail('invalid', 'Идентификатор шага уже занят другой задачей.');
       itemIds.add(item.id);
     }
+    if (
+      t.labels.length > LIMITS.taskLabels ||
+      new Set(t.labels).size !== t.labels.length
+    )
+      fail('invalid', 'Метки должны быть уникальными и помещаться в лимит.');
+    if (t.labels.some((label) => !LABEL_IDS.includes(label)))
+      fail('invalid', 'Метка отсутствует в каталоге.');
   }
 }
 // One command application: the cloned state, the context, the effects
@@ -521,9 +541,10 @@ function applyAppearanceUpdate(
 ): CommandResult {
   const record = get(s.state, 'appearance', DEFAULT_APPEARANCE_ID);
   const before = structuredClone(record);
-  const patch: Partial<Pick<Appearance, 'mode' | 'skinId'>> = {
+  const patch: Partial<Pick<Appearance, 'mode' | 'skinId' | 'hideP3'>> = {
     ...(p.mode !== undefined ? { mode: p.mode } : {}),
     ...(p.skinId !== undefined ? { skinId: p.skinId } : {}),
+    ...(p.hideP3 !== undefined ? { hideP3: p.hideP3 } : {}),
   };
   assertMerge(
     'appearance',
@@ -611,6 +632,9 @@ function createTask(
     projectId: fields.projectId ?? null,
     title: fields.title,
     status: fields.status ?? 'todo',
+    priority: fields.priority ?? DEFAULT_PRIORITY,
+    labels: canonicalLabels(fields.labels),
+    closes: fields.closes ?? null,
     note: fields.note ?? '',
     due: fields.due ?? null,
     waitingFor: fields.waitingFor ?? '',
@@ -668,6 +692,8 @@ function applyTaskSync(
         const { [key]: _dropped, ...rest } = fields;
         fields = rest;
       }
+  if (fields.labels)
+    fields = { ...fields, labels: canonicalLabels(fields.labels) };
   const existing = findByOrigin(s.state, origin);
   if (!existing) {
     const record = createTask(s, undefined, fields, origin, undefined);
@@ -738,6 +764,8 @@ function commitTaskPatch(
     string,
     unknown
   >;
+  if (Array.isArray(patch.labels))
+    patch.labels = canonicalLabels(patch.labels as LabelId[]);
   const moves =
     forceMove ||
     position !== undefined ||
@@ -1075,8 +1103,12 @@ export function applyEvent(
       revision: event.recordRevision,
       ...(event.entityKind !== 'comment' ? { updatedAt: event.at } : {}),
     } as Entity;
-    if (event.entityKind === 'task' && !prior && isTask(next))
+    if (event.entityKind === 'task' && !prior && isTask(next)) {
       next.commentCount = 0;
+      if (next.priority === undefined) next.priority = DEFAULT_PRIORITY;
+      if (next.labels === undefined) next.labels = [];
+      if (next.closes === undefined) next.closes = null;
+    }
     if (index < 0) list.push(next);
     else list[index] = next;
   }

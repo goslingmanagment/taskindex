@@ -192,7 +192,32 @@
   margin-top: 16px;
 }
 .editor-state {
+  display: grid;
+  gap: 14px;
   max-width: 225px;
+}
+.label-picker {
+  display: grid;
+  gap: 10px;
+}
+.label-option {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  cursor: pointer;
+}
+.label-option small {
+  flex-basis: 100%;
+  padding-left: 30px;
+  font-size: 12px;
+  color: var(--muted-foreground);
+}
+.field-hint {
+  margin: 6px 0 0;
+  font-size: 12px;
+  color: var(--muted-foreground);
 }
 .waiting-editor {
   background: var(--muted);

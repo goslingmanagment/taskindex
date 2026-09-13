@@ -30,6 +30,8 @@ function placeholder(entry: FlagSpec): string {
       return 'N';
     case 'json':
       return 'JSON';
+    case 'list':
+      return 'A,B';
     default: {
       const key = entry.key ?? entry.name;
       const identifier =
@@ -63,7 +65,9 @@ function typeLabel(entry: FlagSpec): string {
         ? 'boolean'
         : entry.kind === 'json'
           ? 'json'
-          : 'string';
+          : entry.kind === 'list'
+            ? 'list'
+            : 'string';
   return entry.nullable ? `${base}|null` : base;
 }
 

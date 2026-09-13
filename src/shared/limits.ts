@@ -5,6 +5,8 @@ export const LIMITS = {
   id: 80,
   taskTitle: 240,
   taskNote: 16000,
+  taskLabels: 8,
+  closes: 80,
   waitingFor: 240,
   checklistText: 500,
   checklistItems: 100,

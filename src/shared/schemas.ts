@@ -2,6 +2,7 @@ import { z } from 'zod';
 import { LIMITS } from './limits.js';
 import { appearanceModeSchema, skinIdSchema } from './appearance.js';
 import { ALL_PROJECTS, NO_PROJECT } from './constants.js';
+import { LABEL_IDS, PRIORITY_IDS } from './labels.js';
 /** @deprecated import `z` from 'zod' directly; the re-export is kept until plan 10 removes the last consumers. */
 export { z };
 export const idSchema = z
@@ -41,6 +42,24 @@ export const areaSchema = z
 export const statusSchema = z
   .enum(['todo', 'doing', 'waiting', 'done'])
   .describe('Состояние задачи');
+export const prioritySchema = z
+  .enum(PRIORITY_IDS)
+  .describe('Приоритет: p1 горит, p2 обычная (по умолчанию), p3 когда-нибудь');
+export const labelSchema = z
+  .enum(LABEL_IDS)
+  .describe('Метка из каталога labels ответа /api/context');
+export const labelsSchema = z
+  .array(labelSchema)
+  .max(LIMITS.taskLabels)
+  .refine((v) => new Set(v).size === v.length, 'Метки не должны повторяться')
+  .describe(`До ${LIMITS.taskLabels} меток из каталога, без повторов`);
+export const closesSchema = z
+  .string()
+  .regex(new RegExp(`^[a-z0-9-]{1,${LIMITS.closes}}$`))
+  .nullable()
+  .describe(
+    'Слаг проблемы из /OS/PROBLEMS.md, которую закрывает задача, или null',
+  );
 const text = (max: number, required = false) =>
   z
     .string()
@@ -116,6 +135,9 @@ const taskFieldsSchema = z
     due: dateSchema.optional(),
     waitingFor: text(LIMITS.waitingFor).optional().describe('Чего ждём'),
     followUp: dateSchema.optional(),
+    priority: prioritySchema.optional(),
+    labels: labelsSchema.optional(),
+    closes: closesSchema.optional(),
     focus: z
       .boolean()
       .optional()
@@ -260,11 +282,18 @@ const schemas = {
       baseRevision: revisionSchema,
       mode: appearanceModeSchema.optional(),
       skinId: skinIdSchema.optional(),
+      hideP3: z
+        .boolean()
+        .optional()
+        .describe('Скрывать P3 на доске и в списке'),
     })
     .strict()
     .refine(
-      (v) => v.mode !== undefined || v.skinId !== undefined,
-      'Укажите режим или скин',
+      (v) =>
+        v.mode !== undefined ||
+        v.skinId !== undefined ||
+        v.hideP3 !== undefined,
+      'Укажите режим, скин или фильтр P3',
     ),
   undo: z.union([
     z

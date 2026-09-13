@@ -20,6 +20,8 @@ export type StoredResult =
   | OperationError;
 import { commandNames } from '../shared/schemas.js';
 import { APPEARANCE_MODES } from '../shared/appearance.js';
+import { DEFAULT_PRIORITY, PRIORITY_IDS } from '../shared/labels.js';
+import type { LabelId } from '../shared/labels.js';
 const commandColumn = [...commandNames, 'batch'] as const;
 const time = (name: string) => integer(name, { mode: 'timestamp_ms' });
 export const settings = sqliteTable('settings', {
@@ -33,6 +35,7 @@ export const appearance = sqliteTable('appearance', {
   id: text('id').primaryKey(),
   mode: text('mode', { enum: APPEARANCE_MODES }).notNull(),
   skinId: text('skin_id').notNull(),
+  hideP3: integer('hide_p3', { mode: 'boolean' }).notNull().default(false),
   revision: integer('revision').notNull(),
   updatedAt: text('updated_at'),
 });
@@ -59,6 +62,15 @@ export const tasks = sqliteTable(
     projectId: text('project_id').references(() => projects.id),
     title: text('title').notNull(),
     status: text('status').notNull(),
+    // 0005 gives existing rows the same defaults used by creation and replay.
+    priority: text('priority', { enum: PRIORITY_IDS })
+      .notNull()
+      .default(DEFAULT_PRIORITY),
+    labels: text('labels', { mode: 'json' })
+      .$type<LabelId[]>()
+      .notNull()
+      .default(sql`'[]'`),
+    closes: text('closes'),
     note: text('note').notNull(),
     due: text('due'),
     waitingFor: text('waiting_for').notNull(),

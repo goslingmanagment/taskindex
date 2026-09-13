@@ -4,7 +4,7 @@ import type { CommandName } from '../shared/model.js';
 // The one declarative description of the CLI: help, argument parsing, the
 // allow-list of every read and the flags of every write derive from it.
 
-type FlagKind = 'string' | 'boolean' | 'number' | 'json';
+type FlagKind = 'string' | 'boolean' | 'number' | 'json' | 'list';
 
 export interface FlagSpec {
   // kebab-case, without the leading dashes
@@ -180,6 +180,13 @@ export const READS: ReadSpec[] = [
         'Выборка «На сегодня»: срок или дата возврата не позже сегодня',
       ),
       boolFilter('has-follow-up', 'С датой возврата или без', 'hasFollowUp'),
+      flag('priority', 'string', 'Приоритет', { values: ['p1', 'p2', 'p3'] }),
+      flag(
+        'label',
+        'string',
+        'Одна метка из каталога (taskindex context → labels)',
+      ),
+      flag('closes', 'string', 'Слаг проблемы из /OS/PROBLEMS.md'),
     ],
     summary: 'Список задач с фильтрами, постранично',
     example: 'taskindex tasks --area agency --status doing --all',
@@ -621,7 +628,7 @@ export const HELP_TEXT = {
   usage:
     'taskindex <group> [<action>] [args] [flags]; справка: taskindex help [<group> [<action>]] или <command> --help',
   payloads:
-    'Поля записи задаются флагами (--project-id, --waiting-for, --follow-up: kebab-case имён полей) или одним --payload JSON / --file. Флаги-объекты (--origin, --fields, --checklist, --position, --item-ids) принимают JSON. null очищает --due, --follow-up и --project-id. Полные схемы: taskindex context.',
+    'Поля записи задаются флагами (--project-id, --waiting-for, --follow-up: kebab-case имён полей) или одним --payload JSON / --file. Флаги-объекты (--origin, --fields, --checklist, --position) принимают JSON; флаги-списки (--labels, --item-ids) — список через запятую или JSON-массив. null очищает --due, --follow-up, --project-id и --closes. Полные схемы: taskindex context.',
   configuration: [
     'TASKINDEX_URL — адрес сервера',
     'TASKINDEX_TOKEN — ключ агента (через op, не в аргументах)',
@@ -648,6 +655,7 @@ interface JsonSchemaNode {
   anyOf?: JsonSchemaNode[];
   description?: string;
   properties?: Record<string, JsonSchemaNode>;
+  items?: JsonSchemaNode;
   required?: string[];
 }
 
@@ -661,6 +669,12 @@ const types = (node: JsonSchemaNode): string[] => {
 
 function kindOf(node: JsonSchemaNode): FlagKind {
   const found = types(node);
+  if (
+    found.includes('array') &&
+    node.items &&
+    types(node.items).includes('string')
+  )
+    return 'list';
   if (found.includes('object') || found.includes('array')) return 'json';
   if (found.includes('boolean')) return 'boolean';
   if (found.includes('integer') || found.includes('number')) return 'number';

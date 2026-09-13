@@ -22,6 +22,9 @@ const taskFields = new Set<keyof Task>([
   'projectId',
   'title',
   'status',
+  'priority',
+  'labels',
+  'closes',
   'note',
   'due',
   'waitingFor',
@@ -36,7 +39,7 @@ const taskFields = new Set<keyof Task>([
 ]);
 const projectFields = new Set<keyof Project>(['name', 'color', 'description']);
 const commentFields = new Set<keyof Comment>(['deletedAt']);
-const appearanceFields = new Set(['mode', 'skinId']);
+const appearanceFields = new Set(['mode', 'skinId', 'hideP3']);
 
 type EntityDefinition = {
   // Where the records of this kind live in the workspace state.

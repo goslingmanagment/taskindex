@@ -11,6 +11,9 @@ const editableFields = [
   'due',
   'waitingFor',
   'followUp',
+  'priority',
+  'labels',
+  'closes',
   'focus',
 ] as const;
 const same = (a: unknown, b: unknown) =>

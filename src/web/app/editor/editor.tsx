@@ -4,6 +4,7 @@
 // без нарушения модели содержимого.
 import { useEffect, useRef, useState } from 'react';
 import { LIMITS } from '@shared/limits';
+import { LABELS, PRIORITIES, type Priority } from '@shared/labels';
 import {
   AREAS,
   STATUSES,
@@ -19,6 +20,8 @@ import {
   Check,
   FileText,
   ListChecks,
+  Link2,
+  Tag,
   X,
 } from 'lucide-react';
 import { Button } from '../../ui/button';
@@ -28,6 +31,8 @@ import {
   CollapsibleContent,
 } from '../../ui/collapsible';
 import { Textarea } from '../../ui/textarea';
+import { Input } from '../../ui/input';
+import { Checkbox } from '../../ui/checkbox';
 import {
   Sheet,
   SheetContent,
@@ -69,6 +74,8 @@ export function TaskEditor({
     note: !!task.note,
     due: !!task.due,
     list: task.checklist.length > 0,
+    labels: draft.labels.length > 0,
+    closes: !!draft.closes,
   });
   const titleRef = useRef<HTMLTextAreaElement>(null);
   useEffect(() => {
@@ -87,6 +94,8 @@ export function TaskEditor({
     { key: 'note' as const, icon: <FileText />, label: 'Заметка' },
     { key: 'due' as const, icon: <CalendarDays />, label: 'Срок' },
     { key: 'list' as const, icon: <ListChecks />, label: 'Шаги' },
+    { key: 'labels' as const, icon: <Tag />, label: 'Метки' },
+    { key: 'closes' as const, icon: <Link2 />, label: 'Закрывает проблему' },
   ];
   return (
     <>
@@ -155,6 +164,19 @@ export function TaskEditor({
                   label="Состояние задачи"
                   items={STATUSES.map((s) => ({ value: s.id, label: s.name }))}
                   onChange={(v) => patch({ status: v as Status })}
+                />
+              </label>
+              <label htmlFor="task-priority">
+                Приоритет
+                <Choice
+                  id="task-priority"
+                  value={draft.priority}
+                  label="Приоритет задачи"
+                  items={PRIORITIES.map((priority) => ({
+                    value: priority.id,
+                    label: `${priority.name} · ${priority.hint}`,
+                  }))}
+                  onChange={(value) => patch({ priority: value as Priority })}
                 />
               </label>
             </div>
@@ -268,6 +290,73 @@ export function TaskEditor({
                 step={form.step}
                 setStep={form.setStep}
               />
+            )}
+            {sections.labels && (
+              <section className="detail-section">
+                <h3>
+                  <Tag size={17} />
+                  Метки
+                </h3>
+                <div className="label-picker">
+                  {LABELS.map((label) => (
+                    <label
+                      key={label.id}
+                      htmlFor={`label-${label.id}`}
+                      className="label-option"
+                    >
+                      <Checkbox
+                        id={`label-${label.id}`}
+                        aria-labelledby={`label-name-${label.id}`}
+                        aria-describedby={`label-description-${label.id}`}
+                        checked={draft.labels.includes(label.id)}
+                        onCheckedChange={(checked) =>
+                          patch({
+                            labels: LABELS.filter((item) =>
+                              item.id === label.id
+                                ? checked
+                                : draft.labels.includes(item.id),
+                            ).map((item) => item.id),
+                          })
+                        }
+                      />
+                      <span
+                        className="tag-dot"
+                        style={{ background: label.color }}
+                      />
+                      <span id={`label-name-${label.id}`}>
+                        <span className="sr-only">Метка: </span>
+                        {label.name}
+                      </span>
+                      <small id={`label-description-${label.id}`}>
+                        {label.description}
+                      </small>
+                    </label>
+                  ))}
+                </div>
+              </section>
+            )}
+            {sections.closes && (
+              <section className="detail-section">
+                <h3>
+                  <Link2 size={17} />
+                  Закрывает проблему
+                </h3>
+                <Input
+                  aria-label="Слаг проблемы"
+                  placeholder="Слаг из списка проблем"
+                  maxLength={LIMITS.closes}
+                  value={draft.closes ?? ''}
+                  onChange={(event) =>
+                    patch({
+                      closes: event.target.value.trim().toLowerCase() || null,
+                    })
+                  }
+                />
+                <p className="field-hint">
+                  Слаг из /OS/PROBLEMS.md: строчные латинские буквы, цифры и
+                  дефис.
+                </p>
+              </section>
             )}
             <div className="secondary-actions">
               <Button

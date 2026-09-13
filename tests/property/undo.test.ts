@@ -37,6 +37,9 @@ export const UNDO_SUBJECT_FIELDS = [
   'projectId',
   'title',
   'status',
+  'priority',
+  'labels',
+  'closes',
   'note',
   'due',
   'waitingFor',
@@ -117,6 +120,15 @@ const dateOf = (value: number) =>
 // Every generated action names the field it changes and the value the model
 // expects afterwards.
 const intents = [
+  (v: number) => ({
+    field: 'priority' as const,
+    value: (['p1', 'p2', 'p3'] as const)[v % 3],
+  }),
+  (v: number) => ({
+    field: 'labels' as const,
+    value: v % 2 ? ['otvet'] : ['dengi', 'lora'],
+  }),
+  (v: number) => ({ field: 'closes' as const, value: `slug-${v}` }),
   (v: number) => ({ field: 'note' as const, value: `note ${v}` }),
   (v: number) => ({
     field: 'status' as const,
@@ -180,6 +192,7 @@ describe('undo restores the subject fields of the oracle', () => {
           }));
           // The model: the value each touched field must have after the batch.
           const model: Partial<Subject>[] = [{}, {}, {}];
+          let changedInBatch = false;
           for (const { task: which, intent, value } of actions) {
             const t = w.state.tasks[which]!;
             const wanted = intents[intent]!(value);
@@ -187,6 +200,7 @@ describe('undo restores the subject fields of the oracle', () => {
             const after = w.state.tasks[which]!;
             const previous = stamps[which]!;
             if (changes.length) {
+              changedInBatch = true;
               expect(after.revision).toBeGreaterThan(previous.revision);
               expect(after.updatedAt > previous.updatedAt).toBe(true);
               stamps[which] = {
@@ -204,10 +218,21 @@ describe('undo restores the subject fields of the oracle', () => {
               expect(task[field as SubjectField]).toEqual(value);
           });
           const touched = model.map((m) => Object.keys(m).length > 0);
-          w.apply(
-            { command: 'undo', payload: { operationId: 'batch' } },
-            'undo',
+          const undoBatch = () =>
+            w.apply(
+              { command: 'undo', payload: { operationId: 'batch' } },
+              'undo',
+            );
+          const netChanged = w.state.tasks.some(
+            (task, i) => !subjectEqual(snapshot[i]!, subject(task)),
           );
+          if (netChanged) undoBatch();
+          else
+            expect(undoBatch).toThrow(
+              changedInBatch
+                ? 'У операции нет отменяемого предметного эффекта.'
+                : 'У операции нет отменяемых событий.',
+            );
           expect(w.state.tasks.map(subject)).toEqual(snapshot);
           w.state.tasks.forEach((task, i) => {
             const changed = !subjectEqual(snapshot[i]!, {

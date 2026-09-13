@@ -10,6 +10,9 @@ export function makeTask(
   return {
     projectId: null,
     status: 'todo',
+    priority: 'p2',
+    labels: [],
+    closes: null,
     note: '',
     due: null,
     waitingFor: '',

@@ -39,6 +39,40 @@ const project = (fields: Partial<Project> = {}): Project => ({
   ...fields,
 });
 describe('command builders', () => {
+  it('TI-086 saves and clears priority, labels and closes without changing order', () => {
+    const from = base();
+    const edited = {
+      ...from,
+      priority: 'p1' as const,
+      labels: ['otvet' as const],
+      closes: 'lora-km-of-vacancy',
+    };
+    const command = taskSaveCommand(edited, from);
+    expect(command).toEqual({
+      command: 'task.save',
+      payload: {
+        id: from.id,
+        baseRevision: 3,
+        fields: {
+          priority: 'p1',
+          labels: ['otvet'],
+          closes: 'lora-km-of-vacancy',
+        },
+      },
+    });
+    expect(valid(command)).toBe(true);
+    expect(
+      taskSaveCommand({ ...edited, labels: [], closes: null }, edited).payload,
+    ).toEqual({
+      id: from.id,
+      baseRevision: 3,
+      fields: { labels: [], closes: null },
+    });
+    expect(taskSaveCommand({ ...from, labels: [] }, from).payload).toEqual({
+      id: from.id,
+      baseRevision: 3,
+    });
+  });
   it('task.save carries only the changed fields', () => {
     const from = base();
     const command = taskSaveCommand({ ...from, note: 'Новая заметка' }, from);

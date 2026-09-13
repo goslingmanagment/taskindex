@@ -58,3 +58,11 @@ export async function chooseSkin(skinId: (typeof SKINS)[number]['id']) {
     payload: { baseRevision: appearance?.revision ?? 0, skinId },
   });
 }
+// The P3 filter is kept with the owner's theme and synced between devices.
+export async function chooseHideP3(hideP3: boolean) {
+  const appearance = workspaceStore.getSnapshot().data.appearance[0];
+  await workspaceStore.submit({
+    command: 'appearance.update',
+    payload: { baseRevision: appearance?.revision ?? 0, hideP3 },
+  });
+}

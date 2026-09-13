@@ -42,6 +42,36 @@ const texts = (changes: Changes, command?: string) =>
 const step = (id: string, text: string, done = false) => ({ id, text, done });
 
 describe('TI-032 the history speaks the words of the workspace', () => {
+  it('TI-086 tells priority, labels and closes changes in words', () => {
+    expect(
+      texts({
+        priority: { from: 'p2', to: 'p1' },
+        labels: { from: ['otvet'], to: ['dengi', 'lora'] },
+        closes: { from: null, to: 'lora-km-of-vacancy' },
+      }),
+    ).toEqual([
+      'Приоритет: P2 → P1',
+      'Метки: +деньги, +Lora, −ответ',
+      'Закрывает: не задано → проблема «lora-km-of-vacancy»',
+    ]);
+    expect(texts({ labels: { from: ['otvet'], to: [] } })).toEqual([
+      'Метки: −ответ',
+    ]);
+    expect(texts({ closes: { from: 'lora-km-of-vacancy', to: null } })).toEqual(
+      ['Закрывает: проблема «lora-km-of-vacancy» → не задано'],
+    );
+    expect(
+      texts(
+        {
+          createdAt: { from: null, to: '2026-09-09T09:00:00.000Z' },
+          title: { from: null, to: 'Новая' },
+          priority: { from: null, to: 'p1' },
+          labels: { from: null, to: ['otvet'] },
+        },
+        'task.create',
+      ),
+    ).toEqual(['Название: «Новая»', 'Приоритет: P1', 'Метки: +ответ']);
+  });
   it('names areas and statuses instead of their ids', () => {
     expect(
       texts({

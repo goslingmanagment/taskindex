@@ -34,6 +34,31 @@ const read = async (f: ReturnType<typeof api>, role = 'owner') => {
 };
 
 describe('appearance preference of the owner', () => {
+  it('TI-086: the owner stores hideP3, an agent may not, and the flag alone is a valid update', async () => {
+    const f = api();
+    const set = success(
+      await f.post({
+        command: 'appearance.update',
+        payload: { baseRevision: 1, hideP3: true },
+      }),
+    );
+    expect(set.results[0]!.record).toMatchObject({ hideP3: true, revision: 2 });
+    expect((await read(f)).body).toMatchObject({ hideP3: true });
+    const agent = await f.post(
+      {
+        command: 'appearance.update',
+        payload: { baseRevision: 2, hideP3: false },
+      },
+      { role: 'agent' },
+    );
+    expect(agent.status).toBe(403);
+    const empty = await f.post({
+      command: 'appearance.update',
+      payload: { baseRevision: 2 },
+    });
+    expect(empty.status).toBe(400);
+    expect(empty.body).toMatchObject({ code: 'invalid' });
+  });
   it('answers the default preference before anything was chosen', async () => {
     const f = api();
     const { status, body } = await read(f);
@@ -42,6 +67,7 @@ describe('appearance preference of the owner', () => {
       id: DEFAULT_APPEARANCE_ID,
       mode: 'system',
       skinId: 'classic',
+      hideP3: false,
       revision: 1,
       updatedAt: null,
     });
@@ -155,11 +181,13 @@ describe('appearance preference of the owner', () => {
     expect(undone.results[0]!.record).toMatchObject({
       mode: 'system',
       skinId: 'classic',
+      hideP3: false,
       revision: 3,
     });
     expect((await read(f)).body).toMatchObject({
       mode: 'system',
       skinId: 'classic',
+      hideP3: false,
     });
     expect(f.state().tasks[0]!.revision).toBe(1);
   });
@@ -188,6 +216,7 @@ describe('appearance preference of the owner', () => {
         id: DEFAULT_APPEARANCE_ID,
         mode: 'system',
         skinId: 'classic',
+        hideP3: false,
         revision: 1,
         updatedAt: null,
       },
@@ -199,6 +228,7 @@ describe('appearance preference of the owner', () => {
     expect(readState(target).appearance[0]).toMatchObject({
       mode: 'system',
       skinId: 'classic',
+      hideP3: false,
     });
   });
 

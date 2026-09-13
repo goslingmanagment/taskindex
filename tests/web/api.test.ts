@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { afterEach, expect, it, vi } from 'vitest';
-import { request, ApiError } from '../../src/web/app/api';
+import { request, ApiError, ContractMismatch } from '../../src/web/app/api';
 
 afterEach(() => vi.unstubAllGlobals());
 
@@ -59,7 +59,25 @@ it('не пускает в состояние тело, которое не со
   );
   const schema = z.object({ tasks: z.array(z.string()) });
   await expect(request('/api/snapshot', schema)).rejects.toMatchObject({
-    detail: { code: 'unavailable', retryable: false },
+    detail: { code: 'unavailable', retryable: true },
     message: 'Ответ сервера не соответствует контракту.',
+  });
+});
+
+it('TI-086 classifies an incompatible 2xx body as an unknown outcome', async () => {
+  vi.stubGlobal(
+    'fetch',
+    vi.fn().mockResolvedValue(Response.json({ ok: true, unexpected: 1 })),
+  );
+  const result = request(
+    '/api/commands',
+    z.strictObject({ ok: z.literal(true) }),
+    { method: 'POST', body: '{}' },
+  );
+  await expect(result).rejects.toBeInstanceOf(ContractMismatch);
+  await expect(result).rejects.toMatchObject({
+    status: 200,
+    // The editor retains its submission and operationId for unknown outcomes.
+    detail: { code: 'unavailable', retryable: true },
   });
 });

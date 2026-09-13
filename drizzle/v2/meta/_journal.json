@@ -36,6 +36,13 @@
       "when": 1789078354179,
       "tag": "0004_focus_desk",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "6",
+      "when": 1789262246596,
+      "tag": "0005_priority_labels_closes",
+      "breakpoints": true
     }
   ]
 }

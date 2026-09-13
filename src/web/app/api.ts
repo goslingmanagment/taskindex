@@ -11,6 +11,10 @@ export class ApiError extends Error {
     return this.detail.current;
   }
 }
+// A successful HTTP response outside this bundle's contract does not establish
+// the outcome of a write. Editors keep its intent; the store stops sending until
+// a reload brings a compatible bundle (TI-086).
+export class ContractMismatch extends ApiError {}
 // TI-005: every answer of the server is parsed by the shared schema before the
 // store sees it. A body that does not match the contract is a failure of the
 // request, not data: the client must not build state out of it.
@@ -78,11 +82,11 @@ export async function request<T>(
   }
   const parsed = schema.safeParse(value);
   if (!parsed.success)
-    throw new ApiError(
+    throw new ContractMismatch(
       {
         ok: false,
         code: 'unavailable',
-        retryable: false,
+        retryable: true,
         message: 'Ответ сервера не соответствует контракту.',
       },
       response.status,

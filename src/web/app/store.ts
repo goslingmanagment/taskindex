@@ -20,7 +20,7 @@ import {
 import { z } from 'zod';
 import { batchEnvelopeSchema, commandEnvelopeSchema } from '@shared/schemas';
 const envelopeSchema = z.union([commandEnvelopeSchema, batchEnvelopeSchema]);
-import { ApiError, request } from './api';
+import { ApiError, ContractMismatch, request } from './api';
 import { browserStorage, quarantine, type StorageLike } from './drafts';
 type PendingOperation = {
   envelope: OperationEnvelope;
@@ -475,6 +475,12 @@ export class WorkspaceStore {
     if (flight) return flight;
     const promise = (async () => {
       for (let attempt = 0; ; attempt++) {
+        // Every POST, including recovery and a retry after backoff, uses this
+        // guard. A contract change never discards the persisted intent.
+        if (this.state.incompatible) {
+          this.status(id, 'unknown', SERVER_UPDATED_MESSAGE);
+          throw new Error(SERVER_UPDATED_MESSAGE);
+        }
         this.status(id, 'sending');
         try {
           const result = await this.transport(
@@ -495,6 +501,11 @@ export class WorkspaceStore {
           this.acknowledge(result);
           return result;
         } catch (error) {
+          if (error instanceof ContractMismatch) {
+            this.status(id, 'unknown', SERVER_UPDATED_MESSAGE);
+            this.publish({ incompatible: true });
+            throw error;
+          }
           // Конверт уже помечен «не подтверждено» и остаётся в pending: его
           // судьбу решит recover, а не повтор с тем же телом.
           if (error instanceof MismatchedResponse) throw error;
@@ -582,7 +593,13 @@ export class WorkspaceStore {
         if (operation.result.ok) this.acknowledge(operation.result);
         else if (!operation.result.retryable) this.finish(envelope.operationId);
       } catch (error) {
-        if (error instanceof ApiError && error.detail.code === 'not_found')
+        if (error instanceof ContractMismatch) {
+          this.status(envelope.operationId, 'unknown', SERVER_UPDATED_MESSAGE);
+          this.publish({ incompatible: true });
+        } else if (
+          error instanceof ApiError &&
+          error.detail.code === 'not_found'
+        )
           ignoreRejection(
             this.send(envelope),
             'повтор конверта при восстановлении: результат виден в pending',

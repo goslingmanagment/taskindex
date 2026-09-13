@@ -2,6 +2,7 @@ import { readFileSync } from 'node:fs';
 import { describe, it, expect } from 'vitest';
 import type { z } from 'zod';
 import { LIMITS } from '../../src/shared/limits.js';
+import { LABEL_IDS } from '../../src/shared/labels.js';
 import {
   batchEnvelopeSchema,
   checklistSchema,
@@ -66,6 +67,16 @@ function boundary(
 }
 describe('LIMITS is the one source of domain limits (TI-060)', () => {
   it('entity schemas accept the limit and refuse limit + 1', () => {
+    boundary(
+      taskSchema,
+      (n) => task({ closes: 'x'.repeat(n) }),
+      LIMITS.closes,
+      'task.closes',
+    );
+    expect(taskSchema.safeParse(task({ labels: [...LABEL_IDS] })).success).toBe(
+      true,
+    );
+    expect(LABEL_IDS.length).toBeLessThanOrEqual(LIMITS.taskLabels);
     boundary(
       taskSchema,
       (n) => task({ title: 'x'.repeat(n) }),

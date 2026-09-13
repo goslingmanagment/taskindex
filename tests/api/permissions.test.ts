@@ -564,6 +564,104 @@ describe('undo authority', () => {
   });
 });
 describe('owner fields need an explicit confirmation from agents', () => {
+  it('TI-086: a priority the owner set is an owner field; labels and closes follow the same rule', async () => {
+    const f = await seed(setup());
+    success(
+      await f.post({
+        command: 'task.update',
+        payload: {
+          id: 'ta',
+          baseRevision: task(f, 'ta').revision,
+          priority: 'p1',
+          labels: ['otvet'],
+          closes: 'lora-km-of-vacancy',
+        },
+      }),
+    );
+    expect(task(f, 'ta').ownerFields).toEqual(
+      expect.arrayContaining(['priority', 'labels', 'closes']),
+    );
+    const refused = await f.post(
+      {
+        command: 'task.update',
+        payload: {
+          id: 'ta',
+          baseRevision: task(f, 'ta').revision,
+          priority: 'p2',
+          labels: [],
+          closes: null,
+        },
+      },
+      { role: 'agent' },
+    );
+    expect(refused.status).toBe(403);
+    expect(refused.body).toMatchObject({
+      code: 'forbidden',
+      message: expect.stringContaining(PROTECTED),
+      conflicts: [
+        {
+          entityKind: 'task',
+          entityId: 'ta',
+          fields: ['priority', 'labels', 'closes'],
+        },
+      ],
+    });
+    expect(task(f, 'ta').priority).toBe('p1');
+    const confirmed = success(
+      await f.post(
+        {
+          command: 'task.update',
+          payload: {
+            id: 'ta',
+            baseRevision: task(f, 'ta').revision,
+            priority: 'p2',
+            labels: [],
+            closes: null,
+          },
+        },
+        { role: 'agent', confirmOwnerFields: true },
+      ),
+    );
+    expect(confirmed.results[0]).toMatchObject({
+      confirmedOwnerFields: ['priority', 'labels', 'closes'],
+    });
+    expect(task(f, 'ta')).toMatchObject({
+      priority: 'p2',
+      labels: [],
+      closes: null,
+    });
+  });
+  it('TI-086: a field the owner never changed stays open to a direct agent command, as every other field (spec §4.1)', async () => {
+    const f = await seed(setup());
+    // The owner changes the note only: ownerFields = ['note'].
+    success(
+      await f.post({
+        command: 'task.update',
+        payload: {
+          id: 'ta',
+          baseRevision: task(f, 'ta').revision,
+          note: 'Владелец',
+        },
+      }),
+    );
+    expect(task(f, 'ta').ownerFields).toEqual(['note']);
+    const direct = await f.post(
+      {
+        command: 'task.update',
+        payload: {
+          id: 'ta',
+          baseRevision: task(f, 'ta').revision,
+          priority: 'p1',
+          labels: ['otvet'],
+          closes: 'lora-km-of-vacancy',
+        },
+      },
+      { role: 'agent' },
+    );
+    expect(direct.status).toBe(200);
+    expect(success(direct).results[0]!.confirmedOwnerFields).toBeUndefined();
+    expect(task(f, 'ta')).toMatchObject({ priority: 'p1', labels: ['otvet'] });
+  });
   it('requires confirmOwnerFields for a direct command that changes a field the owner decided on, and records the confirmation', async () => {
     const f = await seed(setup());
     success(

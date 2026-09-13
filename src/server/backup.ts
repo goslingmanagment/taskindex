@@ -29,6 +29,7 @@ import {
   exportSchemaV1,
   exportSchemaV2,
   exportSchemaV3,
+  exportSchemaV4,
 } from '../shared/domain-schemas.js';
 import { DEFAULT_APPEARANCE_ID } from '../shared/appearance.js';
 import { ENTITIES } from '../shared/entities.js';
@@ -58,18 +59,18 @@ export function exportWorkspace(db: DatabaseHandle): ExportData {
     };
   });
 }
-// Reads an export of the current format, of format 2 (schema version 3, no
-// appearance record) or of format 1 (schema versions 1-2, operations without
-// operationSeq). Format 1 gets positions in (createdAt, id) order, exactly
-// what 0002_operation_seq.sql does to an existing database; format 2 gets the
-// default preference, exactly what a database without an `appearance` row
-// answers. See drizzle/v2/README.md for the data migration rule.
+// Reads formats 1-5. Older formats lack task fields (4), desk keys (3),
+// appearance (2) or operationSeq (1). Defaults match their SQL migrations;
+// operation positions use (createdAt, id). See drizzle/v2/README.md.
 export function upgradeExport(raw: unknown): ExportData {
   const version = z
     .object({ formatVersion: z.unknown() })
     .loose()
     .parse(raw).formatVersion;
   if (version === FORMAT_VERSION) return exportSchema.parse(raw);
+  // Record schemas fill the defaults that 0005 wrote into existing rows.
+  if (version === 4)
+    return { ...exportSchemaV4.parse(raw), formatVersion: FORMAT_VERSION };
   if (version === 3) {
     const legacy = exportSchemaV3.parse(raw);
     return {

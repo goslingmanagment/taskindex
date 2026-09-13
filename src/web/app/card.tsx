@@ -13,6 +13,7 @@ import { Menu } from '@base-ui/react/menu';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { AREAS, STATUSES, type Project, type Task } from '@shared/model';
+import { LABELS } from '@shared/labels';
 import { dateLabel } from '@shared/queries';
 import { Button } from '../ui/button';
 import { runCardAction as safely } from './card-menu';
@@ -123,6 +124,7 @@ export const TaskCardContent = memo(function TaskCardContent({
         data-task-open={task.id}
         onClick={() => openTask(task.id)}
         aria-label={'Открыть: ' + task.title}
+        title={task.closes ? `Закрывает проблему ${task.closes}` : undefined}
       />
       <TaskCardBody
         task={task}
@@ -196,6 +198,14 @@ const TaskCardBody = memo(function TaskCardBody({
             <Check size={12} className="check-hover" />
           )}
         </button>
+        {task.priority !== 'p2' && (
+          <span
+            className={`priority-mark ${task.priority === 'p1' ? 'priority-p1' : 'priority-p3'}`}
+            aria-label={`Приоритет ${task.priority.toUpperCase()}`}
+          >
+            {task.priority.toUpperCase()}
+          </span>
+        )}
         <h3>{task.title}</h3>
       </div>
       {task.status === 'waiting' && task.waitingFor && (
@@ -221,6 +231,23 @@ const TaskCardBody = memo(function TaskCardBody({
           <span className="project-tag">
             <span className="tag-dot" style={{ background: p.color }} />
             {p.name}
+          </span>
+        )}
+        {task.labels.map((id) => {
+          const label = LABELS.find((item) => item.id === id);
+          return (
+            <span key={id} className="label-chip" data-label={id}>
+              <span
+                className="tag-dot"
+                style={{ background: label?.color ?? 'currentColor' }}
+              />
+              {label?.name ?? id}
+            </span>
+          );
+        })}
+        {task.closes && (
+          <span className="closes-chip">
+            закрывает <code>{task.closes}</code>
           </span>
         )}
         {task.createdBy.startsWith('agent:') && !task.ownerTouchedAt && (

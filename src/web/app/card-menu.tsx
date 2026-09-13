@@ -1,6 +1,7 @@
 import { Menu } from '@base-ui/react/menu';
 import { ArrowUp, Archive, Star } from 'lucide-react';
 import { STATUSES, type Task } from '@shared/model';
+import { PRIORITIES } from '@shared/labels';
 import {
   DropdownMenuContent,
   DropdownMenuItem,
@@ -72,6 +73,27 @@ function CardActions({ task, pending }: { task: Task; pending: boolean }) {
         >
           <span className="status-dot" style={{ background: status.color }} />
           {status.name}
+        </DropdownMenuItem>
+      ))}
+      <DropdownMenuSeparator />
+      {PRIORITIES.map((level) => (
+        <DropdownMenuItem
+          key={level.id}
+          disabled={pending || task.priority === level.id}
+          onClick={() =>
+            runCardAction(
+              saveFields(
+                task,
+                { priority: level.id },
+                `Приоритет: ${level.name}`,
+              ),
+            )
+          }
+        >
+          <span className={`priority-mark priority-${level.id}`}>
+            {level.name}
+          </span>
+          {level.hint}
         </DropdownMenuItem>
       ))}
       <DropdownMenuSeparator />

@@ -7,6 +7,7 @@ import type {
   Status,
 } from './model.js';
 import { LIMITS } from './limits.js';
+import type { Priority, LabelId } from './labels.js';
 import { isAgentActor, projectFilterToId } from './constants.js';
 export const compareStrings = (a: string, b: string) => {
   if (a < b) return -1;
@@ -164,6 +165,9 @@ type TaskFilter = {
   focus?: boolean;
   today?: boolean;
   hasFollowUp?: boolean;
+  priority?: Priority;
+  label?: LabelId;
+  closes?: string;
 };
 export function queryTasks(
   tasks: Task[],
@@ -186,6 +190,9 @@ export function queryTasks(
       (filter.focus === undefined || t.focus === filter.focus) &&
       (filter.hasFollowUp === undefined ||
         Boolean(t.followUp) === filter.hasFollowUp) &&
+      (!filter.priority || t.priority === filter.priority) &&
+      (!filter.label || t.labels.includes(filter.label)) &&
+      (!filter.closes || t.closes === filter.closes) &&
       (!filter.today ||
         (t.status !== 'done' &&
           ((t.due !== null && t.due <= today) ||

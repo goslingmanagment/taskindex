@@ -88,6 +88,6 @@ export type FocusGroup = {
   tasks: Task[];
 };
 // Export format: 2 adds operationSeq to operations, 3 adds the appearance
-// preference, 4 adds focusKey and focusLeftAt to tasks (2026-09-10); formats
-// 1-3 are still imported, see exportSchemaV1..V3 and admin.upgradeExport.
-export const FORMAT_VERSION = 4;
+// preference, 4 adds focusKey and focusLeftAt, 5 adds priority, labels,
+// closes and hideP3 (2026-09-13). Formats 1-4 are still imported.
+export const FORMAT_VERSION = 5;

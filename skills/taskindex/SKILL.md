@@ -92,6 +92,16 @@ taskindex task sync --payload '{"origin":{"system":"telegram","ref":"chat:messag
 описание задачи меняй по поручению. Для атомарного редакторского сохранения
 используй `task save --payload` с `fields`, изменённым статусом и чеклистом.
 
+Приоритет, метки и проблема: `--priority p1|p2|p3` (по умолчанию `p2`; P1 ставит
+владелец словами, порядок карточек остаётся ручным), `--labels otvet,dengi`
+(только слаги из `labels` в `taskindex context`, до 8 без повторов; JSON-массив
+тоже принимается, `--labels '[]'` снимает все метки), `--closes lora-km-of-vacancy`
+(слаг проблемы из `/OS/PROBLEMS.md`, `null` снимает). Чтение: `tasks --priority p1`,
+`tasks --label otvet`, `tasks --closes SLUG`; `digest` несёт `counts.p1` и
+`counts.otvet` для незавершённых задач вне архива. После касания владельца
+`task sync` пропускает `priority` (`skipped: owner` или `locked`), а прямая команда
+над `priority`, `labels`, `closes` из `ownerFields` требует `--confirm-owner-fields`.
+
 Массовые изменения передавай через `batch --file commands.json`, где файл содержит
 массив `{command,payload}`. Пакет атомарен. `--dry-run` показывает предполагаемый
 результат; полномочия даёт поручение владельца, а не dry-run. `--dry-run` входит
@@ -118,9 +128,10 @@ taskindex task sync --payload '{"origin":{"system":"telegram","ref":"chat:messag
 Оформление доски (`taskindex appearance get` — режим, скин, `revision`) меняет
 только владелец командой `taskindex appearance set --mode system|light|dark
 --skin-id ID` (без `--base-revision` CLI берёт revision из `appearance get`);
-агенту сервер отвечает 403 `forbidden`.
-Поле, которое владелец правил руками (`ownerFields` задачи, после первого
-ручного сохранения — статус, архив, проект, область и чеклист целиком), прямая
+галочка «Без P3» — поле того же предпочтения:
+`taskindex appearance set --hide-p3 true|false`. Агенту сервер отвечает 403 `forbidden`.
+Поле, которое владелец действительно изменил (`ownerFields` задачи; чеклист
+защищён целиком после изменения любого шага), прямая
 команда меняет только с флагом `--confirm-owner-fields`; без него 403 с
 `conflicts[].fields`. Флаг — след поручения в «Активности»
 (`confirmedOwnerFields` в результате операции), а не доказательство: ставь его,
@@ -159,12 +170,12 @@ taskindex task sync --payload '{"origin":{"system":"telegram","ref":"chat:messag
 generation. `generation_changed` требует свежего контекста и новой оценки
 действия после восстановления базы (`cursor reset`, затем `digest`).
 
-`taskindex export --out FILE` пишет полный экспорт формата 3: у каждой операции
+`taskindex export --out FILE` пишет полный экспорт формата 5: у каждой операции
 обязателен `operationSeq` (позиция в журнале операций), в `settings` обязателен
 `schema_version`, и рядом с задачами лежит запись `appearance` — предпочтение
-оформления владельца, ровно одна. Форматы 1 и 2 (без `operationSeq`, без
-`appearance`) читаются импортом с подстановкой значений по умолчанию, но не
-пишутся.
+оформления владельца, ровно одна. Формат 5 включает `priority`, `labels`, `closes`
+и `appearance.hideP3`. Форматы 1–4 читаются импортом с восстановлением
+отсутствующих полей по умолчанию, но не пишутся.
 
 Коды выхода: 0 успех; 1 сервер, сеть или неизвестный исход; 2 аргументы;
 3 конфликт/неприменимая отмена/смена поколения; 4 нет доступа. Смотри JSON `code`,

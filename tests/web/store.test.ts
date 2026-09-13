@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest';
+import { afterEach, describe, it, expect, vi } from 'vitest';
 import type {
   DomainEvent,
   OperationSuccess,
@@ -6,8 +6,11 @@ import type {
   StoredOperation,
 } from '../../src/shared/model';
 import { defaultAppearance } from '../../src/shared/domain-schemas';
-import { WorkspaceStore } from '../../src/web/app/store';
-import { ApiError } from '../../src/web/app/api';
+import {
+  SERVER_UPDATED_MESSAGE,
+  WorkspaceStore,
+} from '../../src/web/app/store';
+import { ApiError, ContractMismatch, request } from '../../src/web/app/api';
 import { makeTask } from './fixtures';
 import { taskSaveCommand } from '../../src/web/app/commands';
 class MemoryStorage {
@@ -94,7 +97,194 @@ const unavailable = () =>
   );
 const noopPage = { generation: 'gen1', events: [], latestSeq: 0, more: false };
 const spin = () => new Promise((resolve) => setTimeout(resolve, 0));
+afterEach(() => vi.unstubAllGlobals());
 describe('ordered operation store', () => {
+  it('TI-086 preserves an incompatible successful write and reconciles it by GET after reload', async () => {
+    const storage = new MemoryStorage();
+    const id = 'op-contract';
+    const applied = event(1, 1, 1, id);
+    const result = success([applied], id);
+    const paths: string[] = [];
+    const envelopes: string[] = [];
+    const known: StoredOperation = {
+      id,
+      operationSeq: 1,
+      status: 200,
+      ok: true,
+      actorId: 'owner',
+      actorLabel: 'Дмитрий',
+      command: 'task.save',
+      createdAt: applied.at,
+      taskCount: 1,
+      titles: ['Название 1'],
+      firstSeq: 1,
+      lastSeq: 1,
+      result,
+    };
+    vi.stubGlobal('fetch', async (path: string, init?: RequestInit) => {
+      paths.push(path);
+      if (init?.method === 'POST') {
+        if (typeof init.body !== 'string')
+          throw new Error('Expected a JSON request body');
+        envelopes.push(init.body);
+        // The server applied the write, but this bundle cannot read its reply.
+        return Response.json({ ...result, futureField: true });
+      }
+      return Response.json(known);
+    });
+    const store = new WorkspaceStore(request, storage);
+    store.loadSnapshot(snapshot());
+    const attempt = store.submit(
+      taskSaveCommand({ ...task(), title: 'Название 1' }, task()),
+      id,
+    );
+    await expect(attempt).rejects.toThrow('контракту');
+    expect(store.getSnapshot().pending).toMatchObject([
+      {
+        envelope: { operationId: id },
+        status: 'unknown',
+        message: SERVER_UPDATED_MESSAGE,
+      },
+    ]);
+    expect(store.getSnapshot().incompatible).toBe(true);
+    expect(storage.getItem(`taskindex/ops/${id}`)).toBe(envelopes[0]);
+    await expect(
+      store.submit(
+        taskSaveCommand({ ...task(), note: 'Ещё' }, task()),
+        'op-next',
+      ),
+    ).rejects.toThrow(SERVER_UPDATED_MESSAGE);
+    await expect(store.retry(id)).rejects.toThrow(SERVER_UPDATED_MESSAGE);
+    expect(paths).toEqual(['/api/commands']);
+    expect(storage.getItem('taskindex/ops/op-next')).toBeNull();
+
+    const reloaded = new WorkspaceStore(request, storage);
+    reloaded.loadSnapshot({
+      ...snapshot(),
+      schemaVersion: 5,
+      seq: 1,
+      tasks: [{ ...task(), title: 'Название 1', revision: 2 }],
+    });
+    await reloaded.recover();
+    expect(paths).toEqual(['/api/commands', `/api/operations/${id}`]);
+    expect(reloaded.getSnapshot().pending).toEqual([]);
+    expect(reloaded.getSnapshot().confirmed.tasks[0]!.title).toBe('Название 1');
+    expect(storage.getItem(`taskindex/ops/${id}`)).toBeNull();
+  });
+
+  it('TI-086 prevents recovery and manual retry from posting through an incompatible bundle', async () => {
+    const storage = new MemoryStorage();
+    const id = 'op-before-update';
+    const envelope = {
+      ...taskSaveCommand({ ...task(), title: 'Новое' }, task()),
+      operationId: id,
+      generation: 'gen1',
+    };
+    storage.setItem(`taskindex/ops/${id}`, JSON.stringify(envelope));
+    const paths: string[] = [];
+    const store = new WorkspaceStore(async <T>(path: string): Promise<T> => {
+      paths.push(path);
+      if (path === '/api/commands') return success([], id) as T;
+      throw new ApiError(
+        {
+          ok: false,
+          code: 'not_found',
+          retryable: false,
+          message: 'Операция неизвестна.',
+        },
+        404,
+      );
+    }, storage);
+    store.loadSnapshot(snapshot());
+    store.loadSnapshot({ ...snapshot(), schemaVersion: 5 });
+    await store.recover();
+    await spin();
+    expect(paths).toEqual([`/api/operations/${id}`]);
+    await expect(store.retry(id)).rejects.toThrow(SERVER_UPDATED_MESSAGE);
+    expect(store.getSnapshot().pending).toMatchObject([
+      { envelope, status: 'unknown', message: SERVER_UPDATED_MESSAGE },
+    ]);
+    expect(storage.getItem(`taskindex/ops/${id}`)).toBe(
+      JSON.stringify(envelope),
+    );
+  });
+
+  it('TI-086 marks an incompatible recovery reply unknown and stops writes', async () => {
+    const storage = new MemoryStorage();
+    const id = 'op-recover-contract';
+    storage.setItem(
+      `taskindex/ops/${id}`,
+      JSON.stringify({
+        ...taskSaveCommand({ ...task(), title: 'Новое' }, task()),
+        operationId: id,
+        generation: 'gen1',
+      }),
+    );
+    vi.stubGlobal('fetch', async () => Response.json({ unexpected: true }));
+    const store = new WorkspaceStore(request, storage);
+    store.loadSnapshot(snapshot());
+    await store.recover();
+    expect(store.getSnapshot().incompatible).toBe(true);
+    expect(store.getSnapshot().pending).toMatchObject([
+      { status: 'unknown', message: SERVER_UPDATED_MESSAGE },
+    ]);
+    expect(storage.getItem(`taskindex/ops/${id}`)).not.toBeNull();
+  });
+
+  it('TI-086 stops a scheduled retry when another operation detects a contract change', async () => {
+    const posts: string[] = [];
+    const storage = new MemoryStorage();
+    let resume!: () => void;
+    vi.stubGlobal('fetch', async (_path: string, init?: RequestInit) => {
+      if (typeof init?.body !== 'string')
+        throw new Error('Expected a JSON request body');
+      const { operationId } = JSON.parse(init.body) as {
+        operationId: string;
+      };
+      posts.push(operationId);
+      return operationId === 'op-backoff'
+        ? Response.json(unavailable().detail, { status: 503 })
+        : Response.json({ ...success([], operationId), futureField: true });
+    });
+    const store = new WorkspaceStore(
+      request,
+      storage,
+      () =>
+        new Promise<void>((resolve) => {
+          resume = resolve;
+        }),
+    );
+    store.loadSnapshot(snapshot());
+    const first = store.submit(
+      taskSaveCommand({ ...task(), title: 'Первое' }, task()),
+      'op-backoff',
+    );
+    const rejected = expect(first).rejects.toThrow(SERVER_UPDATED_MESSAGE);
+    await spin();
+    await expect(
+      store.submit(
+        taskSaveCommand({ ...task(), note: 'Второе' }, task()),
+        'op-contract-change',
+      ),
+    ).rejects.toBeInstanceOf(ContractMismatch);
+    resume();
+    await rejected;
+    expect(posts).toEqual(['op-backoff', 'op-contract-change']);
+    expect(store.getSnapshot().pending).toMatchObject([
+      {
+        envelope: { operationId: 'op-backoff' },
+        status: 'unknown',
+        message: SERVER_UPDATED_MESSAGE,
+      },
+      {
+        envelope: { operationId: 'op-contract-change' },
+        status: 'unknown',
+        message: SERVER_UPDATED_MESSAGE,
+      },
+    ]);
+    expect(storage.length).toBe(2);
+  });
+
   it('TI-085 retains untouched records during optimistic writes and status publishes', () => {
     const store = new WorkspaceStore(
       <T>() => new Promise<T>(() => {}),

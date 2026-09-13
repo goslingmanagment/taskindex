@@ -41,6 +41,8 @@ export function WorkspaceHeader({
   searchRef,
   mobileSearch,
   searchPending,
+  hideP3,
+  onHideP3,
   onMobileSearch,
   onCreate,
   onEditProject,
@@ -52,6 +54,8 @@ export function WorkspaceHeader({
   searchRef: RefObject<HTMLInputElement | null>;
   mobileSearch: boolean;
   searchPending: boolean;
+  hideP3: boolean;
+  onHideP3: (value: boolean) => void;
   onMobileSearch: (open: boolean) => void;
   onCreate: () => void;
   onEditProject: (project: Project) => void;
@@ -230,6 +234,20 @@ export function WorkspaceHeader({
                 onCheckedChange={(v) => update({ today: !!v }, true)}
               />
               <span>На сегодня</span>
+            </label>
+          )}
+          {!globalView && !archive && (
+            <label
+              htmlFor="hide-p3"
+              className={'today-toggle ' + (hideP3 ? 'active' : '')}
+            >
+              <Checkbox
+                id="hide-p3"
+                checked={hideP3}
+                disabled={disabled}
+                onCheckedChange={onHideP3}
+              />
+              <span>Без P3</span>
             </label>
           )}
           {searching && (

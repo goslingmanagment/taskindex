@@ -47,6 +47,108 @@ function json(body: unknown, status = 200): Response {
   });
 }
 
+it('TI-086 accepts comma and JSON label sets, explicit clearing and task filters', async () => {
+  const sent: Record<string, unknown>[] = [];
+  const test = await setup((url, init) => {
+    if (url.pathname === '/api/context') return json({ generation: 'g_first' });
+    sent.push(JSON.parse(requestBody(init)) as Record<string, unknown>);
+    return json(success(init));
+  });
+  expect(
+    await test.run([
+      'task',
+      'create',
+      '--area',
+      'agency',
+      '--title',
+      'T',
+      '--priority',
+      'p1',
+      '--labels',
+      'otvet, dengi',
+      '--closes',
+      'lora-km-of-vacancy',
+    ]),
+  ).toBe(0);
+  expect(sent[0]).toMatchObject({
+    command: 'task.create',
+    payload: {
+      priority: 'p1',
+      labels: ['otvet', 'dengi'],
+      closes: 'lora-km-of-vacancy',
+    },
+  });
+  expect(
+    await test.run([
+      'task',
+      'update',
+      't1',
+      '--base-revision',
+      '3',
+      '--labels',
+      '["lora"]',
+      '--closes',
+      'null',
+    ]),
+  ).toBe(0);
+  expect(sent[1]).toMatchObject({
+    payload: { labels: ['lora'], closes: null },
+  });
+  for (const empty of ['', '[]']) {
+    expect(
+      await test.run([
+        'task',
+        'update',
+        't1',
+        '--base-revision',
+        '3',
+        '--labels',
+        empty,
+      ]),
+    ).toBe(0);
+    expect(sent.at(-1)).toMatchObject({ payload: { labels: [] } });
+  }
+  expect(
+    await test.run([
+      'task',
+      'create',
+      '--area',
+      'agency',
+      '--title',
+      'T',
+      '--labels',
+      'nope',
+    ]),
+  ).toBe(2);
+  expect(test.output.at(-1)).toMatchObject({
+    code: 'invalid_arguments',
+    issues: [expect.objectContaining({ path: 'labels[0]' })],
+  });
+  const urls: string[] = [];
+  const reads = await setup((url) => {
+    urls.push(`${url.pathname}${url.search}`);
+    return json({
+      generation: 'g',
+      seq: 0,
+      items: [],
+      more: false,
+      nextCursor: null,
+    });
+  });
+  expect(
+    await reads.run([
+      'tasks',
+      '--priority',
+      'p1',
+      '--label',
+      'otvet',
+      '--closes',
+      'x-1',
+    ]),
+  ).toBe(0);
+  expect(urls.at(-1)).toBe('/api/tasks?priority=p1&label=otvet&closes=x-1');
+});
+
 async function setup(
   handler: (url: URL, init?: RequestInit) => Promise<Response> | Response,
   me: Record<string, unknown> = actor,

@@ -1,7 +1,13 @@
 import { createRoute } from '@hono/zod-openapi';
 import type { OpenAPIHono } from '@hono/zod-openapi';
 import { z } from 'zod';
-import { areaSchema, statusSchema } from '../../shared/schemas.js';
+import {
+  areaSchema,
+  closesSchema,
+  labelSchema,
+  prioritySchema,
+  statusSchema,
+} from '../../shared/schemas.js';
 import {
   appearanceSchema,
   commentSchema,
@@ -123,6 +129,14 @@ export const registerReadRoutes = <T extends OpenAPIHono<Env>>(
                 .optional()
                 .describe('Идентификатор проекта, all или none'),
               status: statusSchema.optional(),
+              priority: prioritySchema.optional(),
+              label: labelSchema
+                .optional()
+                .describe('Только задачи с этой меткой'),
+              closes: closesSchema
+                .unwrap()
+                .optional()
+                .describe('Только задачи, закрывающие эту проблему /OS'),
               archived: flag('Только архив'),
               focus: flag('Только выбранные владельцем'),
               today: flag(

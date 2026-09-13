@@ -11,6 +11,7 @@ import {
   searchTasks,
   todayInTimezone,
   byOrder,
+  queryTasks,
 } from '../../src/shared/queries.js';
 import { z } from 'zod';
 import {
@@ -21,7 +22,15 @@ import {
   commandSchema,
   dateSchema,
   operationEnvelopeSchema,
+  labelsSchema,
+  prioritySchema,
+  closesSchema,
 } from '../../src/shared/schemas.js';
+import {
+  LABEL_IDS,
+  PRIORITY_IDS,
+  DEFAULT_PRIORITY,
+} from '../../src/shared/labels.js';
 import type {
   Command,
   CommandName,
@@ -161,6 +170,7 @@ describe('command unions are generated from the payload registry (TI-019)', () =
     ]);
     expect([...ENTITIES.comment.subjectFields]).toEqual(['deletedAt']);
     expect([...ENTITIES.appearance.subjectFields].sort()).toEqual([
+      'hideP3',
       'mode',
       'skinId',
     ]);
@@ -187,6 +197,81 @@ const create = (id: string, patch: Partial<Task> = {}): Task => {
   return { ...result.state.tasks[0]!, ...patch };
 };
 describe('shared queries and validation', () => {
+  it('TI-086 validates the fixed catalogues, unique label sets and problem slugs', () => {
+    expect(new Set(LABEL_IDS).size).toBe(LABEL_IDS.length);
+    expect(PRIORITY_IDS).toEqual(['p1', 'p2', 'p3']);
+    expect(DEFAULT_PRIORITY).toBe('p2');
+    for (const value of ['p0', 'P1', '', null])
+      expect(prioritySchema.safeParse(value).success).toBe(false);
+    expect(labelsSchema.safeParse(['otvet', 'dengi']).success).toBe(true);
+    expect(labelsSchema.safeParse([]).success).toBe(true);
+    for (const value of [['otvet', 'otvet'], ['custom'], 'otvet', null])
+      expect(labelsSchema.safeParse(value).success).toBe(false);
+    for (const value of [null, 'lora-km-of-vacancy', 'a-1'])
+      expect(closesSchema.safeParse(value).success).toBe(true);
+    for (const value of ['', 'Проблема', 'Upper', 'with space', 'a/b'])
+      expect(closesSchema.safeParse(value).success).toBe(false);
+  });
+  it('TI-086 creates tasks with explicit priority, label and problem defaults', () => {
+    expect(create('defaults')).toMatchObject({
+      priority: 'p2',
+      labels: [],
+      closes: null,
+    });
+  });
+  it('TI-086 accepts priority, labels and closes in every task field payload', () => {
+    const fields = {
+      priority: 'p1',
+      labels: ['otvet', 'dengi'],
+      closes: 'lora-km-of-vacancy',
+    };
+    const creating = { area: 'agency', title: 'Карточка', ...fields };
+    for (const command of [
+      { command: 'task.create', payload: creating },
+      {
+        command: 'task.update',
+        payload: { id: 't', baseRevision: 1, ...fields },
+      },
+      { command: 'task.save', payload: { id: 't', baseRevision: 1, fields } },
+      {
+        command: 'task.sync',
+        payload: {
+          origin: { system: 'os', ref: 't', version: '1' },
+          fields: creating,
+        },
+      },
+    ])
+      expect(commandSchema.safeParse(command).success, command.command).toBe(
+        true,
+      );
+  });
+  it('TI-086 filters by priority, label and problem while retaining manual order', () => {
+    const tasks = [
+      create('later', {
+        priority: 'p1',
+        labels: ['otvet'],
+        closes: 'x-1',
+        orderKey: 'a2',
+      }),
+      create('first', { priority: 'p3', labels: ['otvet'], orderKey: 'a0' }),
+      create('middle', { priority: 'p2', orderKey: 'a1' }),
+    ];
+    expect(queryTasks(tasks, [], {}).map((t) => t.id)).toEqual([
+      'first',
+      'middle',
+      'later',
+    ]);
+    expect(queryTasks(tasks, [], { priority: 'p1' }).map((t) => t.id)).toEqual([
+      'later',
+    ]);
+    expect(queryTasks(tasks, [], { label: 'otvet' }).map((t) => t.id)).toEqual([
+      'first',
+      'later',
+    ]);
+    expect(queryTasks(tasks, [], { closes: 'x-1' }).map((t) => t.id)).toEqual([
+      'later',
+    ]);
+  });
   it('uses the workspace timezone and existing calendar dates', () => {
     expect(todayInTimezone('Europe/Moscow', '2026-09-08T22:30:00Z')).toBe(
       '2026-09-09',
