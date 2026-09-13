@@ -25,7 +25,8 @@ remote_copy="/data/backups/pull-$stamp.db"
 remote_env=${TASKINDEX_REMOTE_ENV:-/etc/taskindex/taskindex.env}
 app="cd '$repo_on_host' && set -a && . '$remote_env' && set +a && bash deploy/compose.sh exec -T app"
 ssh "$host" "$app node deploy/database.mjs backup '$remote_copy' >/dev/null \
-  && $app cat '$remote_copy' && $app rm -f '$remote_copy'" > "$target/taskindex.db"
+  && $app cat '$remote_copy' \
+  && $app rm -f '$remote_copy' '$remote_copy-wal' '$remote_copy-shm'" > "$target/taskindex.db"
 ssh "$host" "$app taskindex-admin export" > "$target/export.json"
 size=$(wc -c < "$target/taskindex.db" | tr -d ' ')
 [[ $size -gt 4096 ]] || { printf 'Backup looks empty (%s bytes): %s\n' "$size" "$target" >&2; exit 1; }

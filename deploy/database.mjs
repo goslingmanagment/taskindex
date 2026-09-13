@@ -8,6 +8,10 @@ import { randomUUID } from 'node:crypto';
 
 const [command, argument] = process.argv.slice(2);
 const source = process.env.DATABASE_PATH || '/data/taskindex.db';
+// The backup directory is fixed in the image; tests point it at a temporary directory.
+const backupRoot = resolve(
+  process.env.TASKINDEX_BACKUP_ROOT || '/data/backups',
+);
 /** @param {import('better-sqlite3').Database} db */
 const inspect = (db) => {
   const rows = /** @type {{ key: string, value: string }[]} */ (
@@ -37,8 +41,8 @@ try {
       const metadata = inspect(db);
       if (!integrityOk(db)) throw new Error('Database integrity check failed');
       if (command === 'backup') {
-        if (!argument || !resolve(argument).startsWith('/data/backups/'))
-          throw new Error('Backup output must be inside /data/backups/');
+        if (!argument || !resolve(argument).startsWith(`${backupRoot}/`))
+          throw new Error(`Backup output must be inside ${backupRoot}/`);
         await mkdir(dirname(argument), { recursive: true, mode: 0o700 });
         try {
           await access(argument);
@@ -47,11 +51,13 @@ try {
           if (errorCode(error) !== 'ENOENT') throw error;
         }
         await db.backup(argument);
-        const check = new Database(argument, {
-          readonly: true,
-          fileMustExist: true,
-        });
+        // The copy inherits the WAL flag of the source, so every open creates -wal/-shm
+        // next to it and a read-only connection cannot remove them on close (TI-088).
+        // A writable connection switches the copy to rollback journal mode: one
+        // standalone file, and closing it leaves no side files behind.
+        const check = new Database(argument, { fileMustExist: true });
         try {
+          check.pragma('journal_mode = DELETE');
           if (!integrityOk(check))
             throw new Error('Backup integrity check failed');
         } finally {
