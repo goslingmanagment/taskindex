@@ -108,6 +108,11 @@ Drizzle хранятся в `drizzle/v2/meta`. SQL проверяется до �
 
 ## Агенты
 
+Агент это ключ в базе (`taskindex-admin agent create`, `agent-key create`), CLI
+`taskindex` и скилл `skills/taskindex/`: `SKILL.md` задаёт поведение (правило
+записи «показать и дождаться „да“», что куда, «что горит», шпаргалка),
+`reference.md` — технику (источники, курсоры, восстановление, коды).
+
 ```sh
 npm run admin -- agent create --id codex-local --label 'Codex'
 npm run admin -- agent-key create --agent codex-local --scope write --out /protected/taskindex-key.json
@@ -119,15 +124,33 @@ npm run cli -- me                   # актор ключа: id, label, scope
 
 Ключ сохраняется в новый файл с правами 0600; в выводе только его идентификатор
 и путь. Перенесите ключ в 1Password. Клиент получает `TASKINDEX_URL` и
-`TASKINDEX_TOKEN` из окружения, например через `op run`. Для ограниченного агента
-можно выдать scope `tasks` или `read`; ротация ключа сохраняет идентичность агента.
-Справка строится из спецификации команд (`src/cli/spec.ts`) и схем payload:
+`TASKINDEX_TOKEN` из окружения. Для ограниченного агента можно выдать scope
+`tasks` или `read`; ротация ключа сохраняет идентичность агента. Справка
+строится из спецификации команд (`src/cli/spec.ts`) и схем payload:
 `taskindex help <group> [<action>]` или `<команда> --help` печатают JSON с
 `usage`, `flags`, `example`, `exitCodes`, `errorCodes`. Вывод всегда JSON.
-Подробности команд, повторов и разрешений — в [скилле](skills/taskindex/SKILL.md).
-Установка скилла в Claude Code: `ln -s "$(pwd)/skills/taskindex" ~/.claude/skills/taskindex`
-из корня репозитория; для Codex текст скилла подключается через `AGENTS.md`
-или вставляется в поручение.
+
+Установка на мак владельца, из чекаута с нужной версией:
+
+```sh
+bash scripts/agent/install-mac.sh
+printf 'TASKINDEX_URL=https://tasks.gosling-agency.ru\nTASKINDEX_TOKEN=%s\n' \
+  "$(op read 'op://Private/<элемент ключа>/credential')" > ~/.config/taskindex/claude-mac.env
+chmod 600 ~/.config/taskindex/*.env
+TASKINDEX_AGENT=claude-mac taskindex me
+```
+
+Скрипт собирает пакет, ставит его глобально (`npm i -g` из `npm pack`), пишет
+обёртку `~/.local/bin/taskindex` и симлинки скилла в `~/.claude/skills/taskindex`
+(Claude Code) и `~/.agents/skills/taskindex` (Codex читает этот каталог по своей
+документации; оба инструмента идут по симлинку). Обёртка выбирает ключ по среде
+запуска: `CLAUDECODE` → `claude-mac`, `CODEX_THREAD_ID` → `codex-mac`, иначе
+нужен `TASKINDEX_AGENT`; заданные явно `TASKINDEX_URL` и `TASKINDEX_TOKEN`
+(sandbox из `npm run sandbox`) имеют приоритет. Ключи лежат только в
+`~/.config/taskindex/<agent>.env` (каталог 0700, файлы 0600), мастер-копия в
+1Password; `op` при вызовах не нужен. Бобр (OpenClaw): тот же каталог скилла
+через `openclaw skills install`, ключ в окружении шлюза. Обновление после
+релиза: повторить `install-mac.sh` из чекаута релизного коммита.
 
 CLI сохраняет конверт до отправки в
 `$XDG_STATE_HOME/taskindex/servers/<сервер>/agents/<агент>/ops` (агент

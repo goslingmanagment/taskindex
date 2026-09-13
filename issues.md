@@ -22,6 +22,8 @@
 
 **Резервные копии 2026-09-13:** добавлена и закрыта [TI-088](#ti-088) (копии `database.mjs backup` оставляли рядом `-wal` и `-shm`; P3). Состав: 88 записей — **80 исправлено, 1 в работе, 4 открыто, 2 отложено, 1 снятая гипотеза**.
 
+**Скилл 2026-09-14:** добавлена и закрыта [TI-089](#ti-089) (скилл агента и сценарий приёмки, волна 2а; P2): сцена спеки §1.1 пройдена в sandbox из Claude Code и из Codex. Этой сценой закрыта [TI-086](#ti-086); [TI-033](#ti-033) закрыта справочником `reference.md`. Состав: 89 записей — **83 исправлено, 3 открыто, 2 отложено, 1 снятая гипотеза**.
+
 ## С чего начать
 
 Раздел сохранён как исторический порядок работ на 2026-09-10; актуальный статус каждой карточки — в индексе и в абзацах «Закрытие»/«Отложено».
@@ -120,7 +122,7 @@
 | [TI-030](#ti-030) | P2 | ИСПРАВЛЕНО | Русские ошибки и доступные имена интерфейса |
 | [TI-031](#ti-031) | P2 | ИСПРАВЛЕНО | Единое русское склонение количества задач |
 | [TI-032](#ti-032) | P2 | ИСПРАВЛЕНО | История изменений на языке пользователя |
-| [TI-033](#ti-033) | P2 | ОТКРЫТО | Сверка документации с реализованными контрактами |
+| [TI-033](#ti-033) | P2 | ИСПРАВЛЕНО | Сверка документации с реализованными контрактами |
 | [TI-034](#ti-034) | P2 | ОТЛОЖЕНО | Рабочая приёмка после исправлений |
 | [TI-035](#ti-035) | P1 | ИСПРАВЛЕНО | CLI пересылает чужой outbox под текущим агентом |
 | [TI-036](#ti-036) | P1 | ИСПРАВЛЕНО | Проверка API-ключа пишет auth-метаданные при каждом GET |
@@ -173,9 +175,10 @@
 | [TI-083](#ti-083) | P2 | ИСПРАВЛЕНО | Длительное обновление большого списка после серии агентских записей |
 | [TI-084](#ti-084) | P3 | ИСПРАВЛЕНО | Переход проекта на Node 26 |
 | [TI-085](#ti-085) | P2 | ИСПРАВЛЕНО | Задержки поиска, переключения вида и переноса на большой доске |
-| [TI-086](#ti-086) | P2 | В РАБОТЕ | Приоритет, метки, `closes` и галочка «Без P3» |
+| [TI-086](#ti-086) | P2 | ИСПРАВЛЕНО | Приоритет, метки, `closes` и галочка «Без P3» |
 | [TI-087](#ti-087) | P3 | ИСПРАВЛЕНО | Согласовать инструменты сборки с Node 26 |
 | [TI-088](#ti-088) | P3 | ИСПРАВЛЕНО | Копии базы оставляют рядом файлы `-wal` и `-shm` |
+| [TI-089](#ti-089) | P2 | ИСПРАВЛЕНО | Скилл агента и сценарий приёмки (волна 2а) |
 
 <a id="issue-cards"></a>
 
@@ -1381,7 +1384,7 @@
 
 ### TI-033 — Сверка документации с реализованными контрактами
 
-**Тип:** Документация. **Статус:** ОТКРЫТО. **Приоритет:** P2.
+**Тип:** Документация. **Статус:** ИСПРАВЛЕНО. **Приоритет:** P2.
 
 **Источники:** [FI:B6](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/review-5-ai-ready.md:137); [FI:A13](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/review-5-ai-ready.md:107); [FQ:§10](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/review-4-quality.md:184); [FA:Ж4](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/review-2-architecture.md:100); [FA:Ж6](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/review-2-architecture.md:102); [FA:Ж8](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/review-2-architecture.md:104); [FA:Ж9](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/review-2-architecture.md:105); [FA:Ж12](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/review-2-architecture.md:108); [FA:Ж13](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/reports/review-2-architecture.md:109); [BACKLOG: BL-DOCS](/Users/dmitriy/code/taskindex/BACKLOG.md); [Исходное workflow-ревью BACKLOG](/Users/dmitriy/code/taskindex/docs/audits/2026-09-08-workflows/claude-review/REPORT.md); [ASTRA-VS-FABLE §5 (Ж4)](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/ASTRA-VS-FABLE.md:174); [План 12, доп. шаг 11](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/12-ai-readiness-and-docs.md:438).
 
@@ -1418,6 +1421,8 @@
 - Строки 122–128 смешивают `ownerFields` прямых команд с дополнительными ограничениями `task.sync` после любого ручного изменения. В исполняемой проверке владелец изменил только `title`; агент затем успешно изменил `area` прямой командой и сохранил владельческий title. Для `task.sync` ограничение области после owner touch действительно действует. Это принятое различие контрактов, не обход прав.
 
 **Доказательства и критерий повторного закрытия.** [API/CLI REPORT](/Users/dmitriy/code/.worktrees/taskindex-qa-20260912/qa/2026-09-12/api-cli/REPORT.md) и [результаты 28 сценариев](/Users/dmitriy/code/.worktrees/taskindex-qa-20260912/qa/2026-09-12/api-cli/run-2026-09-12T13-06-28.832Z/results.json); фактический [export](/Users/dmitriy/code/.worktrees/taskindex-qa-20260912/qa/2026-09-12/api-cli/run-2026-09-12T13-06-28.832Z/export.json). Привести три абзаца SKILL к текущему формату, пагинации и различию direct/sync; подтвердить соответствие примеров CLI/OpenAPI и сохранить принятые owner-решения. Новый ID не выдаётся: причина уже покрыта TI-033.
+
+**Закрытие (2026-09-14).** Скилл переписан в волне 2а ([TI-089](#ti-089)): техника вынесена в `skills/taskindex/reference.md`, и три расхождения устранены там по коду: экспорт описан как формат 5 (`domain-schemas.ts`, `exportSchema`); обход `/api/tasks` описан как keyset (`src/server/routes/reads.ts`, описание маршрута): запись между страницами не даёт `409`, `list_changed_during_walk` это предупреждение, настоящий `409` на курсоре CLI перезапускает сам; защита полей владельца описана двумя правилами: `ownerFields` только для прямых команд (флаг `--confirm-owner-fields`) и отдельные пропуски `task sync` (`status`, архив, `area`, `project`, `priority` после первого касания; `labels`, `closes` только если владелец их менял). Тест `tests/cli/docs.test.ts` («SKILL.md teaches the write rule and the confirmation flag, reference.md the cursor, me and the restart rules») сверяет команды и флаги обоих файлов со спецификацией CLI и требует фразы `не даёт \`409\``, `ownerFields`, `activity --actor agent:ID`; `formatVersion: 3` запрещён. Revision: ветка `skill-wave2`.
 
 **Связанные планы:** [astra-33-contract-documentation-reconciliation.md](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/astra-33-contract-documentation-reconciliation.md); [12-ai-readiness-and-docs.md](/Users/dmitriy/code/taskindex/docs/plans/2026-09-08-v2-review/12-ai-readiness-and-docs.md).
 
@@ -3019,7 +3024,7 @@
 
 ### TI-086 — Приоритет, метки, `closes` и галочка «Без P3»
 
-**Тип:** Продуктовая работа. **Статус:** В РАБОТЕ. **Приоритет:** P2.
+**Тип:** Продуктовая работа. **Статус:** ИСПРАВЛЕНО. **Приоритет:** P2.
 
 **Источники:** брейншторм владельца 2026-09-12/13, спека [docs/specs/2026-09-12-owner-workflow.md](/Users/dmitriy/code/taskindex/docs/specs/2026-09-12-owner-workflow.md) §4; план [docs/plans/2026-09-13-priority-labels-closes.md](/Users/dmitriy/code/taskindex/docs/plans/2026-09-13-priority-labels-closes.md); ревью Codex спеки 2026-09-13 (ручной порядок вместо сортировки, формат экспорта 5).
 
@@ -3038,6 +3043,8 @@
 **Закрытие (подготовлено 2026-09-13, до коммита).** Реализация в ветке `ti-086`, база `0901fd2`; revision реализации `6777666` (коммит 2026-09-13 по «да коммить» владельца, слит в main fast-forward; спека и дорожная карта отдельным коммитом `9147de2`). При слиянии 2026-09-13 полный e2e выявил гонку в изменённом тесте `B06 live refresh retains loaded activity pages`: при 100 и более операциях счётчик строк не отличает обновлённый список от прежнего, и клик попадал в предыдущую операцию; тест теперь ждёт строку новой операции по `data-operation-id`, после правки check 431/431, B06 трижды подряд и полный e2e 53 passed зелёные. `node scripts/gate.mjs` зелёный: `npm run check` — 431/431, e2e — 53 passed и 3 существующих opt-in пропуска TI-085; все шесть сценариев `tests/e2e/priority.spec.ts` прошли. Миграция на копии пустой `data/dev.db` прошла 1→6; заполненная схема 5→6 и сохранённые ответы проверены `tests/api/migration-compat.test.ts`. Собранный CLI проверен в одноразовом sandbox, скриншоты 390 px / 1440 px просмотрены. Полный лог `work/gate.log`, отчёт `test-results/gate.json`. Эталон `docs/reference/v2-validation` не переснят; выпуск и сцена §1.1 после установки скилла остаются отдельными действиями, поэтому статус пока «В РАБОТЕ». Перед первой записью в день выпуска TI-086 перезагрузить старые вкладки.
 
 **Выпуск (2026-09-13).** Владелец: «давай задеплой». Образ `linux/amd64` собран CI для `fe1f8b0` (run 34776018103, check и image успешны), загружен на VPS по подписанной ссылке артефакта, метка `org.opencontainers.image.revision` проверена `deploy.sh`. Деплой `fe1f8b01e3c8-20260913T202946Z-19236` завершился с кодом 0 за 15 с (20:29:44–20:29:59 UTC): копия базы `/data/backups/20260913T202946Z-fe1f8b01e3c8.db`, миграция схемы 5 → 6, реплика подтверждена (txid 18 = replica_txid 18 до остановки, 20 = 20 после старта), запись открыта. `/health`: build `fe1f8b0`, schemaVersion 6, writes open; извне `/` 200, `/health` 403, `/api/me` 401. Копии базы до и после релиза на маке (`~/Backups/taskindex/releases/2026-09-13-ti-086/`), обе `integrity_check=ok`, в базе 0 задач. Прежний образ `0901fd2` и снимок релиза сохранены. Карточка остаётся «В РАБОТЕ» до сцены §1.1 спеки после волны 2.
+
+**Закрытие (2026-09-14).** Сцена спеки §1.1 пройдена после волны 2а ([TI-089](#ti-089)) в sandbox из чекаута `skill-wave2` из Claude Code (сессия `claude -p`, ключ `claude`, scope write) и из Codex (`codex exec`, ключ `codex`, scope tasks): карточка с P1 и меткой `dengi` показана и не записана до «да» (`activity --actor agent:ID` без операций), правка срока показана заново, после «да» создана (`priority: p1`, `labels: ["dengi"]`, `due: 2026-09-15`, направление `content`), владелец перенёс карточку (`ownerFields: ["status"]`), «закрой её» показано как «В работе → Готово. Закрываю?» и записано только после «да» с `--confirm-owner-fields` (`confirmedOwnerFields: ["status"]` в сохранённой операции). Значок P1 и чип метки на карточке проверены в `tests/e2e/priority.spec.ts` при выпуске. Карточка закрыта.
 
 <a id="ti-087"></a>
 
@@ -3082,6 +3089,26 @@
 **Связанные записи:** [TI-085](#ti-085) (копии релиза), [TI-086](#ti-086) (выпуск, при котором замечено).
 
 **Закрытие (2026-09-13).** Тест падал на исходном коде (`copy.db-shm`, `copy.db-wal` рядом с копией), после исправления проходит; `npm run check` — 66 файлов, 432/432. Revision: коммит `TI-088: не оставлять -wal и -shm рядом с копией базы` в main, родитель `306a930`. На VPS удалены 22 файла-сироты (11 `-wal` по 0 байт и 11 `-shm` по 32 КБ), сами копии не тронуты. `~/Backups/taskindex/pull-backup.sh` заменён копией из репозитория. Исправленный `database.mjs` попадёт на сервер со следующим релизом; до него от сирот защищает `pull-backup.sh`, копии `deploy.sh` следующего релиза ещё создадут одну пару.
+
+<a id="ti-089"></a>
+
+### TI-089 — Скилл агента и сценарий приёмки (волна 2а)
+
+**Тип:** Продукт, документация агентов. **Статус:** ИСПРАВЛЕНО. **Приоритет:** P2.
+
+**Источники:** спека `docs/specs/2026-09-12-owner-workflow.md` (раздел 7 и примечание 2026-09-14), `ROADMAP.md` волна 2, брейншторм с владельцем 2026-09-14 (параллельно в Codex; Codex заключил «за основу черновик Фейбла» и дал четыре поправки, принятые в примечании к спеке).
+
+**Где:** `skills/taskindex/SKILL.md`, `skills/taskindex/reference.md`, `scripts/agent/install-mac.sh`, `scripts/agent/taskindex-wrapper.sh`, `README.md` («Агенты»), `deploy/lint-shell.sh`, `tests/cli/docs.test.ts`; вне репозитория: `~/.local/bin/taskindex`, `~/.config/taskindex/*.env`, симлинки `~/.claude/skills/taskindex` и `~/.agents/skills/taskindex`, строка в `~/code/AGENTS.md`.
+
+**Проблема и последствия.** Действующий скилл был справочником по CLI на 200 строк: правило записи в нём тонуло, три абзаца расходились с кодом (TI-033), а на маке владельца не было ни команды `taskindex`, ни ключа, ни симлинков, так что операторы-агенты не могли вести доску вообще.
+
+**Решение владельца (2026-09-14).** Строгое правило для всех записей, включая комментарии: показать точную карточку или изменение, дождаться отдельного «да». Ключ в файле `~/.config/taskindex/<agent>.env`, без `op run` при каждом вызове. Один скилл на Claude Code, Codex и Бобра: короткий `SKILL.md` плюс `reference.md`.
+
+**Критерий закрытия.** `npm run check` зелёный (включая `tests/cli/docs.test.ts` по обоим файлам скилла и `lint:shell` по `scripts/agent/*.sh`); `install-mac.sh` отработал на маке, `TASKINDEX_AGENT=claude-mac taskindex me` печатает актора; сквозной сценарий спеки §1.1 пройден в sandbox из Claude Code и из Codex, шаг 2 проверен по `activity --actor agent:ID`; ключ `codex-mac` на проде по слову владельца.
+
+**Связанные записи:** [TI-033](#ti-033) (закрыта этой работой), [TI-086](#ti-086) (закрывается сценой §1.1 после этой волны).
+
+**Закрытие (2026-09-14).** Ветка `skill-wave2` от `2ab91ea`: `skills/taskindex/SKILL.md` (правило записи строгое, что куда, «что горит», шпаргалка), `skills/taskindex/reference.md` (техника, правки TI-033), `scripts/agent/install-mac.sh` и `scripts/agent/taskindex-wrapper.sh`, README «Агенты», `deploy/lint-shell.sh` (линт `scripts/agent/*.sh`), `tests/cli/docs.test.ts` (оба файла скилла сверяются со спецификацией CLI; регрессия: `--json` в обратных кавычках в `reference.md` ловится тестом). `npm run check` — 66 файлов, 432/432, код 0. Установка на маке выполнена: пакет в `~/.local/lib/taskindex-cli` (первая попытка через общий `npm i -g` перезаписала `dist/cli/index.js` пакета bin-ссылкой на имя обёртки, поэтому скрипт ставит пакет в свой префикс), обёртка `~/.local/bin/taskindex` без агента отвечает `client_error`, с sandbox-переменными работает; симлинки `~/.claude/skills/taskindex` и `~/.agents/skills/taskindex` пока указывают на worktree, после слияния перенаправить на основной чекаут повторным `install-mac.sh`. Сцена §1.1 пройдена в sandbox из Claude Code и из Codex (подробности в закрытии TI-086): Codex подхватил скилл из `~/.agents/skills`, оба агента ничего не записали до «да», оба поставили `--confirm-owner-fields` на защищённый статус. Не сделано и остаётся по слову владельца: ключ `claude-mac` в `~/.config/taskindex/claude-mac.env` (нужен вход в 1Password), ключ `codex-mac` на проде, коммит и push.
 
 <a id="source-coverage"></a>
 

@@ -62,7 +62,11 @@ describe('documentation against the code', () => {
     const commands = knownCommands();
     const groups = new Set([...commands].map((name) => name.split(' ')[0]!));
     const flags = knownFlags();
-    for (const file of ['skills/taskindex/SKILL.md', 'README.md']) {
+    for (const file of [
+      'skills/taskindex/SKILL.md',
+      'skills/taskindex/reference.md',
+      'README.md',
+    ]) {
       const text = await readFile(file, 'utf8');
       for (const match of text.matchAll(
         /`(?:npm run cli -- |taskindex )([a-z]+)(?: ([a-z-]+))?/g,
@@ -75,7 +79,7 @@ describe('documentation against the code', () => {
             `${file}: taskindex ${group} ${action}`,
           ).toBe(true);
       }
-      if (file.endsWith('SKILL.md'))
+      if (file.startsWith('skills/'))
         for (const match of text.matchAll(/`(--[a-z-]+)/g))
           expect(flags.has(match[1]!), `${file}: ${match[1]}`).toBe(true);
       expect(text).not.toMatch(/taskindex[^\n]*--json/);
@@ -83,8 +87,23 @@ describe('documentation against the code', () => {
     expect(JSON.stringify(renderHelp())).not.toContain('--json');
   });
 
-  it('SKILL.md teaches the cursor, the confirmation flag, me and the restart rules; .gitattributes marks generated files', async () => {
+  it('SKILL.md teaches the write rule and the confirmation flag, reference.md the cursor, me and the restart rules; .gitattributes marks generated files', async () => {
     const skill = await readFile('skills/taskindex/SKILL.md', 'utf8');
+    for (const phrase of [
+      'taskindex help',
+      'taskindex me',
+      'taskindex context',
+      'taskindex digest',
+      '--confirm-owner-fields',
+      'reference.md',
+      'дождаться\n   отдельного «да»',
+      'только чтение',
+      '$TASKINDEX_URL/?task=ID',
+      'tasks --today true',
+      'tasks -q ТЕКСТ',
+    ])
+      expect(skill, `SKILL.md: ${phrase}`).toContain(phrase);
+    const reference = await readFile('skills/taskindex/reference.md', 'utf8');
     for (const phrase of [
       'taskindex help',
       'taskindex me',
@@ -101,11 +120,17 @@ describe('documentation against the code', () => {
       'operationSeq',
       'issues[].path',
       'skipped: owner',
+      'activity --actor agent:ID',
+      'не даёт `409`',
+      'ownerFields',
     ])
-      expect(skill, `SKILL.md: ${phrase}`).toContain(phrase);
+      expect(reference, `reference.md: ${phrase}`).toContain(phrase);
     // The removed command is mentioned only as removed, never as a call.
-    expect(skill).not.toContain('`taskindex task focus');
-    expect(skill).not.toContain('`task focus ');
+    for (const text of [skill, reference]) {
+      expect(text).not.toContain('`taskindex task focus');
+      expect(text).not.toContain('`task focus ');
+      expect(text).not.toContain('formatVersion: 3');
+    }
     const attributes = await readFile('.gitattributes', 'utf8');
     for (const pattern of [
       'drizzle/v2/meta/** linguist-generated=true',
