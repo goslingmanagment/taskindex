@@ -54,18 +54,18 @@ test('TI-091 board groups queued tasks by priority without a waiting column', as
   }
   await expect(page.locator('.column-waiting')).toHaveCount(0);
   await expect(page.locator('.column-head h2')).toHaveText([
+    'В работе',
     'P1',
     'P2',
     'P3',
-    'В работе',
     'Готово',
   ]);
   await page.getByRole('tab', { name: 'Список', exact: true }).click();
   await expect(page.locator('.column-head h2')).toHaveText([
+    'В работе',
     'P1',
     'P2',
     'P3',
-    'В работе',
     'Готово',
   ]);
 });

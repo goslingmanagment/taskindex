@@ -412,7 +412,8 @@ test('mouse and emulated touch drag both persist task moves', async ({
           ).json()) as Task
         ).status,
     )
-    .toBe('doing');
+    // TI-092: the column to the right of P3 is «Готово».
+    .toBe('done');
   await context.close();
 });
 
