@@ -247,7 +247,7 @@ function WorkspaceBody() {
             </Empty>
           ) : loading ? (
             <div className="loading-columns">
-              {[0, 1, 2, 3].map((i) => (
+              {[0, 1, 2, 3, 4].map((i) => (
                 <div key={i}>
                   <Skeleton className="h-5 w-28 mb-5" />
                   <Skeleton className="h-32 w-full mb-3" />

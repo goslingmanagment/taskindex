@@ -37,12 +37,6 @@
 .due-label {
   color: var(--muted-foreground);
 }
-.waiting-line svg {
-  margin-top: 2px;
-}
-.check-date {
-  color: var(--warning-foreground);
-}
 .list-view .project-tag {
   margin: 0;
   min-width: 110px;
@@ -74,7 +68,7 @@
     padding-right: 24px;
   }
   .kanban {
-    grid-template-columns: repeat(4, 270px);
+    grid-template-columns: repeat(5, 270px);
   }
   .board-body {
     padding-left: 20px;
@@ -197,9 +191,6 @@
   display: none;
 }
 @media (width < theme(--breakpoint-xl)) {
-  .list-view .waiting-line {
-    display: none;
-  }
   .list-view .project-tag {
     min-width: 0;
   }
@@ -215,11 +206,7 @@
   .list-view .card-meta {
     max-width: none;
   }
-  .list-view .waiting-line {
-    display: flex;
-  }
-  .card-meta .due-label,
-  .card-meta .check-date {
+  .card-meta .due-label {
     font-size: 14px;
   }
 }
@@ -365,7 +352,7 @@
   display: grid;
   align-items: start;
   padding-bottom: 6px;
-  grid-template-columns: repeat(4, minmax(245px, 1fr));
+  grid-template-columns: repeat(5, minmax(245px, 1fr));
   gap: 20px;
   min-height: 0;
 }
@@ -607,8 +594,7 @@
   color: var(--muted-foreground);
   font-size: 12px;
 }
-.card-meta .due-label,
-.card-meta .check-date {
+.card-meta .due-label {
   font-size: 14px;
 }
 .card-meta .due-label {
@@ -616,21 +602,6 @@
 }
 .card-meta .overdue {
   color: var(--destructive-text);
-}
-.card-meta .check-now {
-  border-radius: 4px;
-  color: var(--warning-foreground);
-  background: none;
-  padding: 0;
-}
-.waiting-line {
-  display: flex;
-  align-items: flex-start;
-  gap: 6px;
-  margin: 10px 0 0 26px;
-  font-size: 13px;
-  line-height: 1.5;
-  color: var(--warning-foreground);
 }
 .column-add {
   justify-content: flex-start;
@@ -708,11 +679,6 @@
   order: 2;
   max-width: 210px;
 }
-.list-view .waiting-line {
-  max-width: 200px;
-  margin: 0;
-  order: 1;
-}
 .list-view .complete-circle {
   opacity: 1;
   position: relative;
@@ -745,7 +711,7 @@
 }
 @media (width < theme(--breakpoint-lg)) {
   .kanban {
-    grid-template-columns: repeat(4, 260px);
+    grid-template-columns: repeat(5, 260px);
   }
   .search-box {
     width: 155px;
@@ -841,7 +807,7 @@
     padding: 20px 16px;
   }
   .kanban {
-    grid-template-columns: repeat(4, min(84vw, 310px));
+    grid-template-columns: repeat(5, min(84vw, 310px));
     gap: 14px;
   }
   .task-card {
@@ -876,8 +842,7 @@
     max-width: none;
     min-width: 0;
   }
-  .list-view .card-meta,
-  .list-view .waiting-line {
+  .list-view .card-meta {
     margin-top: 10px;
     margin: 9px 0 0 26px;
     max-width: none;

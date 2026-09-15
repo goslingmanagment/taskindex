@@ -83,14 +83,7 @@ export function Desk() {
           />
           <DeskNext tasks={next} projects={data.projects} onTake={take} />
         </div>
-        <DeskRail
-          waiting={desk.waiting}
-          recent={desk.recent}
-          projects={data.projects}
-          today={today}
-          onOpen={(task) => openTask(task.id)}
-          onTake={take}
-        />
+        <DeskRail recent={desk.recent} projects={data.projects} onTake={take} />
       </div>
       <footer className="desk-footer">
         <span>Пробел отмечает шаг, N берёт следующую задачу</span>

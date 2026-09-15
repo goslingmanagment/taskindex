@@ -92,7 +92,10 @@ test('B03 quick-create must consume the inline draft after creating its task', a
     name: 'Добавить задачу',
     exact: true,
   });
-  await add.nth(1).click();
+  await page
+    .locator('.column-p2')
+    .getByRole('button', { name: 'Добавить задачу', exact: true })
+    .click();
   const field = page.getByRole('textbox', {
     name: 'Название новой задачи',
     exact: true,
@@ -107,7 +110,10 @@ test('B03 quick-create must consume the inline draft after creating its task', a
   await expect(
     page.getByRole('dialog', { name: 'Новая задача', exact: true }),
   ).toBeHidden();
-  await add.nth(1).click();
+  await page
+    .locator('.column-p2')
+    .getByRole('button', { name: 'Добавить задачу', exact: true })
+    .click();
   await expect(field).toHaveValue('');
 });
 
@@ -321,8 +327,8 @@ test('B03 the still-open inline form also consumes the modal creation', async ({
 }) => {
   await task(page, 'B03 simultaneous forms');
   await page
+    .locator('.column-p2')
     .getByRole('button', { name: 'Добавить задачу', exact: true })
-    .nth(1)
     .click();
   const inline = page.getByRole('textbox', {
     name: 'Название новой задачи',

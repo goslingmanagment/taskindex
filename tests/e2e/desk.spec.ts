@@ -85,14 +85,12 @@ test('the desk shows one current task, takes the next one, marks steps and opens
     String(desk.counts.focus),
   );
   // The first task taken into focus is the current one; the other two wait
-  // in «Потом», the waiting task sits in the rail with its overdue return date.
+  // in «Потом»; legacy waiting records remain available in the contexts drawer.
   await expect(
     current(page).getByRole('heading', { name: 'Стол: первая', exact: true }),
   ).toBeVisible();
   await expect(later(page).getByRole('button')).toHaveCount(2);
-  await expect(
-    page.getByRole('button', { name: /^Стол: жду макет\. Ждём: Дизайнер\./ }),
-  ).toBeVisible();
+  await expect(page.locator('#desk-waiting')).toHaveCount(0);
   await page.mouse.move(0, 0);
   await shoot(page, 'desktop-desk');
   // Taking a task from «Потом» moves it to the head of the desk.
@@ -129,6 +127,9 @@ test('the desk shows one current task, takes the next one, marks steps and opens
   await expect(page).toHaveURL(/parked=1/);
   await expect(
     drawer.getByRole('button', { name: /Стол: отложенная/ }),
+  ).toBeVisible();
+  await expect(
+    drawer.getByRole('button', { name: /Стол: жду макет/ }),
   ).toBeVisible();
   await expect(
     drawer.getByRole('button', { name: /Стол: первая/ }),

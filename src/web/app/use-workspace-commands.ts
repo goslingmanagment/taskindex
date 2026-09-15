@@ -13,6 +13,7 @@ import { toast } from '../ui/toast';
 import { workspaceStore } from './store';
 import {
   projectSaveCommand,
+  boardMoveCommand,
   taskArchiveCommand,
   taskCreateCommand,
   taskMoveCommand,
@@ -21,6 +22,7 @@ import {
   undoCommand,
   type NewTask,
 } from './commands';
+import { BOARD_COLUMNS, type BoardColumn } from './board-columns';
 // TI-059 (план 07, шаг 11): отправка команд и уведомления об успехе — один хук
 // вместо восьми функций внутри `shell.tsx`. Общий `change(task, patch)` разошёлся
 // на три явных действия: по патчу нельзя было понять, какая команда уйдёт.
@@ -69,7 +71,7 @@ export function useWorkspaceCommands() {
           : status === 'doing'
             ? 'В работе'
             : status === 'waiting'
-              ? 'Жду'
+              ? 'Очередь'
               : 'Готово'
       }`;
     const move = (task: Task, status: Status, before?: Task, after?: Task) =>
@@ -79,7 +81,11 @@ export function useWorkspaceCommands() {
       );
     return {
       execute,
-      move,
+      move: (task: Task, column: BoardColumn, before?: Task, after?: Task) =>
+        execute(
+          boardMoveCommand(task, column, before, after),
+          `Задача → ${BOARD_COLUMNS.find((item) => item.id === column)!.name}`,
+        ),
       /** Смена состояния из карточки и меню: всегда `task.move`. */
       setStatus: (task: Task, status: Status, message?: string) =>
         execute(
@@ -125,6 +131,7 @@ export function useWorkspaceCommands() {
             (t) =>
               t.area === task.area &&
               t.status === 'todo' &&
+              t.priority === task.priority &&
               !t.archived &&
               t.id !== task.id,
           )

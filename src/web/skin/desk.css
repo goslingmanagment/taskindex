@@ -159,7 +159,6 @@
   transition: border-color 0.15s ease;
 }
 .desk-choice:hover,
-.desk-waiting-item:hover,
 .desk-resume-item:hover,
 .contexts-item:hover {
   border-color: var(--accent-border-hover);
@@ -192,7 +191,6 @@
 .desk-rail-caption {
   margin: 3px 0 10px;
 }
-.desk-waiting-item,
 .desk-resume-item {
   width: 100%;
   text-align: left;
@@ -207,25 +205,16 @@
   margin-bottom: 9px;
   cursor: pointer;
 }
-.desk-waiting-item > span,
 .desk-resume-item > span {
   display: flex;
   flex-direction: column;
   gap: 2px;
   min-width: 0;
 }
-.desk-return-date {
-  flex: none;
-  font-size: 12px;
-  font-weight: 600;
-  color: var(--warning-foreground);
-}
-.desk-wait-title,
 .desk-resume-title {
   font-size: 14px;
   font-weight: 600;
 }
-.desk-wait-person,
 .desk-resume-note {
   font-size: 12px;
   color: var(--text-faint);

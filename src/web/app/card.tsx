@@ -3,7 +3,6 @@ import {
   Check,
   Undo2,
   Star,
-  Clock3,
   CalendarDays,
   ListChecks,
   GripVertical,
@@ -12,8 +11,9 @@ import { memo, useState } from 'react';
 import { Menu } from '@base-ui/react/menu';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { AREAS, STATUSES, type Project, type Task } from '@shared/model';
+import { AREAS, type Project, type Task } from '@shared/model';
 import { LABELS } from '@shared/labels';
+import { TASK_STATES as STATUSES, visibleStatus } from './board-columns';
 import { dateLabel } from '@shared/queries';
 import { Button } from '../ui/button';
 import { runCardAction as safely } from './card-menu';
@@ -208,17 +208,11 @@ const TaskCardBody = memo(function TaskCardBody({
         )}
         <h3>{task.title}</h3>
       </div>
-      {task.status === 'waiting' && task.waitingFor && (
-        <p className="waiting-line">
-          <Clock3 size={14} />
-          {task.waitingFor}
-        </p>
-      )}
       <div className="card-label-row">
         {showContext && (
           <span className="task-context">
             {AREAS.find((a) => a.id === task.area)?.name} ·{' '}
-            {STATUSES.find((s) => s.id === task.status)?.name}
+            {STATUSES.find((s) => s.id === visibleStatus(task.status))?.name}
             {task.archived ? ' · Архив' : ''}
           </span>
         )}
@@ -265,16 +259,6 @@ const TaskCardBody = memo(function TaskCardBody({
             <CalendarDays size={14} />
             {task.due < today && task.status !== 'done' ? 'Срок: ' : ''}
             {dateLabel(task.due, today)}
-          </span>
-        )}
-        {task.status === 'waiting' && task.followUp && (
-          <span
-            className={
-              'check-date ' + (task.followUp <= today ? 'check-now' : '')
-            }
-          >
-            <Clock3 size={14} />
-            Вернуться {dateLabel(task.followUp, today).toLowerCase()}
           </span>
         )}
         {task.checklist.length > 0 && (

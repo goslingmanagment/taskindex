@@ -1,4 +1,5 @@
-import { STATUSES, type Task } from '@shared/model';
+import type { Task } from '@shared/model';
+import { TASK_STATES as STATUSES, visibleStatus } from '../board-columns';
 import { Button } from '../../ui/button';
 import { Checkbox } from '../../ui/checkbox';
 import {
@@ -21,11 +22,12 @@ export function ContextsDrawer({
 }) {
   const { data } = useWorkspace();
   const { location, update } = useNavigation();
-  const { status, parked } = location;
+  const { parked } = location;
+  const status = location.status === 'waiting' ? 'todo' : location.status;
   const tasks = data.tasks.filter(
     (t) =>
       !t.archived &&
-      (status === '' || t.status === status) &&
+      (status === '' || visibleStatus(t.status) === status) &&
       (!parked || t.focusKey === null),
   );
   const close = () => update({ contexts: false });
@@ -89,7 +91,8 @@ export function ContextsDrawer({
               <span className="contexts-item-status">
                 {task.focusKey !== null
                   ? 'На столе'
-                  : STATUSES.find((s) => s.id === task.status)?.name}
+                  : STATUSES.find((s) => s.id === visibleStatus(task.status))
+                      ?.name}
               </span>
             </button>
           ))}

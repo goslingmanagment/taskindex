@@ -3,6 +3,7 @@ import { commandSchema } from '../../src/shared/schemas';
 import type { Command, Project } from '../../src/shared/model';
 import {
   commentAddCommand,
+  boardMoveCommand,
   commentRemoveCommand,
   projectSaveCommand,
   taskArchiveCommand,
@@ -39,6 +40,39 @@ const project = (fields: Partial<Project> = {}): Project => ({
   ...fields,
 });
 describe('command builders', () => {
+  it('TI-091 priority drops save status, priority and position in one operation', () => {
+    const task = base();
+    const neighbour = { ...task, id: '55555555-5555-4555-8555-555555555555' };
+    const command = boardMoveCommand(
+      { ...task, status: 'doing' },
+      'p1',
+      neighbour,
+    );
+    expect(command).toEqual({
+      command: 'task.save',
+      payload: {
+        id: task.id,
+        baseRevision: task.revision,
+        status: 'todo',
+        fields: { priority: 'p1' },
+        position: { before: neighbour.id },
+      },
+    });
+    expect(valid(command)).toBe(true);
+    expect(boardMoveCommand(task, 'done').payload).toEqual({
+      id: task.id,
+      baseRevision: task.revision,
+      status: 'done',
+    });
+    expect(
+      taskCreateCommand({
+        id: task.id,
+        area: task.area,
+        title: task.title,
+        priority: 'p3',
+      }).payload,
+    ).toMatchObject({ priority: 'p3' });
+  });
   it('TI-086 saves and clears priority, labels and closes without changing order', () => {
     const from = base();
     const edited = {

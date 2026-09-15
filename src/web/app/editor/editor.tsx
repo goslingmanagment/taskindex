@@ -7,7 +7,6 @@ import { LIMITS } from '@shared/limits';
 import { LABELS, PRIORITIES, type Priority } from '@shared/labels';
 import {
   AREAS,
-  STATUSES,
   type AreaId,
   type Project,
   type Status,
@@ -45,7 +44,7 @@ import { ConflictPanel } from '../conflict-panel';
 import { Choice } from './choice';
 import { ChecklistEditor } from './checklist-editor';
 import { DiscardDialog } from './discard-dialog';
-import { WaitingSection } from './waiting-section';
+import { TASK_STATES as STATUSES, visibleStatus } from '../board-columns';
 import { useTaskDraft } from './use-task-draft';
 import { useSaveIntent } from './use-save-intent';
 // TI-059 (план 07, шаг 13): сборка карточки. Состояние формы — в `use-task-draft`,
@@ -160,7 +159,7 @@ export function TaskEditor({
                 Состояние
                 <Choice
                   id="task-status"
-                  value={draft.status}
+                  value={visibleStatus(draft.status)}
                   label="Состояние задачи"
                   items={STATUSES.map((s) => ({ value: s.id, label: s.name }))}
                   onChange={(v) => patch({ status: v as Status })}
@@ -225,9 +224,6 @@ export function TaskEditor({
                 </div>
               </CollapsibleContent>
             </Collapsible>
-            {draft.status === 'waiting' && (
-              <WaitingSection draft={draft} patch={patch} />
-            )}
             <div className="add-details">
               {details
                 .filter(({ key }) => !sections[key])

@@ -7,8 +7,7 @@
 .editor-title:focus {
   box-shadow: 0 2px 0 var(--accent-underline);
 }
-.editor-fields label,
-.waiting-editor label {
+.editor-fields label {
   font-size: 13px;
   display: flex;
   flex-direction: column;
@@ -18,7 +17,6 @@
 .full-field {
   grid-column: 1/-1;
 }
-.waiting-editor h3,
 .detail-section h3 {
   display: flex;
   gap: 8px;
@@ -26,9 +24,6 @@
   font-size: 14px;
   font-weight: 600;
   margin-bottom: 12px;
-}
-.waiting-editor label {
-  margin-top: 16px;
 }
 .date-field {
   border: 1px solid var(--line-soft);
@@ -217,27 +212,6 @@
 .field-hint {
   margin: 6px 0 0;
   font-size: 12px;
-  color: var(--muted-foreground);
-}
-.waiting-editor {
-  background: var(--muted);
-  border: 0;
-  border-radius: 7px;
-  padding: 16px;
-  margin-top: 23px;
-}
-.waiting-editor h3 {
-  color: var(--warning-foreground);
-}
-.waiting-editor [data-slot='input'],
-.waiting-editor .date-field {
-  min-height: 39px;
-  font-size: 14px;
-  background: var(--card);
-}
-.waiting-editor p {
-  font-size: 12px;
-  margin: 8px 0 0;
   color: var(--muted-foreground);
 }
 .add-details {

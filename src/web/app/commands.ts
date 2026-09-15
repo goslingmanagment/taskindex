@@ -1,4 +1,10 @@
 import type { AreaId, Command, Project, Status, Task } from '@shared/model';
+import type { Priority } from '@shared/labels';
+import {
+  columnPriority,
+  columnStatus,
+  type BoardColumn,
+} from './board-columns';
 // TI-059 (план 07, шаг 9): единственное место, где предметное намерение
 // превращается в `Command`. Билдеры чистые: ни store, ни сети, ни React, —
 // поэтому их проверяет `tests/web/commands.test.ts` схемой команды.
@@ -23,6 +29,7 @@ export type NewTask = {
   area: AreaId;
   title: string;
   status?: Status;
+  priority?: Priority;
   projectId?: string | null;
   focus?: boolean;
 };
@@ -35,6 +42,7 @@ export function taskCreateCommand(task: NewTask): Command {
       title: task.title,
       projectId: task.projectId ?? null,
       ...(task.status ? { status: task.status } : {}),
+      ...(task.priority ? { priority: task.priority } : {}),
       ...(task.focus ? { focus: true } : {}),
     },
   };
@@ -71,6 +79,29 @@ export function taskMoveCommand(
       status,
       ...(before ? { before: before.id } : {}),
       ...(after ? { after: after.id } : {}),
+    },
+  };
+}
+/** One operation carries both the chosen column and its manual position. */
+export function boardMoveCommand(
+  task: Task,
+  column: BoardColumn,
+  before?: Task,
+  after?: Task,
+): Command {
+  const priority = columnPriority(column);
+  return {
+    command: 'task.save',
+    payload: {
+      id: task.id,
+      baseRevision: task.revision,
+      status: columnStatus(column),
+      ...(priority ? { fields: { priority } } : {}),
+      ...(before
+        ? { position: { before: before.id } }
+        : after
+          ? { position: { after: after.id } }
+          : {}),
     },
   };
 }

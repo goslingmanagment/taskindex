@@ -222,14 +222,13 @@ test('TI-086 manual dragging preserves priority and order when P3 is hidden and 
   page,
 }) => {
   const project = await direction(page);
-  const urgent = await addTask(page, project, { priority: 'p1' });
+  const urgent = await addTask(page, project, { priority: 'p2' });
   const normal = await addTask(page, project, { priority: 'p2' });
   const someday = await addTask(page, project, { priority: 'p3' });
   await page.goto(boardUrl(project));
-  await expect(page.locator('.column-todo .task-title-row h3')).toHaveText([
+  await expect(page.locator('.column-p2 .task-title-row h3')).toHaveText([
     urgent.title,
     normal.title,
-    someday.title,
   ]);
   await page
     .getByRole('button', { name: `Перетащить: ${normal.title}`, exact: true })
@@ -257,12 +256,12 @@ test('TI-086 manual dragging preserves priority and order when P3 is hidden and 
       .map((task) => ({ id: task.id, priority: task.priority }));
   const expected = [
     { id: normal.id, priority: 'p2' },
-    { id: urgent.id, priority: 'p1' },
+    { id: urgent.id, priority: 'p2' },
     { id: someday.id, priority: 'p3' },
   ];
   await expect.poll(savedOrder).toEqual(expected);
   await hideP3Toggle(page).click();
-  await expect(page.locator('.column-todo .task-title-row h3')).toHaveText([
+  await expect(page.locator('.column-p2 .task-title-row h3')).toHaveText([
     normal.title,
     urgent.title,
   ]);
@@ -271,10 +270,9 @@ test('TI-086 manual dragging preserves priority and order when P3 is hidden and 
     .poll(async () => (await snapshot(page)).appearance.hideP3)
     .toBe(false);
   await page.reload();
-  await expect(page.locator('.column-todo .task-title-row h3')).toHaveText([
+  await expect(page.locator('.column-p2 .task-title-row h3')).toHaveText([
     normal.title,
     urgent.title,
-    someday.title,
   ]);
   await expect.poll(savedOrder).toEqual(expected);
 });

@@ -25,7 +25,7 @@ import {
   sortableKeyboardCoordinates,
 } from '@dnd-kit/sortable';
 import { Plus, X } from 'lucide-react';
-import { STATUSES, type Task, type Status, type AreaId } from '@shared/model';
+import { type Task, type AreaId } from '@shared/model';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
 import { Empty, EmptyDescription } from '../ui/empty';
@@ -35,6 +35,14 @@ import { workspaceStore } from './store';
 import { toast } from '../ui/toast';
 import { ApiError } from './api';
 import type { NewTask } from './commands';
+import {
+  BOARD_COLUMNS,
+  boardColumn,
+  columnStatus,
+  columnPriority,
+  columnDraftKey,
+  type BoardColumn,
+} from './board-columns';
 export function DragBoard({
   tasks,
   disabled,
@@ -46,7 +54,7 @@ export function DragBoard({
   disabled: boolean;
   move: (
     task: Task,
-    status: Status,
+    column: BoardColumn,
     before?: Task,
     after?: Task,
   ) => Promise<unknown>;
@@ -69,16 +77,36 @@ export function DragBoard({
     if (disabled || !over || active.id === over.id) return;
     const task = tasks.find((t) => t.id === active.id),
       target = tasks.find((t) => t.id === over.id);
-    const status =
-      target?.status ?? STATUSES.find((s) => `column-${s.id}` === over.id)?.id;
-    if (!task || !status) return;
-    const after =
-      target &&
-      task.status === target.status &&
-      tasks.indexOf(task) < tasks.indexOf(target)
+    const column = target
+      ? boardColumn(target)
+      : BOARD_COLUMNS.find((item) => `column-${item.id}` === over.id)?.id;
+    if (!task || !column) return;
+    const neighbours = tasks.filter(
+      (item) =>
+        item.id !== task.id &&
+        boardColumn(item) === column &&
+        item.status === columnStatus(column),
+    );
+    // A legacy waiting record is visible in the queue, but the server's
+    // positional anchor must belong to the destination status.
+    const before =
+      target && neighbours.includes(target)
         ? target
-        : undefined;
-    void move(task, status, after ? undefined : target, after).catch(
+        : target
+          ? neighbours.find(
+              (item) => tasks.indexOf(item) > tasks.indexOf(target),
+            )
+          : undefined;
+    const after =
+      before &&
+      target &&
+      boardColumn(task) === column &&
+      tasks.indexOf(task) < tasks.indexOf(target)
+        ? before
+        : !before
+          ? neighbours.at(-1)
+          : undefined;
+    void move(task, column, after ? undefined : before, after).catch(
       (error: Error) => toast.add({ title: error.message, type: 'error' }),
     );
   };
@@ -104,22 +132,22 @@ export function DragBoard({
   );
 }
 function Column({
-  status,
+  column,
   disabled,
   children,
 }: {
-  status: Status;
+  column: BoardColumn;
   disabled: boolean;
   children: ReactNode;
 }) {
   const { setNodeRef, isOver } = useDroppable({
-    id: `column-${status}`,
+    id: `column-${column}`,
     disabled,
   });
   return (
     <section
       ref={setNodeRef}
-      className={`column column-${status} ${isOver ? 'drop-column' : ''}`}
+      className={`column column-${column} ${isOver ? 'drop-column' : ''}`}
     >
       {children}
     </section>
@@ -129,19 +157,19 @@ type DraftTitle = { title: string };
 function InlineCreate({
   area,
   projectId,
-  status,
+  column,
   onSave,
 }: {
   area: AreaId;
   projectId: string;
-  status: Status;
+  column: BoardColumn;
   onSave: (task: NewTask, operationId: string) => Promise<Task>;
 }) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [open, setOpen] = useState(false),
     [busy, setBusy] = useState(false),
     [error, setError] = useState('');
-  const key = `new/${area}/${projectId}/${status}`;
+  const key = `new/${area}/${projectId}/${columnDraftKey(column)}`;
   const [generation] = useState(() => workspaceStore.getSnapshot().generation);
   // План 07, шаг 15: черновик читается подпиской, а не эффектом с тремя
   // `setState` — тот же ключ пишет диалог «Новая задача», и оба поля должны
@@ -188,7 +216,8 @@ function InlineCreate({
           area,
           projectId:
             projectId === 'all' || projectId === 'none' ? null : projectId,
-          status,
+          status: columnStatus(column),
+          priority: columnPriority(column),
           title: title.trim(),
         },
         sending.operationId,
@@ -291,9 +320,11 @@ export function Board({
   const archive = mode === 'archive';
   const columns = useMemo(
     () =>
-      STATUSES.map((status) => {
-        const column = tasks.filter((task) => task.status === status.id);
-        return { status, column, ids: column.map((task) => task.id) };
+      BOARD_COLUMNS.map((definition) => {
+        const column = tasks.filter(
+          (task) => boardColumn(task) === definition.id,
+        );
+        return { definition, column, ids: column.map((task) => task.id) };
       }),
     [tasks],
   );
@@ -302,16 +333,16 @@ export function Board({
       className={'kanban ' + (view === 'list' ? 'list-view' : '')}
       data-large={tasks.length > 200 || undefined}
     >
-      {columns.map(({ status, column, ids }) => {
+      {columns.map(({ definition, column, ids }) => {
         return (
-          <Column key={status.id} status={status.id} disabled={archive}>
+          <Column key={definition.id} column={definition.id} disabled={archive}>
             <div className="column-head">
               <div>
                 <span
                   className="status-dot"
-                  style={{ background: status.color }}
+                  style={{ background: definition.color }}
                 />
-                <h2>{status.name}</h2>
+                <h2 title={definition.hint}>{definition.name}</h2>
                 <span className="column-count">{column.length}</span>
               </div>
             </div>
@@ -321,13 +352,11 @@ export function Board({
                 {!column.length && !filtered && (
                   <Empty className="column-empty">
                     <EmptyDescription>
-                      {status.id === 'todo'
-                        ? 'Место для следующего дела'
-                        : status.id === 'doing'
-                          ? 'Начни с одной задачи'
-                          : status.id === 'waiting'
-                            ? 'Ничего не ждёт ответа'
-                            : 'Здесь будут маленькие победы'}
+                      {definition.id === 'doing'
+                        ? 'Начни с одной задачи'
+                        : definition.id === 'done'
+                          ? 'Здесь будут маленькие победы'
+                          : definition.hint}
                     </EmptyDescription>
                   </Empty>
                 )}
@@ -335,10 +364,10 @@ export function Board({
             </SortableContext>
             {!archive && (
               <InlineCreate
-                key={`${area}/${projectId}/${status.id}`}
+                key={`${area}/${projectId}/${definition.id}`}
                 area={area}
                 projectId={projectId}
-                status={status.id}
+                column={definition.id}
                 onSave={onCreate}
               />
             )}

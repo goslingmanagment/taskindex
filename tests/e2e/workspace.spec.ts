@@ -43,10 +43,10 @@ test('real owner login, atomic editor save, comments, and operation history', as
   await page
     .getByRole('combobox', { name: 'Состояние задачи', exact: true })
     .click();
-  await page.getByRole('option', { name: 'Жду', exact: true }).click();
-  await page
-    .getByRole('textbox', { name: 'От кого или чего ждём', exact: true })
-    .fill('Ответ команды');
+  await expect(
+    page.getByRole('option', { name: 'Жду', exact: true }),
+  ).toHaveCount(0);
+  await page.getByRole('option', { name: 'В работе', exact: true }).click();
   const save = page.waitForRequest(
     (request) =>
       request.url().endsWith('/api/commands') &&
@@ -56,8 +56,8 @@ test('real owner login, atomic editor save, comments, and operation history', as
   await page.getByRole('button', { name: 'Сохранить', exact: true }).click();
   const payload = (await save).postDataJSON().payload;
   expect(payload).toMatchObject({
-    fields: { note: 'Контекст владельца', waitingFor: 'Ответ команды' },
-    status: 'waiting',
+    fields: { note: 'Контекст владельца' },
+    status: 'doing',
   });
   expect(payload.fields).not.toHaveProperty('title');
   expect(payload).not.toHaveProperty('checklist');
@@ -130,6 +130,14 @@ test('mobile navigation, focus/search/archive and keyboard task movement', async
     page.getByRole('textbox', { name: 'Найти во всех областях', exact: true }),
   ).toBeFocused();
   await page.keyboard.press('Escape');
+  const projectId = 'e2e-keyboard';
+  await command(page, 'project.create', {
+    id: projectId,
+    area: 'agency',
+    name: 'Клавиатурный перенос',
+    color: '#3763df',
+  });
+  await page.goto(`/?area=agency&project=${projectId}&view=board`);
   const title = 'Э2Э: перенос';
   await createTask(page, title);
   const handle = page.getByRole('button', {
@@ -137,7 +145,6 @@ test('mobile navigation, focus/search/archive and keyboard task movement', async
     exact: true,
   });
   await handle.focus();
-  const dragStart = (await handle.boundingBox())!;
   await page.keyboard.press('Space');
   await expect(page.locator('article.dragging')).toHaveCount(1);
   // KeyboardSensor installs its document listener on the next task; droppable
@@ -149,12 +156,11 @@ test('mobile navigation, focus/search/archive and keyboard task movement', async
       ),
   );
   await page.keyboard.press('ArrowRight');
-  await expect
-    .poll(
-      async () =>
-        (await page.locator('.drag-overlay .task-card').boundingBox())?.x ?? 0,
-    )
-    .toBeGreaterThan(dragStart.x);
+  await expect(
+    page
+      .getByRole('status')
+      .filter({ hasText: /was moved over droppable area column-p3\./ }),
+  ).toHaveCount(1);
   await page.keyboard.press('Space');
   const snapshot = (await (
     await page.request.get('/api/snapshot')
@@ -166,9 +172,9 @@ test('mobile navigation, focus/search/archive and keyboard task movement', async
       const latest = (await (
         await page.request.get(`/api/tasks/${task.id}`)
       ).json()) as Task;
-      return latest.status;
+      return latest.priority;
     })
-    .not.toBe('todo');
+    .toBe('p3');
   await command(page, 'task.update', {
     id: task.id,
     baseRevision: (
@@ -310,6 +316,7 @@ test('mouse and emulated touch drag both persist task moves', async ({
       area: 'agency',
       projectId,
       title: 'Касанием',
+      priority: 'p3',
     })
   ).results[0]!.record as Task;
   await command(page, 'task.create', {
@@ -366,6 +373,7 @@ test('mouse and emulated touch drag both persist task moves', async ({
     exact: true,
   });
   await expect(start).toBeVisible();
+  await start.scrollIntoViewIfNeeded();
   const rect = (await start.boundingBox())!;
   const session = await context.newCDPSession(mobile);
   const x = rect.x + rect.width / 2,

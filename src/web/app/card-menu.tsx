@@ -1,6 +1,7 @@
 import { Menu } from '@base-ui/react/menu';
 import { ArrowUp, Archive, Star } from 'lucide-react';
-import { STATUSES, type Task } from '@shared/model';
+import type { Task } from '@shared/model';
+import { TASK_STATES as STATUSES } from './board-columns';
 import { PRIORITIES } from '@shared/labels';
 import {
   DropdownMenuContent,

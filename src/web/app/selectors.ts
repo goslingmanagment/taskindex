@@ -1,6 +1,7 @@
 import type { DomainEvent, Project, Task } from '@shared/model';
 import { byOrder, focusDesk, focusGroups, searchTasks } from '@shared/queries';
 import type { LocationState } from './url';
+import { visibleStatus } from './board-columns';
 // TI-059 (план 07, шаг 10): что видно на экране — чистая функция от данных,
 // адреса и «сегодня». Ни store, ни DOM: то же самое решение принимает тест.
 type TaskSource = { tasks: Task[]; projects: Project[] };
@@ -114,5 +115,12 @@ export function deskOf(
   tasks: Task[],
   today: string,
 ): ReturnType<typeof focusDesk> {
-  return focusDesk(tasks, today || new Date().toISOString().slice(0, 10));
+  return focusDesk(
+    tasks.map((task) =>
+      task.status === 'waiting'
+        ? { ...task, status: visibleStatus(task.status) }
+        : task,
+    ),
+    today || new Date().toISOString().slice(0, 10),
+  );
 }
