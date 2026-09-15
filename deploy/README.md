@@ -248,16 +248,39 @@ commit, версиями инструментов и id образа пишет�
 
 ## Следующий релиз
 
-Порядок: CI зелёный на коммите → артефакт образа перенесён на VPS → чекаут на
-том же коммите → `deploy.sh --image`. Скрипт не делает push, merge или SSH:
+Одна команда с мака (TI-094, решение владельца 2026-09-15):
 
 ```sh
-# на рабочей машине: скачать артефакт taskindex-image-<sha> из Actions и перенести
-scp taskindex-<sha>.tar.gz vps:/var/tmp/
-# на VPS, из чистого checkout
-git fetch && git checkout <sha>
-op run --env-file=/protected/taskindex.env -- bash deploy/deploy.sh --plan --image /var/tmp/taskindex-<sha>.tar.gz <sha>
-op run --env-file=/protected/taskindex.env -- bash deploy/deploy.sh --image /var/tmp/taskindex-<sha>.tar.gz <sha>
+bash deploy/release.sh <sha>          # по умолчанию origin/main
+bash deploy/release.sh <sha> --plan   # только план сервера, ничего не выкатывает
+```
+
+`release.sh` требует, чтобы коммит был в `origin/main`, ждёт зелёный job `ci`
+для него (`gh run watch`), берёт у GitHub подписанную ссылку на артефакт
+`taskindex-image-<sha>`, и VPS скачивает архив сам (`curl` в `/var/tmp`, `docker
+load`; если `taskindex:<sha>` уже загружен, шаг пропускается), проверяет метку
+`org.opencontainers.image.revision`, пушит коммит в голый репозиторий
+`/opt/taskindex.git` (его `origin` чекаута `/opt/taskindex`), снимает копию
+`pull-backup.sh`, на VPS переводит чекаут на `<sha>` и запускает `deploy.sh
+--plan`, затем `deploy.sh` с переменными из `/etc/taskindex/taskindex.env`, после
+чего снимает вторую копию и печатает `current.json`. Секреты на мак не читаются;
+нужны `git`, `gh` со входом, `curl` и SSH до VPS. Переменные: `TASKINDEX_HOST`,
+`TASKINDEX_REMOTE_REPO`, `TASKINDEX_REMOTE_BARE`, `TASKINDEX_REMOTE_ENV`,
+`TASKINDEX_CI_WORKFLOW`.
+
+Тот же порядок руками, если скрипт недоступен. `deploy.sh` сам не делает push,
+merge или SSH; на этом VPS нет `op`, переменные сервера лежат в
+`/etc/taskindex/taskindex.env` (root-only, вне git):
+
+```sh
+# на маке: коммит в голый репозиторий VPS и подписанная ссылка на артефакт
+git push root@45.8.230.111:/opt/taskindex.git <sha>:refs/heads/main
+# на VPS: скачать taskindex-image-<sha> по ссылке в /var/tmp, распаковать, docker load
+docker load -i /var/tmp/taskindex-<sha>.tar.gz
+cd /opt/taskindex && git fetch && git checkout --detach <sha>
+set -a && . /etc/taskindex/taskindex.env && set +a
+bash deploy/deploy.sh --plan --image taskindex:<sha> <sha>
+bash deploy/deploy.sh --image taskindex:<sha> <sha>
 ```
 
 `--image` принимает архив `docker save` (загружается `docker load`), ссылку на
