@@ -9,6 +9,8 @@ export type LocationState = {
   focus: boolean;
   archive: boolean;
   today: boolean;
+  /** Колонка «Готово» на доске области; по умолчанию скрыта. */
+  done: boolean;
   archiveSearch: boolean;
   activity: boolean;
   /** TI-076: author filter of the activity feed; '' is everyone. */
@@ -30,6 +32,7 @@ export const defaultLocation: LocationState = {
   focus: false,
   archive: false,
   today: false,
+  done: false,
   archiveSearch: false,
   activity: false,
   actor: '',
@@ -59,6 +62,7 @@ export function parseLocation(search: string): LocationState {
         'focus',
         'archive',
         'today',
+        'done',
         'archiveSearch',
         'activity',
         'contexts',

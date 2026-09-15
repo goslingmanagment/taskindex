@@ -72,6 +72,8 @@ test('TI-007 the editor bases its save on the confirmed revision, not on a rejec
   expect(
     (await command(page, 'task.create', { id, area: 'agency', title })).ok(),
   ).toBe(true);
+  // The completed card must stay on screen to be opened: show «Готово».
+  await page.goto('/?area=agency&project=all&view=board&done=1');
   await expect(
     page.getByRole('button', { name: `Открыть: ${title}`, exact: true }),
   ).toBeVisible();

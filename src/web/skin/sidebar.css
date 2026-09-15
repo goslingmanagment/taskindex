@@ -2,6 +2,12 @@
 .today-toggle.active {
   color: var(--accent-strong);
 }
+.toggle-count {
+  margin-left: -3px;
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  color: var(--muted-foreground);
+}
 .today-toggle [data-slot='checkbox'] {
   width: 15px;
   height: 15px;

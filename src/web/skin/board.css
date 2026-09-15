@@ -68,7 +68,7 @@
     padding-right: 24px;
   }
   .kanban {
-    grid-template-columns: repeat(5, 270px);
+    grid-template-columns: repeat(var(--board-columns, 5), 270px);
   }
   .board-body {
     padding-left: 20px;
@@ -352,8 +352,9 @@
   display: grid;
   align-items: start;
   padding-bottom: 6px;
-  /* TI-093: five columns must fit a 1440 px laptop (1152 px of board). */
-  grid-template-columns: repeat(5, minmax(200px, 1fr));
+  /* TI-093: five columns must fit a 1440 px laptop (1152 px of board).
+     --board-columns is 4 while «Готово» is hidden. */
+  grid-template-columns: repeat(var(--board-columns, 5), minmax(200px, 1fr));
   gap: 16px;
   min-height: 0;
 }
@@ -712,7 +713,7 @@
 }
 @media (width < theme(--breakpoint-lg)) {
   .kanban {
-    grid-template-columns: repeat(5, 260px);
+    grid-template-columns: repeat(var(--board-columns, 5), 260px);
   }
   .search-box {
     width: 155px;
@@ -792,12 +793,20 @@
   .primary-add > span {
     display: none;
   }
+  /* Three toggles («На сегодня», «Без P3», «Готово») do not fit next to the
+     view tabs on a phone: they move to their own row. */
   .toolbar {
     margin-top: 12px;
     min-height: 44px;
+    flex-wrap: wrap;
+    row-gap: 2px;
   }
   .toolbar-actions {
-    gap: 11px;
+    gap: 4px 14px;
+    flex-wrap: wrap;
+  }
+  .toolbar-actions .today-toggle {
+    white-space: nowrap;
   }
   .toolbar-actions > .sync-status {
     max-width: 94px;
@@ -808,7 +817,7 @@
     padding: 20px 16px;
   }
   .kanban {
-    grid-template-columns: repeat(5, min(84vw, 310px));
+    grid-template-columns: repeat(var(--board-columns, 5), min(84vw, 310px));
     gap: 14px;
   }
   .task-card {

@@ -13,6 +13,12 @@ export const BOARD_COLUMNS = [
   })),
   ...STATUSES.filter((status) => status.id === 'done'),
 ] as const;
+// The owner rarely needs finished tasks on the board: the «Готово» column is
+// hidden until he turns it on. The archive always shows every column.
+export const shownColumns = (showDone: boolean) =>
+  showDone
+    ? BOARD_COLUMNS
+    : BOARD_COLUMNS.filter((column) => column.id !== 'done');
 
 // Older clients and stored operations can still carry waiting. Display those
 // records in the queue without rewriting the owner's data on read.

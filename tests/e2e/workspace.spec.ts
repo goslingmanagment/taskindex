@@ -367,7 +367,7 @@ test('mouse and emulated touch drag both persist task moves', async ({
   });
   const mobile = await context.newPage();
   await openWorkspace(mobile);
-  await mobile.goto(`/?area=agency&project=${projectId}&view=board`);
+  await mobile.goto(`/?area=agency&project=${projectId}&view=board&done=1`);
   const start = mobile.getByRole('button', {
     name: 'Открыть: Касанием',
     exact: true,

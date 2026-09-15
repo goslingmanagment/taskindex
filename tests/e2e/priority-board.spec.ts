@@ -53,6 +53,16 @@ test('TI-091 board groups queued tasks by priority without a waiting column', as
     ]);
   }
   await expect(page.locator('.column-waiting')).toHaveCount(0);
+  // «Готово» is hidden until the owner turns it on in the toolbar.
+  await expect(page.locator('.column-head h2')).toHaveText([
+    'В работе',
+    'P1',
+    'P2',
+    'P3',
+  ]);
+  await expect(page.locator('label[for="show-done"]')).toHaveText('Готово 0');
+  await page.getByRole('checkbox', { name: 'Готово' }).click();
+  await expect(page).toHaveURL(/[?&]done=1(&|$)/);
   await expect(page.locator('.column-head h2')).toHaveText([
     'В работе',
     'P1',
@@ -68,6 +78,8 @@ test('TI-091 board groups queued tasks by priority without a waiting column', as
     'P3',
     'Готово',
   ]);
+  await page.getByRole('checkbox', { name: 'Готово' }).click();
+  await expect(page.locator('.column-done')).toHaveCount(0);
 });
 
 test('TI-091 column creation, priority drag, undo and status moves persist', async ({
@@ -82,7 +94,7 @@ test('TI-091 column creation, priority drag, undo and status moves persist', asy
     name: 'Проверка переноса',
     color: '#397faf',
   });
-  await page.goto(`/?area=agency&project=${projectId}&view=board`);
+  await page.goto(`/?area=agency&project=${projectId}&view=board&done=1`);
   // A project needs an initial task before the board replaces its empty state.
   await command(page, 'task.create', {
     id: randomUUID(),
@@ -169,7 +181,7 @@ test('TI-091 legacy waiting tasks stay visible and the five-column layout works 
       priority,
       status,
     });
-  const url = `/?area=agency&project=${projectId}&view=board`;
+  const url = `/?area=agency&project=${projectId}&view=board&done=1`;
   await page.goto(url);
   await page.setViewportSize({ width: 1920, height: 1080 });
   await page.emulateMedia({ colorScheme: 'dark' });

@@ -1,4 +1,5 @@
 import {
+  type CSSProperties,
   type ReactNode,
   useCallback,
   useMemo,
@@ -41,6 +42,7 @@ import {
   columnStatus,
   columnPriority,
   columnDraftKey,
+  shownColumns,
   type BoardColumn,
 } from './board-columns';
 export function DragBoard({
@@ -304,6 +306,7 @@ export function Board({
   projectId,
   mode,
   filtered,
+  showDone,
   renderTask,
   onCreate,
 }: {
@@ -314,24 +317,27 @@ export function Board({
   /** Архив показывает те же колонки, но без переноса и без добавления. */
   mode: 'board' | 'archive';
   filtered: boolean;
+  /** Колонка «Готово» включена в шапке; архив показывает её всегда. */
+  showDone: boolean;
   renderTask: (task: Task) => ReactNode;
   onCreate: (task: NewTask, operationId: string) => Promise<Task>;
 }) {
   const archive = mode === 'archive';
   const columns = useMemo(
     () =>
-      BOARD_COLUMNS.map((definition) => {
+      shownColumns(archive || showDone).map((definition) => {
         const column = tasks.filter(
           (task) => boardColumn(task) === definition.id,
         );
         return { definition, column, ids: column.map((task) => task.id) };
       }),
-    [tasks],
+    [tasks, archive, showDone],
   );
   return (
     <div
       className={'kanban ' + (view === 'list' ? 'list-view' : '')}
       data-large={tasks.length > 200 || undefined}
+      style={{ '--board-columns': columns.length } as CSSProperties}
     >
       {columns.map(({ definition, column, ids }) => {
         return (

@@ -15,6 +15,8 @@ describe('TI-042 location is parsed from the URL only', () => {
       '?area=personal&project=none&view=board&task=t1&q=%D0%BF%D0%BE%D0%B8%D1%81%D0%BA',
       '?area=agency&project=all&view=board&archive=1&archiveSearch=1',
       '?area=agency&project=all&view=board&today=1&activity=1',
+      // The «Готово» column is shown only while `done=1` is in the address.
+      '?area=agency&project=all&view=list&done=1',
       // TI-076: the author filter of the activity feed lives in the URL.
       '?area=agency&project=all&view=board&activity=1&actor=agent%3Aworker',
       // TI-078: the contexts drawer of the desk and its filters live in the URL

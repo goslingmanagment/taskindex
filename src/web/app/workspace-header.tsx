@@ -43,6 +43,8 @@ export function WorkspaceHeader({
   searchPending,
   hideP3,
   onHideP3,
+  showDone,
+  doneCount,
   onMobileSearch,
   onCreate,
   onEditProject,
@@ -56,6 +58,9 @@ export function WorkspaceHeader({
   searchPending: boolean;
   hideP3: boolean;
   onHideP3: (value: boolean) => void;
+  /** Колонка «Готово» видна; `doneCount` — сколько готовых на этом экране. */
+  showDone: boolean;
+  doneCount: number;
   onMobileSearch: (open: boolean) => void;
   onCreate: () => void;
   onEditProject: (project: Project) => void;
@@ -248,6 +253,20 @@ export function WorkspaceHeader({
                 onCheckedChange={onHideP3}
               />
               <span>Без P3</span>
+            </label>
+          )}
+          {!globalView && !archive && (
+            <label
+              htmlFor="show-done"
+              className={'today-toggle ' + (showDone ? 'active' : '')}
+            >
+              <Checkbox
+                id="show-done"
+                checked={showDone}
+                onCheckedChange={(v) => update({ done: !!v }, true)}
+              />
+              <span>Готово</span>{' '}
+              <span className="toggle-count">{doneCount}</span>
             </label>
           )}
           {searching && (

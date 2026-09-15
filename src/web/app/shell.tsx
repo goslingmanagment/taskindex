@@ -85,6 +85,7 @@ function WorkspaceBody() {
     focus: focusView,
     archive,
     today: todayOnly,
+    done: showDone,
     activity,
     archiveSearch,
   } = location;
@@ -136,6 +137,10 @@ function WorkspaceBody() {
     [data, selection, today],
   );
   const contextual = selectContextualTasks(data, location);
+  const doneCount = useMemo(
+    () => tasks.filter((task) => task.status === 'done').length,
+    [tasks],
+  );
   const hiddenP3 = useMemo(
     () => hiddenP3Count(data, selection, today),
     [data, selection, today],
@@ -208,6 +213,8 @@ function WorkspaceBody() {
           searchPending={searchPending}
           hideP3={hideP3}
           onHideP3={changeHideP3}
+          showDone={showDone}
+          doneCount={doneCount}
           onMobileSearch={setMobileSearch}
           onCreate={() => setCreate('todo')}
           onEditProject={setProjectDialog}
@@ -246,8 +253,13 @@ function WorkspaceBody() {
               </Button>
             </Empty>
           ) : loading ? (
-            <div className="loading-columns">
-              {[0, 1, 2, 3, 4].map((i) => (
+            <div
+              className="loading-columns"
+              style={
+                { '--board-columns': showDone ? 5 : 4 } as React.CSSProperties
+              }
+            >
+              {(showDone ? [0, 1, 2, 3, 4] : [0, 1, 2, 3]).map((i) => (
                 <div key={i}>
                   <Skeleton className="h-5 w-28 mb-5" />
                   <Skeleton className="h-32 w-full mb-3" />
@@ -307,6 +319,7 @@ function WorkspaceBody() {
                   projectId={projectId}
                   mode={archive ? 'archive' : 'board'}
                   filtered={todayOnly || filteringP3}
+                  showDone={showDone}
                   renderTask={renderTask}
                   onCreate={newTask}
                 />
