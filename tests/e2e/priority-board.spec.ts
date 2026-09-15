@@ -213,6 +213,17 @@ test('TI-091 legacy waiting tasks stay visible and the five-column layout works 
     path: testInfo.outputPath('priority-board-desktop.png'),
     animations: 'disabled',
   });
+  // TI-093: five columns fit a 1440 px laptop without a horizontal
+  // scroll inside the board body.
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await expect
+    .poll(() =>
+      page.evaluate(() => {
+        const body = document.querySelector('.board-body')!;
+        return body.scrollWidth - body.clientWidth;
+      }),
+    )
+    .toBeLessThanOrEqual(0);
   await page.setViewportSize({ width: 390, height: 844 });
   await expect(page.locator('.column-p1 h2')).toBeVisible();
   expect(

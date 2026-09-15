@@ -352,8 +352,9 @@
   display: grid;
   align-items: start;
   padding-bottom: 6px;
-  grid-template-columns: repeat(5, minmax(245px, 1fr));
-  gap: 20px;
+  /* TI-093: five columns must fit a 1440 px laptop (1152 px of board). */
+  grid-template-columns: repeat(5, minmax(200px, 1fr));
+  gap: 16px;
   min-height: 0;
 }
 .column {
