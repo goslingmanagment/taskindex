@@ -46,19 +46,19 @@ describe('TI-086 task fields', () => {
           area: 'agency',
           title: 'Горит',
           priority: 'p1',
-          labels: ['otvet', 'dengi'],
+          labels: ['dengi', 'lora'],
           closes: 'lora-km-of-vacancy',
         },
       }),
     );
     expect(urgent.results[0]!.record).toMatchObject({
       priority: 'p1',
-      labels: ['otvet', 'dengi'],
+      labels: ['dengi', 'lora'],
       closes: 'lora-km-of-vacancy',
     });
     expect(urgent.events[0]!.changes).toMatchObject({
       priority: { from: null, to: 'p1' },
-      labels: { from: null, to: ['otvet', 'dengi'] },
+      labels: { from: null, to: ['dengi', 'lora'] },
       closes: { from: null, to: 'lora-km-of-vacancy' },
     });
     const updated = success(
@@ -76,7 +76,7 @@ describe('TI-086 task fields', () => {
     expect(updated.events[0]!.changes).toEqual(
       expect.objectContaining({
         priority: { from: 'p1', to: 'p3' },
-        labels: { from: ['otvet', 'dengi'], to: [] },
+        labels: { from: ['dengi', 'lora'], to: [] },
         closes: { from: 'lora-km-of-vacancy', to: null },
       }),
     );
@@ -88,7 +88,7 @@ describe('TI-086 task fields', () => {
     );
     expect(undone.results[0]!.record).toMatchObject({
       priority: 'p1',
-      labels: ['otvet', 'dengi'],
+      labels: ['dengi', 'lora'],
       closes: 'lora-km-of-vacancy',
     });
     const saved = success(
@@ -117,18 +117,18 @@ describe('TI-086 task fields', () => {
           id: 'l',
           area: 'agency',
           title: 'L',
-          labels: ['dengi', 'otvet'],
+          labels: ['lora', 'dengi'],
         },
       }),
     );
     expect((created.results[0]!.record as Task).labels).toEqual([
-      'otvet',
       'dengi',
+      'lora',
     ]);
     const same = success(
       await f.post({
         command: 'task.update',
-        payload: { id: 'l', baseRevision: 1, labels: ['dengi', 'otvet'] },
+        payload: { id: 'l', baseRevision: 1, labels: ['lora', 'dengi'] },
       }),
     );
     expect(same.events).toEqual([]);
@@ -137,7 +137,7 @@ describe('TI-086 task fields', () => {
       await f.post(
         {
           command: 'task.update',
-          payload: { id: 'l', baseRevision: 1, labels: ['dengi', 'otvet'] },
+          payload: { id: 'l', baseRevision: 1, labels: ['lora', 'dengi'] },
         },
         { role: 'agent' },
       ),
@@ -217,19 +217,21 @@ describe('TI-086 task fields', () => {
       expect(body.issues!.map((i) => i.path)).toContain(path);
     };
     await refuse({ labels: ['unknown'] }, 'payload.labels[0]');
-    await refuse({ labels: ['otvet', 'otvet'] }, 'payload.labels');
+    await refuse({ labels: ['dengi', 'dengi'] }, 'payload.labels');
+    // A retired label is refused like any unknown one.
+    await refuse({ labels: ['otvet'] }, 'payload.labels[0]');
     await refuse(
       {
         labels: [
-          'otvet',
           'dengi',
           '5-min',
           'lora',
           'lily',
           'ari',
-          'otvet',
           'dengi',
+          '5-min',
           'lora',
+          'lily',
         ],
       },
       'payload.labels',
@@ -324,22 +326,22 @@ describe('TI-086 task fields', () => {
         payload: { id, area: 'agency', title: id, ...extra } as never,
       });
     expect(
-      (await create('a', { priority: 'p1', labels: ['otvet'] })).status,
+      (await create('a', { priority: 'p1', labels: ['dengi'] })).status,
     ).toBe(200);
     expect(
-      (await create('b', { priority: 'p3', labels: ['otvet', 'lora'] })).status,
+      (await create('b', { priority: 'p3', labels: ['dengi', 'lora'] })).status,
     ).toBe(200);
     expect((await create('c', { closes: 'x-1' })).status).toBe(200);
     expect(await ids(f, 'priority=p1')).toEqual(['a']);
     expect(await ids(f, 'priority=p3')).toEqual(['b']);
-    expect(await ids(f, 'label=otvet')).toEqual(['a', 'b']);
+    expect(await ids(f, 'label=dengi')).toEqual(['a', 'b']);
     expect(await ids(f, 'label=lora&priority=p3')).toEqual(['b']);
     expect(await ids(f, 'closes=x-1')).toEqual(['c']);
     expect((await f.app.request('/api/tasks?label=nope')).status).toBe(400);
     expect((await f.app.request('/api/tasks?priority=p9')).status).toBe(400);
     expect((await f.app.request('/api/tasks?closes=Bad')).status).toBe(400);
     const page = (await (
-      await f.app.request('/api/tasks?label=otvet&limit=1')
+      await f.app.request('/api/tasks?label=dengi&limit=1')
     ).json()) as { nextCursor: string | null };
     expect(page.nextCursor).not.toBeNull();
     const other = await f.app.request(
@@ -347,16 +349,16 @@ describe('TI-086 task fields', () => {
     );
     expect(other.status).toBe(400);
   });
-  it('digest counts p1 and otvet without done and archived tasks; context lists the catalogues', async () => {
+  it('digest counts p1 without done and archived tasks and no retired label; context lists the catalogues', async () => {
     const f = setup();
     const create = (id: string, extra: Record<string, unknown>) =>
       f.post({
         command: 'task.create',
         payload: { id, area: 'agency', title: id, ...extra } as never,
       });
-    await create('open', { priority: 'p1', labels: ['otvet'] });
-    await create('done', { priority: 'p1', labels: ['otvet'], status: 'done' });
-    await create('other', { labels: ['otvet'] });
+    await create('open', { priority: 'p1', labels: ['dengi'] });
+    await create('done', { priority: 'p1', labels: ['dengi'], status: 'done' });
+    await create('other', { priority: 'p1', labels: ['dengi'] });
     success(
       await f.post({
         command: 'task.archive',
@@ -366,12 +368,14 @@ describe('TI-086 task fields', () => {
     const digest = (await (
       await f.app.request('/api/digest')
     ).json()) as Digest;
-    expect(digest.counts).toMatchObject({ p1: 1, otvet: 1 });
+    expect(digest.counts).toMatchObject({ p1: 1 });
+    expect(digest.counts).not.toHaveProperty('otvet');
     const context = (await (
       await f.app.request('/api/context')
     ).json()) as Context;
     expect(context.priorities).toEqual([...PRIORITIES]);
     expect(context.labels).toEqual([...LABELS]);
+    expect(context.labels.map((label) => label.id)).not.toContain('otvet');
     expect(context.rules.join('\n')).toContain(
       'Порядок карточек в колонке остаётся ручным',
     );

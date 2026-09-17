@@ -23,6 +23,7 @@ import {
   dateSchema,
   operationEnvelopeSchema,
   labelsSchema,
+  storedLabelsSchema,
   prioritySchema,
   closesSchema,
 } from '../../src/shared/schemas.js';
@@ -203,10 +204,19 @@ describe('shared queries and validation', () => {
     expect(DEFAULT_PRIORITY).toBe('p2');
     for (const value of ['p0', 'P1', '', null])
       expect(prioritySchema.safeParse(value).success).toBe(false);
-    expect(labelsSchema.safeParse(['otvet', 'dengi']).success).toBe(true);
+    expect(labelsSchema.safeParse(['dengi', 'lora']).success).toBe(true);
     expect(labelsSchema.safeParse([]).success).toBe(true);
-    for (const value of [['otvet', 'otvet'], ['custom'], 'otvet', null])
+    // The retired label stays readable in records, never acceptable in commands.
+    for (const value of [
+      ['dengi', 'dengi'],
+      ['custom'],
+      ['otvet'],
+      'dengi',
+      null,
+    ])
       expect(labelsSchema.safeParse(value).success).toBe(false);
+    expect(storedLabelsSchema.safeParse(['otvet', 'dengi']).success).toBe(true);
+    expect(storedLabelsSchema.safeParse(['custom']).success).toBe(false);
     for (const value of [null, 'lora-km-of-vacancy', 'a-1'])
       expect(closesSchema.safeParse(value).success).toBe(true);
     for (const value of ['', 'Проблема', 'Upper', 'with space', 'a/b'])
@@ -222,7 +232,7 @@ describe('shared queries and validation', () => {
   it('TI-086 accepts priority, labels and closes in every task field payload', () => {
     const fields = {
       priority: 'p1',
-      labels: ['otvet', 'dengi'],
+      labels: ['dengi', 'lora'],
       closes: 'lora-km-of-vacancy',
     };
     const creating = { area: 'agency', title: 'Карточка', ...fields };
@@ -249,11 +259,11 @@ describe('shared queries and validation', () => {
     const tasks = [
       create('later', {
         priority: 'p1',
-        labels: ['otvet'],
+        labels: ['dengi'],
         closes: 'x-1',
         orderKey: 'a2',
       }),
-      create('first', { priority: 'p3', labels: ['otvet'], orderKey: 'a0' }),
+      create('first', { priority: 'p3', labels: ['dengi'], orderKey: 'a0' }),
       create('middle', { priority: 'p2', orderKey: 'a1' }),
     ];
     expect(queryTasks(tasks, [], {}).map((t) => t.id)).toEqual([
@@ -264,7 +274,7 @@ describe('shared queries and validation', () => {
     expect(queryTasks(tasks, [], { priority: 'p1' }).map((t) => t.id)).toEqual([
       'later',
     ]);
-    expect(queryTasks(tasks, [], { label: 'otvet' }).map((t) => t.id)).toEqual([
+    expect(queryTasks(tasks, [], { label: 'dengi' }).map((t) => t.id)).toEqual([
       'first',
       'later',
     ]);

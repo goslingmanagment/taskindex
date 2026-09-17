@@ -22,7 +22,12 @@ import { assertNever, fail } from './errors.js';
 import { LIMITS } from './limits.js';
 import { DEFAULT_APPEARANCE_ID } from './appearance.js';
 import { ENTITIES } from './entities.js';
-import { DEFAULT_PRIORITY, LABEL_IDS, type LabelId } from './labels.js';
+import {
+  DEFAULT_PRIORITY,
+  LABEL_IDS,
+  isCatalogueLabel,
+  type LabelId,
+} from './labels.js';
 type ChangeEffect = {
   entityKind: EntityKind;
   entityId: string;
@@ -360,7 +365,7 @@ export function assertInvariants(
       new Set(t.labels).size !== t.labels.length
     )
       fail('invalid', 'Метки должны быть уникальными и помещаться в лимит.');
-    if (t.labels.some((label) => !LABEL_IDS.includes(label)))
+    if (!t.labels.every(isCatalogueLabel))
       fail('invalid', 'Метка отсутствует в каталоге.');
   }
 }
@@ -1109,6 +1114,10 @@ export function applyEvent(
       if (next.labels === undefined) next.labels = [];
       if (next.closes === undefined) next.closes = null;
     }
+    // A retired label vanishes on replay, exactly as its migration drops it
+    // from the tables; the journal and stored results keep it as written.
+    if (event.entityKind === 'task' && isTask(next))
+      next.labels = next.labels.filter(isCatalogueLabel);
     if (index < 0) list.push(next);
     else list[index] = next;
   }

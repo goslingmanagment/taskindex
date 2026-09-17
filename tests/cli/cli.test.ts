@@ -65,7 +65,7 @@ it('TI-086 accepts comma and JSON label sets, explicit clearing and task filters
       '--priority',
       'p1',
       '--labels',
-      'otvet, dengi',
+      'dengi, lora',
       '--closes',
       'lora-km-of-vacancy',
     ]),
@@ -74,7 +74,7 @@ it('TI-086 accepts comma and JSON label sets, explicit clearing and task filters
     command: 'task.create',
     payload: {
       priority: 'p1',
-      labels: ['otvet', 'dengi'],
+      labels: ['dengi', 'lora'],
       closes: 'lora-km-of-vacancy',
     },
   });
@@ -141,12 +141,12 @@ it('TI-086 accepts comma and JSON label sets, explicit clearing and task filters
       '--priority',
       'p1',
       '--label',
-      'otvet',
+      'dengi',
       '--closes',
       'x-1',
     ]),
   ).toBe(0);
-  expect(urls.at(-1)).toBe('/api/tasks?priority=p1&label=otvet&closes=x-1');
+  expect(urls.at(-1)).toBe('/api/tasks?priority=p1&label=dengi&closes=x-1');
 });
 
 async function setup(

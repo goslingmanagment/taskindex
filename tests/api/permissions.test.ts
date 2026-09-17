@@ -573,7 +573,7 @@ describe('owner fields need an explicit confirmation from agents', () => {
           id: 'ta',
           baseRevision: task(f, 'ta').revision,
           priority: 'p1',
-          labels: ['otvet'],
+          labels: ['dengi'],
           closes: 'lora-km-of-vacancy',
         },
       }),
@@ -652,7 +652,7 @@ describe('owner fields need an explicit confirmation from agents', () => {
           id: 'ta',
           baseRevision: task(f, 'ta').revision,
           priority: 'p1',
-          labels: ['otvet'],
+          labels: ['dengi'],
           closes: 'lora-km-of-vacancy',
         },
       },
@@ -660,7 +660,7 @@ describe('owner fields need an explicit confirmation from agents', () => {
     );
     expect(direct.status).toBe(200);
     expect(success(direct).results[0]!.confirmedOwnerFields).toBeUndefined();
-    expect(task(f, 'ta')).toMatchObject({ priority: 'p1', labels: ['otvet'] });
+    expect(task(f, 'ta')).toMatchObject({ priority: 'p1', labels: ['dengi'] });
   });
   it('requires confirmOwnerFields for a direct command that changes a field the owner decided on, and records the confirmation', async () => {
     const f = await seed(setup());

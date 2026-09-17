@@ -126,7 +126,7 @@ const intents = [
   }),
   (v: number) => ({
     field: 'labels' as const,
-    value: v % 2 ? ['otvet'] : ['dengi', 'lora'],
+    value: v % 2 ? ['5-min'] : ['dengi', 'lora'],
   }),
   (v: number) => ({ field: 'closes' as const, value: `slug-${v}` }),
   (v: number) => ({ field: 'note' as const, value: `note ${v}` }),

@@ -21,7 +21,7 @@ export type StoredResult =
 import { commandNames } from '../shared/schemas.js';
 import { APPEARANCE_MODES } from '../shared/appearance.js';
 import { DEFAULT_PRIORITY, PRIORITY_IDS } from '../shared/labels.js';
-import type { LabelId } from '../shared/labels.js';
+import type { StoredLabelId } from '../shared/labels.js';
 const commandColumn = [...commandNames, 'batch'] as const;
 const time = (name: string) => integer(name, { mode: 'timestamp_ms' });
 export const settings = sqliteTable('settings', {
@@ -66,8 +66,10 @@ export const tasks = sqliteTable(
     priority: text('priority', { enum: PRIORITY_IDS })
       .notNull()
       .default(DEFAULT_PRIORITY),
+    // Rows hold catalogue labels only (0006 drops a retired label, replay and
+    // assertInvariants keep it out); the type follows the record schema.
     labels: text('labels', { mode: 'json' })
-      .$type<LabelId[]>()
+      .$type<StoredLabelId[]>()
       .notNull()
       .default(sql`'[]'`),
     closes: text('closes'),

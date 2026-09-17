@@ -10,7 +10,7 @@ import {
   commandNames,
   prioritySchema,
   labelSchema,
-  labelsSchema,
+  storedLabelsSchema,
   closesSchema,
 } from './schemas.js';
 import { LIMITS } from './limits.js';
@@ -77,7 +77,7 @@ export const taskSchema = z
     title: z.string().min(1).max(LIMITS.taskTitle).describe('Название'),
     status: statusSchema,
     priority: prioritySchema.default(DEFAULT_PRIORITY),
-    labels: labelsSchema.default([]),
+    labels: storedLabelsSchema.default([]),
     closes: closesSchema.default(null),
     note: z.string().max(LIMITS.taskNote).describe('Заметка'),
     due: dateSchema,
@@ -435,7 +435,7 @@ const legacyExportFields = {
 };
 export const exportSchema = z
   .object({
-    formatVersion: z.literal(5),
+    formatVersion: z.literal(6),
     ...exportFields,
     operations: z.array(exportedOperationSchema),
     appearance: z
@@ -479,6 +479,17 @@ export const exportSchemaV3 = z
 export const exportSchemaV4 = z
   .object({
     formatVersion: z.literal(4),
+    ...exportFields,
+    operations: z.array(exportedOperationSchema),
+    appearance: z.array(appearanceSchema),
+  })
+  .strict();
+// Format 5 (schema version 6): task rows may carry the retired label otvet.
+// Import drops it from tasks, exactly what 0006_drop_otvet_label.sql does to
+// an existing database; events and stored results stay as written.
+export const exportSchemaV5 = z
+  .object({
+    formatVersion: z.literal(5),
     ...exportFields,
     operations: z.array(exportedOperationSchema),
     appearance: z.array(appearanceSchema),
@@ -644,9 +655,6 @@ export const digestSchema = z
       archived: z.number(),
       projects: z.number(),
       p1: z.number().describe('Незавершённые P1 вне архива'),
-      otvet: z
-        .number()
-        .describe('Незавершённые задачи с меткой ответ вне архива'),
     }),
     operations: pageSchema(operationSummarySchema).extend({ href }),
     comments: pageSchema(digestCommentSchema)

@@ -2,7 +2,7 @@ import { z } from 'zod';
 import { LIMITS } from './limits.js';
 import { appearanceModeSchema, skinIdSchema } from './appearance.js';
 import { ALL_PROJECTS, NO_PROJECT } from './constants.js';
-import { LABEL_IDS, PRIORITY_IDS } from './labels.js';
+import { LABEL_IDS, PRIORITY_IDS, STORED_LABEL_IDS } from './labels.js';
 /** @deprecated import `z` from 'zod' directly; the re-export is kept until plan 10 removes the last consumers. */
 export { z };
 export const idSchema = z
@@ -53,6 +53,19 @@ export const labelsSchema = z
   .max(LIMITS.taskLabels)
   .refine((v) => new Set(v).size === v.length, 'Метки не должны повторяться')
   .describe(`До ${LIMITS.taskLabels} меток из каталога, без повторов`);
+// Records (snapshot, stored results, exports) may still carry a label retired
+// after they were written; commands accept catalogue labels only.
+export const storedLabelsSchema = z
+  .array(
+    z
+      .enum(STORED_LABEL_IDS)
+      .describe(
+        'Метка записи: из каталога labels или снятая метка, оставшаяся в сохранённом результате старой операции',
+      ),
+  )
+  .max(LIMITS.taskLabels)
+  .refine((v) => new Set(v).size === v.length, 'Метки не должны повторяться')
+  .describe(`До ${LIMITS.taskLabels} меток записи, без повторов`);
 export const closesSchema = z
   .string()
   .regex(new RegExp(`^[a-z0-9-]{1,${LIMITS.closes}}$`))

@@ -98,7 +98,7 @@ test('hover keeps the title in place; the agent byline sits at the right edge', 
         id: taskId,
         area: 'agency',
         title,
-        labels: ['otvet'],
+        labels: ['dengi'],
       })
     ).ok(),
   ).toBe(true);

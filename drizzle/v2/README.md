@@ -52,6 +52,15 @@
   миграции. Фикстура `tests/fixtures/export-schema-5.json` создана прежним кодом и включает
   изменения оформления, результаты задач и сохранённый отказ. Тест:
   `tests/api/migration-compat.test.ts`, describe `0005_priority_labels_closes backfill`.
+  2026-09-17: `0006_drop_otvet_label` (решение владельца, спека §4 примечание) — вариант (б), файл
+  создан `drizzle-kit generate --custom` (схема не меняется, снапшот повторяет 0005). `UPDATE`
+  через `json_each`/`json_group_array(... ORDER BY key)` убирает `otvet` из `tasks.labels`,
+  порядок остальных меток, `revision` и `updated_at` не меняются. Журнал и сохранённые
+  результаты не переписываются: `applyEvent` при replay отбрасывает метки вне каталога
+  (`isCatalogueLabel`), `taskSchema` читает записи через `storedLabelsSchema` (каталог плюс
+  `RETIRED_LABELS`), формат экспорта поднят до 6, `upgradeExport` убирает снятую метку из
+  задач форматов 1–5. Фикстура `tests/fixtures/export-schema-6.json` создана кодом dc37568.
+  Тест: `tests/api/migration-compat.test.ts`, describe `0006_drop_otvet_label`.
 - Журналы, созданные до появления контрольных сумм, получают `sha256` из файлов образа при
   первом `migrate` с записью `warn` `migration_checksum_backfilled` (допустимо только до
   рабочего переключения; после него backfill только по сверке с архивным SQL релиза).

@@ -1,0 +1,1404 @@
+{
+  "formatVersion": 5,
+  "exportedAt": "2026-09-17T00:00:00.000Z",
+  "generation": "fixture-schema-6",
+  "seq": 3,
+  "settings": {
+    "generation": "fixture-schema-6",
+    "timezone": "Europe/Moscow",
+    "schema_version": "6"
+  },
+  "projects": [],
+  "tasks": [
+    {
+      "id": "labelled-task",
+      "area": "agency",
+      "projectId": null,
+      "title": "Ответить кандидату на ночную смену",
+      "status": "todo",
+      "priority": "p2",
+      "labels": [
+        "otvet",
+        "lora",
+        "ari"
+      ],
+      "closes": null,
+      "note": "Ждёт ответа",
+      "due": null,
+      "waitingFor": "",
+      "followUp": null,
+      "orderKey": "a0",
+      "focus": false,
+      "focusKey": null,
+      "focusLeftAt": null,
+      "archived": false,
+      "originSystem": null,
+      "originRef": null,
+      "originUrl": null,
+      "originVersion": null,
+      "createdBy": "owner",
+      "createdByLabel": "Владелец",
+      "ownerTouchedAt": "2026-09-08T12:00:00.000Z",
+      "ownerFields": [
+        "archived",
+        "area",
+        "checklist",
+        "closes",
+        "due",
+        "focus",
+        "focusKey",
+        "focusLeftAt",
+        "followUp",
+        "labels",
+        "note",
+        "orderKey",
+        "originUrl",
+        "priority",
+        "projectId",
+        "status",
+        "title",
+        "waitingFor"
+      ],
+      "revision": 2,
+      "createdAt": "2026-09-08T12:00:00.000Z",
+      "updatedAt": "2026-09-08T12:00:00.000Z",
+      "checklist": [],
+      "commentCount": 0
+    },
+    {
+      "id": "answered-task",
+      "area": "agency",
+      "projectId": null,
+      "title": "Только метка ответ",
+      "status": "done",
+      "priority": "p2",
+      "labels": [
+        "otvet"
+      ],
+      "closes": null,
+      "note": "",
+      "due": null,
+      "waitingFor": "",
+      "followUp": null,
+      "orderKey": "a0",
+      "focus": false,
+      "focusKey": null,
+      "focusLeftAt": null,
+      "archived": false,
+      "originSystem": null,
+      "originRef": null,
+      "originUrl": null,
+      "originVersion": null,
+      "createdBy": "owner",
+      "createdByLabel": "Владелец",
+      "ownerTouchedAt": "2026-09-08T12:00:00.000Z",
+      "ownerFields": [
+        "archived",
+        "area",
+        "checklist",
+        "closes",
+        "due",
+        "focus",
+        "focusKey",
+        "focusLeftAt",
+        "followUp",
+        "labels",
+        "note",
+        "orderKey",
+        "originUrl",
+        "priority",
+        "projectId",
+        "status",
+        "title",
+        "waitingFor"
+      ],
+      "revision": 1,
+      "createdAt": "2026-09-08T12:00:00.000Z",
+      "updatedAt": "2026-09-08T12:00:00.000Z",
+      "checklist": [],
+      "commentCount": 0
+    }
+  ],
+  "comments": [],
+  "appearance": [
+    {
+      "id": "owner",
+      "mode": "system",
+      "skinId": "classic",
+      "hideP3": false,
+      "revision": 1,
+      "updatedAt": null
+    }
+  ],
+  "checklistItems": [],
+  "agents": [],
+  "events": [
+    {
+      "seq": 1,
+      "at": "2026-09-08T12:00:00.000Z",
+      "actorId": "owner",
+      "actorLabel": "Владелец",
+      "operationId": "label-create",
+      "entityKind": "task",
+      "entityId": "labelled-task",
+      "command": "task.create",
+      "changes": {
+        "id": {
+          "from": null,
+          "to": "labelled-task"
+        },
+        "area": {
+          "from": null,
+          "to": "agency"
+        },
+        "projectId": {
+          "from": null,
+          "to": null
+        },
+        "title": {
+          "from": null,
+          "to": "Ответить кандидату на ночную смену"
+        },
+        "status": {
+          "from": null,
+          "to": "todo"
+        },
+        "priority": {
+          "from": null,
+          "to": "p2"
+        },
+        "labels": {
+          "from": null,
+          "to": [
+            "otvet",
+            "ari"
+          ]
+        },
+        "closes": {
+          "from": null,
+          "to": null
+        },
+        "note": {
+          "from": null,
+          "to": ""
+        },
+        "due": {
+          "from": null,
+          "to": null
+        },
+        "waitingFor": {
+          "from": null,
+          "to": ""
+        },
+        "followUp": {
+          "from": null,
+          "to": null
+        },
+        "orderKey": {
+          "from": null,
+          "to": "a0"
+        },
+        "focus": {
+          "from": null,
+          "to": false
+        },
+        "focusKey": {
+          "from": null,
+          "to": null
+        },
+        "focusLeftAt": {
+          "from": null,
+          "to": null
+        },
+        "archived": {
+          "from": null,
+          "to": false
+        },
+        "checklist": {
+          "from": null,
+          "to": []
+        },
+        "originSystem": {
+          "from": null,
+          "to": null
+        },
+        "originRef": {
+          "from": null,
+          "to": null
+        },
+        "originUrl": {
+          "from": null,
+          "to": null
+        },
+        "originVersion": {
+          "from": null,
+          "to": null
+        },
+        "createdBy": {
+          "from": null,
+          "to": "owner"
+        },
+        "createdByLabel": {
+          "from": null,
+          "to": "Владелец"
+        },
+        "ownerTouchedAt": {
+          "from": null,
+          "to": "2026-09-08T12:00:00.000Z"
+        },
+        "ownerFields": {
+          "from": null,
+          "to": [
+            "archived",
+            "area",
+            "checklist",
+            "closes",
+            "due",
+            "focus",
+            "focusKey",
+            "focusLeftAt",
+            "followUp",
+            "labels",
+            "note",
+            "orderKey",
+            "originUrl",
+            "priority",
+            "projectId",
+            "status",
+            "title",
+            "waitingFor"
+          ]
+        },
+        "createdAt": {
+          "from": null,
+          "to": "2026-09-08T12:00:00.000Z"
+        }
+      },
+      "recordRevision": 1,
+      "firstSeq": 1,
+      "lastSeq": 1,
+      "generation": "fixture-schema-6"
+    },
+    {
+      "seq": 2,
+      "at": "2026-09-08T12:00:00.000Z",
+      "actorId": "owner",
+      "actorLabel": "Владелец",
+      "operationId": "label-update",
+      "entityKind": "task",
+      "entityId": "labelled-task",
+      "command": "task.update",
+      "changes": {
+        "labels": {
+          "from": [
+            "otvet",
+            "ari"
+          ],
+          "to": [
+            "otvet",
+            "lora",
+            "ari"
+          ]
+        },
+        "note": {
+          "from": "",
+          "to": "Ждёт ответа"
+        }
+      },
+      "recordRevision": 2,
+      "firstSeq": 2,
+      "lastSeq": 2,
+      "generation": "fixture-schema-6"
+    },
+    {
+      "seq": 3,
+      "at": "2026-09-08T12:00:00.000Z",
+      "actorId": "owner",
+      "actorLabel": "Владелец",
+      "operationId": "label-only",
+      "entityKind": "task",
+      "entityId": "answered-task",
+      "command": "task.create",
+      "changes": {
+        "id": {
+          "from": null,
+          "to": "answered-task"
+        },
+        "area": {
+          "from": null,
+          "to": "agency"
+        },
+        "projectId": {
+          "from": null,
+          "to": null
+        },
+        "title": {
+          "from": null,
+          "to": "Только метка ответ"
+        },
+        "status": {
+          "from": null,
+          "to": "done"
+        },
+        "priority": {
+          "from": null,
+          "to": "p2"
+        },
+        "labels": {
+          "from": null,
+          "to": [
+            "otvet"
+          ]
+        },
+        "closes": {
+          "from": null,
+          "to": null
+        },
+        "note": {
+          "from": null,
+          "to": ""
+        },
+        "due": {
+          "from": null,
+          "to": null
+        },
+        "waitingFor": {
+          "from": null,
+          "to": ""
+        },
+        "followUp": {
+          "from": null,
+          "to": null
+        },
+        "orderKey": {
+          "from": null,
+          "to": "a0"
+        },
+        "focus": {
+          "from": null,
+          "to": false
+        },
+        "focusKey": {
+          "from": null,
+          "to": null
+        },
+        "focusLeftAt": {
+          "from": null,
+          "to": null
+        },
+        "archived": {
+          "from": null,
+          "to": false
+        },
+        "checklist": {
+          "from": null,
+          "to": []
+        },
+        "originSystem": {
+          "from": null,
+          "to": null
+        },
+        "originRef": {
+          "from": null,
+          "to": null
+        },
+        "originUrl": {
+          "from": null,
+          "to": null
+        },
+        "originVersion": {
+          "from": null,
+          "to": null
+        },
+        "createdBy": {
+          "from": null,
+          "to": "owner"
+        },
+        "createdByLabel": {
+          "from": null,
+          "to": "Владелец"
+        },
+        "ownerTouchedAt": {
+          "from": null,
+          "to": "2026-09-08T12:00:00.000Z"
+        },
+        "ownerFields": {
+          "from": null,
+          "to": [
+            "archived",
+            "area",
+            "checklist",
+            "closes",
+            "due",
+            "focus",
+            "focusKey",
+            "focusLeftAt",
+            "followUp",
+            "labels",
+            "note",
+            "orderKey",
+            "originUrl",
+            "priority",
+            "projectId",
+            "status",
+            "title",
+            "waitingFor"
+          ]
+        },
+        "createdAt": {
+          "from": null,
+          "to": "2026-09-08T12:00:00.000Z"
+        }
+      },
+      "recordRevision": 1,
+      "firstSeq": 3,
+      "lastSeq": 3,
+      "generation": "fixture-schema-6"
+    }
+  ],
+  "operations": [
+    {
+      "id": "label-create",
+      "operationSeq": 1,
+      "actorId": "owner",
+      "actorLabel": "Владелец",
+      "command": "task.create",
+      "commandHash": "4a749058b6a843fb900fd5834d051671a0f328d05040a388a5ec8402c8a93a1b",
+      "status": 200,
+      "result": {
+        "ok": true,
+        "operationId": "label-create",
+        "generation": "fixture-schema-6",
+        "firstSeq": 1,
+        "lastSeq": 1,
+        "results": [
+          {
+            "record": {
+              "id": "labelled-task",
+              "area": "agency",
+              "projectId": null,
+              "title": "Ответить кандидату на ночную смену",
+              "status": "todo",
+              "priority": "p2",
+              "labels": [
+                "otvet",
+                "ari"
+              ],
+              "closes": null,
+              "note": "",
+              "due": null,
+              "waitingFor": "",
+              "followUp": null,
+              "orderKey": "a0",
+              "focus": false,
+              "focusKey": null,
+              "focusLeftAt": null,
+              "archived": false,
+              "checklist": [],
+              "commentCount": 0,
+              "originSystem": null,
+              "originRef": null,
+              "originUrl": null,
+              "originVersion": null,
+              "createdBy": "owner",
+              "createdByLabel": "Владелец",
+              "ownerTouchedAt": "2026-09-08T12:00:00.000Z",
+              "ownerFields": [
+                "archived",
+                "area",
+                "checklist",
+                "closes",
+                "due",
+                "focus",
+                "focusKey",
+                "focusLeftAt",
+                "followUp",
+                "labels",
+                "note",
+                "orderKey",
+                "originUrl",
+                "priority",
+                "projectId",
+                "status",
+                "title",
+                "waitingFor"
+              ],
+              "revision": 1,
+              "createdAt": "2026-09-08T12:00:00.000Z",
+              "updatedAt": "2026-09-08T12:00:00.000Z"
+            },
+            "changes": {
+              "id": {
+                "from": null,
+                "to": "labelled-task"
+              },
+              "area": {
+                "from": null,
+                "to": "agency"
+              },
+              "projectId": {
+                "from": null,
+                "to": null
+              },
+              "title": {
+                "from": null,
+                "to": "Ответить кандидату на ночную смену"
+              },
+              "status": {
+                "from": null,
+                "to": "todo"
+              },
+              "priority": {
+                "from": null,
+                "to": "p2"
+              },
+              "labels": {
+                "from": null,
+                "to": [
+                  "otvet",
+                  "ari"
+                ]
+              },
+              "closes": {
+                "from": null,
+                "to": null
+              },
+              "note": {
+                "from": null,
+                "to": ""
+              },
+              "due": {
+                "from": null,
+                "to": null
+              },
+              "waitingFor": {
+                "from": null,
+                "to": ""
+              },
+              "followUp": {
+                "from": null,
+                "to": null
+              },
+              "orderKey": {
+                "from": null,
+                "to": "a0"
+              },
+              "focus": {
+                "from": null,
+                "to": false
+              },
+              "focusKey": {
+                "from": null,
+                "to": null
+              },
+              "focusLeftAt": {
+                "from": null,
+                "to": null
+              },
+              "archived": {
+                "from": null,
+                "to": false
+              },
+              "checklist": {
+                "from": null,
+                "to": []
+              },
+              "originSystem": {
+                "from": null,
+                "to": null
+              },
+              "originRef": {
+                "from": null,
+                "to": null
+              },
+              "originUrl": {
+                "from": null,
+                "to": null
+              },
+              "originVersion": {
+                "from": null,
+                "to": null
+              },
+              "createdBy": {
+                "from": null,
+                "to": "owner"
+              },
+              "createdByLabel": {
+                "from": null,
+                "to": "Владелец"
+              },
+              "ownerTouchedAt": {
+                "from": null,
+                "to": "2026-09-08T12:00:00.000Z"
+              },
+              "ownerFields": {
+                "from": null,
+                "to": [
+                  "archived",
+                  "area",
+                  "checklist",
+                  "closes",
+                  "due",
+                  "focus",
+                  "focusKey",
+                  "focusLeftAt",
+                  "followUp",
+                  "labels",
+                  "note",
+                  "orderKey",
+                  "originUrl",
+                  "priority",
+                  "projectId",
+                  "status",
+                  "title",
+                  "waitingFor"
+                ]
+              },
+              "createdAt": {
+                "from": null,
+                "to": "2026-09-08T12:00:00.000Z"
+              }
+            }
+          }
+        ],
+        "events": [
+          {
+            "seq": 1,
+            "at": "2026-09-08T12:00:00.000Z",
+            "actorId": "owner",
+            "actorLabel": "Владелец",
+            "operationId": "label-create",
+            "entityKind": "task",
+            "entityId": "labelled-task",
+            "command": "task.create",
+            "changes": {
+              "id": {
+                "from": null,
+                "to": "labelled-task"
+              },
+              "area": {
+                "from": null,
+                "to": "agency"
+              },
+              "projectId": {
+                "from": null,
+                "to": null
+              },
+              "title": {
+                "from": null,
+                "to": "Ответить кандидату на ночную смену"
+              },
+              "status": {
+                "from": null,
+                "to": "todo"
+              },
+              "priority": {
+                "from": null,
+                "to": "p2"
+              },
+              "labels": {
+                "from": null,
+                "to": [
+                  "otvet",
+                  "ari"
+                ]
+              },
+              "closes": {
+                "from": null,
+                "to": null
+              },
+              "note": {
+                "from": null,
+                "to": ""
+              },
+              "due": {
+                "from": null,
+                "to": null
+              },
+              "waitingFor": {
+                "from": null,
+                "to": ""
+              },
+              "followUp": {
+                "from": null,
+                "to": null
+              },
+              "orderKey": {
+                "from": null,
+                "to": "a0"
+              },
+              "focus": {
+                "from": null,
+                "to": false
+              },
+              "focusKey": {
+                "from": null,
+                "to": null
+              },
+              "focusLeftAt": {
+                "from": null,
+                "to": null
+              },
+              "archived": {
+                "from": null,
+                "to": false
+              },
+              "checklist": {
+                "from": null,
+                "to": []
+              },
+              "originSystem": {
+                "from": null,
+                "to": null
+              },
+              "originRef": {
+                "from": null,
+                "to": null
+              },
+              "originUrl": {
+                "from": null,
+                "to": null
+              },
+              "originVersion": {
+                "from": null,
+                "to": null
+              },
+              "createdBy": {
+                "from": null,
+                "to": "owner"
+              },
+              "createdByLabel": {
+                "from": null,
+                "to": "Владелец"
+              },
+              "ownerTouchedAt": {
+                "from": null,
+                "to": "2026-09-08T12:00:00.000Z"
+              },
+              "ownerFields": {
+                "from": null,
+                "to": [
+                  "archived",
+                  "area",
+                  "checklist",
+                  "closes",
+                  "due",
+                  "focus",
+                  "focusKey",
+                  "focusLeftAt",
+                  "followUp",
+                  "labels",
+                  "note",
+                  "orderKey",
+                  "originUrl",
+                  "priority",
+                  "projectId",
+                  "status",
+                  "title",
+                  "waitingFor"
+                ]
+              },
+              "createdAt": {
+                "from": null,
+                "to": "2026-09-08T12:00:00.000Z"
+              }
+            },
+            "recordRevision": 1,
+            "firstSeq": 1,
+            "lastSeq": 1,
+            "generation": "fixture-schema-6"
+          }
+        ]
+      },
+      "firstSeq": 1,
+      "lastSeq": 1,
+      "createdAt": "2026-09-08T12:00:00.000Z",
+      "ok": true,
+      "taskCount": 1,
+      "titles": [
+        "Ответить кандидату на ночную смену"
+      ]
+    },
+    {
+      "id": "label-update",
+      "operationSeq": 2,
+      "actorId": "owner",
+      "actorLabel": "Владелец",
+      "command": "task.update",
+      "commandHash": "5b62091021bac8df50440b82d9c1e0effedc70e44b94e02eac1cce4acfd82e83",
+      "status": 200,
+      "result": {
+        "ok": true,
+        "operationId": "label-update",
+        "generation": "fixture-schema-6",
+        "firstSeq": 2,
+        "lastSeq": 2,
+        "results": [
+          {
+            "record": {
+              "id": "labelled-task",
+              "area": "agency",
+              "projectId": null,
+              "title": "Ответить кандидату на ночную смену",
+              "status": "todo",
+              "priority": "p2",
+              "labels": [
+                "otvet",
+                "lora",
+                "ari"
+              ],
+              "closes": null,
+              "note": "Ждёт ответа",
+              "due": null,
+              "waitingFor": "",
+              "followUp": null,
+              "orderKey": "a0",
+              "focus": false,
+              "focusKey": null,
+              "focusLeftAt": null,
+              "archived": false,
+              "checklist": [],
+              "commentCount": 0,
+              "originSystem": null,
+              "originRef": null,
+              "originUrl": null,
+              "originVersion": null,
+              "createdBy": "owner",
+              "createdByLabel": "Владелец",
+              "ownerTouchedAt": "2026-09-08T12:00:00.000Z",
+              "ownerFields": [
+                "archived",
+                "area",
+                "checklist",
+                "closes",
+                "due",
+                "focus",
+                "focusKey",
+                "focusLeftAt",
+                "followUp",
+                "labels",
+                "note",
+                "orderKey",
+                "originUrl",
+                "priority",
+                "projectId",
+                "status",
+                "title",
+                "waitingFor"
+              ],
+              "revision": 2,
+              "createdAt": "2026-09-08T12:00:00.000Z",
+              "updatedAt": "2026-09-08T12:00:00.000Z"
+            },
+            "changes": {
+              "labels": {
+                "from": [
+                  "otvet",
+                  "ari"
+                ],
+                "to": [
+                  "otvet",
+                  "lora",
+                  "ari"
+                ]
+              },
+              "note": {
+                "from": "",
+                "to": "Ждёт ответа"
+              }
+            }
+          }
+        ],
+        "events": [
+          {
+            "seq": 2,
+            "at": "2026-09-08T12:00:00.000Z",
+            "actorId": "owner",
+            "actorLabel": "Владелец",
+            "operationId": "label-update",
+            "entityKind": "task",
+            "entityId": "labelled-task",
+            "command": "task.update",
+            "changes": {
+              "labels": {
+                "from": [
+                  "otvet",
+                  "ari"
+                ],
+                "to": [
+                  "otvet",
+                  "lora",
+                  "ari"
+                ]
+              },
+              "note": {
+                "from": "",
+                "to": "Ждёт ответа"
+              }
+            },
+            "recordRevision": 2,
+            "firstSeq": 2,
+            "lastSeq": 2,
+            "generation": "fixture-schema-6"
+          }
+        ]
+      },
+      "firstSeq": 2,
+      "lastSeq": 2,
+      "createdAt": "2026-09-08T12:00:00.000Z",
+      "ok": true,
+      "taskCount": 1,
+      "titles": [
+        "Ответить кандидату на ночную смену"
+      ]
+    },
+    {
+      "id": "label-only",
+      "operationSeq": 3,
+      "actorId": "owner",
+      "actorLabel": "Владелец",
+      "command": "task.create",
+      "commandHash": "12c1401c246b15e952aca4cf9de4c3f059d9538d8cb9d3ac5899c460b1c59020",
+      "status": 200,
+      "result": {
+        "ok": true,
+        "operationId": "label-only",
+        "generation": "fixture-schema-6",
+        "firstSeq": 3,
+        "lastSeq": 3,
+        "results": [
+          {
+            "record": {
+              "id": "answered-task",
+              "area": "agency",
+              "projectId": null,
+              "title": "Только метка ответ",
+              "status": "done",
+              "priority": "p2",
+              "labels": [
+                "otvet"
+              ],
+              "closes": null,
+              "note": "",
+              "due": null,
+              "waitingFor": "",
+              "followUp": null,
+              "orderKey": "a0",
+              "focus": false,
+              "focusKey": null,
+              "focusLeftAt": null,
+              "archived": false,
+              "checklist": [],
+              "commentCount": 0,
+              "originSystem": null,
+              "originRef": null,
+              "originUrl": null,
+              "originVersion": null,
+              "createdBy": "owner",
+              "createdByLabel": "Владелец",
+              "ownerTouchedAt": "2026-09-08T12:00:00.000Z",
+              "ownerFields": [
+                "archived",
+                "area",
+                "checklist",
+                "closes",
+                "due",
+                "focus",
+                "focusKey",
+                "focusLeftAt",
+                "followUp",
+                "labels",
+                "note",
+                "orderKey",
+                "originUrl",
+                "priority",
+                "projectId",
+                "status",
+                "title",
+                "waitingFor"
+              ],
+              "revision": 1,
+              "createdAt": "2026-09-08T12:00:00.000Z",
+              "updatedAt": "2026-09-08T12:00:00.000Z"
+            },
+            "changes": {
+              "id": {
+                "from": null,
+                "to": "answered-task"
+              },
+              "area": {
+                "from": null,
+                "to": "agency"
+              },
+              "projectId": {
+                "from": null,
+                "to": null
+              },
+              "title": {
+                "from": null,
+                "to": "Только метка ответ"
+              },
+              "status": {
+                "from": null,
+                "to": "done"
+              },
+              "priority": {
+                "from": null,
+                "to": "p2"
+              },
+              "labels": {
+                "from": null,
+                "to": [
+                  "otvet"
+                ]
+              },
+              "closes": {
+                "from": null,
+                "to": null
+              },
+              "note": {
+                "from": null,
+                "to": ""
+              },
+              "due": {
+                "from": null,
+                "to": null
+              },
+              "waitingFor": {
+                "from": null,
+                "to": ""
+              },
+              "followUp": {
+                "from": null,
+                "to": null
+              },
+              "orderKey": {
+                "from": null,
+                "to": "a0"
+              },
+              "focus": {
+                "from": null,
+                "to": false
+              },
+              "focusKey": {
+                "from": null,
+                "to": null
+              },
+              "focusLeftAt": {
+                "from": null,
+                "to": null
+              },
+              "archived": {
+                "from": null,
+                "to": false
+              },
+              "checklist": {
+                "from": null,
+                "to": []
+              },
+              "originSystem": {
+                "from": null,
+                "to": null
+              },
+              "originRef": {
+                "from": null,
+                "to": null
+              },
+              "originUrl": {
+                "from": null,
+                "to": null
+              },
+              "originVersion": {
+                "from": null,
+                "to": null
+              },
+              "createdBy": {
+                "from": null,
+                "to": "owner"
+              },
+              "createdByLabel": {
+                "from": null,
+                "to": "Владелец"
+              },
+              "ownerTouchedAt": {
+                "from": null,
+                "to": "2026-09-08T12:00:00.000Z"
+              },
+              "ownerFields": {
+                "from": null,
+                "to": [
+                  "archived",
+                  "area",
+                  "checklist",
+                  "closes",
+                  "due",
+                  "focus",
+                  "focusKey",
+                  "focusLeftAt",
+                  "followUp",
+                  "labels",
+                  "note",
+                  "orderKey",
+                  "originUrl",
+                  "priority",
+                  "projectId",
+                  "status",
+                  "title",
+                  "waitingFor"
+                ]
+              },
+              "createdAt": {
+                "from": null,
+                "to": "2026-09-08T12:00:00.000Z"
+              }
+            }
+          }
+        ],
+        "events": [
+          {
+            "seq": 3,
+            "at": "2026-09-08T12:00:00.000Z",
+            "actorId": "owner",
+            "actorLabel": "Владелец",
+            "operationId": "label-only",
+            "entityKind": "task",
+            "entityId": "answered-task",
+            "command": "task.create",
+            "changes": {
+              "id": {
+                "from": null,
+                "to": "answered-task"
+              },
+              "area": {
+                "from": null,
+                "to": "agency"
+              },
+              "projectId": {
+                "from": null,
+                "to": null
+              },
+              "title": {
+                "from": null,
+                "to": "Только метка ответ"
+              },
+              "status": {
+                "from": null,
+                "to": "done"
+              },
+              "priority": {
+                "from": null,
+                "to": "p2"
+              },
+              "labels": {
+                "from": null,
+                "to": [
+                  "otvet"
+                ]
+              },
+              "closes": {
+                "from": null,
+                "to": null
+              },
+              "note": {
+                "from": null,
+                "to": ""
+              },
+              "due": {
+                "from": null,
+                "to": null
+              },
+              "waitingFor": {
+                "from": null,
+                "to": ""
+              },
+              "followUp": {
+                "from": null,
+                "to": null
+              },
+              "orderKey": {
+                "from": null,
+                "to": "a0"
+              },
+              "focus": {
+                "from": null,
+                "to": false
+              },
+              "focusKey": {
+                "from": null,
+                "to": null
+              },
+              "focusLeftAt": {
+                "from": null,
+                "to": null
+              },
+              "archived": {
+                "from": null,
+                "to": false
+              },
+              "checklist": {
+                "from": null,
+                "to": []
+              },
+              "originSystem": {
+                "from": null,
+                "to": null
+              },
+              "originRef": {
+                "from": null,
+                "to": null
+              },
+              "originUrl": {
+                "from": null,
+                "to": null
+              },
+              "originVersion": {
+                "from": null,
+                "to": null
+              },
+              "createdBy": {
+                "from": null,
+                "to": "owner"
+              },
+              "createdByLabel": {
+                "from": null,
+                "to": "Владелец"
+              },
+              "ownerTouchedAt": {
+                "from": null,
+                "to": "2026-09-08T12:00:00.000Z"
+              },
+              "ownerFields": {
+                "from": null,
+                "to": [
+                  "archived",
+                  "area",
+                  "checklist",
+                  "closes",
+                  "due",
+                  "focus",
+                  "focusKey",
+                  "focusLeftAt",
+                  "followUp",
+                  "labels",
+                  "note",
+                  "orderKey",
+                  "originUrl",
+                  "priority",
+                  "projectId",
+                  "status",
+                  "title",
+                  "waitingFor"
+                ]
+              },
+              "createdAt": {
+                "from": null,
+                "to": "2026-09-08T12:00:00.000Z"
+              }
+            },
+            "recordRevision": 1,
+            "firstSeq": 3,
+            "lastSeq": 3,
+            "generation": "fixture-schema-6"
+          }
+        ]
+      },
+      "firstSeq": 3,
+      "lastSeq": 3,
+      "createdAt": "2026-09-08T12:00:00.000Z",
+      "ok": true,
+      "taskCount": 1,
+      "titles": [
+        "Только метка ответ"
+      ]
+    },
+    {
+      "id": "label-rejected",
+      "operationSeq": 4,
+      "actorId": "owner",
+      "actorLabel": "Владелец",
+      "command": "task.update",
+      "commandHash": "77a602a08ae2ca9789aefeda8369bfe835584979984e65f6d1a54d7c7a8c48c1",
+      "status": 409,
+      "result": {
+        "ok": false,
+        "code": "conflict",
+        "message": "Запись изменилась. Ваш текст остался в форме.",
+        "retryable": false,
+        "current": {
+          "id": "labelled-task",
+          "area": "agency",
+          "projectId": null,
+          "title": "Ответить кандидату на ночную смену",
+          "status": "todo",
+          "priority": "p2",
+          "labels": [
+            "otvet",
+            "lora",
+            "ari"
+          ],
+          "closes": null,
+          "note": "Ждёт ответа",
+          "due": null,
+          "waitingFor": "",
+          "followUp": null,
+          "orderKey": "a0",
+          "focus": false,
+          "focusKey": null,
+          "focusLeftAt": null,
+          "archived": false,
+          "checklist": [],
+          "commentCount": 0,
+          "originSystem": null,
+          "originRef": null,
+          "originUrl": null,
+          "originVersion": null,
+          "createdBy": "owner",
+          "createdByLabel": "Владелец",
+          "ownerTouchedAt": "2026-09-08T12:00:00.000Z",
+          "ownerFields": [
+            "archived",
+            "area",
+            "checklist",
+            "closes",
+            "due",
+            "focus",
+            "focusKey",
+            "focusLeftAt",
+            "followUp",
+            "labels",
+            "note",
+            "orderKey",
+            "originUrl",
+            "priority",
+            "projectId",
+            "status",
+            "title",
+            "waitingFor"
+          ],
+          "revision": 2,
+          "createdAt": "2026-09-08T12:00:00.000Z",
+          "updatedAt": "2026-09-08T12:00:00.000Z"
+        },
+        "conflicts": [
+          {
+            "entityKind": "task",
+            "entityId": "labelled-task",
+            "fields": [
+              "note"
+            ]
+          }
+        ],
+        "operationId": "label-rejected",
+        "generation": "fixture-schema-6"
+      },
+      "firstSeq": null,
+      "lastSeq": null,
+      "createdAt": "2026-09-08T12:00:00.000Z",
+      "ok": false,
+      "errorCode": "conflict",
+      "errorMessage": "Запись изменилась. Ваш текст остался в форме.",
+      "taskCount": 0,
+      "titles": []
+    }
+  ]
+}

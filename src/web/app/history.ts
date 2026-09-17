@@ -1,5 +1,5 @@
 import { AREAS, STATUSES } from '@shared/model';
-import { LABELS, PRIORITIES } from '@shared/labels';
+import { LABELS, PRIORITIES, RETIRED_LABELS } from '@shared/labels';
 import type {
   Agent,
   Changes,
@@ -154,7 +154,8 @@ function checklistText(from: unknown, to: unknown): string {
 }
 // Labels are a set; tell which names were added and removed.
 const labelName = (id: unknown) =>
-  LABELS.find((label) => label.id === id)?.name ?? String(id);
+  [...LABELS, ...RETIRED_LABELS].find((label) => label.id === id)?.name ??
+  String(id);
 function labelsText(from: unknown, to: unknown): string {
   const before = Array.isArray(from) ? from : [],
     after = Array.isArray(to) ? to : [];

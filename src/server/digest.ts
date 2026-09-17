@@ -103,10 +103,6 @@ export function buildDigest(
         p1: state.tasks.filter(
           (t) => !t.archived && t.status !== 'done' && t.priority === 'p1',
         ).length,
-        otvet: state.tasks.filter(
-          (t) =>
-            !t.archived && t.status !== 'done' && t.labels.includes('otvet'),
-        ).length,
       },
       operations: {
         ...paging.pageOf(

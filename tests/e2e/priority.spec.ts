@@ -59,7 +59,7 @@ test('TI-086 badges, editor fields, menu and the server preference survive reloa
   const project = await direction(page);
   const urgent = await addTask(page, project, {
     priority: 'p1',
-    labels: ['dengi', 'otvet'],
+    labels: ['dengi', 'lora'],
     closes: 'lora-km-of-vacancy',
   });
   const someday = await addTask(page, project, { priority: 'p3' });
@@ -69,7 +69,7 @@ test('TI-086 badges, editor fields, menu and the server preference survive reloa
   });
   await page.goto(boardUrl(project));
   const card = taskCard(page, urgent.title);
-  await expect(card.locator('.label-chip')).toHaveText(['ответ', 'деньги']);
+  await expect(card.locator('.label-chip')).toHaveText(['деньги', 'Lora']);
   // The column already says P1 and P3: the chip marks only a task that left
   // its column. The problem slug lives in the editor, not on the card.
   await expect(card.locator('.priority-mark')).toHaveCount(0);
@@ -120,7 +120,7 @@ test('TI-086 badges, editor fields, menu and the server preference survive reloa
     page.getByRole('dialog', { name: 'Редактирование задачи', exact: true }),
   ).toBeHidden();
   await expect(card.locator('.priority-mark')).toHaveCount(0);
-  await expect(card.locator('.label-chip')).toHaveText(['ответ']);
+  await expect(card.locator('.label-chip')).toHaveText(['Lora']);
   await expect
     .poll(async () => {
       const saved = (await snapshot(page)).tasks.find(
@@ -136,7 +136,7 @@ test('TI-086 badges, editor fields, menu and the server preference survive reloa
     })
     .toEqual({
       priority: 'p2',
-      labels: ['otvet'],
+      labels: ['lora'],
       closes: 'traffic-materials',
     });
 

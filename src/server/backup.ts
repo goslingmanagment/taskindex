@@ -19,18 +19,13 @@ import * as schema from './schema.js';
 import { FORMAT_VERSION } from '../shared/model.js';
 import type { ExportData, Task, WorkspaceState } from '../shared/model.js';
 import { assertInvariants, applyEvent } from '../shared/commands.js';
+import { isCatalogueLabel } from '../shared/labels.js';
 import { canonicalJson } from '../shared/canonical-json.js';
 import { fail } from '../shared/errors.js';
-import { RESERVED_IDS, z } from '../shared/schemas.js';
+import { RESERVED_IDS } from '../shared/schemas.js';
 import { compareStrings } from '../shared/queries.js';
-import {
-  defaultAppearance,
-  exportSchema,
-  exportSchemaV1,
-  exportSchemaV2,
-  exportSchemaV3,
-  exportSchemaV4,
-} from '../shared/domain-schemas.js';
+import { defaultAppearance } from '../shared/domain-schemas.js';
+import { upgradeExport } from './export-upgrade.js';
 import { DEFAULT_APPEARANCE_ID } from '../shared/appearance.js';
 import { ENTITIES } from '../shared/entities.js';
 import { listAgents } from './agents.js';
@@ -58,82 +53,6 @@ export function exportWorkspace(db: DatabaseHandle): ExportData {
       operations: readOperations(db),
     };
   });
-}
-// Reads formats 1-5. Older formats lack task fields (4), desk keys (3),
-// appearance (2) or operationSeq (1). Defaults match their SQL migrations;
-// operation positions use (createdAt, id). See drizzle/v2/README.md.
-export function upgradeExport(raw: unknown): ExportData {
-  const version = z
-    .object({ formatVersion: z.unknown() })
-    .loose()
-    .parse(raw).formatVersion;
-  if (version === FORMAT_VERSION) return exportSchema.parse(raw);
-  // Record schemas fill the defaults that 0005 wrote into existing rows.
-  if (version === 4)
-    return { ...exportSchemaV4.parse(raw), formatVersion: FORMAT_VERSION };
-  if (version === 3) {
-    const legacy = exportSchemaV3.parse(raw);
-    return {
-      ...legacy,
-      formatVersion: FORMAT_VERSION,
-      tasks: withFocusKeys(legacy.tasks),
-    };
-  }
-  const legacy =
-    version === 2
-      ? exportSchemaV2.parse(raw)
-      : withPositions(exportSchemaV1.parse(raw));
-  return {
-    ...legacy,
-    formatVersion: FORMAT_VERSION,
-    appearance: [defaultAppearance()],
-    tasks: withFocusKeys(legacy.tasks),
-  };
-}
-// Format 1: positions in (createdAt, id) order (0002_operation_seq.sql).
-function withPositions(data: z.infer<typeof exportSchemaV1>) {
-  const ordered = data.operations.toSorted(
-    (a, b) =>
-      compareStrings(a.createdAt, b.createdAt) || compareStrings(a.id, b.id),
-  );
-  const positions = new Map(ordered.map((o, i) => [o.id, i + 1]));
-  return {
-    ...data,
-    operations: data.operations.map((o) => ({
-      ...o,
-      operationSeq: positions.get(o.id)!,
-    })),
-  };
-}
-// Formats 1-3: focused tasks get desk keys in (area, status, orderKey, id)
-// order, the same keys 0004_focus_desk.sql assigns to an existing database.
-const BASE62 = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz';
-const backfillFocusKey = (n: number) =>
-  `a0${BASE62[Math.floor(n / 3844) % 62]}${BASE62[Math.floor(n / 62) % 62]}${BASE62[n % 62]}V`;
-function withFocusKeys<
-  T extends {
-    id: string;
-    area: string;
-    status: string;
-    orderKey: string;
-    focus: boolean;
-  },
->(tasks: T[]): (T & { focusKey: string | null; focusLeftAt: null })[] {
-  const focused = tasks
-    .filter((t) => t.focus)
-    .toSorted(
-      (a, b) =>
-        compareStrings(a.area, b.area) ||
-        compareStrings(a.status, b.status) ||
-        compareStrings(a.orderKey, b.orderKey) ||
-        compareStrings(a.id, b.id),
-    );
-  const keys = new Map(focused.map((t, n) => [t.id, backfillFocusKey(n)]));
-  return tasks.map((t) => ({
-    ...t,
-    focusKey: keys.get(t.id) ?? null,
-    focusLeftAt: null,
-  }));
 }
 const invalid = (message: string): never =>
   fail('invalid', `Повреждённый экспорт: ${message}`);
@@ -218,7 +137,15 @@ export function validateExport(data: ExportData) {
     for (const [key, change] of Object.entries(e.changes))
       if (
         !same(
-          change.from,
+          // 0006: the journal still names a retired label; replay reads it
+          // through the catalogue (applyEvent), so does this comparison.
+          e.entityKind === 'task' &&
+            key === 'labels' &&
+            Array.isArray(change.from)
+            ? change.from.filter(
+                (id) => typeof id === 'string' && isCatalogueLabel(id),
+              )
+            : change.from,
           before ? (before as unknown as Record<string, unknown>)[key] : null,
         )
       )

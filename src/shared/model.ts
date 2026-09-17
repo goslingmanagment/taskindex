@@ -89,5 +89,6 @@ export type FocusGroup = {
 };
 // Export format: 2 adds operationSeq to operations, 3 adds the appearance
 // preference, 4 adds focusKey and focusLeftAt, 5 adds priority, labels,
-// closes and hideP3 (2026-09-13). Formats 1-4 are still imported.
-export const FORMAT_VERSION = 5;
+// closes and hideP3 (2026-09-13), 6 retires the label otvet (2026-09-17).
+// Formats 1-5 are still imported.
+export const FORMAT_VERSION = 6;

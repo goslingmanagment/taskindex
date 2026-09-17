@@ -13,13 +13,6 @@ export const PRIORITY_IDS = PRIORITIES.map((p) => p.id) as [
 export const DEFAULT_PRIORITY: Priority = 'p2';
 export const LABELS = [
   {
-    id: 'otvet',
-    name: 'ответ',
-    color: '#bd811d',
-    description:
-      'Нужен ответ или решение владельца кому-то: человеку, подрядчику, кандидату',
-  },
-  {
     id: 'dengi',
     name: 'деньги',
     color: '#298467',
@@ -53,3 +46,18 @@ export const LABELS = [
 ] as const;
 export type LabelId = (typeof LABELS)[number]['id'];
 export const LABEL_IDS = LABELS.map((l) => l.id) as [LabelId, ...LabelId[]];
+// Labels the owner retired. Commands no longer accept them; a migration drops
+// them from the tables and replay drops them from the journal, but stored
+// results of old operations still carry them, so records read them as known
+// ids and the history still names them. otvet («ответ», 2026-09-17): the title
+// already says who waits for an answer, and unanswered chats live in Telegram.
+export const RETIRED_LABELS = [
+  { id: 'otvet', name: 'ответ', retiredAt: '2026-09-17' },
+] as const;
+export type StoredLabelId = LabelId | (typeof RETIRED_LABELS)[number]['id'];
+export const STORED_LABEL_IDS = [
+  ...LABEL_IDS,
+  ...RETIRED_LABELS.map((l) => l.id),
+] as [StoredLabelId, ...StoredLabelId[]];
+export const isCatalogueLabel = (id: string): id is LabelId =>
+  (LABEL_IDS as readonly string[]).includes(id);

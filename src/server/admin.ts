@@ -13,9 +13,9 @@ export {
 export { listAgentKeys, revokeAgentKey } from './agent-keys.js';
 export {
   exportWorkspace,
-  upgradeExport,
   validateExport,
   importWorkspace,
   markRestored,
 } from './backup.js';
+export { upgradeExport } from './export-upgrade.js';
 export { openWrites, writesAreOpen } from './deployment.js';

@@ -78,7 +78,7 @@ describe('command builders', () => {
     const edited = {
       ...from,
       priority: 'p1' as const,
-      labels: ['otvet' as const],
+      labels: ['dengi' as const],
       closes: 'lora-km-of-vacancy',
     };
     const command = taskSaveCommand(edited, from);
@@ -89,7 +89,7 @@ describe('command builders', () => {
         baseRevision: 3,
         fields: {
           priority: 'p1',
-          labels: ['otvet'],
+          labels: ['dengi'],
           closes: 'lora-km-of-vacancy',
         },
       },
