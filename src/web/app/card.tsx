@@ -249,7 +249,7 @@ const TaskCardBody = memo(function TaskCardBody({
           );
         })}
         {task.createdBy.startsWith('agent:') && !task.ownerTouchedAt && (
-          <span className="agent-mark">от {task.createdByLabel}</span>
+          <span className="agent-mark">{task.createdByLabel}</span>
         )}
       </div>
       <div className="card-meta">
