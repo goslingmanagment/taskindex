@@ -37,6 +37,7 @@ fi
   echo "#!/bin/sh"
   echo "# Сгенерировано scripts/agent/install-mac.sh $(date -u +%Y-%m-%dT%H:%M:%SZ) из $root"
   echo "TASKINDEX_CLI_ROOT=\"$cli_root\"; export TASKINDEX_CLI_ROOT"
+  echo 'TASKINDEX_MACHINE="mac"; export TASKINDEX_MACHINE'
   sed '1d' scripts/agent/taskindex-wrapper.sh
 } > "$bin_dir/taskindex"
 chmod 755 "$bin_dir/taskindex"

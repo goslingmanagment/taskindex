@@ -154,6 +154,15 @@ TASKINDEX_AGENT=claude-mac taskindex me
 берёт сама по маркеру шлюза. Обновление после
 релиза: повторить `install-mac.sh` из чекаута релизного коммита.
 
+Windows-ПК владельца (`winpc`): `pwsh -File scripts/agent/install-win.ps1
+-Tarball <taskindex-2.0.0.tgz>` (пакет собирается на маке `npm run build && npm
+pack`, нужен Node 26 из `winget install OpenJS.NodeJS`) ставит пакет в
+`~\.local\lib\taskindex-cli`, обёртки в `~\.local\bin` (`taskindex` для
+Git Bash, через который ходит Claude Code; `taskindex.cmd` и `taskindex.ps1`
+для Codex и pwsh), копии скилла в `~\.claude\skills` и `~\.agents\skills`
+и добавляет каталог обёрток в PATH пользователя. Агенты там `claude-win`,
+`codex-win`, `openclaw-win`; ключи в `~\.config\taskindex\<agent>.env`.
+
 CLI сохраняет конверт до отправки в
 `$XDG_STATE_HOME/taskindex/servers/<сервер>/agents/<агент>/ops` (агент
 определяется по ключу через `GET /api/me`, поэтому Claude Code и Codex под одним
