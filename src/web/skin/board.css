@@ -540,7 +540,15 @@
 .task-done .priority-mark {
   opacity: 0.6;
 }
-.label-chip,
+.label-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  max-width: 100%;
+  font-size: 12px;
+  color: var(--muted-foreground);
+}
 .empty-actions {
   display: flex;
   flex-wrap: wrap;

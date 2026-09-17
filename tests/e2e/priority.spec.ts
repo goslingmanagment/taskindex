@@ -309,6 +309,22 @@ test('TI-086 all labels and an 80-character closes slug fit a narrow board and t
     await expect(card).toBeVisible();
     await expect(card.locator('.label-chip')).toHaveCount(LABELS.length);
     await expect(card.locator('.closes-chip')).toHaveCount(0);
+    // A label chip is one 12px line with its dot centred on the text; a
+    // dangling selector in the skin once turned chips into 16px flex boxes.
+    expect(
+      await card.locator('.label-chip').evaluateAll((chips) =>
+        chips.map((chip) => {
+          const dot = chip.querySelector('.tag-dot')!.getBoundingClientRect();
+          const box = chip.getBoundingClientRect();
+          return {
+            fontSize: getComputedStyle(chip).fontSize,
+            centred:
+              Math.abs(dot.top + dot.height / 2 - (box.top + box.height / 2)) <=
+              2,
+          };
+        }),
+      ),
+    ).toEqual(LABELS.map(() => ({ fontSize: '12px', centred: true })));
     await expect
       .poll(() =>
         card.evaluate((element) => {
