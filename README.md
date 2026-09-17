@@ -144,12 +144,14 @@ TASKINDEX_AGENT=claude-mac taskindex me
 обёртку `~/.local/bin/taskindex` и симлинки скилла в `~/.claude/skills/taskindex`
 (Claude Code) и `~/.agents/skills/taskindex` (Codex читает этот каталог по своей
 документации; оба инструмента идут по симлинку). Обёртка выбирает ключ по среде
-запуска: `CLAUDECODE` → `claude-mac`, `CODEX_THREAD_ID` → `codex-mac`, иначе
+запуска: `OPENCLAW_SERVICE_MARKER` (шлюз OpenClaw, любой его runtime) →
+`openclaw`, `CLAUDECODE` → `claude-mac`, `CODEX_THREAD_ID` → `codex-mac`, иначе
 нужен `TASKINDEX_AGENT`; заданные явно `TASKINDEX_URL` и `TASKINDEX_TOKEN`
 (sandbox из `npm run sandbox`) имеют приоритет. Ключи лежат только в
 `~/.config/taskindex/<agent>.env` (каталог 0700, файлы 0600), мастер-копия в
 1Password; `op` при вызовах не нужен. Бобр (OpenClaw): тот же каталог скилла
-через `openclaw skills install`, ключ в окружении шлюза. Обновление после
+через `openclaw skills install`, ключ `openclaw.env` (права `tasks`) обёртка
+берёт сама по маркеру шлюза. Обновление после
 релиза: повторить `install-mac.sh` из чекаута релизного коммита.
 
 CLI сохраняет конверт до отправки в
