@@ -68,10 +68,14 @@ export function Workspace() {
     readSidebarOpen(browserStorage()),
   );
   // Предпросмотр скрытой панели по наведению; закрепление и скрытие гасят его.
+  // Момент переключения нужен кнопке «Открыть навигацию»: она появляется под
+  // покоящимся указателем, и браузер шлёт ей pointerenter без движения мыши.
   const [sidebarPeek, setSidebarPeek] = useState(false);
+  const sidebarToggledAt = useRef(Number.NEGATIVE_INFINITY);
   const changeSidebarOpen = (open: boolean) => {
     setSidebarOpen(open);
     setSidebarPeek(false);
+    sidebarToggledAt.current = performance.now();
     writeSidebarOpen(browserStorage(), open);
   };
   return (
@@ -82,7 +86,11 @@ export function Workspace() {
         style={{ '--sidebar-width': '14.5rem' } as React.CSSProperties}
         className="workspace-shell"
       >
-        <SidebarPeekProvider peek={sidebarPeek} onPeekChange={setSidebarPeek}>
+        <SidebarPeekProvider
+          peek={sidebarPeek}
+          onPeekChange={setSidebarPeek}
+          toggledAt={sidebarToggledAt}
+        >
           <NavigationProvider>
             <WorkspaceBody />
           </NavigationProvider>

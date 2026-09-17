@@ -22,6 +22,12 @@ import { shortcutHint } from './sidebar-state';
 // пока указатель переходит с кнопки на панель.
 const PEEK_DELAY_MS = 100;
 const PEEK_LINGER_MS = 250;
+// После переключения панели кнопка «Открыть навигацию» может появиться под
+// покоящимся указателем: браузер шлёт ей pointerenter без движения мыши
+// (⌘B, клавиатура), и предпросмотр открывался бы сам. Наведение в первые
+// полсекунды после переключения не считается; движение мыши над кнопкой
+// (pointermove) запускает предпросмотр, как только окно истекло.
+const PEEK_SETTLE_MS = 500;
 type SidebarPeek = {
   /** Панель показана поверх доски, пока указатель над кнопкой или над ней. */
   peek: boolean;
@@ -43,10 +49,13 @@ export function useSidebarPeek(): SidebarPeek {
 export function SidebarPeekProvider({
   peek,
   onPeekChange,
+  toggledAt,
   children,
 }: {
   peek: boolean;
   onPeekChange: (peek: boolean) => void;
+  /** `performance.now()` последнего закрепления или скрытия панели. */
+  toggledAt: RefObject<number>;
   children: ReactNode;
 }) {
   const timer = useRef<{
@@ -71,10 +80,10 @@ export function SidebarPeekProvider({
     },
     [onPeekChange],
   );
-  const peekStart = useCallback(
-    () => schedule(true, PEEK_DELAY_MS),
-    [schedule],
-  );
+  const peekStart = useCallback(() => {
+    if (performance.now() - toggledAt.current < PEEK_SETTLE_MS) return;
+    schedule(true, PEEK_DELAY_MS);
+  }, [schedule, toggledAt]);
   const peekEnd = useCallback(
     (immediate = false) => {
       if (!immediate) return schedule(false, PEEK_LINGER_MS);
@@ -134,6 +143,9 @@ export function SidebarOpenButton() {
       aria-expanded={isMobile ? openMobile : open}
       title={isMobile ? undefined : `Показать панель · ${hint()}`}
       onPointerEnter={(event) => {
+        if (!isMobile && event.pointerType === 'mouse') peekStart();
+      }}
+      onPointerMove={(event) => {
         if (!isMobile && event.pointerType === 'mouse') peekStart();
       }}
       onPointerLeave={() => {
