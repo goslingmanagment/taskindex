@@ -3,8 +3,11 @@ import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { runAdmin } from '../../src/cli/admin-run.js';
-import { openDatabase } from '../../src/server/db.js';
+import { generation, openDatabase, readTask } from '../../src/server/db.js';
 import { writesAreOpen } from '../../src/server/admin.js';
+import { executeOperation } from '../../src/server/operations.js';
+import * as schema from '../../src/server/schema.js';
+import type { Actor } from '../../src/shared/model.js';
 
 async function setup() {
   const directory = await mkdtemp(join(tmpdir(), 'taskindex-admin-'));
@@ -68,6 +71,100 @@ describe('server-only administration', () => {
     db = openDatabase(test.env.DATABASE_PATH);
     expect(writesAreOpen(db, 'held', 'deploy-one')).toBe(false);
     db.close();
+  });
+
+  it('renames an agent together with the byline on its tasks and comments', async () => {
+    const test = await setup();
+    await test.run(['migrate']);
+    await test.run(['create-owner', '--email', 'owner@example.test']);
+    await test.run(['agent', 'create', '--id', 'claude', '--label', 'Клод']);
+    const agent: Actor = {
+      id: 'agent:claude',
+      agentId: 'claude',
+      label: 'Клод',
+      kind: 'agent',
+      scope: 'write',
+    };
+    const owner: Actor = {
+      id: 'owner',
+      label: 'Владелец',
+      kind: 'owner',
+      scope: 'write',
+    };
+    const before = openDatabase(test.env.DATABASE_PATH);
+    executeOperation(
+      before,
+      {
+        generation: generation(before),
+        operationId: 'agent-task',
+        command: 'task.create',
+        payload: { id: 'task-by-agent', area: 'agency', title: 'От агента' },
+      },
+      agent,
+    );
+    executeOperation(
+      before,
+      {
+        generation: generation(before),
+        operationId: 'owner-task',
+        command: 'task.create',
+        payload: { id: 'task-by-owner', area: 'agency', title: 'От владельца' },
+      },
+      owner,
+    );
+    executeOperation(
+      before,
+      {
+        generation: generation(before),
+        operationId: 'agent-comment',
+        command: 'comment.add',
+        payload: { taskId: 'task-by-agent', text: 'Сделано' },
+      },
+      agent,
+    );
+    before.close();
+
+    expect(
+      await test.run(['agent', 'rename', 'claude', '--label', 'Claude Mac']),
+    ).toBe(0);
+    expect(test.output.at(-1)).toEqual({
+      id: 'claude',
+      label: 'Claude Mac',
+      tasks: 1,
+      comments: 1,
+    });
+    const after = openDatabase(test.env.DATABASE_PATH);
+    expect(readTask(after, 'task-by-agent')?.createdByLabel).toBe('Claude Mac');
+    expect(readTask(after, 'task-by-owner')?.createdByLabel).toBe('Владелец');
+    expect(
+      after.orm
+        .select()
+        .from(schema.comments)
+        .all()
+        .map((comment) => comment.actorLabel),
+    ).toEqual(['Claude Mac']);
+    // History is not rewritten: the journal keeps the label of its time.
+    expect(
+      after.orm
+        .select()
+        .from(schema.events)
+        .all()
+        .filter((event) => event.actorId === 'agent:claude')
+        .map((event) => event.actorLabel),
+    ).toEqual(['Клод', 'Клод']);
+    after.close();
+
+    expect(await test.run(['agent', 'list'])).toBe(0);
+    expect(
+      (test.output.at(-1) as unknown as { id: string; label: string }[]).map(
+        (row) => [row.id, row.label],
+      ),
+    ).toEqual([['claude', 'Claude Mac']]);
+    expect(
+      await test.run(['agent', 'rename', 'ghost', '--label', 'Никто']),
+    ).toBe(1);
+    expect(test.output.at(-1)).toMatchObject({ ok: false, code: 'not_found' });
+    expect(await test.run(['agent', 'rename', 'claude'])).toBe(2);
   });
 
   it('keeps key material out of stdout and creates a private one-time file', async () => {

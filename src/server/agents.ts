@@ -1,5 +1,6 @@
 import { eq } from 'drizzle-orm';
 import type { DatabaseHandle } from './db.js';
+import { withWrite } from './sqlite.js';
 import * as schema from './schema.js';
 import { issueAgentKey } from './agent-keys.js';
 import type { Scope } from '../shared/model.js';
@@ -29,6 +30,47 @@ export function createAgent(
   };
   db.orm.insert(schema.agents).values(row).run();
   return row;
+}
+// Cards and comments carry the label the agent had when it wrote them; a
+// rename rewrites those snapshots so the board reads one name. The events and
+// operations journals keep the label of their time.
+export function renameAgent(
+  db: DatabaseHandle,
+  input: { id: string; label: string },
+) {
+  const label = z
+    .string()
+    .trim()
+    .min(1)
+    .max(LIMITS.agentLabel)
+    .parse(input.label);
+  const actorId = `agent:${input.id}`;
+  return withWrite(db, () => {
+    if (
+      !db.orm
+        .select()
+        .from(schema.agents)
+        .where(eq(schema.agents.id, input.id))
+        .get()
+    )
+      fail('not_found', 'Агент не найден.');
+    db.orm
+      .update(schema.agents)
+      .set({ label })
+      .where(eq(schema.agents.id, input.id))
+      .run();
+    const tasks = db.orm
+      .update(schema.tasks)
+      .set({ createdByLabel: label })
+      .where(eq(schema.tasks.createdBy, actorId))
+      .run().changes;
+    const comments = db.orm
+      .update(schema.comments)
+      .set({ actorLabel: label })
+      .where(eq(schema.comments.actorId, actorId))
+      .run().changes;
+    return { id: input.id, label, tasks, comments };
+  });
 }
 export function listAgents(db: DatabaseHandle) {
   return db.orm.select().from(schema.agents).all();

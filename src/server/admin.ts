@@ -6,6 +6,7 @@ export { initialize, createOwner, resetOwnerPassword } from './owner.js';
 export {
   createAgent,
   listAgents,
+  renameAgent,
   disableAgent,
   createAgentKey,
 } from './agents.js';

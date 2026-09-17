@@ -156,7 +156,13 @@ docker compose -f deploy/compose.yml run --rm --no-deps -T app \
   taskindex-admin agent-key create --agent claude-mac --scope write --out /data/claude-key.json
 docker compose -f deploy/compose.yml run --rm --no-deps -T app taskindex-admin agent-key list
 docker compose -f deploy/compose.yml run --rm --no-deps -T app taskindex-admin agent-key revoke KEY_ID
+docker compose -f deploy/compose.yml run --rm --no-deps -T app taskindex-admin agent rename claude-mac --label 'Claude Mac'
 ```
+
+`agent rename` меняет подпись агента и подпись «от …» на его карточках и
+комментариях (снимок `createdByLabel` в задачах); журналы событий и операций
+хранят подпись своего времени. Открытые вкладки увидят новую подпись после
+перезагрузки страницы.
 
 Ключ имеет вид `ti_<43 символа base64url>`; в базе хранится только SHA-256
 (таблица `agent_keys`), файл `--out` создаётся с mode 0600 и не перезаписывается.

@@ -43,6 +43,7 @@ export async function runAdmin(
           'reset-owner-password (password on stdin or --password-op op://...)',
           'agent create --id ID --label LABEL',
           'agent list',
+          'agent rename ID --label LABEL',
           'agent disable ID',
           'agent-key create --agent ID --scope read|tasks|write --out /protected/key.json',
           'agent-key list [--agent ID]',
@@ -114,10 +115,17 @@ export async function runAdmin(
             label: required(flagString(args.flags, 'label'), '--label'),
           });
         else if (action === 'list') result = admin.listAgents(db);
+        else if (action === 'rename')
+          result = admin.renameAgent(db, {
+            id: required(id, 'agent id'),
+            label: required(flagString(args.flags, 'label'), '--label'),
+          });
         else if (action === 'disable')
           result = admin.disableAgent(db, required(id, 'agent id'));
         else
-          throw new ArgumentError('agent: ожидается create, list или disable');
+          throw new ArgumentError(
+            'agent: ожидается create, list, rename или disable',
+          );
         break;
       case 'agent-key':
         if (action === 'create') {
