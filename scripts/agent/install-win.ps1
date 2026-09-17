@@ -9,6 +9,7 @@
 # пользователя. Ключи не создаёт: см. README, раздел «Агенты».
 param([string]$Tarball)
 $ErrorActionPreference = 'Stop'
+[Console]::OutputEncoding = [Text.UTF8Encoding]::new($false)
 $root = (Resolve-Path (Join-Path $PSScriptRoot '..\..')).Path
 Set-Location $root
 node scripts/preflight.mjs
