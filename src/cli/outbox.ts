@@ -15,6 +15,19 @@ import { canonicalJson } from '../shared/canonical-json.js';
 import { operationEnvelopeSchema, z } from '../shared/schemas.js';
 
 export const OUTBOX_FORMAT_VERSION = 2;
+// A published link is made durable by syncing its directory. Windows has no
+// directory fsync (the handle answers EPERM) and NTFS journals the link
+// itself, so only there the error is not a failure.
+/** @internal for tests */
+export function directorySyncUnsupported(
+  error: unknown,
+  platform: NodeJS.Platform = process.platform,
+): boolean {
+  return (
+    platform === 'win32' &&
+    (error as NodeJS.ErrnoException | undefined)?.code === 'EPERM'
+  );
+}
 
 // The persisted intent of one CLI write: enough to resend exactly the same
 // envelope to the same server and to prove which actor saved it.
@@ -244,6 +257,8 @@ export class Outbox {
     const directory = await open(dirname(destination), 'r');
     try {
       await directory.sync();
+    } catch (error) {
+      if (!directorySyncUnsupported(error)) throw error;
     } finally {
       await directory.close();
     }
