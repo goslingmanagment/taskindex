@@ -141,7 +141,6 @@ export function SidebarOpenButton() {
       className="sidebar-open"
       aria-label="Открыть навигацию"
       aria-expanded={isMobile ? openMobile : open}
-      title={isMobile ? undefined : `Показать панель · ${hint()}`}
       onPointerEnter={(event) => {
         if (!isMobile && event.pointerType === 'mouse') peekStart();
       }}

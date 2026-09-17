@@ -246,25 +246,34 @@
 /* Панель и её место на доске двигаются одной кривой: быстрый старт, мягкая
    остановка. Предпросмотр — плавающая карточка под строкой заголовка, а не
    закреплённая панель: заголовок и кнопка остаются видны, тень отделяет
-   карточку от доски. Форма тоже анимируется, иначе при уходе панель
-   вытягивалась бы во весь рост ещё на экране. */
+   карточку от доски. Форму карточки скрытая панель принимает уже за экраном,
+   с задержкой на длину слайда: при скрытии уезжает панель во весь рост,
+   предпросмотр выезжает готовой карточкой, ничего не растягивается на ходу.
+   Закрепление меняет форму сразу: карточка встаёт в док без морфинга. */
 .workspace-sidebar,
 .workspace-shell [data-slot='sidebar-gap'] {
   transition-duration: 0.24s;
   transition-timing-function: cubic-bezier(0.32, 0.72, 0, 1);
 }
 .workspace-sidebar {
-  transition-property:
-    left, right, width, top, bottom, border-radius, box-shadow;
+  transition-property: left, right, width, box-shadow;
 }
+.workspace-sidebar[data-hidden],
 .workspace-sidebar[data-peek] {
-  left: 8px;
   top: 66px;
   bottom: 12px;
   height: auto;
   overflow: hidden;
   border: 1px solid var(--border);
   border-radius: 10px;
+}
+.workspace-sidebar[data-hidden] {
+  transition-property:
+    left, right, width, top, bottom, border-radius, box-shadow;
+  transition-delay: 0s, 0s, 0s, 0.24s, 0.24s, 0.24s, 0s;
+}
+.workspace-sidebar[data-peek] {
+  left: 8px;
   box-shadow: 0 18px 48px var(--overlay-shadow);
 }
 @media (width < theme(--breakpoint-md)) {

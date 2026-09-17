@@ -65,6 +65,7 @@ export function WorkspaceSidebar({
     <Sidebar
       className="workspace-sidebar"
       inert={hidden || undefined}
+      data-hidden={hidden ? '' : undefined}
       data-peek={peek ? '' : undefined}
       onPointerEnter={!isMobile && peek ? peekStart : undefined}
       onPointerLeave={!isMobile && peek ? () => peekEnd() : undefined}
