@@ -6,6 +6,11 @@ export const LIMITS = {
   taskTitle: 240,
   taskNote: 16000,
   taskLabels: 8,
+  // The label catalogue (0007): a cap keeps it a set the owner can hold in
+  // mind; archived labels do not count.
+  labels: 24,
+  labelName: 30,
+  labelDescription: 200,
   closes: 80,
   waitingFor: 240,
   checklistText: 500,

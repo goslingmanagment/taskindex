@@ -2,7 +2,7 @@ import { readFileSync } from 'node:fs';
 import { describe, it, expect } from 'vitest';
 import type { z } from 'zod';
 import { LIMITS } from '../../src/shared/limits.js';
-import { LABEL_IDS } from '../../src/shared/labels.js';
+import { SEEDED_LABELS } from '../../src/shared/labels.js';
 import {
   batchEnvelopeSchema,
   checklistSchema,
@@ -73,6 +73,7 @@ describe('LIMITS is the one source of domain limits (TI-060)', () => {
       LIMITS.closes,
       'task.closes',
     );
+    const LABEL_IDS = SEEDED_LABELS.map((label) => label.id);
     expect(taskSchema.safeParse(task({ labels: [...LABEL_IDS] })).success).toBe(
       true,
     );

@@ -1,6 +1,6 @@
 import { test, expect, type Page } from '@playwright/test';
 import { randomUUID } from 'node:crypto';
-import { LABELS } from '../../src/shared/labels';
+import { SEEDED_LABELS as LABELS } from '../../src/shared/labels';
 import { byOrder } from '../../src/shared/queries';
 import { command, signIn, snapshot } from './helpers';
 

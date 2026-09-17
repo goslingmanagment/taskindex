@@ -76,6 +76,7 @@ export type Transport = <T>(
 ) => Promise<T>;
 const empty = (): WorkspaceState => ({
   projects: [],
+  labels: [],
   tasks: [],
   comments: [],
   appearance: [defaultAppearance()],
@@ -248,6 +249,7 @@ export class WorkspaceStore {
       confirmed: {
         tasks: snapshot.tasks,
         projects: snapshot.projects,
+        labels: snapshot.labels,
         comments: [],
         appearance: [snapshot.appearance ?? defaultAppearance()],
       },

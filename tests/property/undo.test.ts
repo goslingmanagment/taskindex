@@ -32,6 +32,7 @@ import type {
 } from '../../src/shared/model.js';
 import { agent, owner } from '../api/helpers.js';
 import { defaultAppearance } from '../../src/shared/domain-schemas.js';
+import { SEEDED_LABELS } from '../../src/shared/labels.js';
 export const UNDO_SUBJECT_FIELDS = [
   'area',
   'projectId',
@@ -69,6 +70,7 @@ function workspace() {
   let state: WorkspaceState = {
     tasks: [],
     projects: [],
+    labels: structuredClone(SEEDED_LABELS),
     comments: [],
     appearance: [defaultAppearance()],
   };

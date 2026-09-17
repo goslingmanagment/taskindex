@@ -23,15 +23,16 @@ import {
   dateSchema,
   operationEnvelopeSchema,
   labelsSchema,
-  storedLabelsSchema,
   prioritySchema,
   closesSchema,
 } from '../../src/shared/schemas.js';
 import {
-  LABEL_IDS,
+  SEEDED_LABELS,
   PRIORITY_IDS,
   DEFAULT_PRIORITY,
 } from '../../src/shared/labels.js';
+import { slugify, uniqueSlug } from '../../src/shared/slug.js';
+const LABEL_IDS = SEEDED_LABELS.map((label) => label.id);
 import type {
   Command,
   CommandName,
@@ -148,6 +149,7 @@ describe('command unions are generated from the payload registry (TI-019)', () =
     const state: WorkspaceState = {
       tasks: [],
       projects: [],
+      labels: [],
       comments: [],
       appearance: [defaultAppearance()],
     };
@@ -184,11 +186,26 @@ describe('command unions are generated from the payload registry (TI-019)', () =
     expect(z.locales.ru).toBeTypeOf('function');
   });
 });
+describe('label slugs (0007)', () => {
+  it('transliterates a name into a Latin slug and finds the next free one', () => {
+    expect(slugify('Срочно')).toBe('srochno');
+    expect(slugify('5 мин')).toBe('5-min');
+    expect(slugify('  Ждёт ответа!  ')).toBe('zhdet-otveta');
+    expect(slugify('Lora / Lily')).toBe('lora-lily');
+    expect(slugify('***')).toBe('');
+    expect(slugify('щ'.repeat(30))).toHaveLength(40);
+    const taken = new Set(['srochno', 'srochno-2', 'label']);
+    expect(uniqueSlug('Срочно', taken)).toBe('srochno-3');
+    expect(uniqueSlug('***', taken)).toBe('label-2');
+    expect(uniqueSlug('Новая', taken)).toBe('novaya');
+  });
+});
 const create = (id: string, patch: Partial<Task> = {}): Task => {
   const result = applyCommand(
     {
       tasks: [],
       projects: [],
+      labels: structuredClone(SEEDED_LABELS),
       comments: [],
       appearance: [defaultAppearance()],
     },
@@ -206,17 +223,11 @@ describe('shared queries and validation', () => {
       expect(prioritySchema.safeParse(value).success).toBe(false);
     expect(labelsSchema.safeParse(['dengi', 'lora']).success).toBe(true);
     expect(labelsSchema.safeParse([]).success).toBe(true);
-    // The retired label stays readable in records, never acceptable in commands.
-    for (const value of [
-      ['dengi', 'dengi'],
-      ['custom'],
-      ['otvet'],
-      'dengi',
-      null,
-    ])
+    // A slug the catalogue does not have passes the schema: the domain refuses
+    // it by name against the workspace catalogue (0007).
+    for (const value of [['dengi', 'dengi'], ['Custom Label'], 'dengi', null])
       expect(labelsSchema.safeParse(value).success).toBe(false);
-    expect(storedLabelsSchema.safeParse(['otvet', 'dengi']).success).toBe(true);
-    expect(storedLabelsSchema.safeParse(['custom']).success).toBe(false);
+    expect(labelsSchema.safeParse(['otvet', 'custom-9']).success).toBe(true);
     for (const value of [null, 'lora-km-of-vacancy', 'a-1'])
       expect(closesSchema.safeParse(value).success).toBe(true);
     for (const value of ['', 'Проблема', 'Upper', 'with space', 'a/b'])
@@ -491,6 +502,7 @@ describe('shared queries and validation', () => {
     const state: WorkspaceState = {
       tasks: [create('t')],
       projects: [],
+      labels: structuredClone(SEEDED_LABELS),
       comments: [],
       appearance: [defaultAppearance()],
     };

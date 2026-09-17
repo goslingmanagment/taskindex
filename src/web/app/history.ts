@@ -1,9 +1,10 @@
 import { AREAS, STATUSES } from '@shared/model';
-import { LABELS, PRIORITIES, RETIRED_LABELS } from '@shared/labels';
+import { PRIORITIES } from '@shared/labels';
 import type {
   Agent,
   Changes,
   DomainEvent,
+  Label,
   OperationSummary,
   Project,
 } from '@shared/model';
@@ -13,9 +14,11 @@ import type {
 // details instead of being guessed.
 
 type HistoryContext = {
-  // Directory used to name a project id. It describes today's workspace, not
-  // the moment of the event — every line built from it carries `note`.
+  // Directories used to name a project or label id. They describe today's
+  // workspace, not the moment of the event — a project line built from them
+  // carries `note`; a label keeps its record in the archive, so its name holds.
   projects: readonly Project[];
+  labels: readonly Label[];
 };
 type HistoryLine = {
   label: string;
@@ -53,6 +56,7 @@ const FIELD_LABELS: Record<string, string> = {
   checklist: 'Шаги',
   originUrl: 'Источник',
   deletedAt: 'Удаление',
+  archivedAt: 'Архив',
   orderKey: 'Порядок',
 };
 const ORDER = Object.keys(FIELD_LABELS);
@@ -72,6 +76,7 @@ const TECHNICAL_FIELDS = new Set([
   'ownerTouchedAt',
   'ownerFields',
   'commentCount',
+  'position',
   'originSystem',
   'originRef',
   'originVersion',
@@ -153,10 +158,9 @@ function checklistText(from: unknown, to: unknown): string {
   }`;
 }
 // Labels are a set; tell which names were added and removed.
-const labelName = (id: unknown) =>
-  [...LABELS, ...RETIRED_LABELS].find((label) => label.id === id)?.name ??
-  String(id);
-function labelsText(from: unknown, to: unknown): string {
+function labelsText(from: unknown, to: unknown, ctx: HistoryContext): string {
+  const labelName = (id: unknown) =>
+    ctx.labels.find((label) => label.id === id)?.name ?? String(id);
   const before = Array.isArray(from) ? from : [],
     after = Array.isArray(to) ? to : [];
   const added = after.filter((id) => !before.includes(id)).map(labelName);
@@ -207,7 +211,12 @@ function value(
 }
 // A creation has no previous state: every field would read «не задано → …».
 // Such an event is told as the values it started with, empty ones omitted.
-const CREATING = new Set(['task.create', 'project.create', 'comment.add']);
+const CREATING = new Set([
+  'task.create',
+  'project.create',
+  'label.create',
+  'comment.add',
+]);
 function empty(raw: unknown): boolean {
   return (
     raw === null ||
@@ -225,7 +234,10 @@ function line(
 ): HistoryLine {
   const label = FIELD_LABELS[field]!;
   if (field === 'labels')
-    return { label, text: labelsText(creating ? [] : change.from, change.to) };
+    return {
+      label,
+      text: labelsText(creating ? [] : change.from, change.to, ctx),
+    };
   if (creating) {
     const shown = value(field, change.to, ctx);
     return {
@@ -247,6 +259,11 @@ function line(
     return {
       label,
       text: change.to ? 'Запись удалена' : 'Запись восстановлена',
+    };
+  if (field === 'archivedAt')
+    return {
+      label,
+      text: change.to ? 'Метка в архиве' : 'Метка возвращена из архива',
     };
   const from = value(field, change.from, ctx),
     to = value(field, change.to, ctx);

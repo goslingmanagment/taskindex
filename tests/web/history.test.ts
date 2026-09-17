@@ -1,5 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import type { Changes, DomainEvent, Project } from '../../src/shared/model';
+import type {
+  Changes,
+  DomainEvent,
+  Label,
+  Project,
+} from '../../src/shared/model';
+import { SEEDED_LABELS } from '../../src/shared/labels';
 import { actorOptions, describeEvent } from '../../src/web/app/history';
 
 // TI-032: the history is a story, not a dump of enum ids, order keys and JSON.
@@ -17,7 +23,22 @@ const projects: Project[] = [
     updatedAt: '2026-09-01T10:00:00.000Z',
   },
 ];
-const ctx = { projects };
+// An archived label keeps its record, so the story still names it.
+const labels: Label[] = [
+  ...SEEDED_LABELS,
+  {
+    id: 'otvet',
+    name: 'ответ',
+    color: '#bd811d',
+    description: '',
+    position: 6,
+    archivedAt: '2026-09-17T19:00:00.000Z',
+    revision: 2,
+    createdAt: '2026-09-13T10:00:00.000Z',
+    updatedAt: '2026-09-17T19:00:00.000Z',
+  },
+];
+const ctx = { projects, labels };
 function event(changes: Changes, command = 'task.update'): DomainEvent {
   return {
     seq: 7,
@@ -42,6 +63,49 @@ const texts = (changes: Changes, command?: string) =>
 const step = (id: string, text: string, done = false) => ({ id, text, done });
 
 describe('TI-032 the history speaks the words of the workspace', () => {
+  it('0007 tells label catalogue events: creation, renaming and the archive', () => {
+    const labelEvent = (changes: Changes, command: string) =>
+      describeEvent(
+        {
+          ...event(changes, command),
+          entityKind: 'label',
+          entityId: 'srochno',
+        },
+        ctx,
+      ).lines.map((l) => `${l.label}: ${l.text}`);
+    expect(
+      labelEvent(
+        {
+          name: { from: null, to: 'Срочно' },
+          color: { from: null, to: '#bc3c45' },
+          description: { from: null, to: 'Ждёт сегодня' },
+          position: { from: null, to: 6 },
+          archivedAt: { from: null, to: null },
+          createdAt: { from: null, to: '2026-09-17T21:00:00.000Z' },
+        },
+        'label.create',
+      ),
+    ).toEqual([
+      'Название: «Срочно»',
+      'Описание: «Ждёт сегодня»',
+      'Цвет: «#bc3c45»',
+    ]);
+    expect(
+      labelEvent({ name: { from: 'Срочно', to: 'Горит' } }, 'label.update'),
+    ).toEqual(['Название: «Срочно» → «Горит»']);
+    expect(
+      labelEvent(
+        { archivedAt: { from: null, to: '2026-09-17T22:00:00.000Z' } },
+        'label.archive',
+      ),
+    ).toEqual(['Архив: Метка в архиве']);
+    expect(
+      labelEvent(
+        { archivedAt: { from: '2026-09-17T22:00:00.000Z', to: null } },
+        'label.restore',
+      ),
+    ).toEqual(['Архив: Метка возвращена из архива']);
+  });
   it('TI-086 tells priority, labels and closes changes in words', () => {
     expect(
       texts({

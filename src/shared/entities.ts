@@ -1,4 +1,4 @@
-import type { Comment, Project, Task, WorkspaceState } from './model.js';
+import type { Comment, Label, Project, Task, WorkspaceState } from './model.js';
 
 // Ж11 (plan 09, step 8): the one place that knows the kinds of records. Adding
 // a kind to ENTITY_KINDS without describing it here fails `tsc`, and every
@@ -11,6 +11,7 @@ export const ENTITY_KINDS = [
   'project',
   'comment',
   'appearance',
+  'label',
 ] as const;
 type EntityKindName = (typeof ENTITY_KINDS)[number];
 
@@ -39,6 +40,12 @@ const taskFields = new Set<keyof Task>([
 ]);
 const projectFields = new Set<keyof Project>(['name', 'color', 'description']);
 const commentFields = new Set<keyof Comment>(['deletedAt']);
+const labelFields = new Set<keyof Label>([
+  'name',
+  'color',
+  'description',
+  'archivedAt',
+]);
 const appearanceFields = new Set(['mode', 'skinId', 'hideP3']);
 
 type EntityDefinition = {
@@ -57,4 +64,5 @@ export const ENTITIES = {
     collection: 'appearance',
     subjectFields: fields(appearanceFields),
   },
+  label: { collection: 'labels', subjectFields: fields(labelFields) },
 } satisfies Record<EntityKindName, EntityDefinition>;

@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { AREAS, STATUSES, FORMAT_VERSION } from '../shared/model.js';
-import { LABELS, PRIORITIES } from '../shared/labels.js';
+import { PRIORITIES } from '../shared/labels.js';
 import type { Actor, Context } from '../shared/model.js';
 import { commandPayloadSchemas, commandNames } from '../shared/schemas.js';
 import { taskSchema } from '../shared/domain-schemas.js';
@@ -64,7 +64,14 @@ export function buildContext(deps: Deps, actor: Actor): Context {
     statuses: [...STATUSES],
     projects: state.projects,
     priorities: [...PRIORITIES],
-    labels: [...LABELS],
+    labels: state.labels
+      .filter((l) => !l.archivedAt)
+      .map(({ id, name, color, description }) => ({
+        id,
+        name,
+        color,
+        description,
+      })),
     originSystems: [
       ...new Set(
         state.tasks.flatMap((t) => (t.originSystem ? [t.originSystem] : [])),

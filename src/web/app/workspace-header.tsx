@@ -13,6 +13,7 @@ import {
   RefreshCw,
   Search,
   SlidersHorizontal,
+  Tag,
   X,
 } from 'lucide-react';
 import { ignoreRejection } from '@shared/ignore-rejection';
@@ -48,6 +49,7 @@ export function WorkspaceHeader({
   onMobileSearch,
   onCreate,
   onEditProject,
+  onManageLabels,
 }: {
   /** Сколько карточек показывает текущий экран. */
   visible: number;
@@ -64,6 +66,7 @@ export function WorkspaceHeader({
   onMobileSearch: (open: boolean) => void;
   onCreate: () => void;
   onEditProject: (project: Project) => void;
+  onManageLabels: () => void;
 }) {
   const state = useWorkspace(),
     { loading, pending } = state;
@@ -298,6 +301,10 @@ export function WorkspaceHeader({
                   Переименовать проект
                 </DropdownMenuItem>
               )}
+              <DropdownMenuItem onClick={onManageLabels}>
+                <Tag />
+                Метки
+              </DropdownMenuItem>
               <DropdownMenuItem
                 disabled={loading}
                 onClick={() =>

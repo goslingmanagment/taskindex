@@ -15,6 +15,7 @@ import type {
   Project,
   Comment,
   Appearance,
+  Label,
 } from './model.js';
 import { byFocusKey, byOrder } from './queries.js';
 import type { FocusPosition } from './schemas.js';
@@ -22,12 +23,8 @@ import { assertNever, fail } from './errors.js';
 import { LIMITS } from './limits.js';
 import { DEFAULT_APPEARANCE_ID } from './appearance.js';
 import { ENTITIES } from './entities.js';
-import {
-  DEFAULT_PRIORITY,
-  LABEL_IDS,
-  isCatalogueLabel,
-  type LabelId,
-} from './labels.js';
+import { DEFAULT_PRIORITY } from './labels.js';
+import { uniqueSlug } from './slug.js';
 type ChangeEffect = {
   entityKind: EntityKind;
   entityId: string;
@@ -95,21 +92,41 @@ export function isSubjectField(kind: EntityKind, key: string): boolean {
 }
 const equal = (a: unknown, b: unknown) =>
   JSON.stringify(a) === JSON.stringify(b);
-// Order is not part of a label set. Normalize writes only, retaining invalid
-// entries so validation still rejects them instead of silently discarding them.
-function canonicalLabels(labels: readonly LabelId[] = []): LabelId[] {
-  return labels.toSorted((a, b) => LABEL_IDS.indexOf(a) - LABEL_IDS.indexOf(b));
+// Labels a write may store: every id names a label of the catalogue that is
+// not archived, and the set is kept in catalogue order (position), because
+// order is not part of a label set.
+function writtenLabels(
+  state: WorkspaceState,
+  labels: readonly string[] = [],
+): string[] {
+  const catalogue = new Map(state.labels.map((l) => [l.id, l]));
+  for (const id of labels) {
+    const label = catalogue.get(id);
+    if (!label) fail('invalid', `Метки «${id}» нет в каталоге.`);
+    if (label.archivedAt) fail('invalid', `Метка «${label.name}» в архиве.`);
+  }
+  return labels.toSorted(
+    (a, b) => catalogue.get(a)!.position - catalogue.get(b)!.position,
+  );
 }
 // Records are told apart by shape: only tasks carry a checklist, only
-// comments a taskId.
+// comments a taskId, only labels an archive instant.
 const isTask = (record: Entity): record is Task => 'checklist' in record;
 const isComment = (record: Entity): record is Comment => 'taskId' in record;
+const isLabel = (record: Entity): record is Label => 'archivedAt' in record;
 function requireScope(actor: Actor, kind: EntityKind) {
   // Appearance is the owner's own preference: no agent scope reaches it, and
   // task.sync never touches it (TI-025).
   if (kind === 'appearance') {
     if (actor.kind !== 'owner')
       fail('forbidden', 'Оформление меняет только владелец.');
+    return;
+  }
+  // The label catalogue is the owner's decision (2026-09-17): agents choose
+  // from it and never extend or change it.
+  if (kind === 'label') {
+    if (actor.kind !== 'owner')
+      fail('forbidden', 'Метки заводит и меняет только владелец.');
     return;
   }
   if (actor.scope === 'read' || (kind === 'project' && actor.scope !== 'write'))
@@ -167,6 +184,7 @@ function records(state: WorkspaceState, kind: 'task'): Task[];
 function records(state: WorkspaceState, kind: 'project'): Project[];
 function records(state: WorkspaceState, kind: 'comment'): Comment[];
 function records(state: WorkspaceState, kind: 'appearance'): Appearance[];
+function records(state: WorkspaceState, kind: 'label'): Label[];
 function records(state: WorkspaceState, kind: EntityKind): Entity[];
 function records(state: WorkspaceState, kind: EntityKind): Entity[] {
   return state[ENTITIES[kind].collection];
@@ -175,6 +193,7 @@ function get(state: WorkspaceState, kind: 'task', id: string): Task;
 function get(state: WorkspaceState, kind: 'project', id: string): Project;
 function get(state: WorkspaceState, kind: 'comment', id: string): Comment;
 function get(state: WorkspaceState, kind: 'appearance', id: string): Appearance;
+function get(state: WorkspaceState, kind: 'label', id: string): Label;
 function get(state: WorkspaceState, kind: EntityKind, id: string): Entity;
 function get(state: WorkspaceState, kind: EntityKind, id: string): Entity {
   return (
@@ -300,6 +319,22 @@ export function assertInvariants(
       });
     names.set(name, p);
   }
+  const labelNames = new Map<string, Label>(),
+    labelIds = new Set<string>();
+  for (const l of state.labels) {
+    if (labelIds.has(l.id)) fail('conflict', 'Слаг метки уже занят.');
+    labelIds.add(l.id);
+    if (l.archivedAt) continue;
+    const name = l.name.toLocaleLowerCase('ru').trim();
+    const previous = labelNames.get(name);
+    if (previous)
+      fail('conflict', 'Метка с таким названием уже есть.', {
+        current: unchanged(previous, l),
+      });
+    labelNames.set(name, l);
+  }
+  if (labelNames.size > LIMITS.labels)
+    fail('invalid', 'Слишком много меток: уберите лишние в архив.');
   for (const t of state.tasks) {
     if (
       t.projectId &&
@@ -365,7 +400,7 @@ export function assertInvariants(
       new Set(t.labels).size !== t.labels.length
     )
       fail('invalid', 'Метки должны быть уникальными и помещаться в лимит.');
-    if (!t.labels.every(isCatalogueLabel))
+    if (!t.labels.every((id) => labelIds.has(id)))
       fail('invalid', 'Метка отсутствует в каталоге.');
   }
 }
@@ -445,6 +480,8 @@ function applyUndo(s: Session, p: CommandOf<'undo'>['payload']): CommandResult {
       if (isTask(record)) values = record.archived ? {} : { archived: true };
       else if (isComment(record))
         values = record.deletedAt ? {} : { deletedAt: s.ctx.now };
+      else if (isLabel(record))
+        values = record.archivedAt ? {} : { archivedAt: s.ctx.now };
       else values = {};
     } else
       values = Object.fromEntries(
@@ -539,6 +576,66 @@ function applyProjectUpdate(
   assertMerge('project', record, p.baseRevision, Object.keys(patch), s.history);
   Object.assign(record, patch);
   return { record, changes: s.emit('project', before, record) };
+}
+function applyLabelCreate(
+  s: Session,
+  p: CommandOf<'label.create'>['payload'],
+): CommandResult {
+  const taken = new Set(s.state.labels.map((l) => l.id));
+  const id = p.id ?? uniqueSlug(p.name, taken);
+  if (taken.has(id))
+    fail('conflict', 'Слаг метки уже занят.', {
+      current: get(s.state, 'label', id),
+    });
+  const record: Label = {
+    id,
+    name: p.name,
+    color: p.color.toLowerCase(),
+    description: p.description,
+    position: Math.max(0, ...s.state.labels.map((l) => l.position)) + 1,
+    archivedAt: null,
+    revision: 0,
+    createdAt: s.ctx.now,
+    updatedAt: s.ctx.now,
+  };
+  s.state.labels.push(record);
+  return { record, changes: s.emit('label', undefined, record) };
+}
+function applyLabelUpdate(
+  s: Session,
+  p: CommandOf<'label.update'>['payload'],
+): CommandResult {
+  const record = get(s.state, 'label', p.id);
+  const before = structuredClone(record);
+  const patch: Partial<Pick<Label, 'name' | 'color' | 'description'>> = {
+    ...(p.name !== undefined ? { name: p.name } : {}),
+    ...(p.color !== undefined ? { color: p.color.toLowerCase() } : {}),
+    ...(p.description !== undefined ? { description: p.description } : {}),
+  };
+  assertMerge('label', record, p.baseRevision, Object.keys(patch), s.history);
+  Object.assign(record, patch);
+  return { record, changes: s.emit('label', before, record) };
+}
+// Archiving takes the label off every task in the same operation, so no task
+// ever points at an archived label; restoring puts none of them back.
+function applyLabelArchive(
+  s: Session,
+  p: CommandOf<'label.archive' | 'label.restore'>['payload'],
+  archive: boolean,
+): CommandResult {
+  const record = get(s.state, 'label', p.id);
+  const before = structuredClone(record);
+  assertMerge('label', record, p.baseRevision, ['archivedAt'], s.history);
+  record.archivedAt = archive ? s.ctx.now : null;
+  const changes = s.emit('label', before, record);
+  if (archive)
+    for (const task of s.state.tasks) {
+      if (!task.labels.includes(p.id)) continue;
+      const previous = structuredClone(task);
+      task.labels = task.labels.filter((id) => id !== p.id);
+      s.emit('task', previous, task);
+    }
+  return { record, changes };
 }
 function applyAppearanceUpdate(
   s: Session,
@@ -638,7 +735,7 @@ function createTask(
     title: fields.title,
     status: fields.status ?? 'todo',
     priority: fields.priority ?? DEFAULT_PRIORITY,
-    labels: canonicalLabels(fields.labels),
+    labels: writtenLabels(s.state, fields.labels),
     closes: fields.closes ?? null,
     note: fields.note ?? '',
     due: fields.due ?? null,
@@ -698,7 +795,7 @@ function applyTaskSync(
         fields = rest;
       }
   if (fields.labels)
-    fields = { ...fields, labels: canonicalLabels(fields.labels) };
+    fields = { ...fields, labels: writtenLabels(s.state, fields.labels) };
   const existing = findByOrigin(s.state, origin);
   if (!existing) {
     const record = createTask(s, undefined, fields, origin, undefined);
@@ -770,7 +867,7 @@ function commitTaskPatch(
     unknown
   >;
   if (Array.isArray(patch.labels))
-    patch.labels = canonicalLabels(patch.labels as LabelId[]);
+    patch.labels = writtenLabels(s.state, patch.labels as string[]);
   const moves =
     forceMove ||
     position !== undefined ||
@@ -1013,6 +1110,22 @@ export function applyCommand(
       requireScope(ctx.actor, 'project');
       result = applyProjectUpdate(s, command.payload);
       break;
+    case 'label.create':
+      requireScope(ctx.actor, 'label');
+      result = applyLabelCreate(s, command.payload);
+      break;
+    case 'label.update':
+      requireScope(ctx.actor, 'label');
+      result = applyLabelUpdate(s, command.payload);
+      break;
+    case 'label.archive':
+      requireScope(ctx.actor, 'label');
+      result = applyLabelArchive(s, command.payload, true);
+      break;
+    case 'label.restore':
+      requireScope(ctx.actor, 'label');
+      result = applyLabelArchive(s, command.payload, false);
+      break;
     case 'comment.add':
       requireScope(ctx.actor, 'comment');
       result = applyCommentAdd(s, command.payload);
@@ -1114,10 +1227,13 @@ export function applyEvent(
       if (next.labels === undefined) next.labels = [];
       if (next.closes === undefined) next.closes = null;
     }
-    // A retired label vanishes on replay, exactly as its migration drops it
-    // from the tables; the journal and stored results keep it as written.
+    // A label the catalogue never had (retired before 0007) vanishes on
+    // replay, exactly as its migration dropped it from the tables; the journal
+    // and stored results keep it as written.
     if (event.entityKind === 'task' && isTask(next))
-      next.labels = next.labels.filter(isCatalogueLabel);
+      next.labels = next.labels.filter((id) =>
+        state.labels.some((l) => l.id === id),
+      );
     if (index < 0) list.push(next);
     else list[index] = next;
   }

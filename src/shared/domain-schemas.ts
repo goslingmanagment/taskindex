@@ -9,8 +9,8 @@ import {
   commandNameSchema,
   commandNames,
   prioritySchema,
-  labelSchema,
-  storedLabelsSchema,
+  labelIdSchema,
+  labelsSchema,
   closesSchema,
 } from './schemas.js';
 import { LIMITS } from './limits.js';
@@ -69,6 +69,30 @@ export const projectSchema = z
   })
   .strict()
   .meta({ id: 'Project' });
+// The owner's label catalogue (0007). An archived label stays a record: old
+// events and stored results name it, and the history shows its name.
+export const labelSchema = z
+  .object({
+    id: labelIdSchema,
+    name: z.string().min(1).max(LIMITS.labelName).describe('Название метки'),
+    color: z
+      .string()
+      .regex(/^#[a-fA-F0-9]{6}$/)
+      .describe('Цвет метки'),
+    description: z
+      .string()
+      .max(LIMITS.labelDescription)
+      .describe('Когда ставить метку: по этому описанию её выбирают агенты'),
+    position: z.number().int().positive().describe('Порядок в каталоге'),
+    archivedAt: nullableStamp.describe(
+      'Когда метка убрана в архив; null у действующей',
+    ),
+    revision,
+    createdAt: stamp,
+    updatedAt: stamp,
+  })
+  .strict()
+  .meta({ id: 'Label' });
 export const taskSchema = z
   .object({
     id: idSchema,
@@ -77,7 +101,7 @@ export const taskSchema = z
     title: z.string().min(1).max(LIMITS.taskTitle).describe('Название'),
     status: statusSchema,
     priority: prioritySchema.default(DEFAULT_PRIORITY),
-    labels: storedLabelsSchema.default([]),
+    labels: labelsSchema.default([]),
     closes: closesSchema.default(null),
     note: z.string().max(LIMITS.taskNote).describe('Заметка'),
     due: dateSchema,
@@ -193,8 +217,14 @@ export const defaultAppearance = (): z.infer<typeof appearanceSchema> => ({
 export const entityKindSchema = z.enum(ENTITY_KINDS).describe('Вид записи');
 
 export const entitySchema = z
-  .union([taskSchema, projectSchema, commentSchema, appearanceSchema])
-  .describe('Задача, проект, комментарий или оформление')
+  .union([
+    taskSchema,
+    projectSchema,
+    commentSchema,
+    appearanceSchema,
+    labelSchema,
+  ])
+  .describe('Задача, проект, комментарий, оформление или метка')
   .meta({ id: 'Entity' });
 export const changesSchema = z
   .record(
@@ -243,6 +273,9 @@ export const snapshotSchema = z
       .describe('Сегодня в часовом поясе пространства'),
     timezone: z.string().describe('Часовой пояс IANA'),
     projects: z.array(projectSchema).describe('Проекты'),
+    labels: z
+      .array(labelSchema)
+      .describe('Каталог меток владельца, включая архивные'),
     tasks: z.array(taskSchema).describe('Все задачи, включая архив'),
     // Обязательно с 2026-09-11: сервер всегда шлёт запись (её отдаёт
     // defaultAppearance() даже для нетронутого пространства), а необязательное
@@ -435,8 +468,9 @@ const legacyExportFields = {
 };
 export const exportSchema = z
   .object({
-    formatVersion: z.literal(6),
+    formatVersion: z.literal(7),
     ...exportFields,
+    labels: z.array(labelSchema).describe('Каталог меток, включая архивные'),
     operations: z.array(exportedOperationSchema),
     appearance: z
       .array(appearanceSchema)
@@ -444,6 +478,17 @@ export const exportSchema = z
   })
   .strict()
   .meta({ id: 'Export' });
+// Format 6 (schema version 7): no label catalogue, task labels are slugs of
+// the seeded list. Import adds the seeded records, exactly what
+// 0007_labels.sql inserts into an existing database.
+export const exportSchemaV6 = z
+  .object({
+    formatVersion: z.literal(6),
+    ...exportFields,
+    operations: z.array(exportedOperationSchema),
+    appearance: z.array(appearanceSchema),
+  })
+  .strict();
 // Format 1 (schema versions 1-2): operations without operationSeq. Import
 // assigns positions in (createdAt, id) order, the same rule the migration
 // 0002_operation_seq.sql applies to an existing database.
@@ -547,6 +592,11 @@ export const focusResponseSchema = z
 export const projectsResponseSchema = z
   .object({ projects: z.array(projectSchema) })
   .meta({ id: 'ProjectsResponse' });
+export const labelsResponseSchema = z
+  .object({
+    labels: z.array(labelSchema).describe('Каталог меток, включая архивные'),
+  })
+  .meta({ id: 'LabelsResponse' });
 export const healthSchema = z
   .object({
     ok: z.boolean(),
@@ -589,14 +639,16 @@ export const contextSchema = z
     priorities: z.array(
       z.object({ id: prioritySchema, name: z.string(), hint: z.string() }),
     ),
-    labels: z.array(
-      z.object({
-        id: labelSchema,
-        name: z.string(),
-        color: z.string(),
-        description: z.string(),
-      }),
-    ),
+    labels: z
+      .array(
+        z.object({
+          id: labelIdSchema,
+          name: z.string(),
+          color: z.string(),
+          description: z.string(),
+        }),
+      )
+      .describe('Действующие метки каталога владельца'),
     fields: jsonSchema.describe('JSON Schema полей задачи'),
     commands: z.array(
       z.object({

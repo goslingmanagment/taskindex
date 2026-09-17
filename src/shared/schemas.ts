@@ -2,7 +2,8 @@ import { z } from 'zod';
 import { LIMITS } from './limits.js';
 import { appearanceModeSchema, skinIdSchema } from './appearance.js';
 import { ALL_PROJECTS, NO_PROJECT } from './constants.js';
-import { LABEL_IDS, PRIORITY_IDS, STORED_LABEL_IDS } from './labels.js';
+import { PRIORITY_IDS } from './labels.js';
+import { SLUG_PATTERN } from './slug.js';
 /** @deprecated import `z` from 'zod' directly; the re-export is kept until plan 10 removes the last consumers. */
 export { z };
 export const idSchema = z
@@ -45,27 +46,20 @@ export const statusSchema = z
 export const prioritySchema = z
   .enum(PRIORITY_IDS)
   .describe('Приоритет: p1 горит, p2 обычная (по умолчанию), p3 когда-нибудь');
-export const labelSchema = z
-  .enum(LABEL_IDS)
-  .describe('Метка из каталога labels ответа /api/context');
+// A label is addressed by its slug; the catalogue itself lives in the
+// workspace (labels of /api/context and /api/snapshot), so the domain, not the
+// schema, refuses an unknown or archived one.
+export const labelIdSchema = z
+  .string()
+  .regex(SLUG_PATTERN)
+  .describe(
+    'Слаг метки из каталога labels ответа /api/context (латиница, цифры, дефис)',
+  );
 export const labelsSchema = z
-  .array(labelSchema)
+  .array(labelIdSchema)
   .max(LIMITS.taskLabels)
   .refine((v) => new Set(v).size === v.length, 'Метки не должны повторяться')
   .describe(`До ${LIMITS.taskLabels} меток из каталога, без повторов`);
-// Records (snapshot, stored results, exports) may still carry a label retired
-// after they were written; commands accept catalogue labels only.
-export const storedLabelsSchema = z
-  .array(
-    z
-      .enum(STORED_LABEL_IDS)
-      .describe(
-        'Метка записи: из каталога labels или снятая метка, оставшаяся в сохранённом результате старой операции',
-      ),
-  )
-  .max(LIMITS.taskLabels)
-  .refine((v) => new Set(v).size === v.length, 'Метки не должны повторяться')
-  .describe(`До ${LIMITS.taskLabels} меток записи, без повторов`);
 export const closesSchema = z
   .string()
   .regex(new RegExp(`^[a-z0-9-]{1,${LIMITS.closes}}$`))
@@ -176,6 +170,38 @@ const projectColor = z
   .regex(/^#[a-fA-F0-9]{6}$/)
   .describe('Цвет #rrggbb');
 const schemas = {
+  // Labels are the owner's catalogue (0007): only the owner creates, renames,
+  // archives and restores them. Archiving removes the label from every task in
+  // the same operation.
+  'label.create': z
+    .object({
+      id: labelIdSchema
+        .optional()
+        .describe('Слаг новой метки; по умолчанию выводится из названия'),
+      name: text(LIMITS.labelName, true).describe('Название метки'),
+      color: projectColor,
+      description: text(LIMITS.labelDescription, true).describe(
+        'Когда ставить метку: по этому описанию её выбирают агенты',
+      ),
+    })
+    .strict(),
+  'label.update': z
+    .object({
+      id: labelIdSchema,
+      baseRevision: revisionSchema,
+      name: text(LIMITS.labelName, true).optional().describe('Название метки'),
+      color: projectColor.optional().describe('Цвет метки'),
+      description: text(LIMITS.labelDescription, true)
+        .optional()
+        .describe('Когда ставить метку'),
+    })
+    .strict(),
+  'label.archive': z
+    .object({ id: labelIdSchema, baseRevision: revisionSchema })
+    .strict(),
+  'label.restore': z
+    .object({ id: labelIdSchema, baseRevision: revisionSchema })
+    .strict(),
   'project.create': z
     .object({
       id: newIdSchema.optional(),

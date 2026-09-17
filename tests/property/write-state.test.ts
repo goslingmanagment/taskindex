@@ -16,6 +16,7 @@ import type {
   WorkspaceState,
 } from '../../src/shared/model.js';
 import { defaultAppearance } from '../../src/shared/domain-schemas.js';
+import { SEEDED_LABELS } from '../../src/shared/labels.js';
 import { agent, owner } from '../api/helpers.js';
 const actors = [owner, agent];
 // Plan 01, test 4: writing only the records the effects name leaves the same
@@ -39,6 +40,7 @@ it('writeState by touched entities equals writeState by full diff after every ra
         migrate(byEffects);
         let state: WorkspaceState = {
           projects: [],
+          labels: structuredClone(SEEDED_LABELS),
           tasks: [],
           comments: [],
           appearance: [defaultAppearance()],

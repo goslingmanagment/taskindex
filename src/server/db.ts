@@ -14,6 +14,7 @@ import type {
   WorkspaceState,
   Task,
   Project,
+  Label,
   Appearance,
 } from '../shared/model.js';
 import { defaultAppearance } from '../shared/domain-schemas.js';
@@ -37,6 +38,18 @@ const toProject = ({
 export function readProjects(db: DatabaseHandle): Project[] {
   return db.orm.select().from(schema.projects).all().map(toProject);
 }
+const toLabel = ({
+  nameKey: _nameKey,
+  ...l
+}: typeof schema.labels.$inferSelect): Label => l as Label;
+export function readLabels(db: DatabaseHandle): Label[] {
+  return db.orm
+    .select()
+    .from(schema.labels)
+    .orderBy(asc(schema.labels.position))
+    .all()
+    .map(toLabel);
+}
 function readAppearance(db: DatabaseHandle): Appearance {
   // A workspace whose owner never chose anything has no row: the default
   // preference is what every reader sees, and revision 1 is its baseRevision.
@@ -50,6 +63,7 @@ function readAppearance(db: DatabaseHandle): Appearance {
 // the size of the workspace, not tasks × (steps + comments).
 export function readState(db: DatabaseHandle): WorkspaceState {
   const projects = readProjects(db);
+  const labels = readLabels(db);
   const comments = db.orm.select().from(schema.comments).all();
   const items = Map.groupBy(
     db.orm
@@ -67,7 +81,13 @@ export function readState(db: DatabaseHandle): WorkspaceState {
     .from(schema.tasks)
     .all()
     .map((t) => toTask(t, items.get(t.id) ?? [], counts.get(t.id) ?? 0));
-  return { projects, tasks, comments, appearance: [readAppearance(db)] };
+  return {
+    projects,
+    labels,
+    tasks,
+    comments,
+    appearance: [readAppearance(db)],
+  };
 }
 // Point reads for the routes that need one record (plan 01, step 4).
 export function readTask(db: DatabaseHandle, id: string): Task | undefined {
@@ -151,6 +171,7 @@ export function readComments(
 // `writeState` has to touch (plan 01, step 6).
 export type Touched = {
   projects: Set<string>;
+  labels: Set<string>;
   tasks: Set<string>;
   comments: Set<string>;
   appearance: boolean;
@@ -160,6 +181,7 @@ export function touchedByEvents(
 ): Touched {
   const touched: Touched = {
     projects: new Set(),
+    labels: new Set(),
     tasks: new Set(),
     comments: new Set(),
     appearance: false,
@@ -167,6 +189,7 @@ export function touchedByEvents(
   for (const e of events)
     if (e.entityKind === 'task') touched.tasks.add(e.entityId);
     else if (e.entityKind === 'project') touched.projects.add(e.entityId);
+    else if (e.entityKind === 'label') touched.labels.add(e.entityId);
     else if (e.entityKind === 'comment') touched.comments.add(e.entityId);
     else touched.appearance = true;
   return touched;
@@ -211,6 +234,25 @@ export function writeState(
       .insert(schema.projects)
       .values(row)
       .onConflictDoUpdate({ target: schema.projects.id, set: row })
+      .run();
+  }
+  // Labels: the same two passes as projects, because two active labels may
+  // swap names inside one operation and the active-name index is unique.
+  const previousLabels = byId(previous?.labels);
+  const changedLabels = differs(state.labels, previousLabels, touched?.labels);
+  for (const l of changedLabels)
+    if (previousLabels.has(l.id))
+      db.orm
+        .update(schema.labels)
+        .set({ nameKey: `${'_'.repeat(61)}${l.id}` })
+        .where(eq(schema.labels.id, l.id))
+        .run();
+  for (const l of changedLabels) {
+    const row = { ...l, nameKey: l.name.toLocaleLowerCase('ru').trim() };
+    db.orm
+      .insert(schema.labels)
+      .values(row)
+      .onConflictDoUpdate({ target: schema.labels.id, set: row })
       .run();
   }
   const previousTasks = byId(previous?.tasks);

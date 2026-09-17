@@ -2,18 +2,23 @@ import { useCallback, useMemo } from 'react';
 import type { z } from 'zod';
 import type {
   Command,
+  Label,
   OperationSuccess,
   Project,
   Status,
   Task,
 } from '@shared/model';
-import { projectSchema, taskSchema } from '@shared/domain-schemas';
+import { labelSchema, projectSchema, taskSchema } from '@shared/domain-schemas';
 import { byOrder } from '@shared/queries';
 import { toast } from '../ui/toast';
 import { workspaceStore } from './store';
 import {
+  labelArchiveCommand,
+  labelRestoreCommand,
+  labelSaveCommand,
   projectSaveCommand,
   boardMoveCommand,
+  type LabelDraft,
   taskArchiveCommand,
   taskCreateCommand,
   taskMoveCommand,
@@ -114,6 +119,18 @@ export function useWorkspaceCommands() {
         );
         return { task: record(result, taskSchema), result };
       },
+      /** Каталог меток владельца: создание и правка с уведомлением и отменой. */
+      saveLabel: async (label: LabelDraft) => {
+        const result = await execute(
+          labelSaveCommand(label),
+          label.revision ? 'Метка сохранена' : 'Метка добавлена',
+        );
+        return record(result, labelSchema);
+      },
+      archiveLabel: (label: Label) =>
+        execute(labelArchiveCommand(label), `Метка «${label.name}» в архиве`),
+      restoreLabel: (label: Label) =>
+        execute(labelRestoreCommand(label), `Метка «${label.name}» возвращена`),
       saveProject: async (project: Project, operationId?: string) => {
         const result = await workspaceStore.submit(
           projectSaveCommand(project),

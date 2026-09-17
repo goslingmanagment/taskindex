@@ -74,6 +74,7 @@ const snapshot = (generation = 'gen1', seq = 0): Snapshot => ({
   today: '2026-09-08',
   timezone: 'Europe/Moscow',
   projects: [],
+  labels: [],
   tasks: [
     makeTask({
       id: 'task1',

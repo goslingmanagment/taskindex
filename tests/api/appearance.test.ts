@@ -208,7 +208,11 @@ describe('appearance preference of the owner', () => {
 
   it('gives an export of format 2 the default preference on import', () => {
     const f = api();
-    const { appearance: _appearance, ...legacy } = exportWorkspace(f.db);
+    const {
+      appearance: _appearance,
+      labels: _labels,
+      ...legacy
+    } = exportWorkspace(f.db);
     const upgraded = upgradeExport({ ...legacy, formatVersion: 2 });
     expect(upgraded.formatVersion).toBe(FORMAT_VERSION);
     expect(upgraded.appearance).toEqual([

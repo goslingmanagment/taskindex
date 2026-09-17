@@ -94,8 +94,9 @@ taskindex task sync --payload '{"origin":{"system":"telegram","ref":"chat:messag
 `task save --payload` с `fields`, изменённым статусом и чеклистом.
 
 Приоритет, метки и проблема: `--priority p1|p2|p3` (по умолчанию `p2`),
-`--labels dengi,lora` (только слаги из `labels` в `taskindex context`, до 8 без
-повторов; JSON-массив тоже принимается, `--labels '[]'` снимает все метки),
+`--labels dengi,lora` (только слаги действующих меток из `labels` в
+`taskindex context`, до 8 без повторов; неизвестный или архивный слаг сервер
+отклоняет; JSON-массив тоже принимается, `--labels '[]'` снимает все метки),
 `--closes lora-km-of-vacancy` (`null` снимает). Чтение: `tasks --priority p1`,
 `tasks --label dengi`, `tasks --closes SLUG`; `digest` несёт `counts.p1` для
 незавершённых P1 вне архива.
@@ -174,7 +175,7 @@ scope, чужой комментарий — нет. Ошибку владель
 generation. `generation_changed` требует свежего контекста и новой оценки
 действия после восстановления базы (`cursor reset`, затем `digest`).
 
-`taskindex export --out FILE` пишет полный экспорт формата 6: у каждой операции
+`taskindex export --out FILE` пишет полный экспорт формата 7: у каждой операции
 обязателен `operationSeq` (позиция в журнале операций), в `settings` обязателен
 `schema_version`, и рядом с задачами лежит запись `appearance` — предпочтение
 оформления владельца, ровно одна. Формат 5 включает `priority`, `labels`, `closes`

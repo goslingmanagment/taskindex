@@ -48,6 +48,7 @@ const snapshot = (): Snapshot => ({
   today: '2026-09-08',
   timezone: 'Europe/Moscow',
   projects: [],
+  labels: [],
   tasks: [task()],
   appearance: defaultAppearance(),
 });

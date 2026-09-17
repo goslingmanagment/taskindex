@@ -8,6 +8,7 @@ import { makeTask } from './fixtures';
 const at = '2026-09-12T12:00:00.000Z';
 function state(count = 2): WorkspaceState {
   return {
+    labels: [],
     tasks: Array.from({ length: count }, (_, i) =>
       makeTask({
         id: `t${i}`,
@@ -85,6 +86,7 @@ describe('TI-083 replay preserves identities used by card subscriptions', () => 
       schemaVersion: 4,
       today: '2026-09-12',
       timezone: 'UTC',
+      labels: [],
       tasks: initial.tasks,
       projects: initial.projects,
       appearance: initial.appearance[0]!,

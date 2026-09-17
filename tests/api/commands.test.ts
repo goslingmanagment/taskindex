@@ -17,6 +17,7 @@ import {
 import { applyEvent } from '../../src/shared/commands.js';
 import { snapshotSchema } from '../../src/shared/domain-schemas.js';
 import { defaultAppearance } from '../../src/shared/domain-schemas.js';
+import { SEEDED_LABELS } from '../../src/shared/labels.js';
 import type {
   OperationSuccess,
   Task,
@@ -717,9 +718,11 @@ describe('comments, snapshots, export and stream', () => {
       [1, 3],
     ]);
     expect(body.events[1]!.taskId).toBe('t');
+    // 0007 seeds the catalogue in SQL: the journal starts from these records.
     const projection = body.events.reduce(applyEvent, {
       tasks: [],
       projects: [],
+      labels: structuredClone(SEEDED_LABELS),
       comments: [],
       appearance: [defaultAppearance()],
     } as WorkspaceState);
@@ -849,7 +852,7 @@ describe('comments, snapshots, export and stream', () => {
     expect(response.status).toBe(200);
     const document = await response.json();
     // Entities and envelopes are components referenced from the routes.
-    expect(document.components.schemas.CommandEnvelope.oneOf).toHaveLength(17);
+    expect(document.components.schemas.CommandEnvelope.oneOf).toHaveLength(21);
     expect(
       document.paths['/api/commands'].post.requestBody.content[
         'application/json'

@@ -38,6 +38,7 @@ import { Board, DragBoard } from './board';
 import { WorkspaceOverview } from './overview';
 import { Desk } from './desk/desk';
 import { QuickCreate, ProjectDialog } from './dialogs';
+import { LabelsDialog } from './labels-dialog';
 import { PendingNotice } from './pending-notice';
 import { WorkspaceHeader } from './workspace-header';
 import { WorkspaceEmpty } from './workspace-empty';
@@ -91,6 +92,7 @@ function WorkspaceBody() {
   } = location;
   const [create, setCreate] = useState<Status | null>(null),
     [projectDialog, setProjectDialog] = useState<Project | 'new' | null>(null),
+    [labelsDialog, setLabelsDialog] = useState(false),
     [mobileSearch, setMobileSearch] = useState(false);
   const searchRef = useRef<HTMLInputElement>(null);
   const [cardMenu] = useState(() => Menu.createHandle<string>());
@@ -161,7 +163,7 @@ function WorkspaceBody() {
     requestAnimationFrame(() => searchRef.current?.focus());
   };
   useKeyboardShortcuts({
-    blocked: !!selected || !!create || !!projectDialog,
+    blocked: !!selected || !!create || !!projectDialog || labelsDialog,
     onSearch: openSearch,
     onCreate: disabled ? null : () => setCreate('todo'),
   });
@@ -185,6 +187,7 @@ function WorkspaceBody() {
         key={task.id}
         task={task}
         project={data.projects.find((p) => p.id === task.projectId)}
+        catalogue={data.labels}
         today={today}
         showContext={globalView}
         showProject={globalView || projectId !== task.projectId}
@@ -218,6 +221,7 @@ function WorkspaceBody() {
           onMobileSearch={setMobileSearch}
           onCreate={() => setCreate('todo')}
           onEditProject={setProjectDialog}
+          onManageLabels={() => setLabelsDialog(true)}
         />
         <div
           className="board-body"
@@ -341,6 +345,8 @@ function WorkspaceBody() {
             base={confirmedSelected ?? selected}
             pendingLabel={pendingTaskLabel(pending, selected.id)}
             projects={data.projects}
+            labels={data.labels}
+            onManageLabels={() => setLabelsDialog(true)}
             onClose={closeTask}
           />
         </Suspense>
@@ -359,6 +365,13 @@ function WorkspaceBody() {
           projects={data.projects}
           onClose={() => setCreate(null)}
           onSave={newTask}
+        />
+      )}
+      {labelsDialog && (
+        <LabelsDialog
+          labels={data.labels}
+          tasks={data.tasks}
+          onClose={() => setLabelsDialog(false)}
         />
       )}
       {projectDialog && (

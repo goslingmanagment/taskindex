@@ -14,6 +14,7 @@ import type {
 } from '../../src/shared/model.js';
 import { agent, owner } from '../api/helpers.js';
 import { defaultAppearance } from '../../src/shared/domain-schemas.js';
+import { SEEDED_LABELS } from '../../src/shared/labels.js';
 const actors: Actor[] = [owner, agent, { ...agent, scope: 'tasks' }];
 it('random command sequences by owner and agents preserve invariants, the event projection and the owner-only policy', () => {
   fc.assert(
@@ -31,12 +32,14 @@ it('random command sequences by owner and agents preserve invariants, the event 
       (actions) => {
         let state: WorkspaceState = {
           projects: [],
+          labels: structuredClone(SEEDED_LABELS),
           tasks: [],
           comments: [],
           appearance: [defaultAppearance()],
         };
         let projection: WorkspaceState = {
           projects: [],
+          labels: structuredClone(SEEDED_LABELS),
           tasks: [],
           comments: [],
           appearance: [defaultAppearance()],

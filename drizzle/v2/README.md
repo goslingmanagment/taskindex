@@ -61,6 +61,13 @@
   `RETIRED_LABELS`), формат экспорта поднят до 6, `upgradeExport` убирает снятую метку из
   задач форматов 1–5. Фикстура `tests/fixtures/export-schema-6.json` создана кодом dc37568.
   Тест: `tests/api/migration-compat.test.ts`, describe `0006_drop_otvet_label`.
+  2026-09-17: `0007_labels` (решение владельца: метки как данные) — вариант (б). Таблица `labels`
+  с частичным уникальным индексом по `name_key` среди действующих (`archived_at IS NULL`);
+  пять прежних меток каталога вставляются в SQL теми же слагами, `revision 1`, штамп
+  `2026-09-17T21:00:00.000Z`; строки задач не меняются. Журнал этих записей не содержит:
+  `validateExport` начинает replay с `SEEDED_LABELS` (те же значения в `src/shared/labels.ts`),
+  `upgradeExport` добавляет их экспортам форматов 1–6, формат экспорта поднят до 7. Фикстура
+  `tests/fixtures/export-schema-7.json` создана кодом c3c4194. Тест: describe `0007_labels`.
 - Журналы, созданные до появления контрольных сумм, получают `sha256` из файлов образа при
   первом `migrate` с записью `warn` `migration_checksum_backfilled` (допустимо только до
   рабочего переключения; после него backfill только по сверке с архивным SQL релиза).

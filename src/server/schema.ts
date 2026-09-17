@@ -21,7 +21,6 @@ export type StoredResult =
 import { commandNames } from '../shared/schemas.js';
 import { APPEARANCE_MODES } from '../shared/appearance.js';
 import { DEFAULT_PRIORITY, PRIORITY_IDS } from '../shared/labels.js';
-import type { StoredLabelId } from '../shared/labels.js';
 const commandColumn = [...commandNames, 'batch'] as const;
 const time = (name: string) => integer(name, { mode: 'timestamp_ms' });
 export const settings = sqliteTable('settings', {
@@ -54,6 +53,30 @@ export const projects = sqliteTable(
   },
   (t) => [uniqueIndex('projects_area_name').on(t.area, t.nameKey)],
 );
+// The owner's label catalogue (0007, owner decision 2026-09-17). An archived
+// label keeps its row: the journal and stored results still name it. The
+// active names are unique (partial index), so a name can be reused after its
+// label went to the archive.
+export const labels = sqliteTable(
+  'labels',
+  {
+    id: text('id').primaryKey(),
+    name: text('name').notNull(),
+    nameKey: text('name_key').notNull(),
+    color: text('color').notNull(),
+    description: text('description').notNull(),
+    position: integer('position').notNull(),
+    archivedAt: text('archived_at'),
+    revision: integer('revision').notNull(),
+    createdAt: text('created_at').notNull(),
+    updatedAt: text('updated_at').notNull(),
+  },
+  (t) => [
+    uniqueIndex('labels_active_name')
+      .on(t.nameKey)
+      .where(sql`archived_at IS NULL`),
+  ],
+);
 export const tasks = sqliteTable(
   'tasks',
   {
@@ -66,10 +89,10 @@ export const tasks = sqliteTable(
     priority: text('priority', { enum: PRIORITY_IDS })
       .notNull()
       .default(DEFAULT_PRIORITY),
-    // Rows hold catalogue labels only (0006 drops a retired label, replay and
-    // assertInvariants keep it out); the type follows the record schema.
+    // Slugs of the label catalogue (rows of `labels`): assertInvariants keeps
+    // unknown ones out, 0006 dropped a retired one.
     labels: text('labels', { mode: 'json' })
-      .$type<StoredLabelId[]>()
+      .$type<string[]>()
       .notNull()
       .default(sql`'[]'`),
     closes: text('closes'),

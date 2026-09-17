@@ -117,7 +117,7 @@ it('TI-086 accepts comma and JSON label sets, explicit clearing and task filters
       '--title',
       'T',
       '--labels',
-      'nope',
+      'Not a slug',
     ]),
   ).toBe(2);
   expect(test.output.at(-1)).toMatchObject({

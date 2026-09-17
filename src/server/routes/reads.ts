@@ -4,7 +4,7 @@ import { z } from 'zod';
 import {
   areaSchema,
   closesSchema,
-  labelSchema,
+  labelIdSchema,
   prioritySchema,
   statusSchema,
 } from '../../shared/schemas.js';
@@ -15,6 +15,7 @@ import {
   exportSchema,
   meSchema,
   pageSchema,
+  labelsResponseSchema,
   projectsResponseSchema,
   snapshotSchema,
   taskSchema,
@@ -26,6 +27,7 @@ import {
   generation,
   latestSeq,
   readComments,
+  readLabels,
   readProjects,
   readTask,
   readTaskByOrigin,
@@ -86,6 +88,7 @@ export const registerReadRoutes = <T extends OpenAPIHono<Env>>(
                 today: todayInTimezone(timezone(), now()),
                 timezone: timezone(),
                 projects: state.projects,
+                labels: state.labels,
                 tasks: state.tasks,
                 // Строка предпочтения одна на пространство и создаётся
                 // чтением, так что запасной вариант нужен только индексу.
@@ -130,7 +133,7 @@ export const registerReadRoutes = <T extends OpenAPIHono<Env>>(
                 .describe('Идентификатор проекта, all или none'),
               status: statusSchema.optional(),
               priority: prioritySchema.optional(),
-              label: labelSchema
+              label: labelIdSchema
                 .optional()
                 .describe('Только задачи с этой меткой'),
               closes: closesSchema
@@ -227,6 +230,19 @@ export const registerReadRoutes = <T extends OpenAPIHono<Env>>(
           responses: { 200: json(projectsResponseSchema), ...readErrors },
         }),
         (c) => c.json({ projects: readProjects(db) }, 200),
+      )
+      .openapi(
+        createRoute({
+          method: 'get',
+          path: '/api/labels',
+          operationId: 'listLabels',
+          summary: 'Каталог меток владельца',
+          description:
+            'Все метки, включая архивные (archivedAt); действующие без archivedAt также есть в /api/context.',
+          tags: ['projects'],
+          responses: { 200: json(labelsResponseSchema), ...readErrors },
+        }),
+        (c) => c.json({ labels: readLabels(db) }, 200),
       )
       .openapi(
         createRoute({

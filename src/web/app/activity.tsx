@@ -78,7 +78,10 @@ function EventRow({ event }: { event: DomainEvent }) {
     workspaceStore.getSnapshot,
   );
   const [raw, setRaw] = useState(false);
-  const story = describeEvent(event, { projects: data.projects });
+  const story = describeEvent(event, {
+    projects: data.projects,
+    labels: data.labels,
+  });
   return (
     <li className="event-row">
       <div>

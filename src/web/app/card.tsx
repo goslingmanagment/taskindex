@@ -11,8 +11,7 @@ import { memo, useState, type CSSProperties } from 'react';
 import { Menu } from '@base-ui/react/menu';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { AREAS, type Project, type Task } from '@shared/model';
-import { LABELS } from '@shared/labels';
+import { AREAS, type Label, type Project, type Task } from '@shared/model';
 import {
   TASK_STATES as STATUSES,
   boardColumn,
@@ -30,6 +29,8 @@ type TaskCardProps = {
   /** Экран показывает задачи всех областей: подписываем область и состояние. */
   showContext: boolean;
   showProject: boolean;
+  /** The label catalogue of the workspace: names and colours of the chips. */
+  catalogue: readonly Label[];
   pending: boolean;
   disabled: boolean;
   menu: Menu.Handle<string>;
@@ -93,6 +94,7 @@ export const TaskCardContent = memo(function TaskCardContent({
   today,
   showContext,
   showProject,
+  catalogue,
   pending,
   disabled,
   menu,
@@ -135,6 +137,7 @@ export const TaskCardContent = memo(function TaskCardContent({
         today={today}
         showContext={showContext}
         showProject={showProject}
+        catalogue={catalogue}
         pending={pending}
         menu={menu}
       />
@@ -161,6 +164,7 @@ const TaskCardBody = memo(function TaskCardBody({
   today,
   showContext,
   showProject,
+  catalogue,
   pending,
   menu,
 }: Omit<TaskCardProps, 'disabled'>) {
@@ -237,7 +241,7 @@ const TaskCardBody = memo(function TaskCardBody({
           </span>
         )}
         {task.labels.map((id) => {
-          const label = LABELS.find((item) => item.id === id);
+          const label = catalogue.find((item) => item.id === id);
           return (
             <span key={id} className="label-chip" data-label={id}>
               {label?.name ?? id}

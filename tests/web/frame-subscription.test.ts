@@ -13,6 +13,7 @@ function harness(store = new WorkspaceStore()) {
     today: '2026-09-12',
     timezone: 'UTC',
     projects: [],
+    labels: [],
     appearance: defaultAppearance(),
     tasks: [
       makeTask({
@@ -206,6 +207,7 @@ describe('TI-083 opt-in board frame subscription', () => {
       schemaVersion: 4,
       today: '2026-09-12',
       timezone: 'UTC',
+      labels: [],
       projects: [],
       appearance: defaultAppearance(),
       tasks: [

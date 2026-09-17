@@ -2,7 +2,7 @@
 // preference; the filters, the digest counters and the catalogue in context.
 import { afterEach, describe, it, expect } from 'vitest';
 import { fixture, success } from './helpers.js';
-import { LABELS, PRIORITIES } from '../../src/shared/labels.js';
+import { PRIORITIES, SEEDED_LABELS } from '../../src/shared/labels.js';
 import type {
   Context,
   Digest,
@@ -206,20 +206,30 @@ describe('TI-086 task fields', () => {
   });
   it('refuses an unknown label, a duplicate, more than eight and a slug outside the pattern', async () => {
     const f = setup();
-    const refuse = async (payload: Record<string, unknown>, path: string) => {
-      const r = await f.post({
+    const post = (payload: Record<string, unknown>) =>
+      f.post({
         command: 'task.create',
         payload: { area: 'agency', title: 'X', ...payload } as never,
       });
+    const refuse = async (payload: Record<string, unknown>, path: string) => {
+      const r = await post(payload);
       expect(r.status).toBe(400);
       const body = r.body as OperationError;
       expect(body.code).toBe('invalid');
       expect(body.issues!.map((i) => i.path)).toContain(path);
     };
-    await refuse({ labels: ['unknown'] }, 'payload.labels[0]');
+    // A well-formed slug the catalogue does not have (0007: the catalogue is
+    // data) is refused by the domain, by name; a retired label is unknown too.
+    for (const id of ['unknown', 'otvet']) {
+      const r = await post({ labels: [id] });
+      expect(r.status).toBe(400);
+      expect(r.body).toMatchObject({
+        code: 'invalid',
+        message: `Метки «${id}» нет в каталоге.`,
+      });
+    }
+    await refuse({ labels: ['Custom Label'] }, 'payload.labels[0]');
     await refuse({ labels: ['dengi', 'dengi'] }, 'payload.labels');
-    // A retired label is refused like any unknown one.
-    await refuse({ labels: ['otvet'] }, 'payload.labels[0]');
     await refuse(
       {
         labels: [
@@ -337,7 +347,8 @@ describe('TI-086 task fields', () => {
     expect(await ids(f, 'label=dengi')).toEqual(['a', 'b']);
     expect(await ids(f, 'label=lora&priority=p3')).toEqual(['b']);
     expect(await ids(f, 'closes=x-1')).toEqual(['c']);
-    expect((await f.app.request('/api/tasks?label=nope')).status).toBe(400);
+    expect(await ids(f, 'label=nope')).toEqual([]);
+    expect((await f.app.request('/api/tasks?label=Nope')).status).toBe(400);
     expect((await f.app.request('/api/tasks?priority=p9')).status).toBe(400);
     expect((await f.app.request('/api/tasks?closes=Bad')).status).toBe(400);
     const page = (await (
@@ -374,7 +385,14 @@ describe('TI-086 task fields', () => {
       await f.app.request('/api/context')
     ).json()) as Context;
     expect(context.priorities).toEqual([...PRIORITIES]);
-    expect(context.labels).toEqual([...LABELS]);
+    expect(context.labels).toEqual(
+      SEEDED_LABELS.map(({ id, name, color, description }) => ({
+        id,
+        name,
+        color,
+        description,
+      })),
+    );
     expect(context.labels.map((label) => label.id)).not.toContain('otvet');
     expect(context.rules.join('\n')).toContain(
       'Порядок карточек в колонке остаётся ручным',

@@ -3,7 +3,7 @@
 // drizzle/v2/README.md (data rule TI-014, variant b).
 import { FORMAT_VERSION } from '../shared/model.js';
 import type { ExportData } from '../shared/model.js';
-import { isCatalogueLabel } from '../shared/labels.js';
+import { SEEDED_LABELS } from '../shared/labels.js';
 import { z } from '../shared/schemas.js';
 import { compareStrings } from '../shared/queries.js';
 import {
@@ -14,12 +14,13 @@ import {
   exportSchemaV3,
   exportSchemaV4,
   exportSchemaV5,
+  exportSchemaV6,
 } from '../shared/domain-schemas.js';
 
-// Reads formats 1-6. Older formats may carry the retired label otvet (5),
-// lack task fields (4), desk keys (3), appearance (2) or operationSeq (1).
-// Defaults match their SQL migrations; operation positions use
-// (createdAt, id). See drizzle/v2/README.md.
+// Reads formats 1-7. Older formats lack the label catalogue (6), may carry
+// the retired label otvet (5), lack task fields (4), desk keys (3),
+// appearance (2) or operationSeq (1). Defaults match their SQL migrations;
+// operation positions use (createdAt, id). See drizzle/v2/README.md.
 export function upgradeExport(raw: unknown): ExportData {
   const version = z
     .object({ formatVersion: z.unknown() })
@@ -28,20 +29,25 @@ export function upgradeExport(raw: unknown): ExportData {
   if (version === FORMAT_VERSION) return exportSchema.parse(raw);
   return withCatalogueLabels(upgradeLegacy(raw, version));
 }
-// Formats 1-5: 0006_drop_otvet_label.sql drops the retired label from task
-// rows of an existing database; an older export loses it on import the same
-// way. Events and stored results stay as written (applyEvent replays them to
-// these rows).
-function withCatalogueLabels(data: ExportData): ExportData {
+// Formats 1-6: the catalogue is the seeded one 0007_labels.sql inserts into
+// an existing database, and a task keeps only its labels (0006 dropped the
+// retired one the same way). Events and stored results stay as written
+// (applyEvent replays them to these rows).
+type Legacy = Omit<ExportData, 'labels'>;
+function withCatalogueLabels(data: Legacy): ExportData {
+  const seeded = new Set(SEEDED_LABELS.map((l) => l.id));
   return {
     ...data,
+    labels: structuredClone(SEEDED_LABELS),
     tasks: data.tasks.map((t) => ({
       ...t,
-      labels: t.labels.filter(isCatalogueLabel),
+      labels: t.labels.filter((id) => seeded.has(id)),
     })),
   };
 }
-function upgradeLegacy(raw: unknown, version: unknown): ExportData {
+function upgradeLegacy(raw: unknown, version: unknown): Legacy {
+  if (version === 6)
+    return { ...exportSchemaV6.parse(raw), formatVersion: FORMAT_VERSION };
   if (version === 5)
     return { ...exportSchemaV5.parse(raw), formatVersion: FORMAT_VERSION };
   // Record schemas fill the defaults that 0005 wrote into existing rows.

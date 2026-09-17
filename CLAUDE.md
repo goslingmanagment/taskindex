@@ -129,8 +129,10 @@
   `operationSuccessSchema`/`operationErrorSchema`/`storedOperationSchema`),
   `commands.ts` (`applyCommand`, `applyEvent`, undo, sync, инварианты),
   `queries.ts` (Focus, поиск, фильтры), `model.ts` (типы из `z.infer`),
-  `errors.ts` (`DomainError`, `fail`), `labels.ts` (каталоги приоритетов P1–P3
-  и меток; новая метка — правка каталога и релиз). Не импортирует ни `node:`, ни DOM.
+  `errors.ts` (`DomainError`, `fail`), `labels.ts` (каталог приоритетов P1–P3
+  и `SEEDED_LABELS` — стартовые метки для миграции 0007 и старых экспортов;
+  сам каталог меток живёт в таблице `labels` и правится владельцем в окне
+  «Метки»), `slug.ts` (слаг метки из названия). Не импортирует ни `node:`, ни DOM.
 - `src/server`: `app.ts` (маршруты, OpenAPI, `context`, `digest`, health),
   `operations.ts` (одна транзакция на операцию: состояние, события,
   сохранённый ответ), `db.ts` (миграции с контрольными суммами, чтение,

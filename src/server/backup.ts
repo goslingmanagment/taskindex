@@ -19,7 +19,7 @@ import * as schema from './schema.js';
 import { FORMAT_VERSION } from '../shared/model.js';
 import type { ExportData, Task, WorkspaceState } from '../shared/model.js';
 import { assertInvariants, applyEvent } from '../shared/commands.js';
-import { isCatalogueLabel } from '../shared/labels.js';
+import { SEEDED_LABELS } from '../shared/labels.js';
 import { canonicalJson } from '../shared/canonical-json.js';
 import { fail } from '../shared/errors.js';
 import { RESERVED_IDS } from '../shared/schemas.js';
@@ -65,6 +65,7 @@ export function validateExport(data: ExportData) {
   for (const rows of [
     data.tasks,
     data.projects,
+    data.labels,
     data.comments,
     data.agents,
     data.operations,
@@ -111,8 +112,11 @@ export function validateExport(data: ExportData) {
     invalid('нарушена непрерывная последовательность событий.');
   const operations = new Map(data.operations.map((o) => [o.id, o]));
   const byOperation = new Map<string, typeof data.events>();
+  // 0007 seeds the label catalogue in SQL, so the journal starts with these
+  // five records (data rule variant b); every later change is an event.
   let replay: WorkspaceState = {
     projects: [],
+    labels: structuredClone(SEEDED_LABELS),
     tasks: [],
     comments: [],
     appearance: [defaultAppearance()],
@@ -142,8 +146,8 @@ export function validateExport(data: ExportData) {
           e.entityKind === 'task' &&
             key === 'labels' &&
             Array.isArray(change.from)
-            ? change.from.filter(
-                (id) => typeof id === 'string' && isCatalogueLabel(id),
+            ? change.from.filter((id) =>
+                replay.labels.some((label) => label.id === id),
               )
             : change.from,
           before ? (before as unknown as Record<string, unknown>)[key] : null,
@@ -208,6 +212,7 @@ export function validateExport(data: ExportData) {
   const normalized = (state: WorkspaceState) => ({
     tasks: sorted(state.tasks),
     projects: sorted(state.projects),
+    labels: sorted(state.labels),
     comments: sorted(state.comments),
     appearance: sorted(state.appearance),
   });
@@ -276,6 +281,7 @@ export function importWorkspace(
       schema.checklistItems,
       schema.tasks,
       schema.projects,
+      schema.labels,
       schema.agents,
       schema.events,
       schema.operations,

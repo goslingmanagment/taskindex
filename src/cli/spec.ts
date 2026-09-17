@@ -232,6 +232,14 @@ export const READS: ReadSpec[] = [
     example: 'taskindex project list',
   },
   {
+    group: 'label',
+    action: 'list',
+    route: '/api/labels',
+    query: [],
+    summary: 'Каталог меток владельца, включая архивные',
+    example: 'taskindex label list',
+  },
+  {
     group: 'comment',
     action: 'list',
     route: '/api/tasks/{id}/comments',
@@ -477,6 +485,36 @@ const WRITE_COMMANDS: Record<CommandName, Omit<WriteSpec, 'command'>> = {
     summary: 'Изменить название, цвет или описание проекта',
     example:
       "taskindex project update p1 --base-revision 2 --description 'Что складывать'",
+  },
+  'label.create': {
+    group: 'label',
+    action: 'create',
+    positional: [optionalId('Слаг новой метки (по умолчанию из названия)')],
+    summary: 'Создать метку (только владелец)',
+    example:
+      "taskindex label create --name 'срочно' --color '#bc3c45' --description 'Ждёт сегодня'",
+  },
+  'label.update': {
+    group: 'label',
+    action: 'update',
+    positional: [id('ID', 'id', 'Слаг метки')],
+    summary: 'Изменить название, цвет или описание метки (только владелец)',
+    example:
+      "taskindex label update dengi --base-revision 1 --description 'Платёж или долг'",
+  },
+  'label.archive': {
+    group: 'label',
+    action: 'archive',
+    positional: [id('ID', 'id', 'Слаг метки')],
+    summary: 'Убрать метку в архив и снять её с задач (только владелец)',
+    example: 'taskindex label archive 5-min --base-revision 1',
+  },
+  'label.restore': {
+    group: 'label',
+    action: 'restore',
+    positional: [id('ID', 'id', 'Слаг метки')],
+    summary: 'Вернуть метку из архива (только владелец)',
+    example: 'taskindex label restore 5-min --base-revision 2',
   },
   'checklist.add': {
     group: 'checklist',

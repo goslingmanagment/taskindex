@@ -30,6 +30,7 @@ const EXPECTED_OPERATIONS = [
   'getTaskByOrigin',
   'getTask',
   'listProjects',
+  'listLabels',
   'listTaskComments',
   'getTaskHistory',
   'listOperations',

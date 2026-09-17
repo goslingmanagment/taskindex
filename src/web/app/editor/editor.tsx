@@ -4,7 +4,8 @@
 // без нарушения модели содержимого.
 import { useEffect, useRef, useState } from 'react';
 import { LIMITS } from '@shared/limits';
-import { LABELS, PRIORITIES, type Priority } from '@shared/labels';
+import { PRIORITIES, type Priority } from '@shared/labels';
+import type { Label } from '@shared/model';
 import {
   AREAS,
   type AreaId,
@@ -54,6 +55,8 @@ export function TaskEditor({
   base,
   pendingLabel,
   projects,
+  labels,
+  onManageLabels,
   onClose,
 }: {
   /** The task as displayed (optimistic previews included); identifies the card. */
@@ -63,8 +66,12 @@ export function TaskEditor({
   /** Label of a command of this task that is still unconfirmed. */
   pendingLabel?: string;
   projects: Project[];
+  /** The label catalogue; the picker lists the active labels. */
+  labels: Label[];
+  onManageLabels: () => void;
   onClose: () => void;
 }) {
+  const catalogue = labels.filter((label) => !label.archivedAt);
   const form = useTaskDraft(task, base);
   const intent = useSaveIntent(form, task, base, onClose);
   const { draft, patch, dirty } = form;
@@ -292,9 +299,18 @@ export function TaskEditor({
                 <h3>
                   <Tag size={17} />
                   Метки
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="section-action"
+                    onClick={onManageLabels}
+                  >
+                    Настроить
+                  </Button>
                 </h3>
                 <div className="label-picker">
-                  {LABELS.map((label) => (
+                  {catalogue.map((label) => (
                     <label
                       key={label.id}
                       htmlFor={`label-${label.id}`}
@@ -307,11 +323,13 @@ export function TaskEditor({
                         checked={draft.labels.includes(label.id)}
                         onCheckedChange={(checked) =>
                           patch({
-                            labels: LABELS.filter((item) =>
-                              item.id === label.id
-                                ? checked
-                                : draft.labels.includes(item.id),
-                            ).map((item) => item.id),
+                            labels: catalogue
+                              .filter((item) =>
+                                item.id === label.id
+                                  ? checked
+                                  : draft.labels.includes(item.id),
+                              )
+                              .map((item) => item.id),
                           })
                         }
                       />

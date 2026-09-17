@@ -149,6 +149,9 @@ UTC. Календарные даты `due` и `followUp` остаются стр
 |---|---|---|
 | `project.create` | `id?`, `area`, `name`, `color`, `description?` | новая запись |
 | `project.update` | `id`, `baseRevision`, `name?`, `color?`, `description?` | `name`, `color`, `description` |
+| `label.create` | `id?` (слаг, по умолчанию из названия), `name`, `color`, `description` | новая запись `label`; только владелец |
+| `label.update` | `id`, `baseRevision`, `name?`, `color?`, `description?` | `name`, `color`, `description`; только владелец |
+| `label.archive`, `label.restore` | `id`, `baseRevision` | `archivedAt`; архив снимает метку с каждой задачи событиями той же операции; только владелец |
 | `task.create` | `id?`, `area`, `projectId?`, `title`, `status?` (по умолчанию `todo`), `note?`, `due?`, `waitingFor?`, `followUp?`, `focus?`, `checklist?`, `origin?` (`{system, ref, url?, version?}`), `position?` (`{before}` или `{after}`, по умолчанию конец колонки) | новая запись |
 | `task.sync` | `origin` (`{system, ref, url?, version?}`), `fields` как у `task.create` без `id`, `origin` и `position` | повторная обработка источника агентом с сохранением решений владельца; обновление существующей задачи только при известной более новой версии источника, правила ниже |
 | `task.update` | `id`, `baseRevision`, любые из `area`, `title`, `note`, `due`, `waitingFor`, `followUp`, `projectId`, `focus` | перечисленные; смена области и проекта проверяется атомарно |
@@ -166,6 +169,8 @@ UTC. Календарные даты `due` и `followUp` остаются стр
 2026-09-13 (TI-086): `task.create`, `task.sync` (`fields`), `task.update`, `task.save` (`fields`) принимают `priority` (`p1|p2|p3`, по умолчанию `p2`), `labels` (до 8 слагов каталога `src/shared/labels.ts`) и `closes` (слаг или `null`); `appearance.update` принимает `hideP3`. Приоритет не сортирует колонку. Спека: `docs/specs/2026-09-12-owner-workflow.md` §4.
 
 2026-09-15 (TI-091): по решению владельца UI группирует очередь в P1/P2/P3, затем «В работе»/«Готово»; внутри групп сохраняется ручной порядок. «Жду» убрана из интерфейса, прежние waiting-задачи остаются видимыми по приоритету. Перенос использует прежний контракт `task.save` с `fields.priority`, `status` и `position`; API/CLI сохраняют совместимость.
+
+2026-09-17: метки стали записями сущности `label` (таблица `labels`, миграция `0007_labels` с пятью прежними метками, формат экспорта 7). Каталог ведёт владелец в окне «Метки»; `labels` задачи проверяются по действующим записям каталога, а не по списку в коде; отмена `label.create` архивирует метку. Метка `otvet` снята решением владельца тем же днём (`0006_drop_otvet_label`).
 
 2026-09-15 (TI-092): порядок колонок В работе / P1 / P2 / P3 / Готово по слову владельца; порядок фиксированный, без хранения в `appearance`.
 

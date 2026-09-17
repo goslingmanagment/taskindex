@@ -1,5 +1,8 @@
-// The owner's fixed catalogues (TI-086): commands validate their ids and
-// /api/context explains their meaning. Adding a label requires a release.
+// The owner's fixed priorities (TI-086) and the labels a workspace starts
+// with. Since 0007 (owner decision 2026-09-17) labels are records of the
+// `labels` table: the owner creates, renames and archives them in the
+// interface, agents read the catalogue from /api/context. This list only seeds
+// a new or migrated database and upgrades exports of older formats.
 export const PRIORITIES = [
   { id: 'p1', name: 'P1', hint: 'Горит: делать первым' },
   { id: 'p2', name: 'P2', hint: 'Обычная задача' },
@@ -11,7 +14,19 @@ export const PRIORITY_IDS = PRIORITIES.map((p) => p.id) as [
   ...Priority[],
 ];
 export const DEFAULT_PRIORITY: Priority = 'p2';
-export const LABELS = [
+// The instant 0007_labels.sql stamps on the seeded rows; upgradeExport writes
+// the same records, so an old export and a migrated database converge.
+const SEEDED_LABELS_AT = '2026-09-17T21:00:00.000Z';
+const seeded = <T extends { id: string }>(rows: readonly T[]) =>
+  rows.map((row, index) => ({
+    ...row,
+    position: index + 1,
+    archivedAt: null,
+    revision: 1,
+    createdAt: SEEDED_LABELS_AT,
+    updatedAt: SEEDED_LABELS_AT,
+  }));
+export const SEEDED_LABELS = seeded([
   {
     id: 'dengi',
     name: 'деньги',
@@ -43,21 +58,4 @@ export const LABELS = [
     color: '#a97928',
     description: 'Касается модели Ari',
   },
-] as const;
-export type LabelId = (typeof LABELS)[number]['id'];
-export const LABEL_IDS = LABELS.map((l) => l.id) as [LabelId, ...LabelId[]];
-// Labels the owner retired. Commands no longer accept them; a migration drops
-// them from the tables and replay drops them from the journal, but stored
-// results of old operations still carry them, so records read them as known
-// ids and the history still names them. otvet («ответ», 2026-09-17): the title
-// already says who waits for an answer, and unanswered chats live in Telegram.
-export const RETIRED_LABELS = [
-  { id: 'otvet', name: 'ответ', retiredAt: '2026-09-17' },
-] as const;
-export type StoredLabelId = LabelId | (typeof RETIRED_LABELS)[number]['id'];
-export const STORED_LABEL_IDS = [
-  ...LABEL_IDS,
-  ...RETIRED_LABELS.map((l) => l.id),
-] as [StoredLabelId, ...StoredLabelId[]];
-export const isCatalogueLabel = (id: string): id is LabelId =>
-  (LABEL_IDS as readonly string[]).includes(id);
+]);

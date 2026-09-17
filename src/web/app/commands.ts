@@ -1,4 +1,11 @@
-import type { AreaId, Command, Project, Status, Task } from '@shared/model';
+import type {
+  AreaId,
+  Command,
+  Label,
+  Project,
+  Status,
+  Task,
+} from '@shared/model';
 import type { Priority } from '@shared/labels';
 import {
   columnPriority,
@@ -143,6 +150,42 @@ export function checklistToggleCommand(
     payload: { taskId: task.id, baseRevision: task.revision, itemId, done },
   };
 }
+// A label with a revision exists and is renamed; without one it is created
+// under the slug the dialog derived from its name.
+export type LabelDraft = Pick<
+  Label,
+  'id' | 'name' | 'color' | 'description' | 'revision'
+>;
+export function labelSaveCommand(label: LabelDraft): Command {
+  return label.revision
+    ? {
+        command: 'label.update',
+        payload: {
+          id: label.id,
+          baseRevision: label.revision,
+          name: label.name,
+          color: label.color,
+          description: label.description,
+        },
+      }
+    : {
+        command: 'label.create',
+        payload: {
+          id: label.id,
+          name: label.name,
+          color: label.color,
+          description: label.description,
+        },
+      };
+}
+export const labelArchiveCommand = (label: Label): Command => ({
+  command: 'label.archive',
+  payload: { id: label.id, baseRevision: label.revision },
+});
+export const labelRestoreCommand = (label: Label): Command => ({
+  command: 'label.restore',
+  payload: { id: label.id, baseRevision: label.revision },
+});
 export function projectSaveCommand(project: Project): Command {
   return project.revision
     ? {

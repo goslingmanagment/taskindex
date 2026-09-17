@@ -41,6 +41,7 @@ export type AreaId = (typeof AREAS)[number]['id'];
 export type Status = (typeof STATUSES)[number]['id'];
 export type Actor = z.infer<typeof contracts.actorSchema>;
 export type Project = z.infer<typeof contracts.projectSchema>;
+export type Label = z.infer<typeof contracts.labelSchema>;
 export type Task = z.infer<typeof contracts.taskSchema>;
 export type Comment = z.infer<typeof contracts.commentSchema>;
 export type Agent = z.infer<typeof contracts.agentSchema>;
@@ -67,6 +68,8 @@ export type Scope = Actor['scope'];
 export type EntityKind = DomainEvent['entityKind'];
 export type WorkspaceState = {
   projects: Project[];
+  // The owner's label catalogue (0007), archived records included.
+  labels: Label[];
   tasks: Task[];
   comments: Comment[];
   // One record (id `owner`), kept in an array so it travels the same record
@@ -89,6 +92,6 @@ export type FocusGroup = {
 };
 // Export format: 2 adds operationSeq to operations, 3 adds the appearance
 // preference, 4 adds focusKey and focusLeftAt, 5 adds priority, labels,
-// closes and hideP3 (2026-09-13), 6 retires the label otvet (2026-09-17).
-// Formats 1-5 are still imported.
-export const FORMAT_VERSION = 6;
+// closes and hideP3 (2026-09-13), 6 retires the label otvet (2026-09-17),
+// 7 adds the label catalogue (2026-09-17). Formats 1-6 are still imported.
+export const FORMAT_VERSION = 7;
