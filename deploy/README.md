@@ -234,11 +234,13 @@ curl -sI -H 'Accept-Encoding: gzip' https://D/assets/<js> | grep -i content-enco
 ## Гейт релиза и образ из CI
 
 Релиз проходит через `.github/workflows/ci.yml` (решение владельца 2026-09-10,
-TI-016/TI-068): job `check` на Node из `.node-version` выполняет `npm ci`,
-`npm run check` (typecheck, oxlint, oxfmt, `lint:shell`, vitest), `npm run build`,
-`npx playwright install --with-deps chromium`, `npm run e2e`; артефакты тестов
-уходят в `test-results-<sha>`. Job `image` запускается только после зелёного
-`check` и только на `push` в `main` или тег `v*`: собирает `linux/amd64` образ
+TI-016/TI-068): job `check` на Node из `.node-version` выполняет `npm ci` и
+`npm run check` (typecheck, oxlint, oxfmt, `lint:shell`, сборка, vitest);
+параллельно два job `e2e` ставят по одному браузеру (`chromium` с проектами
+functional, visual, static, dark; `webkit` с webkit и webkit-dark) и гоняют
+`npm run e2e -- --project …`; артефакты тестов уходят в
+`test-results-<браузер>-<sha>`. Job `image` запускается после зелёного `check`
+(параллельно с e2e) и только на `push` в `main` или тег `v*`: собирает `linux/amd64` образ
 из того же `GITHUB_SHA` с `--build-arg BUILD=<sha>` и меткой
 `org.opencontainers.image.revision=<sha>`, проверяет метку и публикует
 `docker save | gzip` как артефакт workflow `taskindex-image-<sha>`

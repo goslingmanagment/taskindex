@@ -1,6 +1,8 @@
 # Гейт релиза (TI-016) и сборка образа (TI-068). Автодеплоя нет: образ — артефакт workflow,
 # который переносится на VPS вручную (docker load) и проверяется deploy.sh по метке
 # org.opencontainers.image.revision. Реестр (GHCR) по решению владельца не используется.
+# Три параллельные ветки: check (типы, линт, vitest, сборка), e2e по браузерам на отдельных
+# машинах (chromium и webkit) и image после check. release.sh ждёт зелёный прогон целиком.
 name: ci
 on:
   push:
@@ -15,6 +17,28 @@ permissions:
 jobs:
   check:
     runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version-file: .node-version
+          cache: npm
+      - run: npm ci
+      # check = typecheck + lint + unused-exports + format:check + lint:shell + build + check:skin + vitest
+      - run: npm run check
+  e2e:
+    name: e2e (${{ matrix.browser }})
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # Проекты из tests/e2e/playwright.config.ts; setup подтягивается как зависимость.
+          - browser: chromium
+            projects: functional visual static dark
+          - browser: webkit
+            projects: webkit webkit-dark
+    runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v5
@@ -23,16 +47,19 @@ jobs:
           node-version-file: .node-version
           cache: npm
       - run: npm ci
-      # check = typecheck + lint + format:check + lint:shell (bash -n, shellcheck, tsc для deploy) + vitest
-      - run: npm run check
-      - run: npm run build
-      # Проекты e2e: chromium (functional/visual/static/dark) и webkit (TI-018).
-      - run: npx playwright install --with-deps chromium webkit
-      - run: npm run e2e
+      - id: playwright
+        run: echo "version=$(node -p "require('@playwright/test/package.json').version")" >> "$GITHUB_OUTPUT"
+      # Браузер кэшируется по версии Playwright; системные пакеты ставит --with-deps.
+      - uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ steps.playwright.outputs.version }}-${{ matrix.browser }}
+      - run: npx playwright install --with-deps ${{ matrix.browser }}
+      - run: npm run e2e -- --project ${{ matrix.projects }}
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: test-results-${{ github.sha }}
+          name: test-results-${{ matrix.browser }}-${{ github.sha }}
           path: test-results
           if-no-files-found: ignore
           retention-days: 14

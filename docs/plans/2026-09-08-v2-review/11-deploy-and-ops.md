@@ -411,3 +411,5 @@ Heredoc-программы уходят в `deploy/drill/agent-create.mjs`, `com
 - Ротация `generation` остаётся ручной через `mark-restored`; сайдкар-маркер поколения делается по плану 09 как страховка, не как замена runbook.
 
 2026-09-11 (первая установка на VPS): (1) снимок релиза пишется под `umask 077`, а `litestream.yml` монтируется в контейнер с uid 1000 — на настоящем Linux `permission denied`, Docker Desktop это скрывал; `common.sh` теперь ставит 0644. (2) Решение владельца: внешнего хранилища и heartbeat нет — реплика `file://` на том же диске, off-site копии снимает мак (`deploy/pull-backup.sh`), `LITESTREAM_HEARTBEAT_URL` и `AWS_*` в compose необязательны. (3) Let's Encrypt не валидирует sslip.io/nip.io (DNS-ошибки на вторичных валидаторах) — нужна A-запись настоящего домена.
+
+2026-09-17, примечание (расходится с кодом): e2e вынесены из job `check` в два параллельных job `e2e` по браузерам (chromium, webkit), `image` по-прежнему `needs: check` и идёт параллельно с e2e; браузеры Playwright кэшируются по версии пакета.

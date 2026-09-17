@@ -1,6 +1,6 @@
 #!/usr/bin/env node
-// Локальный гейт релиза (TI-016): те же команды, что job `check` в .github/workflows/ci.yml,
-// в том же порядке, плюс отчёт с версиями инструментов и commit. Ничего не деплоит.
+// Локальный гейт релиза (TI-016): те же команды, что jobs `check` и `e2e` в
+// .github/workflows/ci.yml (там они идут параллельно), здесь по порядку, плюс отчёт с версиями инструментов и commit. Ничего не деплоит.
 //   node scripts/gate.mjs [--image] [--strict] [--skip-e2e] [--install-browsers]
 //   --image            дополнительно собрать образ как CI (label org.opencontainers.image.revision)
 //   --strict           отказ при незакоммиченных изменениях: чужой зелёный check не засчитывается
