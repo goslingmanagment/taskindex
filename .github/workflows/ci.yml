@@ -1,8 +1,8 @@
 # Гейт релиза (TI-016) и сборка образа (TI-068). Автодеплоя нет: образ — артефакт workflow,
 # который переносится на VPS вручную (docker load) и проверяется deploy.sh по метке
 # org.opencontainers.image.revision. Реестр (GHCR) по решению владельца не используется.
-# Параллельно: check (типы, линт, vitest, сборка), три job e2e на отдельных машинах
-# (functional, visual+static+dark, webkit) и image после check. release.sh ждёт зелёный прогон целиком.
+# Параллельно: check (типы, линт, vitest, сборка), четыре job e2e на отдельных машинах
+# (functional в двух шардах, visual+static+dark, webkit) и image после check. release.sh ждёт зелёный прогон целиком.
 name: ci
 on:
   push:
@@ -36,15 +36,22 @@ jobs:
           # Проекты из tests/e2e/playwright.config.ts. Проект setup (вход владельца) идёт
           # зависимостью в каждом job и работает на headless-chromium, поэтому webkit-job
           # ставит ещё chromium-headless-shell.
-          - name: functional
+          - name: functional-1
             install: chromium
             projects: functional
+            shard: 1/2
+          - name: functional-2
+            install: chromium
+            projects: functional
+            shard: 2/2
           - name: visual
             install: chromium
             projects: visual static dark
+            shard: 1/1
           - name: webkit
             install: webkit chromium-headless-shell
             projects: webkit webkit-dark
+            shard: 1/1
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
@@ -62,7 +69,7 @@ jobs:
           path: ~/.cache/ms-playwright
           key: playwright-${{ runner.os }}-${{ steps.playwright.outputs.version }}-${{ matrix.name }}
       - run: npx playwright install --with-deps ${{ matrix.install }}
-      - run: npm run e2e -- --project ${{ matrix.projects }}
+      - run: npm run e2e -- --shard ${{ matrix.shard }} --project ${{ matrix.projects }}
       - uses: actions/upload-artifact@v4
         if: always()
         with:

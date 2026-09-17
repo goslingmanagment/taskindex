@@ -236,7 +236,7 @@ curl -sI -H 'Accept-Encoding: gzip' https://D/assets/<js> | grep -i content-enco
 Релиз проходит через `.github/workflows/ci.yml` (решение владельца 2026-09-10,
 TI-016/TI-068): job `check` на Node из `.node-version` выполняет `npm ci` и
 `npm run check` (typecheck, oxlint, oxfmt, `lint:shell`, сборка, vitest);
-параллельно три job `e2e` (`functional`; `visual` с проектами visual, static,
+параллельно четыре job `e2e` (`functional` в двух шардах; `visual` с проектами visual, static,
 dark; `webkit` с webkit и webkit-dark, ему нужен ещё chromium-headless-shell
 для проекта setup) ставят свой браузер и гоняют `npm run e2e -- --project …`;
 артефакты тестов уходят в `test-results-<job>-<sha>`. Job `image` запускается после зелёного `check`
