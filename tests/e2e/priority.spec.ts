@@ -63,16 +63,25 @@ test('TI-086 badges, editor fields, menu and the server preference survive reloa
     closes: 'lora-km-of-vacancy',
   });
   const someday = await addTask(page, project, { priority: 'p3' });
+  const active = await addTask(page, project, {
+    priority: 'p1',
+    status: 'doing',
+  });
   await page.goto(boardUrl(project));
   const card = taskCard(page, urgent.title);
-  await expect(card.getByLabel('Приоритет P1')).toHaveText('P1');
   await expect(card.locator('.label-chip')).toHaveText(['ответ', 'деньги']);
-  await expect(card.locator('.closes-chip code')).toHaveText(
-    'lora-km-of-vacancy',
-  );
+  // The column already says P1 and P3: the chip marks only a task that left
+  // its column. The problem slug lives in the editor, not on the card.
+  await expect(card.locator('.priority-mark')).toHaveCount(0);
+  await expect(card.locator('.closes-chip')).toHaveCount(0);
+  await expect(card).not.toContainText('lora-km-of-vacancy');
+  await expect(taskCard(page, someday.title)).toBeVisible();
   await expect(
-    taskCard(page, someday.title).getByLabel('Приоритет P3'),
-  ).toHaveText('P3');
+    taskCard(page, someday.title).locator('.priority-mark'),
+  ).toHaveCount(0);
+  await expect(
+    taskCard(page, active.title).getByLabel('Приоритет P1'),
+  ).toHaveText('P1');
 
   await page
     .getByRole('button', { name: `Открыть: ${urgent.title}`, exact: true })
@@ -112,9 +121,6 @@ test('TI-086 badges, editor fields, menu and the server preference survive reloa
   ).toBeHidden();
   await expect(card.locator('.priority-mark')).toHaveCount(0);
   await expect(card.locator('.label-chip')).toHaveText(['ответ']);
-  await expect(card.locator('.closes-chip code')).toHaveText(
-    'traffic-materials',
-  );
   await expect
     .poll(async () => {
       const saved = (await snapshot(page)).tasks.find(
@@ -158,9 +164,13 @@ test('TI-086 badges, editor fields, menu and the server preference survive reloa
     .getByRole('button', { name: `Действия: ${someday.title}`, exact: true })
     .click();
   await page.getByRole('menuitem', { name: /P1/ }).click();
+  // The move shows as the column change; inside P1 the card needs no chip.
   await expect(
-    taskCard(page, someday.title).getByLabel('Приоритет P1'),
-  ).toHaveText('P1');
+    page.locator('.column-p1 article.task-card', { hasText: someday.title }),
+  ).toBeVisible();
+  await expect(
+    taskCard(page, someday.title).locator('.priority-mark'),
+  ).toHaveCount(0);
 });
 
 test('TI-086 a direction containing only P3 explains the empty board and shows hidden tasks', async ({
@@ -298,18 +308,15 @@ test('TI-086 all labels and an 80-character closes slug fit a narrow board and t
     const card = taskCard(page, task.title);
     await expect(card).toBeVisible();
     await expect(card.locator('.label-chip')).toHaveCount(LABELS.length);
-    await expect(card.locator('.closes-chip code')).toHaveText(closes);
+    await expect(card.locator('.closes-chip')).toHaveCount(0);
     await expect
       .poll(() =>
         card.evaluate((element) => {
           const bounds = element.getBoundingClientRect();
-          const chips = [
-            ...element.querySelectorAll('.label-chip, .closes-chip'),
-          ];
+          const chips = [...element.querySelectorAll('.label-chip')];
           const meta = element
             .querySelector('.card-meta')!
             .getBoundingClientRect();
-          const code = element.querySelector<HTMLElement>('.closes-chip code')!;
           const rectangles = chips.map((chip) => chip.getBoundingClientRect());
           return {
             outside: rectangles.filter(
@@ -326,11 +333,10 @@ test('TI-086 all labels and an 80-character closes slug fit a narrow board and t
                 chip.top < meta.bottom &&
                 chip.bottom > meta.top,
             ).length,
-            truncated: code.scrollWidth > code.clientWidth,
           };
         }),
       )
-      .toEqual({ outside: 0, overlapsMeta: 0, truncated: true });
+      .toEqual({ outside: 0, overlapsMeta: 0 });
     if (width === 390)
       expect(
         await card
@@ -347,30 +353,6 @@ test('TI-086 all labels and an 80-character closes slug fit a narrow board and t
     await page.screenshot({
       path: testInfo.outputPath(`priority-${width}-${view}.png`),
     });
-    // The open-card overlay legitimately receives the pointer over the chip.
-    // A title on an element underneath it cannot show a native tooltip.
-    const chip = card.locator('.closes-chip');
-    await chip.scrollIntoViewIfNeeded();
-    const point = await chip.evaluate((element) => {
-      const bounds = element.getBoundingClientRect();
-      return {
-        x: bounds.x + bounds.width / 2,
-        y: bounds.y + bounds.height / 2,
-      };
-    });
-    await page.mouse.move(point.x, point.y);
-    await expect
-      .poll(() =>
-        page.evaluate(
-          ({ x, y }) =>
-            document
-              .elementFromPoint(x, y)
-              ?.closest('[title]')
-              ?.getAttribute('title') ?? null,
-          point,
-        ),
-      )
-      .toBe(`Закрывает проблему ${closes}`);
   }
   await page
     .getByRole('button', { name: `Открыть: ${task.title}`, exact: true })
@@ -378,4 +360,30 @@ test('TI-086 all labels and an 80-character closes slug fit a narrow board and t
   await expect(
     page.getByRole('textbox', { name: 'Слаг проблемы', exact: true }),
   ).toHaveValue(closes);
+});
+
+test('card menu is a hover and keyboard affordance, hidden at rest', async ({
+  page,
+}) => {
+  const project = await direction(page);
+  const task = await addTask(page, project);
+  await page.goto(boardUrl(project));
+  const card = taskCard(page, task.title);
+  await expect(card).toBeVisible();
+  const menu = card.getByRole('button', {
+    name: `Действия: ${task.title}`,
+    exact: true,
+  });
+  const opacity = () =>
+    menu.evaluate((element) => getComputedStyle(element).opacity);
+  await page.mouse.move(0, 0);
+  await expect.poll(opacity).toBe('0');
+  await card.hover();
+  await expect.poll(opacity).toBe('1');
+  await page.mouse.move(0, 0);
+  await expect.poll(opacity).toBe('0');
+  await page
+    .getByRole('button', { name: `Открыть: ${task.title}`, exact: true })
+    .focus();
+  await expect.poll(opacity).toBe('1');
 });

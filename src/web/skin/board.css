@@ -114,6 +114,7 @@
   outline-offset: 2px;
 }
 .task-card:hover .card-menu,
+.task-card:focus-within .card-menu,
 .card-menu:focus-visible {
   opacity: 1;
 }
@@ -486,10 +487,12 @@
   padding-left: 0;
   color: var(--text-faint);
 }
+/* The menu is a hover and keyboard affordance: at rest the card shows only
+   its content. Touch screens have no hover, so the button stays visible. */
 .card-menu {
   position: absolute;
   z-index: 3;
-  opacity: 1;
+  opacity: 0;
   background: transparent;
   right: 6px;
   top: 8px;
@@ -497,6 +500,11 @@
   width: 28px;
   height: 28px;
   letter-spacing: 1px;
+}
+@media (hover: none) {
+  .card-menu {
+    opacity: 1;
+  }
 }
 .card-menu:hover {
   background: var(--muted);
@@ -533,24 +541,6 @@
   opacity: 0.6;
 }
 .label-chip,
-.closes-chip {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  min-width: 0;
-  max-width: 100%;
-  font-size: 12px;
-  color: var(--muted-foreground);
-}
-.closes-chip code {
-  min-width: 0;
-  max-width: 140px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  font-family: var(--font-mono);
-  font-size: 11px;
-}
 .empty-actions {
   display: flex;
   flex-wrap: wrap;

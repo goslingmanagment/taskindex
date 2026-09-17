@@ -13,7 +13,11 @@ import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { AREAS, type Project, type Task } from '@shared/model';
 import { LABELS } from '@shared/labels';
-import { TASK_STATES as STATUSES, visibleStatus } from './board-columns';
+import {
+  TASK_STATES as STATUSES,
+  boardColumn,
+  visibleStatus,
+} from './board-columns';
 import { dateLabel } from '@shared/queries';
 import { Button } from '../ui/button';
 import { runCardAction as safely } from './card-menu';
@@ -124,7 +128,6 @@ export const TaskCardContent = memo(function TaskCardContent({
         data-task-open={task.id}
         onClick={() => openTask(task.id)}
         aria-label={'Открыть: ' + task.title}
-        title={task.closes ? `Закрывает проблему ${task.closes}` : undefined}
       />
       <TaskCardBody
         task={task}
@@ -198,14 +201,17 @@ const TaskCardBody = memo(function TaskCardBody({
             <Check size={12} className="check-hover" />
           )}
         </button>
-        {task.priority !== 'p2' && (
-          <span
-            className={`priority-mark ${task.priority === 'p1' ? 'priority-p1' : 'priority-p3'}`}
-            aria-label={`Приоритет ${task.priority.toUpperCase()}`}
-          >
-            {task.priority.toUpperCase()}
-          </span>
-        )}
+        {/* The column already names the priority: the chip marks only a task
+            that left its column (doing, done) or a screen without columns. */}
+        {task.priority !== 'p2' &&
+          (showContext || boardColumn(task) !== task.priority) && (
+            <span
+              className={`priority-mark ${task.priority === 'p1' ? 'priority-p1' : 'priority-p3'}`}
+              aria-label={`Приоритет ${task.priority.toUpperCase()}`}
+            >
+              {task.priority.toUpperCase()}
+            </span>
+          )}
         <h3>{task.title}</h3>
       </div>
       <div className="card-label-row">
@@ -239,11 +245,6 @@ const TaskCardBody = memo(function TaskCardBody({
             </span>
           );
         })}
-        {task.closes && (
-          <span className="closes-chip">
-            закрывает <code>{task.closes}</code>
-          </span>
-        )}
         {task.createdBy.startsWith('agent:') && !task.ownerTouchedAt && (
           <span className="agent-mark">от {task.createdByLabel}</span>
         )}
