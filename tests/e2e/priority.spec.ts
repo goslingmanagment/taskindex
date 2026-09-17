@@ -337,8 +337,10 @@ test('TI-086 all labels and an 80-character closes slug fit a narrow board and t
         card.evaluate((element) => {
           const bounds = element.getBoundingClientRect();
           const chips = [...element.querySelectorAll('.label-chip')];
+          // The date shares the footer row with the chips: they wrap around
+          // it instead of overlapping it.
           const meta = element
-            .querySelector('.card-meta')!
+            .querySelector('.due-label')!
             .getBoundingClientRect();
           const rectangles = chips.map((chip) => chip.getBoundingClientRect());
           return {

@@ -3,7 +3,6 @@ import {
   Check,
   Undo2,
   Star,
-  CalendarDays,
   ListChecks,
   GripVertical,
 } from 'lucide-react';
@@ -218,12 +217,32 @@ const TaskCardBody = memo(function TaskCardBody({
           )}
         <h3>{task.title}</h3>
       </div>
-      <div className="card-label-row">
+      {/* Одна строка под заголовком (2026-09-18): срок и чеклист первыми, за
+          ними чипы направления и меток, подпись автора у правого края. */}
+      <div className="card-footer">
         {showContext && (
           <span className="task-context">
             {AREAS.find((a) => a.id === task.area)?.name} ·{' '}
             {STATUSES.find((s) => s.id === visibleStatus(task.status))?.name}
             {task.archived ? ' · Архив' : ''}
+          </span>
+        )}
+        {task.due && (
+          <span
+            className={
+              'due-label ' +
+              (task.status !== 'done' && task.due < today ? 'overdue' : '')
+            }
+          >
+            {task.due < today && task.status !== 'done' ? 'Срок: ' : ''}
+            {dateLabel(task.due, today)}
+          </span>
+        )}
+        {task.checklist.length > 0 && (
+          <span className="checklist-mark">
+            <ListChecks size={13} />
+            {task.checklist.filter((c) => c.done).length}/
+            {task.checklist.length}
           </span>
         )}
         {task.focus && task.status !== 'done' && !task.archived && (
@@ -250,27 +269,6 @@ const TaskCardBody = memo(function TaskCardBody({
         })}
         {task.createdBy.startsWith('agent:') && !task.ownerTouchedAt && (
           <span className="agent-mark">{task.createdByLabel}</span>
-        )}
-      </div>
-      <div className="card-meta">
-        {task.due && (
-          <span
-            className={
-              'due-label ' +
-              (task.status !== 'done' && task.due < today ? 'overdue' : '')
-            }
-          >
-            <CalendarDays size={14} />
-            {task.due < today && task.status !== 'done' ? 'Срок: ' : ''}
-            {dateLabel(task.due, today)}
-          </span>
-        )}
-        {task.checklist.length > 0 && (
-          <span>
-            <ListChecks size={15} />
-            {task.checklist.filter((c) => c.done).length}/
-            {task.checklist.length}
-          </span>
         )}
       </div>
       <Menu.Trigger

@@ -109,8 +109,8 @@ test('hover keeps the title in place; the agent byline sits at the right edge', 
   await expect(heading).toHaveText(title);
   try {
     // The byline of an agent-created task is pushed to the right edge of the
-    // label row, so labels and the author never read as one grey sentence.
-    const edges = await card.locator('.card-label-row').evaluate((row) => {
+    // footer row, so labels and the author never read as one grey sentence.
+    const edges = await card.locator('.card-footer').evaluate((row) => {
       const box = row.getBoundingClientRect();
       const byline = row.querySelector('.agent-mark')!.getBoundingClientRect();
       return {
