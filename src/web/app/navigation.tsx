@@ -9,6 +9,7 @@ import {
 } from 'react';
 import type { AreaId } from '@shared/model';
 import { useSidebar } from '../ui/sidebar';
+import { useSidebarPeek } from './sidebar-toggle';
 import { useLocationState, type LocationState } from './url';
 import { effectiveProject } from './selectors';
 import { useWorkspace } from './use-workspace';
@@ -45,6 +46,7 @@ export function NavigationProvider({ children }: { children: ReactNode }) {
   const [raw, setLocation] = useLocationState();
   const { loading, data } = useWorkspace();
   const { setOpenMobile } = useSidebar();
+  const { peekEnd } = useSidebarPeek();
   const bodyRef = useRef<HTMLDivElement>(null);
   // Пока пространство не загружено, направление из адреса не с чем сверять.
   const project = loading ? raw.project : effectiveProject(raw, data.projects);
@@ -65,6 +67,7 @@ export function NavigationProvider({ children }: { children: ReactNode }) {
   const value = useMemo<Navigation>(() => {
     const closeNavigation = () => {
       setOpenMobile(false);
+      peekEnd(true);
       bodyRef.current?.scrollTo({ left: 0, top: 0 });
     };
     return {
@@ -128,7 +131,7 @@ export function NavigationProvider({ children }: { children: ReactNode }) {
         closeNavigation();
       },
     };
-  }, [location, update, openTask, setOpenMobile]);
+  }, [location, update, openTask, setOpenMobile, peekEnd]);
   return (
     <NavigationContext value={value}>
       <OpenTaskContext value={openTask}>{children}</OpenTaskContext>

@@ -214,9 +214,6 @@
   gap: 10px;
   min-width: 0;
 }
-.board-title > [data-sidebar='trigger'] {
-  display: none;
-}
 .board-name {
   display: flex;
   align-items: center;
@@ -719,11 +716,6 @@
 @media (width < theme(--breakpoint-md)) {
   .board-heading {
     padding: 18px 16px 0;
-  }
-  .board-title > [data-sidebar='trigger'] {
-    display: flex;
-    width: 32px;
-    height: 36px;
   }
   .board-title {
     gap: 6px;

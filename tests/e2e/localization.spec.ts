@@ -11,6 +11,7 @@ const ALLOWED = new Set([
   'passkey',
   'Passkey',
   'N',
+  'B',
   'Esc',
   'Enter',
   'Ctrl',

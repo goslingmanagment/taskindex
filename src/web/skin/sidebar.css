@@ -212,3 +212,68 @@
   color: var(--muted-foreground);
   white-space: normal;
 }
+/* Скрытие панели (2026-09-18). «Скрыть панель» стоит в строке бренда и
+   проявляется при наведении на панель или фокусе внутри неё; когда панель
+   скрыта, в шапке доски рядом с заголовком появляется «Открыть навигацию».
+   Наведение на неё показывает панель поверх доски ([data-peek]), клик
+   закрепляет. Выбор помнит браузер (src/web/app/sidebar-state.ts). */
+.brand-name {
+  flex: 1;
+  min-width: 0;
+}
+.sidebar-collapse {
+  flex-shrink: 0;
+  margin-right: -8px;
+  color: var(--muted-foreground);
+  opacity: 0;
+  transition: opacity 0.15s;
+}
+.workspace-sidebar:hover .sidebar-collapse,
+.workspace-sidebar:focus-within .sidebar-collapse,
+.sidebar-collapse:focus-visible {
+  opacity: 1;
+}
+@media (hover: none) {
+  .sidebar-collapse {
+    opacity: 1;
+  }
+}
+.sidebar-open {
+  flex-shrink: 0;
+  margin-left: -4px;
+  color: var(--muted-foreground);
+}
+/* Панель и её место на доске двигаются одной кривой: быстрый старт, мягкая
+   остановка. Предпросмотр — плавающая карточка под строкой заголовка, а не
+   закреплённая панель: заголовок и кнопка остаются видны, тень отделяет
+   карточку от доски. Форма тоже анимируется, иначе при уходе панель
+   вытягивалась бы во весь рост ещё на экране. */
+.workspace-sidebar,
+.workspace-shell [data-slot='sidebar-gap'] {
+  transition-duration: 0.24s;
+  transition-timing-function: cubic-bezier(0.32, 0.72, 0, 1);
+}
+.workspace-sidebar {
+  transition-property:
+    left, right, width, top, bottom, border-radius, box-shadow;
+}
+.workspace-sidebar[data-peek] {
+  left: 8px;
+  top: 66px;
+  bottom: 12px;
+  height: auto;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  box-shadow: 0 18px 48px var(--overlay-shadow);
+}
+@media (width < theme(--breakpoint-md)) {
+  .sidebar-collapse {
+    opacity: 1;
+  }
+  .sidebar-open {
+    width: 32px;
+    height: 36px;
+    margin-left: 0;
+  }
+}

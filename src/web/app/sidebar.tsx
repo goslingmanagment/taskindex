@@ -18,7 +18,9 @@ import {
   SidebarMenu,
   SidebarMenuItem,
   SidebarMenuButton,
+  useSidebar,
 } from '../ui/sidebar';
+import { SidebarCollapseButton, useSidebarPeek } from './sidebar-toggle';
 import { Button } from '../ui/button';
 import { AREAS, type Project, type Task } from '@shared/model';
 import { AccountMenu } from './auth';
@@ -47,6 +49,12 @@ export function WorkspaceSidebar({
   const { location, navigate, showFocus, showActivity, showArchive } =
     useNavigation();
   const { today } = useWorkspace();
+  const { isMobile, state } = useSidebar();
+  const { peek, peekStart, peekEnd } = useSidebarPeek();
+  // A hidden panel is off screen but still in the DOM: `inert` keeps its
+  // buttons out of the Tab order and out of the accessibility tree. The peek
+  // lifts it, so the owner can navigate from the preview.
+  const hidden = !isMobile && state === 'collapsed' && !peek;
   const { area, project: projectId, archive, focus, activity, q } = location,
     globalView = !!q.trim() || focus || activity,
     // TI-029: счётчик показывает то же, что экран Focus, — размер стола, а не
@@ -54,12 +62,19 @@ export function WorkspaceSidebar({
     focusCount = deskOf(tasks, today).counts.focus,
     archivedCount = tasks.filter((t) => t.area === area && t.archived).length;
   return (
-    <Sidebar className="workspace-sidebar">
+    <Sidebar
+      className="workspace-sidebar"
+      inert={hidden || undefined}
+      data-peek={peek ? '' : undefined}
+      onPointerEnter={!isMobile && peek ? peekStart : undefined}
+      onPointerLeave={!isMobile && peek ? () => peekEnd() : undefined}
+    >
       <SidebarHeader className="brand">
         <span className="brand-symbol">
           <PanelsTopLeft size={22} />
         </span>
-        <span>TaskIndex</span>
+        <span className="brand-name">TaskIndex</span>
+        <SidebarCollapseButton />
       </SidebarHeader>
       <SidebarContent className="side-body">
         <SidebarMenu className="area-nav">

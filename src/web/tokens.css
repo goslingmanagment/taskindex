@@ -140,6 +140,8 @@
   --line-dashed: #ced8e6;
   --line-dashed-strong: #d5dce6;
   --line-on-primary: #ffffff44;
+  /* Тень панели, показанной поверх доски по наведению (2026-09-18). */
+  --overlay-shadow: #1d253a2e;
 }
 
 /* Тёмная палитра. Два блока с одинаковым содержимым: явный выбор владельца
@@ -200,6 +202,7 @@
   --line-dashed-strong: #454e5d;
   --line-on-primary: #ffffff33;
   --surface-ring: #ffffff33;
+  --overlay-shadow: #00000099;
 }
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme='light']) {
@@ -256,6 +259,7 @@
     --line-dashed-strong: #454e5d;
     --line-on-primary: #ffffff33;
     --surface-ring: #ffffff33;
+    --overlay-shadow: #00000099;
   }
 }
 
@@ -317,6 +321,7 @@
   --line-dashed: #cfd2c5;
   --line-dashed-strong: #c5c8bb;
   --line-on-primary: #fffef944;
+  --overlay-shadow: #243b392e;
 }
 
 /* Скин «Фокус»: тёмная пара, те же два блока, что у classic (явный выбор и
@@ -376,6 +381,7 @@
   --line-dashed: #3d4945;
   --line-dashed-strong: #45524d;
   --line-on-primary: #1b232133;
+  --overlay-shadow: #00000099;
 }
 @media (prefers-color-scheme: dark) {
   :root[data-skin='focus']:not([data-theme='light']) {
@@ -433,5 +439,6 @@
     --line-dashed: #3d4945;
     --line-dashed-strong: #45524d;
     --line-on-primary: #1b232133;
+    --overlay-shadow: #00000099;
   }
 }

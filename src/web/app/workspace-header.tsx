@@ -18,7 +18,7 @@ import {
 } from 'lucide-react';
 import { ignoreRejection } from '@shared/ignore-rejection';
 import { AREAS, type Project } from '@shared/model';
-import { SidebarTrigger } from '../ui/sidebar';
+import { SidebarOpenButton } from './sidebar-toggle';
 import { Button } from '../ui/button';
 import { Checkbox } from '../ui/checkbox';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '../ui/tabs';
@@ -104,7 +104,7 @@ export function WorkspaceHeader({
     <header className="board-heading">
       <div className="board-heading-row">
         <div className="board-title">
-          <SidebarTrigger aria-label="Открыть навигацию" />
+          <SidebarOpenButton />
           <div className="board-name">
             {!globalView && (project || archive || projectId === 'none') && (
               <button

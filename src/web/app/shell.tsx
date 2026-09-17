@@ -32,6 +32,12 @@ import { chooseHideP3 } from './appearance';
 import { taskCount } from './labels';
 import type { NewTask } from './commands';
 import { WorkspaceSidebar } from './sidebar';
+import { SidebarPeekProvider } from './sidebar-toggle';
+import {
+  browserStorage,
+  readSidebarOpen,
+  writeSidebarOpen,
+} from './sidebar-state';
 import { TaskCard, TaskCardContent } from './card';
 import { TaskCardMenu } from './card-menu';
 import { Board, DragBoard } from './board';
@@ -56,15 +62,31 @@ const changeHideP3 = (value: boolean) =>
     toast.add({ title: error.message, type: 'error' }),
   );
 export function Workspace() {
+  // The panel is hidden or shown per device: the first paint already knows
+  // the choice, so a hidden panel never flashes in (sidebar-state.ts).
+  const [sidebarOpen, setSidebarOpen] = useState(() =>
+    readSidebarOpen(browserStorage()),
+  );
+  // Предпросмотр скрытой панели по наведению; закрепление и скрытие гасят его.
+  const [sidebarPeek, setSidebarPeek] = useState(false);
+  const changeSidebarOpen = (open: boolean) => {
+    setSidebarOpen(open);
+    setSidebarPeek(false);
+    writeSidebarOpen(browserStorage(), open);
+  };
   return (
     <Toaster>
       <SidebarProvider
+        open={sidebarOpen}
+        onOpenChange={changeSidebarOpen}
         style={{ '--sidebar-width': '14.5rem' } as React.CSSProperties}
         className="workspace-shell"
       >
-        <NavigationProvider>
-          <WorkspaceBody />
-        </NavigationProvider>
+        <SidebarPeekProvider peek={sidebarPeek} onPeekChange={setSidebarPeek}>
+          <NavigationProvider>
+            <WorkspaceBody />
+          </NavigationProvider>
+        </SidebarPeekProvider>
       </SidebarProvider>
     </Toaster>
   );
