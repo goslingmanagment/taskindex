@@ -7,7 +7,7 @@ import {
   ListChecks,
   GripVertical,
 } from 'lucide-react';
-import { memo, useState } from 'react';
+import { memo, useState, type CSSProperties } from 'react';
 import { Menu } from '@base-ui/react/menu';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
@@ -228,7 +228,10 @@ const TaskCardBody = memo(function TaskCardBody({
           </span>
         )}
         {p && showProject && (
-          <span className="project-tag">
+          <span
+            className="project-tag"
+            style={{ '--chip-color': p.color } as CSSProperties}
+          >
             <span className="tag-dot" style={{ background: p.color }} />
             {p.name}
           </span>
@@ -237,10 +240,6 @@ const TaskCardBody = memo(function TaskCardBody({
           const label = LABELS.find((item) => item.id === id);
           return (
             <span key={id} className="label-chip" data-label={id}>
-              <span
-                className="tag-dot"
-                style={{ background: label?.color ?? 'currentColor' }}
-              />
               {label?.name ?? id}
             </span>
           );

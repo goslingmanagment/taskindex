@@ -16,10 +16,6 @@
 .complete-circle:focus-visible {
   opacity: 1;
 }
-.task-card:hover .task-title-row h3,
-.task-card:focus-within .task-title-row h3 {
-  padding-left: 22px;
-}
 .task-done .complete-circle {
   opacity: 1;
   position: static;
@@ -36,13 +32,6 @@
 }
 .due-label {
   color: var(--muted-foreground);
-}
-.list-view .project-tag {
-  margin: 0;
-  min-width: 110px;
-}
-.list-view .task-title-row h3 {
-  padding: 0;
 }
 .list-view .column-add {
   width: auto;
@@ -100,13 +89,6 @@
   .complete-circle {
     opacity: 1;
     position: static;
-  }
-  .task-card:hover .task-title-row h3 {
-    padding: 0;
-  }
-  .list-view .project-tag {
-    min-width: 0;
-    margin-bottom: 8px;
   }
 }
 .card-open:focus-visible {
@@ -191,11 +173,6 @@
 .list-view .column-empty {
   display: none;
 }
-@media (width < theme(--breakpoint-xl)) {
-  .list-view .project-tag {
-    min-width: 0;
-  }
-}
 @media (width < theme(--breakpoint-md)) {
   .search-open kbd {
     display: none;
@@ -214,8 +191,9 @@
 .task-done {
   opacity: 1;
 }
-.task-done .project-tag {
-  opacity: 0.8;
+.task-done .project-tag,
+.task-done .label-chip {
+  opacity: 0.7;
 }
 .board-heading {
   flex-shrink: 0;
@@ -510,11 +488,14 @@
   background: var(--muted);
   color: var(--foreground);
 }
+/* Правый отступ строк повторяет отступ заголовка: там живут меню «···» и
+   ручка перетаскивания, и подпись автора у правого края под них не заходит. */
 .card-label-row {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
   margin: 11px 0 0 26px;
+  padding-right: 22px;
   align-items: center;
   min-width: 0;
   min-height: 0;
@@ -540,14 +521,36 @@
 .task-done .priority-mark {
   opacity: 0.6;
 }
+/* Метки — второй план (макет владельца 2026-09-17): направление на подложке
+   своего цвета, остальные метки на нейтральной, подпись автора у правого края.
+   Цвет направления приходит из данных (`--chip-color` на элементе, не токен
+   палитры); чернила смешаны с --foreground, поэтому в светлой теме они темнее
+   цвета направления, а в тёмной светлее. */
+.project-tag,
 .label-chip {
   display: inline-flex;
   align-items: center;
   gap: 6px;
   min-width: 0;
   max-width: 100%;
+  margin: 0;
+  padding: 2px 8px;
+  border-radius: var(--radius-md);
   font-size: 12px;
-  color: var(--muted-foreground);
+  font-weight: 400;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+  color: var(--secondary-foreground);
+  background: var(--muted);
+}
+.project-tag {
+  font-weight: 500;
+  color: color-mix(in srgb, var(--chip-color) 65%, var(--foreground));
+  background: color-mix(in srgb, var(--chip-color) 13%, transparent);
+}
+.project-tag .tag-dot {
+  width: 6px;
+  height: 6px;
 }
 .empty-actions {
   display: flex;
@@ -557,21 +560,6 @@
 }
 .card-label-row:empty {
   display: none;
-}
-.project-tag {
-  max-width: 100%;
-  margin-bottom: 10px;
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  margin: 0;
-  padding: 0;
-  font-size: 12px;
-  font-weight: 400;
-  color: var(--muted-foreground);
-  background: none;
-  border-radius: 0;
-  line-height: 1.5;
 }
 .tag-dot {
   width: 5px;
@@ -590,6 +578,7 @@
   margin-top: 13px;
   flex-wrap: wrap;
   margin: 9px 0 0 26px;
+  padding-right: 22px;
   gap: 10px;
   color: var(--muted-foreground);
   font-size: 12px;
@@ -670,12 +659,14 @@
 }
 .list-view .card-label-row {
   margin: 0;
+  padding-right: 0;
   order: 1;
   min-width: 95px;
   max-width: 260px;
 }
 .list-view .card-meta {
   margin: 0;
+  padding-right: 0;
   order: 2;
   max-width: 210px;
 }
@@ -864,8 +855,10 @@
   }
 }
 .agent-mark {
+  margin-left: auto;
   color: var(--muted-foreground);
   font-size: 12px;
+  white-space: nowrap;
 }
 .drag-handle {
   position: absolute;

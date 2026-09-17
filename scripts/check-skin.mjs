@@ -351,6 +351,8 @@ const PAIRS = [
   ['--primary-foreground', '--primary', 4.5],
   ['--sidebar-foreground', '--sidebar', 4.5],
   ['--warning-foreground', '--warning-soft', 4.5],
+  // Нейтральная метка на карточке: текст на подложке --muted.
+  ['--secondary-foreground', '--muted', 4.5],
 
   ['--destructive-text', '--destructive-soft', 4.5],
   // Крупный текст и индикаторы: порог 3:1.
