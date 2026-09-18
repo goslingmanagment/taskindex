@@ -309,9 +309,8 @@ test('TI-086 all labels and an 80-character closes slug fit a narrow board and t
     await expect(card).toBeVisible();
     await expect(card.locator('.label-chip')).toHaveCount(LABELS.length);
     await expect(card.locator('.closes-chip')).toHaveCount(0);
-    // A label is a neutral one-line 12px chip without a dot: only the
-    // direction chip carries a colour. A dangling selector in the skin once
-    // turned chips into 16px flex boxes.
+    // Board chips are larger; list chips keep their compact size. Only the
+    // direction chip carries a colour and a dot.
     expect(
       await card.locator('.label-chip').evaluateAll((chips) =>
         chips.map((chip) => {
@@ -326,7 +325,7 @@ test('TI-086 all labels and an 80-character closes slug fit a narrow board and t
       ),
     ).toEqual(
       LABELS.map(() => ({
-        fontSize: '12px',
+        fontSize: view === 'board' ? '13px' : '12px',
         dots: 0,
         tinted: true,
         oneLine: true,

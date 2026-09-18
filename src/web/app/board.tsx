@@ -335,7 +335,7 @@ export function Board({
   );
   return (
     <div
-      className={'kanban ' + (view === 'list' ? 'list-view' : '')}
+      className={`kanban ${view === 'list' ? 'list-view' : archive ? '' : 'board-view'}`}
       data-large={tasks.length > 200 || undefined}
       style={{ '--board-columns': columns.length } as CSSProperties}
     >
@@ -355,17 +355,19 @@ export function Board({
             <SortableContext items={ids} strategy={verticalListSortingStrategy}>
               <div className="cards">
                 {column.map(renderTask)}
-                {!column.length && !filtered && (
-                  <Empty className="column-empty">
-                    <EmptyDescription>
-                      {definition.id === 'doing'
-                        ? 'Начни с одной задачи'
-                        : definition.id === 'done'
-                          ? 'Здесь будут маленькие победы'
-                          : definition.hint}
-                    </EmptyDescription>
-                  </Empty>
-                )}
+                {!column.length &&
+                  !filtered &&
+                  (archive || view === 'list') && (
+                    <Empty className="column-empty">
+                      <EmptyDescription>
+                        {definition.id === 'doing'
+                          ? 'Начни с одной задачи'
+                          : definition.id === 'done'
+                            ? 'Здесь будут маленькие победы'
+                            : definition.hint}
+                      </EmptyDescription>
+                    </Empty>
+                  )}
               </div>
             </SortableContext>
             {!archive && (

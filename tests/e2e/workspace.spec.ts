@@ -374,6 +374,10 @@ test('mouse and emulated touch drag both persist task moves', async ({
   });
   await expect(start).toBeVisible();
   await start.scrollIntoViewIfNeeded();
+  // Touch has no hover: completion remains discoverable beside the menu.
+  await expect(
+    mobile.getByRole('button', { name: 'Завершить: Касанием', exact: true }),
+  ).toHaveCSS('opacity', '1');
   const rect = (await start.boundingBox())!;
   const session = await context.newCDPSession(mobile);
   const x = rect.x + rect.width / 2,

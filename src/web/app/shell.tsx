@@ -221,6 +221,7 @@ function WorkspaceBody() {
         today={today}
         showContext={globalView}
         showProject={globalView || projectId !== task.projectId}
+        boardAppearance={!globalView && !archive && view === 'board'}
         menu={cardMenu}
         pending={pendingTask(task.id)}
         disabled={archive || globalView || pendingTask(task.id)}

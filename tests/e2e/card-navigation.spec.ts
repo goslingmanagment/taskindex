@@ -86,7 +86,7 @@ test('TI-085 card labels, menu actions and history stay current across navigatio
   }
 });
 
-test('hover keeps the title in place; the agent byline sits at the right edge', async ({
+test('board hover keeps the title in place; the agent byline stays in the list', async ({
   page,
 }, info) => {
   await signIn(page, info);
@@ -108,6 +108,10 @@ test('hover keeps the title in place; the agent byline sits at the right edge', 
   const heading = card.locator('h3');
   await expect(heading).toHaveText(title);
   try {
+    await expect(card.locator('.agent-mark')).toBeHidden();
+    await expect(card.locator('.label-chip')).toHaveText(['деньги']);
+    await page.getByRole('tab', { name: 'Список', exact: true }).click();
+    await expect(card.locator('.agent-mark')).toBeVisible();
     // The byline of an agent-created task is pushed to the right edge of the
     // footer row, so labels and the author never read as one grey sentence.
     const edges = await card.locator('.card-footer').evaluate((row) => {
@@ -119,6 +123,7 @@ test('hover keeps the title in place; the agent byline sits at the right edge', 
       };
     });
     expect(Math.abs(edges.row - edges.byline)).toBeLessThanOrEqual(1);
+    await page.getByRole('tab', { name: 'Доска', exact: true }).click();
     // Hover reveals the menu and the drag handle without moving the text:
     // a leftover `padding-left` on hover once pushed the title 22px right and
     // rewrapped it, so the card jumped under the pointer.
@@ -134,8 +139,34 @@ test('hover keeps the title in place; the agent byline sits at the right edge', 
     await card.hover();
     await expect(card.locator('.card-menu')).toHaveCSS('opacity', '1');
     await expect(card.locator('.drag-handle')).toHaveCSS('opacity', '1');
+    await expect(card.locator('.complete-circle')).toHaveCSS('opacity', '1');
     expect(await textBox()).toEqual(before.text);
     expect(await card.boundingBox()).toEqual(before.card);
+    // Keep every action inside the card: large boards use paint containment,
+    // which would clip a completion button protruding beyond its edge.
+    const cardBox = (await card.boundingBox())!;
+    const completeBox = (await card.locator('.complete-circle').boundingBox())!;
+    const menuBox = (await card.locator('.card-menu').boundingBox())!;
+    const dragBox = (await card.locator('.drag-handle').boundingBox())!;
+    expect(completeBox.x - 5).toBeGreaterThanOrEqual(cardBox.x);
+    expect(completeBox.x + completeBox.width + 5).toBeLessThanOrEqual(
+      cardBox.x + cardBox.width,
+    );
+    expect(completeBox.y + completeBox.height + 5).toBeLessThan(menuBox.y);
+    expect(dragBox.x + dragBox.width).toBeLessThan(completeBox.x - 5);
+    await page.mouse.move(0, 0);
+    await card.locator('.card-open').focus();
+    await page.keyboard.press('Tab');
+    await expect(card.locator('.complete-circle')).toBeFocused();
+    await expect(card.locator('.complete-circle')).toHaveCSS('opacity', '1');
+    await page.keyboard.press('Enter');
+    await expect
+      .poll(
+        async () =>
+          (await (await page.request.get(`/api/tasks/${taskId}`)).json())
+            .status,
+      )
+      .toBe('done');
   } finally {
     const latest = await (
       await page.request.get(`/api/tasks/${taskId}`)

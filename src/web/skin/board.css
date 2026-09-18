@@ -859,6 +859,88 @@
     opacity: 0.55;
   }
 }
+/* The owner's board keeps the larger cards and chips from the approved
+   prototype. Scope it separately from list, search, archive and task editor.
+   The card class also travels with the drag overlay outside the grid. */
+.board-view .column {
+  min-height: 0;
+  padding: 8px;
+  border-radius: var(--radius-lg);
+  background: var(--surface-grouped);
+}
+.board-view .column-head {
+  min-height: 29px;
+  padding: 0 6px;
+  margin-bottom: 9px;
+}
+.board-view .column-add {
+  padding-inline: 6px;
+  font-size: 13px;
+}
+.board-card {
+  min-height: 90px;
+  padding: 14px 16px 15px;
+  border-color: transparent;
+  background: var(--surface-hover);
+}
+.board-card .task-title-row h3 {
+  font-size: 16px;
+  line-height: 1.45;
+}
+.board-card .card-footer {
+  margin: 10px 0 0;
+  padding-right: 23px;
+  gap: 6px 8px;
+  font-size: 13px;
+}
+.board-card .project-tag,
+.board-card .label-chip {
+  min-height: 26px;
+  padding: 3px 9px;
+  font-size: 13px;
+  line-height: 20px;
+}
+.board-card .agent-mark,
+.board-card .card-footer:not(:has(> :not(.agent-mark))) {
+  display: none;
+}
+/* Both actions stay in the right gutter without reflowing the title.
+   Keep them inside the card's paint containment on large boards. */
+.board-card .complete-circle {
+  position: absolute;
+  left: auto;
+  right: 8px;
+  top: 16px;
+  width: 22px;
+  min-width: 22px;
+  height: 22px;
+  margin: 0;
+  background: var(--card);
+  opacity: 0;
+  z-index: 3;
+}
+.board-card .complete-circle::before {
+  content: '';
+  position: absolute;
+  inset: -5px;
+}
+.board-card:hover .complete-circle,
+.board-card:focus-within .complete-circle,
+.board-card.task-done .complete-circle {
+  opacity: 1;
+}
+.board-card .complete-circle:hover {
+  background: var(--success-soft);
+}
+.board-card .card-menu {
+  top: auto;
+  bottom: 8px;
+}
+@media (hover: none), (pointer: coarse) {
+  .board-card .complete-circle {
+    opacity: 1;
+  }
+}
 .workspace-overview {
   max-width: 1180px;
   padding: 8px 2px 36px;

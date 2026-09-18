@@ -28,6 +28,8 @@ type TaskCardProps = {
   /** Экран показывает задачи всех областей: подписываем область и состояние. */
   showContext: boolean;
   showProject: boolean;
+  /** The board and its drag overlay share one appearance. */
+  boardAppearance: boolean;
   /** The label catalogue of the workspace: names and colours of the chips. */
   catalogue: readonly Label[];
   pending: boolean;
@@ -93,6 +95,7 @@ export const TaskCardContent = memo(function TaskCardContent({
   today,
   showContext,
   showProject,
+  boardAppearance,
   catalogue,
   pending,
   disabled,
@@ -113,7 +116,7 @@ export const TaskCardContent = memo(function TaskCardContent({
         transform,
         transition,
       }}
-      className={`task-card ${task.status === 'done' ? 'task-done' : ''} ${isDragging ? 'dragging' : ''}`}
+      className={`task-card ${boardAppearance ? 'board-card' : ''} ${task.status === 'done' ? 'task-done' : ''} ${isDragging ? 'dragging' : ''}`}
     >
       {/* Оверлей вместо клика по `<article>`: сама карточка не фокусируется, а
           оверлей даёт одну цель для мыши, касания и фокуса. Он делит
@@ -166,7 +169,7 @@ const TaskCardBody = memo(function TaskCardBody({
   catalogue,
   pending,
   menu,
-}: Omit<TaskCardProps, 'disabled'>) {
+}: Omit<TaskCardProps, 'disabled' | 'boardAppearance'>) {
   const { setStatus, toggleArchive } = useWorkspaceCommands();
   return (
     <>

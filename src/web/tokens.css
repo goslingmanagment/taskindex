@@ -72,6 +72,7 @@
    styles.css (базового и «Minimal»); значения не менялись. */
 :root {
   --background: #f7f8fa;
+  --surface-grouped: #eef0f4;
   --foreground: #24292f;
   --card: #fff;
   --card-foreground: #24292f;
@@ -150,6 +151,7 @@
    — светлая палитра придёт к тому же после фазы B. План 08, шаг 10. */
 :root[data-theme='dark'] {
   --background: #191d24;
+  --surface-grouped: #1d222a;
   --foreground: #e6e9ee;
   --card: #22272f;
   --card-foreground: #e6e9ee;
@@ -207,6 +209,7 @@
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme='light']) {
     --background: #191d24;
+    --surface-grouped: #1d222a;
     --foreground: #e6e9ee;
     --card: #22272f;
     --card-foreground: #e6e9ee;
@@ -268,6 +271,7 @@
    #fffef9, чернила #243b39, терракота #ac5738, зелёный #58745c. */
 :root[data-skin='focus'] {
   --background: #f4f3ed;
+  --surface-grouped: #ecebe3;
   --foreground: #303c38;
   --card: #fffef9;
   --card-foreground: #303c38;
@@ -328,6 +332,7 @@
    системное предпочтение); их совпадение проверяет scripts/check-skin.mjs. */
 :root[data-skin='focus'][data-theme='dark'] {
   --background: #1b2321;
+  --surface-grouped: #1f2725;
   --foreground: #e4e6dd;
   --card: #232c29;
   --card-foreground: #e4e6dd;
@@ -386,6 +391,7 @@
 @media (prefers-color-scheme: dark) {
   :root[data-skin='focus']:not([data-theme='light']) {
     --background: #1b2321;
+    --surface-grouped: #1f2725;
     --foreground: #e4e6dd;
     --card: #232c29;
     --card-foreground: #e4e6dd;
