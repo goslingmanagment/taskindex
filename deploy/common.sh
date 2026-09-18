@@ -55,6 +55,38 @@ save_current_release() {
       imageId:(if $imageId == "null" then null else $imageId end)}' > "$temporary"
   mv "$temporary" "$state_dir/current.json"
 }
+# prune_superseded_images KEEP_REF...: remove commit-tagged images (taskindex:<40 hex>) that are
+# neither a KEEP_REF (the new release and the previous one, which is its rollback) nor the image
+# of a running container. Every release loads one more ~1 GB image and nothing removed them: on
+# 2026-09-18 twenty of them shared the VPS disk with Agency Hub and helped push it over 90 %.
+# Never inside an isolated compose project (a drill shares the daemon with a developer's own
+# tags). Best effort: a failure is reported and never fails the release.
+prune_superseded_images() {
+  if [[ -n ${TASKINDEX_COMPOSE_PROJECT:-} ]]; then
+    printf '%s\n' 'Image prune skipped inside an isolated compose project.' >&2
+    return 0
+  fi
+  local ref id tag removed=0
+  declare -A keep=()
+  for ref in "$@"; do
+    id=$(image_id "$ref")
+    [[ $id == null ]] || keep["$id"]=1
+  done
+  while IFS= read -r id; do
+    [[ -z $id ]] || keep["$id"]=1
+  done < <(docker ps -q 2>/dev/null | xargs -r docker inspect --format '{{.Image}}' 2>/dev/null)
+  ((${#keep[@]} >= 1)) || { printf '%s\n' 'Image prune skipped: no protected image resolved.' >&2; return 0; }
+  while IFS= read -r tag; do
+    [[ $tag =~ ^taskindex:[a-f0-9]{40}$ ]] || continue
+    id=$(image_id "$tag")
+    [[ $id != null && -z ${keep[$id]:-} ]] || continue
+    if docker rmi "$tag" >/dev/null 2>&1; then removed=$((removed + 1))
+    else printf 'Could not remove image %s; left in place.\n' "$tag" >&2; fi
+  done < <(docker images --format '{{.Repository}}:{{.Tag}}' taskindex 2>/dev/null)
+  printf 'Image prune: removed %s superseded taskindex image tag(s).\n' "$removed" >&2
+  docker builder prune --force --filter until=168h >/dev/null 2>&1 \
+    || printf '%s\n' 'Builder cache prune failed; continuing.' >&2
+}
 file_sha256() {
   if command -v sha256sum >/dev/null; then sha256sum "$1" | cut -d' ' -f1
   else shasum -a 256 "$1" | cut -d' ' -f1; fi
