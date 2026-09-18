@@ -523,6 +523,29 @@
 .task-done .priority-mark {
   opacity: 0.6;
 }
+/* Меню карточки. Примитив берёт ширину у кнопки «···» и упирается в минимум
+   128px, подписи рвались на три строки: здесь ширина идёт от содержимого.
+   Значок, точка статуса и плашка приоритета разной ширины, общий слот ставит
+   подписи на одну вертикаль. */
+.card-actions {
+  width: max-content;
+  min-width: 13rem;
+  max-width: calc(100vw - 16px);
+}
+.menu-lead {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  margin-right: 2px;
+}
+.menu-lead .priority-mark {
+  justify-content: center;
+  width: 100%;
+  margin-top: 0;
+  padding: 0;
+}
 /* Метки — второй план (макет владельца 2026-09-17): направление на подложке
    своего цвета, остальные метки на нейтральной, подпись автора у правого края.
    Цвет направления приходит из данных (`--chip-color` на элементе, не токен

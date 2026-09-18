@@ -65,6 +65,38 @@ test('TI-085 card labels, menu actions and history stay current across navigatio
       page.getByRole('menuitem', { name: 'Убрать из фокуса', exact: true }),
     ).toBeVisible();
     await expect(page.getByRole('menu')).toBeFocused();
+    // The popup took its width from the «···» button: captions wrapped onto
+    // three lines, and icons, dots and priority marks of different widths
+    // pushed them to different offsets.
+    const rows = await page
+      .locator('[data-slot="dropdown-menu-content"] [role^="menuitem"]')
+      .evaluateAll((items) =>
+        items.map((item) => {
+          const caption = [...item.childNodes].find(
+            (node) => node.nodeType === Node.TEXT_NODE && node.textContent,
+          )!;
+          const range = document.createRange();
+          range.selectNodeContents(caption);
+          // offsetHeight ignores the zoom-in transform of the opening popup.
+          return {
+            height: (item as HTMLElement).offsetHeight,
+            captionLeft: Math.round(
+              range.getBoundingClientRect().left -
+                item.getBoundingClientRect().left,
+            ),
+          };
+        }),
+      );
+    expect(rows).toHaveLength(9);
+    expect(new Set(rows.map((row) => row.height)).size).toBe(1);
+    expect(new Set(rows.map((row) => row.captionLeft)).size).toBe(1);
+    // The current value is marked, not greyed out like an unavailable action.
+    await expect(
+      page.getByRole('menuitemradio', { name: 'Очередь', exact: true }),
+    ).toHaveAttribute('aria-checked', 'true');
+    await expect(
+      page.getByRole('menuitemradio', { name: /P2/ }),
+    ).toHaveAttribute('aria-checked', 'true');
     await page.keyboard.press('Escape');
     await expect(menu).toBeFocused();
     await expect(

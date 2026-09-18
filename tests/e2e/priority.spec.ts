@@ -163,7 +163,7 @@ test('TI-086 badges, editor fields, menu and the server preference survive reloa
   await page
     .getByRole('button', { name: `Действия: ${someday.title}`, exact: true })
     .click();
-  await page.getByRole('menuitem', { name: /P1/ }).click();
+  await page.getByRole('menuitemradio', { name: /P1/ }).click();
   // The move shows as the column change; inside P1 the card needs no chip.
   await expect(
     page.locator('.column-p1 article.task-card', { hasText: someday.title }),
