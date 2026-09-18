@@ -6,6 +6,7 @@ import type { ExportData } from '../shared/model.js';
 import { SEEDED_LABELS } from '../shared/labels.js';
 import { z } from '../shared/schemas.js';
 import { compareStrings } from '../shared/queries.js';
+import { legacySteps, projectChecklist } from '../shared/steps.js';
 import {
   defaultAppearance,
   exportSchema,
@@ -15,26 +16,65 @@ import {
   exportSchemaV4,
   exportSchemaV5,
   exportSchemaV6,
+  exportSchemaV7,
 } from '../shared/domain-schemas.js';
 
-// Reads formats 1-7. Older formats lack the label catalogue (6), may carry
-// the retired label otvet (5), lack task fields (4), desk keys (3),
-// appearance (2) or operationSeq (1). Defaults match their SQL migrations;
-// operation positions use (createdAt, id). See drizzle/v2/README.md.
+// Reads formats 1-8. Older formats carry steps as rows of text, tick and
+// position (7 and before), lack the label catalogue (6), may carry the
+// retired label otvet (5), lack task fields (4), desk keys (3), appearance
+// (2) or operationSeq (1). Defaults match their SQL migrations; operation
+// positions use (createdAt, id). See drizzle/v2/README.md.
 export function upgradeExport(raw: unknown): ExportData {
   const version = z
     .object({ formatVersion: z.unknown() })
     .loose()
     .parse(raw).formatVersion;
   if (version === FORMAT_VERSION) return exportSchema.parse(raw);
-  return withCatalogueLabels(upgradeLegacy(raw, version));
+  if (version === 7)
+    return withStepRecords({
+      ...exportSchemaV7.parse(raw),
+      formatVersion: FORMAT_VERSION,
+    });
+  return withStepRecords(withCatalogueLabels(upgradeLegacy(raw, version)));
+}
+// Formats 1-7: step rows of text, tick and position.
+type StepRow = z.infer<typeof exportSchemaV7>['checklistItems'][number];
+type WithRows = Omit<ExportData, 'steps'> & { checklistItems: StepRow[] };
+// Formats 1-7: every row becomes the step record 0008_steps.sql makes of it
+// (keys by position, bookkeeping from the task, revision 1, nothing owner-
+// protected), and each task shows the projection of its records.
+function withStepRecords(data: WithRows): ExportData {
+  const { checklistItems, ...rest } = data;
+  const tasks = new Map(data.tasks.map((t) => [t.id, t]));
+  const steps = [...Map.groupBy(checklistItems, (row) => row.taskId)].flatMap(
+    ([taskId, rows]) => {
+      const task = tasks.get(taskId);
+      return task
+        ? legacySteps(
+            task,
+            rows.toSorted((a, b) => a.position - b.position),
+          )
+        : [];
+    },
+  );
+  return {
+    ...rest,
+    steps,
+    tasks: data.tasks.map((t) => ({
+      ...t,
+      checklist: projectChecklist(steps, t.id),
+      // The owner's touch on a step no longer marks the task (0008 drops the
+      // entry from tasks.owner_fields the same way).
+      ownerFields: t.ownerFields.filter((field) => field !== 'checklist'),
+    })),
+  };
 }
 // Formats 1-6: the catalogue is the seeded one 0007_labels.sql inserts into
 // an existing database, and a task keeps only its labels (0006 dropped the
 // retired one the same way). Events and stored results stay as written
 // (applyEvent replays them to these rows).
-type Legacy = Omit<ExportData, 'labels'>;
-function withCatalogueLabels(data: Legacy): ExportData {
+type Legacy = Omit<WithRows, 'labels'>;
+function withCatalogueLabels(data: Legacy): WithRows {
   const seeded = new Set(SEEDED_LABELS.map((l) => l.id));
   return {
     ...data,

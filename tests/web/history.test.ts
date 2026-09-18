@@ -345,3 +345,122 @@ describe('TI-076 the author filter keeps every author selectable', () => {
     ]);
   });
 });
+
+describe('TI-095 the history tells step events', () => {
+  type Kind = DomainEvent['entityKind'];
+  const directory = {
+    ...ctx,
+    tasks: [{ id: 'child', title: 'Настроить мониторинг' }],
+    steps: [{ id: 's1', text: 'Поднять контейнер' }],
+  };
+  const stepEvent = (changes: Changes, command: string, kind: Kind = 'step') =>
+    describeEvent(
+      { ...event(changes, command), entityKind: kind, entityId: 's1' },
+      directory,
+    );
+  const lines = (changes: Changes, command: string, kind?: Kind) =>
+    stepEvent(changes, command, kind).lines.map((l) => `${l.label}: ${l.text}`);
+  it('tells a new step by its text alone and hides its bookkeeping', () => {
+    const story = stepEvent(
+      {
+        id: { from: null, to: 's1' },
+        taskId: { from: null, to: 'task-1' },
+        text: { from: null, to: 'Поднять контейнер' },
+        orderKey: { from: null, to: 'a0' },
+        done: { from: null, to: false },
+        doneAt: { from: null, to: null },
+        doneBy: { from: null, to: null },
+        doneByLabel: { from: null, to: null },
+        result: { from: null, to: '' },
+        linkedTaskId: { from: null, to: null },
+        removedAt: { from: null, to: null },
+        createdBy: { from: null, to: 'owner' },
+        createdByLabel: { from: null, to: 'Дмитрий' },
+        ownerTouchedAt: { from: null, to: null },
+        ownerFields: { from: null, to: [] },
+        createdAt: { from: null, to: '2026-09-09T09:00:00.000Z' },
+      },
+      'checklist.add',
+    );
+    expect(story.lines.map((l) => `${l.label}: ${l.text}`)).toEqual([
+      'Шаг: Добавлен шаг «Поднять контейнер»',
+    ]);
+    expect(story.technical.map(([field]) => field)).toContain('doneBy');
+  });
+  it('tells the tick, the outcome, the removal and the promotion in words, naming the step from today', () => {
+    expect(
+      lines(
+        {
+          done: { from: false, to: true },
+          doneAt: { from: null, to: '2026-09-09T09:00:00.000Z' },
+          doneBy: { from: null, to: 'agent:claude' },
+          doneByLabel: { from: null, to: 'Claude Mac' },
+          result: { from: '', to: 'PR #12' },
+        },
+        'checklist.update',
+      ),
+    ).toEqual([
+      'Отметка: Шаг «Поднять контейнер» отмечен выполненным',
+      'Итог: пусто → «PR #12»',
+    ]);
+    expect(
+      lines({ done: { from: true, to: false } }, 'checklist.update'),
+    ).toEqual(['Отметка: С шага «Поднять контейнер» снята отметка']);
+    expect(
+      lines(
+        { removedAt: { from: null, to: '2026-09-09T09:00:00.000Z' } },
+        'checklist.remove',
+      ),
+    ).toEqual(['Шаг: Шаг «Поднять контейнер» убран']);
+    expect(
+      lines(
+        { removedAt: { from: '2026-09-09T09:00:00.000Z', to: null } },
+        'undo',
+      ),
+    ).toEqual(['Шаг: Шаг «Поднять контейнер» возвращён']);
+    expect(
+      lines({ orderKey: { from: 'a0', to: 'a2' } }, 'checklist.move'),
+    ).toEqual(['Порядок: Изменён порядок']);
+    const promoted = stepEvent(
+      { linkedTaskId: { from: null, to: 'child' } },
+      'checklist.promote',
+    );
+    expect(promoted.lines).toEqual([
+      {
+        label: 'Задача',
+        text: 'Шаг «Поднять контейнер» вынесен в задачу «Настроить мониторинг»',
+        note: 'название на сегодня',
+      },
+    ]);
+    expect(
+      lines({ linkedTaskId: { from: null, to: 'gone' } }, 'checklist.update'),
+    ).toEqual(['Задача: Шаг «Поднять контейнер» вынесен в задачу']);
+    // A step the directory no longer knows is still told, without its text.
+    expect(
+      describeEvent(
+        {
+          ...event({ done: { from: false, to: true } }, 'checklist.update'),
+          entityKind: 'step',
+          entityId: 'forgotten',
+        },
+        ctx,
+      ).lines,
+    ).toEqual([{ label: 'Отметка', text: 'Шаг отмечен выполненным' }]);
+    // The task the promotion creates is told as a creation.
+    expect(
+      lines(
+        {
+          title: { from: null, to: 'Настроить мониторинг' },
+          status: { from: null, to: 'todo' },
+          note: { from: null, to: 'Шаг задачи «Перенести бота» (t).' },
+        },
+        'checklist.promote',
+        'task',
+      ),
+    ).toEqual([
+      'Название: «Настроить мониторинг»',
+      'Состояние: «Очередь»',
+      'Заметка: «Шаг задачи «Перенести бота» (t).»',
+    ]);
+  });
+});

@@ -4,11 +4,13 @@ import { defaultAppearance } from '../../src/shared/domain-schemas';
 import type { DomainEvent, WorkspaceState } from '../../src/shared/model';
 import { WorkspaceStore } from '../../src/web/app/store';
 import { makeTask } from './fixtures';
+import { draftChecklistItem } from '../../src/shared/steps';
 
 const at = '2026-09-12T12:00:00.000Z';
 function state(count = 2): WorkspaceState {
   return {
     labels: [],
+    steps: [],
     tasks: Array.from({ length: count }, (_, i) =>
       makeTask({
         id: `t${i}`,
@@ -17,7 +19,7 @@ function state(count = 2): WorkspaceState {
         revision: 1,
         createdAt: at,
         updatedAt: at,
-        checklist: [{ id: `step${i}`, text: 'Keep this step', done: false }],
+        checklist: [draftChecklistItem(`step${i}`, 'Keep this step')],
       }),
     ),
     projects: [
@@ -87,6 +89,7 @@ describe('TI-083 replay preserves identities used by card subscriptions', () => 
       today: '2026-09-12',
       timezone: 'UTC',
       labels: [],
+      steps: [],
       tasks: initial.tasks,
       projects: initial.projects,
       appearance: initial.appearance[0]!,

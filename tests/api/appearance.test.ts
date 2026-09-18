@@ -211,8 +211,11 @@ describe('appearance preference of the owner', () => {
     const {
       appearance: _appearance,
       labels: _labels,
-      ...legacy
+      steps: _steps,
+      ...current
     } = exportWorkspace(f.db);
+    // Format 2 carried step rows, not records (0008); the workspace has none.
+    const legacy = { ...current, checklistItems: [] };
     const upgraded = upgradeExport({ ...legacy, formatVersion: 2 });
     expect(upgraded.formatVersion).toBe(FORMAT_VERSION);
     expect(upgraded.appearance).toEqual([

@@ -24,6 +24,7 @@ import { canonicalJson } from '../shared/canonical-json.js';
 import { fail } from '../shared/errors.js';
 import { RESERVED_IDS } from '../shared/schemas.js';
 import { compareStrings } from '../shared/queries.js';
+import { projectChecklist } from '../shared/steps.js';
 import { defaultAppearance } from '../shared/domain-schemas.js';
 import { upgradeExport } from './export-upgrade.js';
 import { DEFAULT_APPEARANCE_ID } from '../shared/appearance.js';
@@ -47,7 +48,6 @@ export function exportWorkspace(db: DatabaseHandle): ExportData {
           .map((s) => [s.key, s.value]),
       ),
       ...state,
-      checklistItems: db.orm.select().from(schema.checklistItems).all(),
       agents: listAgents(db),
       events: readEvents(db),
       operations: readOperations(db),
@@ -66,6 +66,7 @@ export function validateExport(data: ExportData) {
     data.tasks,
     data.projects,
     data.labels,
+    data.steps,
     data.comments,
     data.agents,
     data.operations,
@@ -79,11 +80,10 @@ export function validateExport(data: ExportData) {
     .toSorted((a, b) => a - b);
   if (positions.some((position, index) => position !== index + 1))
     invalid('позиции операций не образуют непрерывную последовательность.');
-  const expectedItems = data.tasks.flatMap((t) =>
-    t.checklist.map((item, position) => ({ ...item, taskId: t.id, position })),
-  );
-  if (!same(sorted(expectedItems), sorted(data.checklistItems)))
-    invalid('таблица шагов не совпадает с чеклистами задач.');
+  // A task's checklist is the projection of its live step records (0008).
+  for (const t of data.tasks)
+    if (!same(t.checklist, projectChecklist(data.steps, t.id)))
+      invalid('шаги задачи не совпадают с таблицей шагов.');
   if (
     data.appearance.length !== 1 ||
     data.appearance[0]!.id !== DEFAULT_APPEARANCE_ID
@@ -103,6 +103,8 @@ export function validateExport(data: ExportData) {
   for (const c of data.comments)
     if (!tasks.has(c.taskId))
       invalid('комментарий ссылается на отсутствующую задачу.');
+  for (const s of data.steps)
+    if (!tasks.has(s.taskId)) invalid('шаг ссылается на отсутствующую задачу.');
   if (
     data.seq !== data.events.length ||
     data.events.some(
@@ -118,9 +120,19 @@ export function validateExport(data: ExportData) {
     projects: [],
     labels: structuredClone(SEEDED_LABELS),
     tasks: [],
+    steps: [],
     comments: [],
     appearance: [defaultAppearance()],
   };
+  // A task event of the journal written before 0008 carries the checklist
+  // as the rows of that time; the replayed task shows the projection of the
+  // step records those rows became.
+  const legacyView = (checklist: unknown) =>
+    Array.isArray(checklist)
+      ? (checklist as { id: string; text: string; done: boolean }[]).map(
+          ({ id, text, done }) => ({ id, text, done }),
+        )
+      : checklist;
   for (const e of data.events) {
     const op =
       operations.get(e.operationId) ?? invalid('событие без операции.');
@@ -138,28 +150,39 @@ export function validateExport(data: ExportData) {
     const before = list.find((r) => r.id === e.entityId);
     if (e.recordRevision !== (before?.revision ?? 0) + 1)
       invalid('нарушена версия записи.');
-    for (const [key, change] of Object.entries(e.changes))
-      if (
-        !same(
-          // 0006: the journal still names a retired label; replay reads it
-          // through the catalogue (applyEvent), so does this comparison.
-          e.entityKind === 'task' &&
-            key === 'labels' &&
-            Array.isArray(change.from)
+    for (const [key, change] of Object.entries(e.changes)) {
+      const stored = before
+        ? (before as unknown as Record<string, unknown>)[key]
+        : null;
+      // 0006: the journal still names a retired label; replay reads it
+      // through the catalogue (applyEvent), so does this comparison. 0008:
+      // the owner's `checklist` entry left tasks.owner_fields the same way.
+      const from =
+        e.entityKind === 'task' && Array.isArray(change.from)
+          ? key === 'labels'
             ? change.from.filter((id) =>
                 replay.labels.some((label) => label.id === id),
               )
-            : change.from,
-          before ? (before as unknown as Record<string, unknown>)[key] : null,
+            : key === 'ownerFields'
+              ? change.from.filter((field) => field !== 'checklist')
+              : change.from
+          : change.from;
+      if (
+        !same(
+          from,
+          e.entityKind === 'task' && key === 'checklist'
+            ? legacyView(stored)
+            : stored,
         )
       )
         invalid('история изменений не соответствует предыдущему состоянию.');
+    }
     if (
-      e.entityKind === 'comment' &&
+      (e.entityKind === 'comment' || e.entityKind === 'step') &&
       (e.taskId ?? e.changes.taskId?.to) !==
         (before && 'taskId' in before ? before.taskId : e.changes.taskId?.to)
     )
-      invalid('событие комментария указывает другую задачу.');
+      invalid('событие комментария или шага указывает другую задачу.');
     replay = applyEvent(replay, e);
     byOperation.set(op.id, [...(byOperation.get(op.id) ?? []), e]);
   }
@@ -213,6 +236,7 @@ export function validateExport(data: ExportData) {
     tasks: sorted(state.tasks),
     projects: sorted(state.projects),
     labels: sorted(state.labels),
+    steps: sorted(state.steps),
     comments: sorted(state.comments),
     appearance: sorted(state.appearance),
   });

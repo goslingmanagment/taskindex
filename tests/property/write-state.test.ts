@@ -42,6 +42,7 @@ it('writeState by touched entities equals writeState by full diff after every ra
           projects: [],
           labels: structuredClone(SEEDED_LABELS),
           tasks: [],
+          steps: [],
           comments: [],
           appearance: [defaultAppearance()],
         };

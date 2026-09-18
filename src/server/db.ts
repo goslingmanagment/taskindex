@@ -16,21 +16,28 @@ import type {
   Project,
   Label,
   Appearance,
+  Step,
 } from '../shared/model.js';
 import { defaultAppearance } from '../shared/domain-schemas.js';
 import { DEFAULT_APPEARANCE_ID } from '../shared/appearance.js';
+import { projectChecklist } from '../shared/steps.js';
 
-type ChecklistRow = typeof schema.checklistItems.$inferSelect;
-const toChecklist = (rows: ChecklistRow[]) =>
-  rows.map(({ taskId: _taskId, position: _position, ...i }) => i);
+// A step row is the step record (0008): the codec is the identity.
+const toStep = (row: typeof schema.checklistItems.$inferSelect): Step =>
+  row as Step;
 const toTask = (
   row: typeof schema.tasks.$inferSelect,
-  checklist: ChecklistRow[],
+  steps: readonly Step[],
   commentCount: number,
 ): Task =>
-  ({ ...row, checklist: toChecklist(checklist), commentCount }) as Task;
+  ({
+    ...row,
+    checklist: projectChecklist(steps, row.id),
+    commentCount,
+  }) as Task;
 // The row codecs of the workspace (plan 10, step 10): a project row drops
-// its search key, a task row gains its steps and comment count.
+// its search key, a task row gains the projection of its steps and its
+// comment count.
 const toProject = ({
   nameKey: _nameKey,
   ...p
@@ -65,14 +72,8 @@ export function readState(db: DatabaseHandle): WorkspaceState {
   const projects = readProjects(db);
   const labels = readLabels(db);
   const comments = db.orm.select().from(schema.comments).all();
-  const items = Map.groupBy(
-    db.orm
-      .select()
-      .from(schema.checklistItems)
-      .orderBy(asc(schema.checklistItems.position))
-      .all(),
-    (i) => i.taskId,
-  );
+  const steps = db.orm.select().from(schema.checklistItems).all().map(toStep);
+  const byTask = Map.groupBy(steps, (s) => s.taskId);
   const counts = new Map<string, number>();
   for (const c of comments)
     if (!c.deletedAt) counts.set(c.taskId, (counts.get(c.taskId) ?? 0) + 1);
@@ -80,11 +81,12 @@ export function readState(db: DatabaseHandle): WorkspaceState {
     .select()
     .from(schema.tasks)
     .all()
-    .map((t) => toTask(t, items.get(t.id) ?? [], counts.get(t.id) ?? 0));
+    .map((t) => toTask(t, byTask.get(t.id) ?? [], counts.get(t.id) ?? 0));
   return {
     projects,
     labels,
     tasks,
+    steps,
     comments,
     appearance: [readAppearance(db)],
   };
@@ -97,18 +99,18 @@ export function readTask(db: DatabaseHandle, id: string): Task | undefined {
     .where(eq(schema.tasks.id, id))
     .get();
   if (!row) return undefined;
-  const checklist = db.orm
+  const steps = db.orm
     .select()
     .from(schema.checklistItems)
     .where(eq(schema.checklistItems.taskId, id))
-    .orderBy(asc(schema.checklistItems.position))
-    .all();
+    .all()
+    .map(toStep);
   const count = db.sqlite
     .prepare(
       'SELECT COUNT(*) AS n FROM comments WHERE task_id=? AND deleted_at IS NULL',
     )
     .get(id) as { n: number };
-  return toTask(row, checklist, count.n);
+  return toTask(row, steps, count.n);
 }
 export function readTaskByOrigin(
   db: DatabaseHandle,
@@ -173,6 +175,7 @@ export type Touched = {
   projects: Set<string>;
   labels: Set<string>;
   tasks: Set<string>;
+  steps: Set<string>;
   comments: Set<string>;
   appearance: boolean;
 };
@@ -183,6 +186,7 @@ export function touchedByEvents(
     projects: new Set(),
     labels: new Set(),
     tasks: new Set(),
+    steps: new Set(),
     comments: new Set(),
     appearance: false,
   };
@@ -191,6 +195,7 @@ export function touchedByEvents(
     else if (e.entityKind === 'project') touched.projects.add(e.entityId);
     else if (e.entityKind === 'label') touched.labels.add(e.entityId);
     else if (e.entityKind === 'comment') touched.comments.add(e.entityId);
+    else if (e.entityKind === 'step') touched.steps.add(e.entityId);
     else touched.appearance = true;
   return touched;
 }
@@ -265,24 +270,33 @@ export function writeState(
         .set({ orderKey: `~${t.id}` })
         .where(eq(schema.tasks.id, t.id))
         .run();
-  for (const t of changed)
-    db.orm
-      .delete(schema.checklistItems)
-      .where(eq(schema.checklistItems.taskId, t.id))
-      .run();
   for (const t of changed) {
-    const { checklist, commentCount: _count, ...row } = t;
+    // The checklist is a projection of the step rows, never stored.
+    const { checklist: _checklist, commentCount: _count, ...row } = t;
     db.orm
       .insert(schema.tasks)
       .values(row)
       .onConflictDoUpdate({ target: schema.tasks.id, set: row })
       .run();
-    for (const [position, item] of checklist.entries())
-      db.orm
-        .insert(schema.checklistItems)
-        .values({ ...item, taskId: t.id, position })
-        .run();
   }
+  // Steps after tasks (a promoted step points at a task written just above).
+  // Free the order slots of the changed steps first: several steps may swap
+  // places in one operation under the unique (task_id, order_key) index.
+  const previousSteps = byId(previous?.steps);
+  const changedSteps = differs(state.steps, previousSteps, touched?.steps);
+  for (const s of changedSteps)
+    if (previousSteps.has(s.id))
+      db.orm
+        .update(schema.checklistItems)
+        .set({ orderKey: `~${s.id}` })
+        .where(eq(schema.checklistItems.id, s.id))
+        .run();
+  for (const s of changedSteps)
+    db.orm
+      .insert(schema.checklistItems)
+      .values(s)
+      .onConflictDoUpdate({ target: schema.checklistItems.id, set: s })
+      .run();
   const appearance = state.appearance[0];
   if (
     appearance &&

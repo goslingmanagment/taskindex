@@ -292,11 +292,12 @@ test('TI-032 the activity tells what changed in words, not in ids and JSON', asy
     ).ok(),
   ).toBe(true);
   expect(
+    // TI-095: the base is the step's own revision, a new step has 1.
     (
       await command(page, 'checklist.update', {
         taskId,
         itemId,
-        baseRevision: 3,
+        baseRevision: 1,
         done: true,
       })
     ).ok(),
@@ -335,7 +336,8 @@ test('TI-032 the activity tells what changed in words, not in ids and JSON', asy
     .first();
   await expect(details).toBeVisible();
   await details.click();
-  await expect(page.locator('.event-raw').first()).toContainText('createdBy');
+  // The newest event is the tick of the step: who ticked it stays verbatim.
+  await expect(page.locator('.event-raw').first()).toContainText('doneBy');
   // A creation reads as the values it started with, not as «не задано → …».
   await expect(
     page.getByText('ТИ-032 читаемая история', { exact: false }).last(),

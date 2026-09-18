@@ -393,10 +393,16 @@ const RENAMED: Partial<Record<CommandName, Record<string, string>>> = {
 // Payload fields the CLI fills itself when the flag is omitted, so help shows
 // them optional even though the command's schema requires them. The appearance
 // preference is one record with a fixed id, so `appearance set` reads its own
-// baseRevision from GET /api/appearance (TI-026); a task has no such single
-// address and always needs `--base-revision` from `task get`.
+// baseRevision from GET /api/appearance (TI-026); a step is addressed by its
+// task and id, so the checklist commands read the step's revision from
+// GET /api/tasks/{taskId} (TI-095); a task has no such single address and
+// always needs `--base-revision` from `task get`.
 const AUTOFILLED: Partial<Record<CommandName, readonly string[]>> = {
   'appearance.update': ['baseRevision'],
+  'checklist.update': ['baseRevision'],
+  'checklist.remove': ['baseRevision'],
+  'checklist.move': ['baseRevision'],
+  'checklist.promote': ['baseRevision'],
 };
 
 export const autofilled = (command: CommandName): readonly string[] =>
@@ -521,30 +527,44 @@ const WRITE_COMMANDS: Record<CommandName, Omit<WriteSpec, 'command'>> = {
     action: 'add',
     positional: [taskId],
     summary: 'Добавить шаг',
-    example:
-      "taskindex checklist add t1 --base-revision 3 --text 'Позвонить' --position 0",
+    example: "taskindex checklist add t1 --text 'Позвонить' --position 0",
   },
   'checklist.update': {
     group: 'checklist',
     action: 'update',
     positional: [taskId, itemId],
-    summary: 'Изменить текст шага или отметить его',
-    example: 'taskindex checklist update t1 s1 --base-revision 3 --done true',
+    summary: 'Изменить шаг: текст, отметку, итог или связанную задачу',
+    example:
+      "taskindex checklist update t1 s1 --done true --result 'PR #12, тесты зелёные'",
   },
   'checklist.remove': {
     group: 'checklist',
     action: 'remove',
     positional: [taskId, itemId],
-    summary: 'Удалить шаг',
-    example: 'taskindex checklist remove t1 s1 --base-revision 3',
+    summary: 'Убрать шаг (отмена возвращает его)',
+    example: 'taskindex checklist remove t1 s1',
+  },
+  'checklist.move': {
+    group: 'checklist',
+    action: 'move',
+    positional: [taskId, itemId],
+    summary: 'Переставить шаг перед или после другого шага',
+    example: 'taskindex checklist move t1 s2 --before s1',
   },
   'checklist.reorder': {
     group: 'checklist',
     action: 'reorder',
     positional: [taskId],
     summary: 'Переставить все шаги',
-    example:
-      'taskindex checklist reorder t1 --base-revision 3 --item-ids \'["s2","s1"]\'',
+    example: 'taskindex checklist reorder t1 --item-ids s2,s1',
+  },
+  'checklist.promote': {
+    group: 'checklist',
+    action: 'promote',
+    positional: [taskId, itemId],
+    summary:
+      'Вынести шаг в отдельную задачу той же области и направления и связать с ней',
+    example: 'taskindex checklist promote t1 s3 --priority p2',
   },
   'comment.add': {
     group: 'comment',

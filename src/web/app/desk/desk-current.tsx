@@ -5,6 +5,8 @@ import { Button } from '../../ui/button';
 import { Checkbox } from '../../ui/checkbox';
 import { Progress } from '../../ui/progress';
 import { Empty, EmptyTitle, EmptyDescription } from '../../ui/empty';
+import { useWorkspace } from '../use-workspace';
+import { stepByline } from '../step-meta';
 // TI-078 (план 13, шаг 8): текущая задача стола. Один заголовок, одно следующее
 // действие и шаги — экран отвечает на вопрос «чем я занят сейчас», а не
 // показывает список.
@@ -24,6 +26,7 @@ export function DeskCurrent({
   /** Стол пуст: предложить выбрать задачу из ящика контекстов. */
   onBrowse: () => void;
 }) {
+  const { timezone } = useWorkspace();
   if (!task)
     return (
       <section className="desk-card desk-empty" aria-label="Текущая задача">
@@ -77,16 +80,30 @@ export function DeskCurrent({
               value={(done / task.checklist.length) * 100}
             />
           </div>
-          {task.checklist.map((item) => (
-            <label className="desk-step" key={item.id}>
-              <Checkbox
-                checked={item.done}
-                aria-label={'Выполнено: ' + item.text}
-                onCheckedChange={(v) => onToggleStep(task, item.id, !!v)}
-              />
-              <span className={item.done ? 'step-done' : ''}>{item.text}</span>
-            </label>
-          ))}
+          {task.checklist.map((item) => {
+            const byline = stepByline(item, timezone);
+            return (
+              <label className="desk-step" key={item.id}>
+                <Checkbox
+                  checked={item.done}
+                  aria-label={'Выполнено: ' + item.text}
+                  onCheckedChange={(v) => onToggleStep(task, item.id, !!v)}
+                />
+                <span className="desk-step-body">
+                  <span className={item.done ? 'step-done' : ''}>
+                    {item.text}
+                  </span>
+                  {(byline || item.result) && (
+                    <small className="desk-step-meta">
+                      {byline}
+                      {byline && item.result ? ' · ' : ''}
+                      {item.result}
+                    </small>
+                  )}
+                </span>
+              </label>
+            );
+          })}
         </div>
       )}
       <div className="desk-card-footer">

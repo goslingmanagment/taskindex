@@ -22,7 +22,7 @@ it('random command sequences by owner and agents preserve invariants, the event 
       fc.array(
         fc.record({
           task: fc.integer({ min: 0, max: 2 }),
-          action: fc.integer({ min: 0, max: 7 }),
+          action: fc.integer({ min: 0, max: 9 }),
           actor: fc.integer({ min: 0, max: 2 }),
           confirm: fc.boolean(),
           value: fc.integer({ min: 0, max: 99 }),
@@ -34,6 +34,7 @@ it('random command sequences by owner and agents preserve invariants, the event 
           projects: [],
           labels: structuredClone(SEEDED_LABELS),
           tasks: [],
+          steps: [],
           comments: [],
           appearance: [defaultAppearance()],
         };
@@ -41,6 +42,7 @@ it('random command sequences by owner and agents preserve invariants, the event 
           projects: [],
           labels: structuredClone(SEEDED_LABELS),
           tasks: [],
+          steps: [],
           comments: [],
           appearance: [defaultAppearance()],
         };
@@ -106,6 +108,12 @@ it('random command sequences by owner and agents preserve invariants, the event 
           const t = state.tasks[action.task]!;
           const base = { id: t.id, baseRevision: t.revision };
           const protectedBefore = new Set(t.ownerFields);
+          // TI-095: the owner's fields of every step, before the command.
+          const protectedSteps = new Map(
+            state.steps.map((s) => [s.id, new Set(s.ownerFields)]),
+          );
+          const liveOf = (taskId: string) =>
+            state.steps.filter((s) => s.taskId === taskId && !s.removedAt);
           const seen = history.length;
           let code: string | undefined;
           if (action.action === 0)
@@ -171,7 +179,34 @@ it('random command sequences by owner and agents preserve invariants, the event 
               actor,
               action.confirm,
             );
-          else if (action.action === 7) {
+          else if (action.action === 8 || action.action === 9) {
+            // TI-095: a tick or a removal of one of the task's live steps.
+            const live = liveOf(t.id);
+            const target = live[action.value % Math.max(live.length, 1)];
+            if (!target) continue;
+            code = apply(
+              action.action === 8
+                ? {
+                    command: 'checklist.update',
+                    payload: {
+                      taskId: t.id,
+                      itemId: target.id,
+                      baseRevision: target.revision,
+                      done: !target.done,
+                    },
+                  }
+                : {
+                    command: 'checklist.remove',
+                    payload: {
+                      taskId: t.id,
+                      itemId: target.id,
+                      baseRevision: target.revision,
+                    },
+                  },
+              actor,
+              action.confirm,
+            );
+          } else if (action.action === 7) {
             // Plan 13: a desk position by the owner; agents are refused.
             const other = state.tasks[(action.task + 1) % 3]!;
             const position =
@@ -237,6 +272,17 @@ it('random command sequences by owner and agents preserve invariants, the event 
                   }
                   expect(protectedBefore.has(key)).toBe(false);
                 }
+          // TI-095: an unconfirmed agent never changes a field the owner
+          // decided on a step, and never removes a step he touched.
+          if (actor.kind !== 'owner' && !action.confirm && code === undefined)
+            for (const event of history.slice(seen))
+              if (event.entityKind === 'step') {
+                const decided = protectedSteps.get(event.entityId);
+                if (!decided) continue;
+                for (const key of Object.keys(event.changes))
+                  expect(decided.has(key)).toBe(false);
+                if (event.changes.removedAt?.to) expect(decided.size).toBe(0);
+              }
         }
         // Plan 13, criterion 1: focus keys are unique and focus mirrors the key;
         // a task that is done or archived is never on the desk.

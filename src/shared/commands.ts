@@ -1,4 +1,4 @@
-import { generateKeyBetween } from 'fractional-indexing';
+import { generateKeyBetween, generateNKeysBetween } from 'fractional-indexing';
 import { z } from 'zod';
 import type {
   Actor,
@@ -16,13 +16,21 @@ import type {
   Comment,
   Appearance,
   Label,
+  Step,
 } from './model.js';
 import { byFocusKey, byOrder } from './queries.js';
+import {
+  legacyChecklistItems,
+  legacySteps,
+  liveSteps,
+  projectChecklist,
+  stepKeyAt,
+} from './steps.js';
 import type { FocusPosition } from './schemas.js';
 import { assertNever, fail } from './errors.js';
 import { LIMITS } from './limits.js';
 import { DEFAULT_APPEARANCE_ID } from './appearance.js';
-import { ENTITIES } from './entities.js';
+import { ENTITIES, STEP_EXECUTION_FIELDS } from './entities.js';
 import { DEFAULT_PRIORITY } from './labels.js';
 import { uniqueSlug } from './slug.js';
 type ChangeEffect = {
@@ -110,10 +118,14 @@ function writtenLabels(
   );
 }
 // Records are told apart by shape: only tasks carry a checklist, only
-// comments a taskId, only labels an archive instant.
+// comments a deletion instant, only labels an archive instant, only steps a
+// removal instant; tasks and steps carry the owner's protected fields.
 const isTask = (record: Entity): record is Task => 'checklist' in record;
-const isComment = (record: Entity): record is Comment => 'taskId' in record;
+const isComment = (record: Entity): record is Comment => 'deletedAt' in record;
 const isLabel = (record: Entity): record is Label => 'archivedAt' in record;
+const isStep = (record: Entity): record is Step => 'removedAt' in record;
+const hasOwnerFields = (record: Entity): record is Task | Step =>
+  'ownerFields' in record;
 function requireScope(actor: Actor, kind: EntityKind) {
   // Appearance is the owner's own preference: no agent scope reaches it, and
   // task.sync never touches it (TI-025).
@@ -174,7 +186,7 @@ function changesBetween(before: Entity | undefined, after: Entity): Changes {
     Object.keys(b)
       .filter(
         (k) =>
-          !['revision', 'updatedAt', 'commentCount'].includes(k) &&
+          !['revision', 'updatedAt', 'commentCount', 'checklist'].includes(k) &&
           (!before || !equal(a[k], b[k])),
       )
       .map((k) => [k, { from: before ? a[k] : null, to: b[k] }]),
@@ -185,6 +197,7 @@ function records(state: WorkspaceState, kind: 'project'): Project[];
 function records(state: WorkspaceState, kind: 'comment'): Comment[];
 function records(state: WorkspaceState, kind: 'appearance'): Appearance[];
 function records(state: WorkspaceState, kind: 'label'): Label[];
+function records(state: WorkspaceState, kind: 'step'): Step[];
 function records(state: WorkspaceState, kind: EntityKind): Entity[];
 function records(state: WorkspaceState, kind: EntityKind): Entity[] {
   return state[ENTITIES[kind].collection];
@@ -194,6 +207,7 @@ function get(state: WorkspaceState, kind: 'project', id: string): Project;
 function get(state: WorkspaceState, kind: 'comment', id: string): Comment;
 function get(state: WorkspaceState, kind: 'appearance', id: string): Appearance;
 function get(state: WorkspaceState, kind: 'label', id: string): Label;
+function get(state: WorkspaceState, kind: 'step', id: string): Step;
 function get(state: WorkspaceState, kind: EntityKind, id: string): Entity;
 function get(state: WorkspaceState, kind: EntityKind, id: string): Entity {
   return (
@@ -304,8 +318,7 @@ export function assertInvariants(
   const names = new Map<string, Project>(),
     keys = new Map<string, Task>(),
     focusKeys = new Map<string, Task>(),
-    origins = new Map<string, Task>(),
-    itemIds = new Set<string>();
+    origins = new Map<string, Task>();
   const unchanged = <T extends { id: string }>(previous: T, record: T): T =>
     changedIds.has(previous.id) && !changedIds.has(record.id)
       ? record
@@ -386,15 +399,6 @@ export function assertInvariants(
         });
       origins.set(origin, t);
     }
-    if (t.checklist.length > LIMITS.checklistItems)
-      fail('invalid', `В задаче не больше ${LIMITS.checklistItems} шагов.`);
-    if (new Set(t.checklist.map((i) => i.id)).size !== t.checklist.length)
-      fail('invalid', 'Идентификаторы шагов в задаче повторяются.');
-    for (const item of t.checklist) {
-      if (itemIds.has(item.id))
-        fail('invalid', 'Идентификатор шага уже занят другой задачей.');
-      itemIds.add(item.id);
-    }
     if (
       t.labels.length > LIMITS.taskLabels ||
       new Set(t.labels).size !== t.labels.length
@@ -403,6 +407,42 @@ export function assertInvariants(
     if (!t.labels.every((id) => labelIds.has(id)))
       fail('invalid', 'Метка отсутствует в каталоге.');
   }
+  // Steps (TI-095): one id across the workspace, a task that exists, a link
+  // to another existing task, unique places among the live steps of a task
+  // and no more live steps than the limit.
+  const taskIds = new Set(state.tasks.map((t) => t.id));
+  const stepIds = new Set<string>(),
+    stepKeys = new Map<string, Step>(),
+    liveCount = new Map<string, number>();
+  for (const step of state.steps) {
+    if (stepIds.has(step.id))
+      fail('invalid', 'Идентификатор шага уже занят другой задачей.');
+    stepIds.add(step.id);
+    if (!taskIds.has(step.taskId))
+      fail('invalid', 'Шаг ссылается на отсутствующую задачу.');
+    if (
+      step.linkedTaskId !== null &&
+      (step.linkedTaskId === step.taskId || !taskIds.has(step.linkedTaskId))
+    )
+      fail('invalid', 'Связанная задача шага должна быть другой задачей.');
+    if (step.removedAt !== null) continue;
+    liveCount.set(step.taskId, (liveCount.get(step.taskId) ?? 0) + 1);
+    const key = `${step.taskId}/${step.orderKey}`;
+    const holder = stepKeys.get(key);
+    if (holder) {
+      const current = unchanged(holder, step);
+      fail('conflict', 'Прежнее место шага уже занято.', {
+        current,
+        conflicts: [
+          { entityKind: 'step', entityId: current.id, fields: ['orderKey'] },
+        ],
+      });
+    }
+    stepKeys.set(key, step);
+  }
+  for (const n of liveCount.values())
+    if (n > LIMITS.checklistItems)
+      fail('invalid', `В задаче не больше ${LIMITS.checklistItems} шагов.`);
 }
 // One command application: the cloned state, the context, the effects
 // collected so far and `emit`, which records a change and stamps the record.
@@ -482,6 +522,8 @@ function applyUndo(s: Session, p: CommandOf<'undo'>['payload']): CommandResult {
         values = record.deletedAt ? {} : { deletedAt: s.ctx.now };
       else if (isLabel(record))
         values = record.archivedAt ? {} : { archivedAt: s.ctx.now };
+      else if (isStep(record))
+        values = record.removedAt ? {} : { removedAt: s.ctx.now };
       else values = {};
     } else
       values = Object.fromEntries(
@@ -746,7 +788,7 @@ function createTask(
     focusKey: null,
     focusLeftAt: null,
     archived: false,
-    checklist: fields.checklist ?? [],
+    checklist: [],
     commentCount: 0,
     originSystem: origin?.system ?? null,
     originRef: origin?.ref ?? null,
@@ -774,7 +816,9 @@ function applyTaskCreate(
   if (existing) return { record: existing, changes: {}, existing: true };
   const { id, origin, position, ...fields } = p;
   const record = createTask(s, id, fields, origin, position);
-  return { record, changes: s.emit('task', undefined, record) };
+  const changes = s.emit('task', undefined, record);
+  createSteps(s, record, fields.checklist ?? []);
+  return { record, changes };
 }
 function applyTaskSync(
   s: Session,
@@ -799,12 +843,9 @@ function applyTaskSync(
   const existing = findByOrigin(s.state, origin);
   if (!existing) {
     const record = createTask(s, undefined, fields, origin, undefined);
-    return {
-      record,
-      changes: s.emit('task', undefined, record),
-      applied: Object.keys(fields),
-      skipped,
-    };
+    const changes = s.emit('task', undefined, record);
+    createSteps(s, record, fields.checklist ?? []);
+    return { record, changes, applied: Object.keys(fields), skipped };
   }
   const record = existing;
   const before = structuredClone(record);
@@ -821,6 +862,12 @@ function applyTaskSync(
   if (reason) return { record, changes: {}, skipped: 'all', reason };
   const patch: Record<string, unknown> = {};
   for (const [key, value] of Object.entries(fields)) {
+    // Steps are records the board owns once the task exists (TI-095): a
+    // source writes them only when it creates the task.
+    if (key === 'checklist') {
+      skipped.push({ field: key, reason: 'locked' });
+      continue;
+    }
     if (
       record.ownerTouchedAt &&
       (record.ownerFields.includes(key) || ownerLockedFields.includes(key))
@@ -974,19 +1021,20 @@ function applyTaskWrite(
       const { fields = {}, status, checklist, position } = command.payload;
       refuseOwnerOnly(s, fields);
       const { focusPosition, ...rest } = fields;
-      return commitTaskPatch(
+      const result = commitTaskPatch(
         s,
         record,
         p.baseRevision,
-        {
-          ...rest,
-          ...(status !== undefined ? { status } : {}),
-          ...(checklist !== undefined ? { checklist } : {}),
-        },
+        { ...rest, ...(status !== undefined ? { status } : {}) },
         position,
         false,
         focusPosition,
       );
+      // The checklist of a save is the plan as the client sees it: it
+      // becomes per-step changes against the live steps (TI-095).
+      const steps =
+        checklist === undefined ? [] : syncSteps(s, record, checklist);
+      return steps.length ? { ...result, records: [record, ...steps] } : result;
     }
     case 'task.move': {
       const { status, before, after } = command.payload;
@@ -1019,66 +1067,312 @@ function applyTaskWrite(
       return assertNever(command);
   }
 }
+// Steps as records (TI-095). Every change of a step refreshes the task's
+// `checklist`, the projection readers see (`emit` does it).
+function refreshChecklist(state: WorkspaceState, taskId: string) {
+  const task = state.tasks.find((t) => t.id === taskId);
+  if (task) task.checklist = projectChecklist(state.steps, taskId);
+}
+function getStep(s: Session, taskId: string, itemId: string): Step {
+  const step = s.state.steps.find((x) => x.id === itemId);
+  if (!step || step.taskId !== taskId) fail('not_found', 'Шаг не найден.');
+  if (step.removedAt !== null) fail('not_found', 'Шаг удалён.');
+  return step;
+}
+type StepInput = {
+  id?: string;
+  text: string;
+  done?: boolean;
+  result?: string;
+  removed?: boolean;
+};
+// A new step at `index` among the live steps of its task (past the end
+// appends). A step created done is credited to its creator.
+function createStep(
+  s: Session,
+  task: Task,
+  input: StepInput,
+  index?: number,
+): { record: Step; changes: Changes } {
+  const id = input.id ?? s.ctx.ids();
+  if (s.state.steps.some((x) => x.id === id))
+    fail('conflict', 'Идентификатор шага уже занят.');
+  const live = liveSteps(s.state.steps, task.id);
+  if (live.length >= LIMITS.checklistItems)
+    fail('invalid', `В задаче не больше ${LIMITS.checklistItems} шагов.`);
+  const done = input.done ?? false;
+  const record: Step = {
+    id,
+    taskId: task.id,
+    text: input.text,
+    orderKey: stepKeyAt(live, index ?? live.length),
+    done,
+    doneAt: done ? s.ctx.now : null,
+    doneBy: done ? s.ctx.actor.id : null,
+    doneByLabel: done ? s.ctx.actor.label : null,
+    result: input.result ?? '',
+    linkedTaskId: null,
+    removedAt: null,
+    createdBy: s.ctx.actor.id,
+    createdByLabel: s.ctx.actor.label,
+    ownerTouchedAt: null,
+    ownerFields: [],
+    revision: 0,
+    createdAt: s.ctx.now,
+    updatedAt: s.ctx.now,
+  };
+  s.state.steps.push(record);
+  return { record, changes: s.emit('step', undefined, record) };
+}
+function createSteps(s: Session, task: Task, items: readonly StepInput[]) {
+  for (const item of items) if (!item.removed) createStep(s, task, item);
+}
+type StepPatch = Partial<
+  Pick<
+    Step,
+    'text' | 'orderKey' | 'done' | 'result' | 'linkedTaskId' | 'removedAt'
+  >
+>;
+// The common tail of every direct step write: merge check against the step's
+// revision, owner-field confirmation for agents (the same rule as tasks, on
+// the fields of this step alone), the tick's bookkeeping and the event.
+function commitStepPatch(
+  s: Session,
+  record: Step,
+  baseRevision: number,
+  patch: StepPatch,
+): CommandResult {
+  const before = structuredClone(record);
+  const keys = Object.keys(patch);
+  assertMerge('step', record, baseRevision, keys, s.history);
+  const confirmed: string[] = [];
+  if (isAgent(s) && record.ownerTouchedAt) {
+    const current: Record<string, unknown> = record;
+    const wanted: Record<string, unknown> = patch;
+    // Removing a step discards everything the owner decided on it, so a
+    // step with any owner field is protected from removal as a whole.
+    const overridden = keys.filter(
+      (key) =>
+        (record.ownerFields.includes(key) ||
+          (key === 'removedAt' && record.ownerFields.length > 0)) &&
+        !equal(wanted[key], current[key]),
+    );
+    if (overridden.length && !s.ctx.confirmOwnerFields)
+      fail(
+        'forbidden',
+        'Поле защищено владельцем: подтвердите поручение флагом confirmOwnerFields: true.',
+        {
+          current: record,
+          conflicts: [
+            { entityKind: 'step', entityId: record.id, fields: overridden },
+          ],
+        },
+      );
+    confirmed.push(...overridden);
+  }
+  Object.assign(record, patch);
+  if (patch.done !== undefined && patch.done !== before.done) {
+    record.doneAt = patch.done ? s.ctx.now : null;
+    record.doneBy = patch.done ? s.ctx.actor.id : null;
+    record.doneByLabel = patch.done ? s.ctx.actor.label : null;
+  }
+  return {
+    record,
+    changes: s.emit('step', before, record),
+    ...(confirmed.length ? { confirmedOwnerFields: confirmed } : {}),
+  };
+}
+// Fresh keys for the live steps in the order given; nothing moves when the
+// order did not change.
+function reorderSteps(
+  s: Session,
+  live: readonly Step[],
+  ids: readonly string[],
+): Step[] {
+  if (live.map((x) => x.id).join(',') === ids.join(',')) return [];
+  const keys = generateNKeysBetween(null, null, ids.length);
+  const changed: Step[] = [];
+  for (const [index, id] of ids.entries()) {
+    const step = live.find((x) => x.id === id)!;
+    if (step.orderKey === keys[index]) continue;
+    commitStepPatch(s, step, step.revision, { orderKey: keys[index]! });
+    changed.push(step);
+  }
+  return changed;
+}
+// task.save: the client's list against the live steps. Known steps are
+// patched (their `revision` is the base when given), steps flagged `removed`
+// are removed, new ones are created after the listed step before them, and
+// the listed steps take the order of the list. A step the list does not name
+// is left alone: a client never removes what it has not seen (an agent may
+// have added it meanwhile).
+function syncSteps(
+  s: Session,
+  task: Task,
+  items: readonly (StepInput & { revision?: number })[],
+): Step[] {
+  const byId = new Map(liveSteps(s.state.steps, task.id).map((x) => [x.id, x]));
+  const changed: Step[] = [];
+  const listed: string[] = [];
+  let anchor: Step | undefined;
+  for (const item of items) {
+    const existing = item.id ? byId.get(item.id) : undefined;
+    if (item.removed) {
+      if (existing) {
+        commitStepPatch(s, existing, item.revision ?? existing.revision, {
+          removedAt: s.ctx.now,
+        });
+        changed.push(existing);
+      }
+      continue;
+    }
+    if (!existing) {
+      const live = liveSteps(s.state.steps, task.id);
+      const index = anchor ? live.findIndex((x) => x.id === anchor!.id) + 1 : 0;
+      const { record } = createStep(s, task, item, index);
+      changed.push(record);
+      listed.push(record.id);
+      anchor = record;
+      continue;
+    }
+    const patch: StepPatch = {
+      ...(item.text !== existing.text ? { text: item.text } : {}),
+      ...(item.done !== undefined && item.done !== existing.done
+        ? { done: item.done }
+        : {}),
+      ...(item.result !== undefined && item.result !== existing.result
+        ? { result: item.result }
+        : {}),
+    };
+    if (Object.keys(patch).length) {
+      commitStepPatch(s, existing, item.revision ?? existing.revision, patch);
+      changed.push(existing);
+    }
+    listed.push(existing.id);
+    anchor = existing;
+  }
+  const live = liveSteps(s.state.steps, task.id);
+  const named = new Set(listed);
+  const current = live.filter((x) => named.has(x.id)).map((x) => x.id);
+  if (current.join(',') !== listed.join(',')) {
+    const queue = [...listed];
+    const target = live.map((x) => (named.has(x.id) ? queue.shift()! : x.id));
+    for (const step of reorderSteps(s, live, target))
+      if (!changed.includes(step)) changed.push(step);
+  }
+  return changed;
+}
 function applyChecklist(
   s: Session,
   command: CommandOf<
     | 'checklist.add'
     | 'checklist.update'
     | 'checklist.remove'
+    | 'checklist.move'
     | 'checklist.reorder'
+    | 'checklist.promote'
   >,
 ): CommandResult {
-  const record = get(s.state, 'task', command.payload.taskId);
-  const items = structuredClone(record.checklist);
+  const task = get(s.state, 'task', command.payload.taskId);
   switch (command.command) {
     case 'checklist.add': {
       const p = command.payload;
-      items.splice(p.position ?? items.length, 0, {
-        id: p.id ?? s.ctx.ids(),
-        text: p.text,
-        done: false,
+      return createStep(s, task, { id: p.id, text: p.text }, p.position);
+    }
+    case 'checklist.update': {
+      const p = command.payload;
+      const record = getStep(s, task.id, p.itemId);
+      if (p.linkedTaskId) {
+        if (p.linkedTaskId === task.id)
+          fail('invalid', 'Шаг нельзя связать с его собственной задачей.');
+        get(s.state, 'task', p.linkedTaskId);
+      }
+      return commitStepPatch(s, record, p.baseRevision, {
+        ...(p.text !== undefined ? { text: p.text } : {}),
+        ...(p.done !== undefined ? { done: p.done } : {}),
+        ...(p.result !== undefined ? { result: p.result } : {}),
+        ...(p.linkedTaskId !== undefined
+          ? { linkedTaskId: p.linkedTaskId }
+          : {}),
       });
-      break;
+    }
+    case 'checklist.remove': {
+      const p = command.payload;
+      const record = getStep(s, task.id, p.itemId);
+      return commitStepPatch(s, record, p.baseRevision, {
+        removedAt: s.ctx.now,
+      });
+    }
+    case 'checklist.move': {
+      const p = command.payload;
+      const record = getStep(s, task.id, p.itemId);
+      const others = liveSteps(s.state.steps, task.id).filter(
+        (x) => x.id !== record.id,
+      );
+      const n = others.findIndex((x) => x.id === (p.before ?? p.after));
+      if (n < 0)
+        fail('invalid', 'Сосед должен быть другим шагом той же задачи.');
+      const orderKey = p.before
+        ? generateKeyBetween(
+            others[n - 1]?.orderKey ?? null,
+            others[n]!.orderKey,
+          )
+        : generateKeyBetween(
+            others[n]!.orderKey,
+            others[n + 1]?.orderKey ?? null,
+          );
+      return commitStepPatch(s, record, p.baseRevision, { orderKey });
     }
     case 'checklist.reorder': {
       const ids = command.payload.itemIds;
+      const live = liveSteps(s.state.steps, task.id);
       if (
-        ids.length !== items.length ||
+        ids.length !== live.length ||
         new Set(ids).size !== ids.length ||
-        ids.some((id) => !items.some((i) => i.id === id))
+        ids.some((id) => !live.some((x) => x.id === id))
       )
         fail('invalid', 'Укажите все шаги без повторов.');
-      items.splice(
-        0,
-        items.length,
-        ...ids.map((id) => items.find((i) => i.id === id)!),
-      );
-      break;
+      const changed = reorderSteps(s, live, ids);
+      return { record: task, records: changed, changes: {} };
     }
-    case 'checklist.remove':
-    case 'checklist.update': {
-      const index = items.findIndex((i) => i.id === command.payload.itemId);
-      if (index < 0) fail('not_found', 'Шаг не найден.');
-      if (command.command === 'checklist.remove') items.splice(index, 1);
-      else {
-        const { text, done } = command.payload;
-        Object.assign(items[index]!, {
-          ...(text !== undefined ? { text } : {}),
-          ...(done !== undefined ? { done } : {}),
-        });
-      }
-      break;
+    case 'checklist.promote': {
+      // One operation: the step grows into a task of the same area and
+      // direction, and the step points at it. The parent's priority and
+      // labels carry over unless given.
+      const p = command.payload;
+      const step = getStep(s, task.id, p.itemId);
+      if (step.linkedTaskId !== null)
+        fail('invalid', 'Шаг уже вынесен в задачу.');
+      const child = createTask(
+        s,
+        p.id,
+        {
+          area: task.area,
+          projectId: p.projectId !== undefined ? p.projectId : task.projectId,
+          title: p.title ?? step.text,
+          note: `Шаг задачи «${task.title}» (${task.id}).`,
+          priority: p.priority ?? task.priority,
+          labels: task.labels,
+        },
+        undefined,
+        undefined,
+      );
+      const changes = s.emit('task', undefined, child);
+      const linked = commitStepPatch(s, step, p.baseRevision, {
+        linkedTaskId: child.id,
+      });
+      return {
+        record: child,
+        records: [child, step],
+        changes,
+        ...(linked.confirmedOwnerFields
+          ? { confirmedOwnerFields: linked.confirmedOwnerFields }
+          : {}),
+      };
     }
     default:
       return assertNever(command);
   }
-  return commitTaskPatch(
-    s,
-    record,
-    command.payload.baseRevision,
-    { checklist: items },
-    undefined,
-  );
 }
 // The caller validates: the server through commandEnvelopeSchema in
 // operations.ts, the web client through typed builders. `command.command`
@@ -1099,13 +1393,17 @@ export function applyCommand(
     name: command.command,
     emit(kind, before, after, cmd = command.command) {
       let changes = changesBetween(before, after);
-      if (isTask(after) && ctx.actor.kind === 'owner') {
+      if (hasOwnerFields(after) && ctx.actor.kind === 'owner') {
         after.ownerTouchedAt ??= ctx.now;
+        // Writing a step is deciding its wording, place and existence, not
+        // its tick or outcome: those stay open to whoever executes it.
+        const decided = Object.keys(changes).filter(
+          (k) =>
+            isSubjectField(kind, k) &&
+            !(kind === 'step' && !before && STEP_EXECUTION_FIELDS.has(k)),
+        );
         after.ownerFields = [
-          ...new Set([
-            ...after.ownerFields,
-            ...Object.keys(changes).filter((k) => isSubjectField('task', k)),
-          ]),
+          ...new Set([...after.ownerFields, ...decided]),
         ].toSorted();
         changes = changesBetween(before, after);
       }
@@ -1115,11 +1413,12 @@ export function applyCommand(
       effects.push({
         entityKind: kind,
         entityId: after.id,
-        ...(isComment(after) ? { taskId: after.taskId } : {}),
+        ...('taskId' in after ? { taskId: after.taskId } : {}),
         command: cmd,
         changes,
         recordRevision: after.revision,
       });
+      if (isStep(after)) refreshChecklist(s.state, after.taskId);
       return changes;
     },
   };
@@ -1183,8 +1482,10 @@ export function applyCommand(
     case 'checklist.add':
     case 'checklist.update':
     case 'checklist.remove':
+    case 'checklist.move':
     case 'checklist.reorder':
-      requireScope(ctx.actor, 'task');
+    case 'checklist.promote':
+      requireScope(ctx.actor, 'step');
       result = applyChecklist(s, command);
       break;
     default:
@@ -1214,6 +1515,13 @@ export function applyEvent(
   const patch = Object.fromEntries(
     Object.entries(event.changes).map(([k, v]) => [k, v.to]),
   );
+  // A task event written before steps were records (0008) carries the
+  // whole checklist: it stands for the step rows the migration made of it.
+  const legacy =
+    event.entityKind === 'task' && 'checklist' in patch
+      ? legacyChecklistItems(patch.checklist)
+      : null;
+  delete patch.checklist;
   if (event.entityKind === 'comment') {
     const taskId =
       event.taskId ??
@@ -1247,21 +1555,61 @@ export function applyEvent(
       revision: event.recordRevision,
       ...(event.entityKind !== 'comment' ? { updatedAt: event.at } : {}),
     } as Entity;
-    if (event.entityKind === 'task' && !prior && isTask(next)) {
-      next.commentCount = 0;
-      if (next.priority === undefined) next.priority = DEFAULT_PRIORITY;
-      if (next.labels === undefined) next.labels = [];
-      if (next.closes === undefined) next.closes = null;
-    }
-    // A label the catalogue never had (retired before 0007) vanishes on
-    // replay, exactly as its migration dropped it from the tables; the journal
-    // and stored results keep it as written.
-    if (event.entityKind === 'task' && isTask(next))
-      next.labels = next.labels.filter((id) =>
+    // A task event never carries the derived fields (checklist, comment
+    // count): a created task starts them here, with the schema defaults of
+    // fields older journals do not name.
+    if (event.entityKind === 'task') {
+      const task = next as Task;
+      if (!prior) {
+        task.commentCount = 0;
+        task.priority ??= DEFAULT_PRIORITY;
+        task.labels ??= [];
+        task.closes ??= null;
+        task.checklist = projectChecklist(state.steps, task.id);
+      }
+      // A label the catalogue never had (retired before 0007) vanishes on
+      // replay, exactly as its migration dropped it from the tables; the
+      // journal and stored results keep it as written.
+      task.labels = task.labels.filter((id) =>
         state.labels.some((l) => l.id === id),
       );
+      // Before 0008 the owner's touch on any step marked `checklist` on the
+      // task; the migration dropped that entry, steps carry their own now.
+      task.ownerFields = task.ownerFields.filter((k) => k !== 'checklist');
+    }
     if (index < 0) list.push(next);
     else list[index] = next;
   }
+  if (legacy) {
+    const task = state.tasks.find((t) => t.id === event.entityId);
+    if (task) {
+      state.steps = [
+        ...state.steps.filter((x) => x.taskId !== task.id),
+        ...legacySteps(task, legacy),
+      ];
+      replaceTask(state, {
+        ...task,
+        checklist: projectChecklist(state.steps, task.id),
+      });
+    }
+  }
+  if (event.entityKind === 'step') {
+    const step = list.find((r) => r.id === event.entityId);
+    const taskId =
+      event.taskId ??
+      (patch.taskId as string | undefined) ??
+      (step && isStep(step) ? step.taskId : undefined);
+    const task = state.tasks.find((t) => t.id === taskId);
+    if (task)
+      replaceTask(state, {
+        ...task,
+        checklist: projectChecklist(state.steps, task.id),
+      });
+  }
   return state;
+}
+// A new task object in a new array, so subscribers of other tasks keep their
+// identities (TI-083).
+function replaceTask(state: WorkspaceState, task: Task) {
+  state.tasks = state.tasks.map((t) => (t.id === task.id ? task : t));
 }

@@ -784,11 +784,15 @@ describe('owner fields need an explicit confirmation from agents', () => {
     );
     expect(success(owner).results[0]!.confirmedOwnerFields).toBeUndefined();
   });
-  // TI-095 (owner decision 2026-09-18): the owner's steps are protected by
-  // what they say, not the list as a whole. An agent working through the plan
-  // ticks steps and appends new ones without a flag; rewording, removing or
-  // reordering the owner's steps, or clearing a tick, needs confirmOwnerFields.
-  it('TI-095: after the owner edited a step, an agent still ticks steps and appends new ones without confirmation', async () => {
+  // TI-095 (owner decision 2026-09-18): steps are records of their own, and
+  // the owner's touch protects the step and the fields he decided on, never
+  // the list as a whole. An agent working through the plan ticks steps,
+  // appends new ones and rewords steps the owner never touched without a
+  // flag; rewording, removing or moving the owner's steps, or clearing his
+  // tick, needs confirmOwnerFields.
+  const stepOf = (f: ReturnType<typeof setup>, id: string) =>
+    task(f, 'ta').checklist.find((item) => item.id === id)!;
+  it("TI-095: the owner's edit protects that step only: an agent ticks it, appends steps and rewords the others without confirmation", async () => {
     const f = await seed(setup());
     success(
       await f.post(
@@ -806,25 +810,28 @@ describe('owner fields need an explicit confirmation from agents', () => {
         { role: 'agent' },
       ),
     );
-    // The owner fixes the wording of the first step: the checklist is now his.
+    // The owner fixes the wording of the first step: that step's text is his.
     success(
       await f.post({
         command: 'checklist.update',
         payload: {
           taskId: 'ta',
-          baseRevision: task(f, 'ta').revision,
+          baseRevision: stepOf(f, 's1').revision,
           itemId: 's1',
           text: 'Первый шаг',
         },
       }),
     );
-    expect(task(f, 'ta').ownerFields).toContain('checklist');
+    const s1 = f.state().steps.find((s) => s.id === 's1')!;
+    expect(s1.ownerFields).toEqual(['text']);
+    expect(s1.ownerTouchedAt).not.toBeNull();
+    expect(task(f, 'ta').ownerTouchedAt).toBeNull();
     const tick = await f.post(
       {
         command: 'checklist.update',
         payload: {
           taskId: 'ta',
-          baseRevision: task(f, 'ta').revision,
+          baseRevision: stepOf(f, 's1').revision,
           itemId: 's1',
           done: true,
         },
@@ -833,16 +840,16 @@ describe('owner fields need an explicit confirmation from agents', () => {
     );
     expect(tick.status).toBe(200);
     expect(success(tick).results[0]!.confirmedOwnerFields).toBeUndefined();
+    expect(stepOf(f, 's1')).toMatchObject({
+      done: true,
+      doneBy: 'agent:test-agent',
+      doneByLabel: 'Тестовый агент',
+      doneAt: '2026-09-08T12:00:00.000Z',
+    });
     const add = await f.post(
       {
         command: 'checklist.add',
-        payload: {
-          taskId: 'ta',
-          baseRevision: task(f, 'ta').revision,
-          id: 's3',
-          text: 'Третий',
-          position: 1,
-        },
+        payload: { taskId: 'ta', id: 's3', text: 'Третий', position: 1 },
       },
       { role: 'agent' },
     );
@@ -852,7 +859,23 @@ describe('owner fields need an explicit confirmation from agents', () => {
       's3',
       's2',
     ]);
-    // A full save that only ticks and appends passes as well.
+    // A step the owner never touched is the agent's to reword.
+    const reword = await f.post(
+      {
+        command: 'checklist.update',
+        payload: {
+          taskId: 'ta',
+          baseRevision: stepOf(f, 's2').revision,
+          itemId: 's2',
+          text: 'Второй, уточнённый',
+          result: 'PR #12',
+        },
+      },
+      { role: 'agent' },
+    );
+    expect(reword.status).toBe(200);
+    // A full save that ticks, appends and keeps the owner's wording passes.
+    const items = task(f, 'ta').checklist;
     const save = await f.post(
       {
         command: 'task.save',
@@ -860,10 +883,13 @@ describe('owner fields need an explicit confirmation from agents', () => {
           id: 'ta',
           baseRevision: task(f, 'ta').revision,
           checklist: [
-            { id: 's1', text: 'Первый шаг', done: true },
-            { id: 's3', text: 'Третий', done: true },
-            { id: 's2', text: 'Второй', done: true },
-            { id: 's4', text: 'Четвёртый', done: false },
+            ...items.map((item) => ({
+              id: item.id,
+              text: item.text,
+              done: true,
+              revision: item.revision,
+            })),
+            { id: 's4', text: 'Четвёртый' },
           ],
         },
       },
@@ -871,15 +897,15 @@ describe('owner fields need an explicit confirmation from agents', () => {
     );
     expect(save.status).toBe(200);
     expect(success(save).results[0]!.confirmedOwnerFields).toBeUndefined();
-    expect(task(f, 'ta').checklist.map((i) => i.id)).toEqual([
-      's1',
-      's3',
-      's2',
-      's4',
+    expect(task(f, 'ta').checklist.map((i) => [i.id, i.done])).toEqual([
+      ['s1', true],
+      ['s3', true],
+      ['s2', true],
+      ['s4', false],
     ]);
-    expect(task(f, 'ta').ownerFields).toContain('checklist');
+    expect(task(f, 'ta').ownerFields).toEqual([]);
   });
-  it("TI-095: rewording, removing, reordering or unticking the owner's steps needs confirmation, in single commands and batches", async () => {
+  it('TI-095: rewording, removing, moving a step the owner decided on or clearing his tick needs confirmation, per step, in single commands and batches', async () => {
     const f = await seed(setup());
     success(
       await f.post(
@@ -897,80 +923,155 @@ describe('owner fields need an explicit confirmation from agents', () => {
         { role: 'agent' },
       ),
     );
-    // The owner ticks the first step himself.
+    // The owner rewords the first step, ticks the second and writes a third.
     success(
       await f.post({
         command: 'checklist.update',
         payload: {
           taskId: 'ta',
-          baseRevision: task(f, 'ta').revision,
+          baseRevision: stepOf(f, 's1').revision,
           itemId: 's1',
+          text: 'Первый шаг',
+        },
+      }),
+    );
+    success(
+      await f.post({
+        command: 'checklist.update',
+        payload: {
+          taskId: 'ta',
+          baseRevision: stepOf(f, 's2').revision,
+          itemId: 's2',
           done: true,
         },
       }),
     );
-    expect(task(f, 'ta').ownerFields).toContain('checklist');
+    success(
+      await f.post({
+        command: 'checklist.add',
+        payload: { taskId: 'ta', id: 's3', text: 'Третий' },
+      }),
+    );
+    // Writing a step decides its wording, place and existence, not its tick.
+    expect(f.state().steps.find((s) => s.id === 's3')!.ownerFields).toEqual([
+      'orderKey',
+      'removedAt',
+      'text',
+    ]);
     const before = snapshot(f);
-    const base = () => task(f, 'ta').revision;
-    const overriding: (() => Command)[] = [
-      () => ({
-        command: 'checklist.update',
-        payload: {
-          taskId: 'ta',
-          baseRevision: base(),
-          itemId: 's2',
-          text: 'Другой текст',
-        },
-      }),
-      () => ({
-        command: 'checklist.remove',
-        payload: { taskId: 'ta', baseRevision: base(), itemId: 's2' },
-      }),
-      () => ({
-        command: 'checklist.reorder',
-        payload: { taskId: 'ta', baseRevision: base(), itemIds: ['s2', 's1'] },
-      }),
-      () => ({
-        command: 'checklist.update',
-        payload: {
-          taskId: 'ta',
-          baseRevision: base(),
-          itemId: 's1',
-          done: false,
-        },
-      }),
+    const rev = (id: string) => stepOf(f, id).revision;
+    const overriding: [() => Command, string, string][] = [
+      [
+        () => ({
+          command: 'checklist.update',
+          payload: {
+            taskId: 'ta',
+            baseRevision: rev('s1'),
+            itemId: 's1',
+            text: 'Другой текст',
+          },
+        }),
+        's1',
+        'text',
+      ],
+      [
+        () => ({
+          command: 'checklist.update',
+          payload: {
+            taskId: 'ta',
+            baseRevision: rev('s2'),
+            itemId: 's2',
+            done: false,
+          },
+        }),
+        's2',
+        'done',
+      ],
+      [
+        () => ({
+          command: 'checklist.remove',
+          payload: { taskId: 'ta', baseRevision: rev('s1'), itemId: 's1' },
+        }),
+        's1',
+        'removedAt',
+      ],
+      [
+        () => ({
+          command: 'checklist.move',
+          payload: {
+            taskId: 'ta',
+            baseRevision: rev('s3'),
+            itemId: 's3',
+            before: 's1',
+          },
+        }),
+        's3',
+        'orderKey',
+      ],
+      [
+        () => ({
+          command: 'checklist.reorder',
+          payload: { taskId: 'ta', itemIds: ['s3', 's1', 's2'] },
+        }),
+        's3',
+        'orderKey',
+      ],
     ];
-    for (const command of overriding) {
+    for (const [command, entityId, field] of overriding) {
       const refused = await f.post(command(), { role: 'agent' });
       expect(refused.body).toMatchObject({
         code: 'forbidden',
-        conflicts: [{ fields: ['checklist'] }],
+        conflicts: [{ entityKind: 'step', entityId, fields: [field] }],
       });
     }
+    // Ticking the owner's third step is the agent's ordinary work.
+    const tick = await f.post(
+      {
+        command: 'checklist.update',
+        payload: {
+          taskId: 'ta',
+          baseRevision: rev('s3'),
+          itemId: 's3',
+          done: true,
+        },
+      },
+      { role: 'agent' },
+    );
+    expect(tick.status).toBe(200);
     const batch = await f.batch(
       [
         {
           command: 'task.update',
-          payload: { id: 'ta', baseRevision: base(), note: 'ok' },
+          payload: {
+            id: 'ta',
+            baseRevision: task(f, 'ta').revision,
+            note: 'ok',
+          },
         },
         {
           command: 'checklist.remove',
-          payload: { taskId: 'ta', baseRevision: base(), itemId: 's1' },
+          payload: { taskId: 'ta', baseRevision: rev('s3'), itemId: 's3' },
         },
       ],
       { role: 'agent' },
     );
     expect(batch.body).toMatchObject({ code: 'forbidden', commandIndex: 1 });
-    expect(snapshot(f)).toBe(before);
+    expect(task(f, 'ta').note).toBe('');
+    expect(stepOf(f, 's1').text).toBe('Первый шаг');
+    expect(before).not.toBe(snapshot(f)); // the tick above did land
     const confirmed = await f.batch(
       [
         {
           command: 'task.update',
-          payload: { id: 'ta', baseRevision: base(), note: 'ok' },
+          payload: {
+            id: 'ta',
+            baseRevision: task(f, 'ta').revision,
+            note: 'ok',
+          },
         },
         {
           command: 'checklist.remove',
-          payload: { taskId: 'ta', baseRevision: base(), itemId: 's1' },
+          payload: { taskId: 'ta', baseRevision: rev('s3'), itemId: 's3' },
         },
       ],
       { role: 'agent', confirmOwnerFields: true },
@@ -978,8 +1079,22 @@ describe('owner fields need an explicit confirmation from agents', () => {
     expect(confirmed.status).toBe(200);
     expect(
       success(confirmed).results.map((r) => r.confirmedOwnerFields),
-    ).toEqual([undefined, ['checklist']]);
-    expect(task(f, 'ta').checklist.map((i) => i.id)).toEqual(['s2']);
+    ).toEqual([undefined, ['removedAt']]);
+    expect(task(f, 'ta').checklist.map((i) => i.id)).toEqual(['s1', 's2']);
+    // The removed step stays a record: undo brings it back.
+    const undone = await f.post(
+      {
+        command: 'undo',
+        payload: { operationId: success(confirmed).operationId },
+      },
+      { role: 'agent' },
+    );
+    expect(undone.status).toBe(200);
+    expect(task(f, 'ta').checklist.map((i) => i.id)).toEqual([
+      's1',
+      's2',
+      's3',
+    ]);
   });
 });
 it('states the policy in /api/context rules', async () => {
@@ -992,7 +1107,8 @@ it('states the policy in /api/context rules', async () => {
     'событиями владельца',
     'focus',
     'confirmOwnerFields',
-    'чеклист',
+    'ревизия шага',
+    'checklist.promote',
     'appearance.update',
   ])
     expect(rules).toContain(phrase);

@@ -13,6 +13,7 @@ import {
 import { ApiError, ContractMismatch, request } from '../../src/web/app/api';
 import { makeTask } from './fixtures';
 import { taskSaveCommand } from '../../src/web/app/commands';
+import { draftChecklistItem } from '../../src/shared/steps';
 class MemoryStorage {
   map = new Map<string, string>();
   get length() {
@@ -49,6 +50,7 @@ const snapshot = (): Snapshot => ({
   timezone: 'Europe/Moscow',
   projects: [],
   labels: [],
+  steps: [],
   tasks: [task()],
   appearance: defaultAppearance(),
 });
@@ -754,7 +756,7 @@ describe('ordered operation store', () => {
       {
         ...draft,
         status: 'waiting',
-        checklist: [{ id: 'step', text: 'Шаг', done: false }],
+        checklist: [draftChecklistItem('step', 'Шаг')],
       },
       base,
     );

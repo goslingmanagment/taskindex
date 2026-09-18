@@ -4,7 +4,6 @@ import {
   areaSchema,
   statusSchema,
   dateSchema,
-  checklistSchema,
   originSystemSchema,
   commandNameSchema,
   commandNames,
@@ -93,6 +92,42 @@ export const labelSchema = z
   })
   .strict()
   .meta({ id: 'Label' });
+// A step as the task shows it (TI-095): the projection of a step record
+// every reader of a task gets. The fields steps gained as records carry
+// defaults, so tasks stored in older operation results still parse.
+export const checklistItemSchema = z
+  .object({
+    id: idSchema,
+    text: z.string().min(1).max(LIMITS.checklistText).describe('Текст шага'),
+    done: z.boolean().describe('Шаг выполнен'),
+    doneAt: nullableStamp.default(null).describe('Когда отмечен'),
+    doneBy: z.string().nullable().default(null).describe('Кто отметил'),
+    doneByLabel: z
+      .string()
+      .nullable()
+      .default(null)
+      .describe('Подпись того, кто отметил'),
+    result: z
+      .string()
+      .max(LIMITS.stepResult)
+      .default('')
+      .describe('Итог шага: что вышло, ссылка на PR или файл'),
+    linkedTaskId: idSchema
+      .nullable()
+      .default(null)
+      .describe('Задача, в которую вырос шаг'),
+    revision: revision.default(1).describe('Ревизия шага для команд checklist'),
+  })
+  .strict()
+  .meta({ id: 'ChecklistItem' });
+export const taskChecklistSchema = z
+  .array(checklistItemSchema)
+  .max(LIMITS.checklistItems)
+  .refine(
+    (v) => new Set(v.map((x) => x.id)).size === v.length,
+    'Шаги должны иметь разные идентификаторы',
+  )
+  .describe(`До ${LIMITS.checklistItems} живых шагов задачи по порядку`);
 export const taskSchema = z
   .object({
     id: idSchema,
@@ -126,7 +161,7 @@ export const taskSchema = z
       .default(null)
       .describe('Момент последнего выхода из фокуса'),
     archived: z.boolean().describe('В архиве'),
-    checklist: checklistSchema,
+    checklist: taskChecklistSchema,
     commentCount: z
       .number()
       .int()
@@ -162,6 +197,41 @@ export const taskSchema = z
   })
   .strict()
   .meta({ id: 'Task' });
+// A step record (TI-095): the checklist of a task is made of these. Its own
+// revision, its own owner protection, a soft removal like a comment's.
+export const stepSchema = z
+  .object({
+    id: idSchema,
+    taskId: idSchema.describe('Задача шага'),
+    text: z.string().min(1).max(LIMITS.checklistText).describe('Текст шага'),
+    orderKey: z
+      .string()
+      .min(1)
+      .describe('Серверный бинарно сортируемый ключ порядка внутри задачи'),
+    done: z.boolean().describe('Шаг выполнен'),
+    doneAt: nullableStamp.describe('Когда отмечен'),
+    doneBy: z.string().nullable().describe('Кто отметил'),
+    doneByLabel: z.string().nullable().describe('Подпись того, кто отметил'),
+    result: z
+      .string()
+      .max(LIMITS.stepResult)
+      .describe('Итог шага: что вышло, ссылка на PR или файл'),
+    linkedTaskId: idSchema
+      .nullable()
+      .describe('Задача, в которую вырос шаг, или null'),
+    removedAt: nullableStamp.describe('Мягкое удаление; null у живого шага'),
+    createdBy: z.string().describe('Актор создания'),
+    createdByLabel: z.string().describe('Подпись автора создания'),
+    ownerTouchedAt: nullableStamp.describe('Первое ручное изменение'),
+    ownerFields: z
+      .array(z.string())
+      .describe('Защищённые ручными правками поля шага'),
+    revision,
+    createdAt: stamp,
+    updatedAt: stamp,
+  })
+  .strict()
+  .meta({ id: 'Step' });
 export const commentSchema = z
   .object({
     id: idSchema,
@@ -223,8 +293,9 @@ export const entitySchema = z
     commentSchema,
     appearanceSchema,
     labelSchema,
+    stepSchema,
   ])
-  .describe('Задача, проект, комментарий, оформление или метка')
+  .describe('Задача, проект, комментарий, оформление, метка или шаг')
   .meta({ id: 'Entity' });
 export const changesSchema = z
   .record(
@@ -248,7 +319,7 @@ export const eventSchema = z
     operationId: idSchema,
     entityKind: entityKindSchema,
     entityId: idSchema,
-    taskId: idSchema.optional().describe('Задача события комментария'),
+    taskId: idSchema.optional().describe('Задача события комментария или шага'),
     command: commandNameSchema.describe('Команда'),
     changes: changesSchema,
     recordRevision: revision,
@@ -277,6 +348,9 @@ export const snapshotSchema = z
       .array(labelSchema)
       .describe('Каталог меток владельца, включая архивные'),
     tasks: z.array(taskSchema).describe('Все задачи, включая архив'),
+    steps: z
+      .array(stepSchema)
+      .describe('Шаги всех задач, включая удалённые (TI-095)'),
     // Обязательно с 2026-09-11: сервер всегда шлёт запись (её отдаёт
     // defaultAppearance() даже для нетронутого пространства), а необязательное
     // поле заставляло каждого потребителя снимка держать ветку «а вдруг нет».
@@ -290,7 +364,9 @@ export const commandResultSchema = z
     records: z
       .array(entitySchema)
       .optional()
-      .describe('Записи многообъектной отмены'),
+      .describe(
+        'Записи многообъектной команды: отмена, перестановка шагов, task.save с шагами, вынос шага в задачу',
+      ),
     changes: changesSchema,
     existing: z
       .boolean()
@@ -440,25 +516,30 @@ const exportedOperationSchema = storedOperationSchema.extend({
   operationSeq: operationSeqSchema,
   commandHash: z.string(),
 });
-const exportFields = {
+const baseExportFields = {
   exportedAt: stamp,
   generation: idSchema,
   seq,
   settings: z.record(z.string(), z.string()),
   projects: z.array(projectSchema),
   tasks: z.array(taskSchema),
-  checklistItems: z.array(
-    z.object({
-      id: idSchema,
-      taskId: idSchema,
-      text: z.string().min(1).max(LIMITS.checklistText),
-      done: z.boolean(),
-      position: z.number().int().nonnegative(),
-    }),
-  ),
   comments: z.array(commentSchema),
   agents: z.array(agentSchema),
   events: z.array(eventSchema),
+};
+// Formats 1-7 carried the step rows of that time: text, tick and position.
+const legacyChecklistItemsSchema = z.array(
+  z.object({
+    id: idSchema,
+    taskId: idSchema,
+    text: z.string().min(1).max(LIMITS.checklistText),
+    done: z.boolean(),
+    position: z.number().int().nonnegative(),
+  }),
+);
+const exportFields = {
+  ...baseExportFields,
+  checklistItems: legacyChecklistItemsSchema,
 };
 // Tasks as formats 1-3 wrote them: without the desk fields of plan 13.
 const legacyTaskSchema = taskSchema.omit({ focusKey: true, focusLeftAt: true });
@@ -468,8 +549,11 @@ const legacyExportFields = {
 };
 export const exportSchema = z
   .object({
-    formatVersion: z.literal(7),
-    ...exportFields,
+    formatVersion: z.literal(8),
+    ...baseExportFields,
+    steps: z
+      .array(stepSchema)
+      .describe('Шаги всех задач полными записями, включая удалённые'),
     labels: z.array(labelSchema).describe('Каталог меток, включая архивные'),
     operations: z.array(exportedOperationSchema),
     appearance: z
@@ -478,6 +562,18 @@ export const exportSchema = z
   })
   .strict()
   .meta({ id: 'Export' });
+// Format 7 (schema version 8): steps as rows of text, tick and position.
+// Import turns them into step records exactly as 0008_steps.sql does to an
+// existing database.
+export const exportSchemaV7 = z
+  .object({
+    formatVersion: z.literal(7),
+    ...exportFields,
+    labels: z.array(labelSchema),
+    operations: z.array(exportedOperationSchema),
+    appearance: z.array(appearanceSchema),
+  })
+  .strict();
 // Format 6 (schema version 7): no label catalogue, task labels are slugs of
 // the seeded list. Import adds the seeded records, exactly what
 // 0007_labels.sql inserts into an existing database.

@@ -48,6 +48,7 @@ import {
   eventSchema,
 } from '../../src/shared/domain-schemas.js';
 import { SKINS, skinIds, skinIdSchema } from '../../src/shared/appearance.js';
+import { draftChecklistItem } from '../../src/shared/steps.js';
 // The explicit shape the generated unions must have (plan 04, §3.4): a
 // discriminated union over the payload registry. Both assignments fail `tsc`
 // if the generated `Command` drifts from it in either direction.
@@ -150,6 +151,7 @@ describe('command unions are generated from the payload registry (TI-019)', () =
       tasks: [],
       projects: [],
       labels: [],
+      steps: [],
       comments: [],
       appearance: [defaultAppearance()],
     };
@@ -206,6 +208,7 @@ const create = (id: string, patch: Partial<Task> = {}): Task => {
       tasks: [],
       projects: [],
       labels: structuredClone(SEEDED_LABELS),
+      steps: [],
       comments: [],
       appearance: [defaultAppearance()],
     },
@@ -414,7 +417,7 @@ describe('shared queries and validation', () => {
       create('dev', {
         area: 'development',
         projectId: 'p',
-        checklist: [{ id: 's', text: 'Проверить ПОИСК', done: false }],
+        checklist: [draftChecklistItem('s', 'Проверить ПОИСК')],
       }),
       create('arch', { archived: true, note: 'Поиск' }),
     ];
@@ -503,6 +506,7 @@ describe('shared queries and validation', () => {
       tasks: [create('t')],
       projects: [],
       labels: structuredClone(SEEDED_LABELS),
+      steps: [],
       comments: [],
       appearance: [defaultAppearance()],
     };

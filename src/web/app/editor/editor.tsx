@@ -9,6 +9,7 @@ import type { Label } from '@shared/model';
 import {
   AREAS,
   type AreaId,
+  type ChecklistItem,
   type Project,
   type Status,
   type Task,
@@ -48,6 +49,10 @@ import { DiscardDialog } from './discard-dialog';
 import { TASK_STATES as STATUSES, visibleStatus } from '../board-columns';
 import { useTaskDraft } from './use-task-draft';
 import { useSaveIntent } from './use-save-intent';
+import { checklistPromoteCommand } from '../commands';
+import { workspaceStore } from '../store';
+import { useWorkspaceCommands } from '../use-workspace-commands';
+import { toast } from '../../ui/toast';
 // TI-059 (план 07, шаг 13): сборка карточки. Состояние формы — в `use-task-draft`,
 // отправка и её исходы — в `use-save-intent`, разделы — отдельными компонентами.
 export function TaskEditor({
@@ -75,6 +80,24 @@ export function TaskEditor({
   const form = useTaskDraft(task, base);
   const intent = useSaveIntent(form, task, base, onClose);
   const { draft, patch, dirty } = form;
+  const commands = useWorkspaceCommands();
+  // TI-095: a promotion is its own operation on the saved card; the form
+  // then takes the confirmed record with the new link.
+  const promote = (item: ChecklistItem) =>
+    void commands
+      .execute(
+        checklistPromoteCommand(base, item.id),
+        `Шаг вынесен в задачу «${item.text}»`,
+      )
+      .then(() => {
+        const current = workspaceStore
+          .getSnapshot()
+          .confirmed.tasks.find((t) => t.id === task.id);
+        if (current) form.merge(current);
+      })
+      .catch((error: Error) =>
+        toast.add({ title: error.message, type: 'error' }),
+      );
   const [discard, setDiscard] = useState(false);
   const [sections, setSections] = useState({
     note: !!task.note,
@@ -292,6 +315,7 @@ export function TaskEditor({
                 patch={patch}
                 step={form.step}
                 setStep={form.setStep}
+                onPromote={dirty ? undefined : promote}
               />
             )}
             {sections.labels && (

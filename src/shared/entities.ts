@@ -1,4 +1,11 @@
-import type { Comment, Label, Project, Task, WorkspaceState } from './model.js';
+import type {
+  Comment,
+  Label,
+  Project,
+  Step,
+  Task,
+  WorkspaceState,
+} from './model.js';
 
 // Ж11 (plan 09, step 8): the one place that knows the kinds of records. Adding
 // a kind to ENTITY_KINDS without describing it here fails `tsc`, and every
@@ -12,6 +19,7 @@ export const ENTITY_KINDS = [
   'comment',
   'appearance',
   'label',
+  'step',
 ] as const;
 type EntityKindName = (typeof ENTITY_KINDS)[number];
 
@@ -35,11 +43,34 @@ const taskFields = new Set<keyof Task>([
   'focusKey',
   'focusLeftAt',
   'archived',
-  'checklist',
   'originUrl',
 ]);
 const projectFields = new Set<keyof Project>(['name', 'color', 'description']);
 const commentFields = new Set<keyof Comment>(['deletedAt']);
+// A step (TI-095): its wording, place, tick, outcome, link and existence.
+// doneAt/doneBy travel with `done` so undo of a tick restores them together.
+const stepFields = new Set<keyof Step>([
+  'text',
+  'orderKey',
+  'done',
+  'doneAt',
+  'doneBy',
+  'doneByLabel',
+  'result',
+  'linkedTaskId',
+  'removedAt',
+]);
+// What executing a step touches: its tick, its outcome and the task it grew
+// into. The owner writing a step does not decide these, so they stay open to
+// the agent that executes the step (owner decision 2026-09-18, TI-095).
+export const STEP_EXECUTION_FIELDS: ReadonlySet<string> = new Set<keyof Step>([
+  'done',
+  'doneAt',
+  'doneBy',
+  'doneByLabel',
+  'result',
+  'linkedTaskId',
+]);
 const labelFields = new Set<keyof Label>([
   'name',
   'color',
@@ -65,4 +96,5 @@ export const ENTITIES = {
     subjectFields: fields(appearanceFields),
   },
   label: { collection: 'labels', subjectFields: fields(labelFields) },
+  step: { collection: 'steps', subjectFields: fields(stepFields) },
 } satisfies Record<EntityKindName, EntityDefinition>;

@@ -2,6 +2,8 @@ import { describe, it, expect } from 'vitest';
 import { commandSchema } from '../../src/shared/schemas';
 import type { Command, Project } from '../../src/shared/model';
 import {
+  checklistPromoteCommand,
+  checklistToggleCommand,
   commentAddCommand,
   boardMoveCommand,
   commentRemoveCommand,
@@ -14,6 +16,7 @@ import {
   undoCommand,
 } from '../../src/web/app/commands';
 import { makeTask } from './fixtures';
+import { draftChecklistItem } from '../../src/shared/steps';
 // План 07, шаг 9 (тест 9 плана): билдеры это единственное место, где интерфейс
 // превращает намерение в команду. Проверяем состав payload и то, что каждый
 // результат проходит схему команды — иначе ошибку нашёл бы только сервер.
@@ -122,23 +125,60 @@ describe('command builders', () => {
   });
   it('task.save keeps status and checklist out of fields', () => {
     const from = base();
-    const item = {
-      id: '33333333-3333-4333-8333-333333333333',
-      text: 'Шаг',
-      done: false,
-    };
+    const item = draftChecklistItem(
+      '33333333-3333-4333-8333-333333333333',
+      'Шаг',
+    );
     const command = taskSaveCommand(
       { ...from, status: 'doing', checklist: [item], title: 'Другое' },
       from,
     );
+    // A drafted step travels as the input shape without a revision (TI-095).
     expect(command.payload).toEqual({
       id: from.id,
       baseRevision: 3,
       fields: { title: 'Другое' },
       status: 'doing',
-      checklist: [item],
+      checklist: [{ id: item.id, text: 'Шаг', done: false, result: '' }],
     });
     expect(valid(command)).toBe(true);
+  });
+  it('TI-095 step commands take the step revision as their base; a removed draft step travels flagged', () => {
+    const from = base();
+    const kept = { ...draftChecklistItem('kept', 'Остаётся'), revision: 4 };
+    const gone = { ...draftChecklistItem('gone', 'Убран'), revision: 2 };
+    const withSteps = { ...from, checklist: [kept, gone] };
+    expect(checklistToggleCommand(withSteps, 'kept', true).payload).toEqual({
+      taskId: from.id,
+      itemId: 'kept',
+      baseRevision: 4,
+      done: true,
+    });
+    expect(checklistPromoteCommand(withSteps, 'gone').payload).toEqual({
+      taskId: from.id,
+      itemId: 'gone',
+      baseRevision: 2,
+    });
+    const saved = taskSaveCommand(
+      { ...withSteps, checklist: [{ ...kept, done: true, result: 'PR #1' }] },
+      withSteps,
+    );
+    expect(saved.payload).toEqual({
+      id: from.id,
+      baseRevision: 3,
+      checklist: [
+        {
+          id: 'kept',
+          text: 'Остаётся',
+          done: true,
+          result: 'PR #1',
+          revision: 4,
+        },
+        { id: 'gone', text: 'Убран', removed: true },
+      ],
+    });
+    expect(valid(saved)).toBe(true);
+    expect(valid(checklistPromoteCommand(withSteps, 'gone'))).toBe(true);
   });
   it('task.save without changes sends only the base revision', () => {
     const from = base();

@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import type { Task } from '@shared/model';
+import { draftChecklistItem } from '@shared/steps';
 import { ApiError } from '../api';
 import { workspaceStore } from '../store';
 import { isFutureBaseError } from '../editor-base';
@@ -54,7 +55,7 @@ export function useSaveIntent(
             ...form.draft,
             checklist: [
               ...form.draft.checklist,
-              { id: crypto.randomUUID(), text: form.step.trim(), done: false },
+              draftChecklistItem(crypto.randomUUID(), form.step.trim()),
             ],
           }
         : form.draft;

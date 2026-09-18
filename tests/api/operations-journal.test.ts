@@ -330,8 +330,9 @@ describe('TI-009 domain rejections after the envelope is accepted are stored', (
       },
       { id: 'dup-step' },
     );
-    expect(dup.status).toBe(400);
-    expect((dup.body as OperationError).code).toBe('invalid');
+    // 0008: a step is a record, a taken id is a conflict like a task's.
+    expect(dup.status).toBe(409);
+    expect((dup.body as OperationError).code).toBe('conflict');
     expect((await f.app.request('/api/operations/dup-step')).status).toBe(200);
     const reuse = await f.post(
       {

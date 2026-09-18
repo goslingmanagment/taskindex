@@ -15,6 +15,8 @@ export const LIMITS = {
   waitingFor: 240,
   checklistText: 500,
   checklistItems: 100,
+  // The outcome of a step (TI-095): what came out, a link to a PR or a file.
+  stepResult: 1000,
   originSystem: 40,
   originRef: 200,
   originUrl: 2000,

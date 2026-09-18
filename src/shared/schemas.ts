@@ -37,6 +37,9 @@ const revisionSchema = z
   .min(1)
   .max(Number.MAX_SAFE_INTEGER)
   .describe('Базовая версия прочитанной записи');
+const stepRevisionSchema = revisionSchema.describe(
+  'Ревизия шага из checklist задачи (revision шага, не задачи)',
+);
 export const areaSchema = z
   .enum(['agency', 'development', 'personal'])
   .describe('Область задачи или проекта');
@@ -86,20 +89,34 @@ export const originSystemSchema = z
   .string()
   .regex(new RegExp(`^[a-z0-9_-]{1,${LIMITS.originSystem}}$`))
   .describe('Слаг источника');
-const checklistItemSchema = z
+// A step as a client writes it (task.create, task.save, task.sync): the
+// server keeps steps as records of their own (TI-095) and turns this list
+// into per-step changes; `revision` is the step's base for task.save, a new
+// step has none.
+const checklistInputItemSchema = z
   .object({
-    id: idSchema,
+    id: idSchema.optional().describe('Идентификатор шага; у нового шага любой'),
     text: text(LIMITS.checklistText, true).describe('Текст шага'),
-    done: z.boolean().describe('Шаг выполнен'),
+    done: z.boolean().optional().describe('Шаг выполнен'),
+    result: text(LIMITS.stepResult).optional().describe('Итог шага'),
+    revision: revisionSchema
+      .optional()
+      .describe('Ревизия шага, от которой идёт правка (task.save)'),
+    removed: z
+      .boolean()
+      .optional()
+      .describe(
+        'Убрать этот шаг (task.save); шаги, которых нет в списке, не трогаются',
+      ),
   })
   .strict();
 export const checklistSchema = z
-  .array(checklistItemSchema)
+  .array(checklistInputItemSchema)
   .max(LIMITS.checklistItems)
-  .refine(
-    (v) => new Set(v.map((x) => x.id)).size === v.length,
-    'Шаги должны иметь разные идентификаторы',
-  )
+  .refine((v) => {
+    const ids = v.flatMap((x) => (x.id ? [x.id] : []));
+    return new Set(ids).size === ids.length;
+  }, 'Шаги должны иметь разные идентификаторы')
   .describe(`До ${LIMITS.checklistItems} шагов задачи`);
 const originSchema = z
   .object({
@@ -265,10 +282,16 @@ const schemas = {
   'task.restore': z
     .object({ id: idSchema, baseRevision: revisionSchema })
     .strict(),
+  // Steps are records of their own (TI-095): `baseRevision` of update,
+  // remove, move and promote is the step's revision from the task's
+  // checklist; add and reorder need none (the flag of older CLIs is accepted
+  // and ignored).
   'checklist.add': z
     .object({
       taskId: idSchema,
-      baseRevision: revisionSchema,
+      baseRevision: revisionSchema
+        .optional()
+        .describe('Не используется: добавление шага ревизии не требует'),
       id: idSchema.optional(),
       text: text(LIMITS.checklistText, true).describe('Текст шага'),
       position: z
@@ -277,33 +300,76 @@ const schemas = {
         .min(0)
         .max(LIMITS.checklistItems)
         .optional()
-        .describe('Позиция шага, с нуля'),
+        .describe('Позиция шага среди шагов задачи, с нуля'),
     })
     .strict(),
   'checklist.update': z
     .object({
       taskId: idSchema,
-      baseRevision: revisionSchema,
+      baseRevision: stepRevisionSchema,
       itemId: idSchema,
       text: text(LIMITS.checklistText, true).optional().describe('Текст шага'),
       done: z.boolean().optional().describe('Шаг выполнен'),
+      result: text(LIMITS.stepResult)
+        .optional()
+        .describe('Итог шага: что вышло, ссылка на PR или файл'),
+      linkedTaskId: idSchema
+        .nullable()
+        .optional()
+        .describe('Задача, в которую вырос шаг, или null'),
     })
-    .strict(),
+    .strict()
+    .refine(
+      (v) =>
+        v.text !== undefined ||
+        v.done !== undefined ||
+        v.result !== undefined ||
+        v.linkedTaskId !== undefined,
+      'Укажите текст, отметку, итог или связанную задачу',
+    ),
   'checklist.remove': z
     .object({
       taskId: idSchema,
-      baseRevision: revisionSchema,
+      baseRevision: stepRevisionSchema,
       itemId: idSchema,
     })
     .strict(),
+  'checklist.move': z
+    .object({
+      taskId: idSchema,
+      baseRevision: stepRevisionSchema,
+      itemId: idSchema,
+      before: idSchema.optional().describe('Поставить перед этим шагом'),
+      after: idSchema.optional().describe('Поставить после этого шага'),
+    })
+    .strict()
+    .refine((v) => !!v.before !== !!v.after, 'Выберите одного соседа'),
   'checklist.reorder': z
     .object({
       taskId: idSchema,
-      baseRevision: revisionSchema,
+      baseRevision: revisionSchema
+        .optional()
+        .describe('Не используется: перестановка ревизии не требует'),
       itemIds: z
         .array(idSchema)
         .max(LIMITS.checklistItems)
         .describe('Все шаги в нужном порядке'),
+    })
+    .strict(),
+  'checklist.promote': z
+    .object({
+      taskId: idSchema,
+      baseRevision: stepRevisionSchema,
+      itemId: idSchema,
+      id: newIdSchema.optional().describe('Идентификатор новой задачи'),
+      title: text(LIMITS.taskTitle, true)
+        .optional()
+        .describe('Название новой задачи; по умолчанию текст шага'),
+      priority: prioritySchema.optional(),
+      projectId: idSchema
+        .nullable()
+        .optional()
+        .describe('Направление новой задачи; по умолчанию как у исходной'),
     })
     .strict(),
   'comment.add': z

@@ -50,7 +50,6 @@ export const UNDO_SUBJECT_FIELDS = [
   'focusKey',
   'focusLeftAt',
   'archived',
-  'checklist',
   'originUrl',
 ] as const satisfies readonly (keyof Task)[];
 type SubjectField = (typeof UNDO_SUBJECT_FIELDS)[number];
@@ -71,6 +70,7 @@ function workspace() {
     tasks: [],
     projects: [],
     labels: structuredClone(SEEDED_LABELS),
+    steps: [],
     comments: [],
     appearance: [defaultAppearance()],
   };

@@ -78,6 +78,7 @@ const empty = (): WorkspaceState => ({
   projects: [],
   labels: [],
   tasks: [],
+  steps: [],
   comments: [],
   appearance: [defaultAppearance()],
 });
@@ -250,6 +251,7 @@ export class WorkspaceStore {
         tasks: snapshot.tasks,
         projects: snapshot.projects,
         labels: snapshot.labels,
+        steps: snapshot.steps,
         comments: [],
         appearance: [snapshot.appearance ?? defaultAppearance()],
       },

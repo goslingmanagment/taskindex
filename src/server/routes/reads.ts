@@ -90,6 +90,7 @@ export const registerReadRoutes = <T extends OpenAPIHono<Env>>(
                 projects: state.projects,
                 labels: state.labels,
                 tasks: state.tasks,
+                steps: state.steps,
                 // Строка предпочтения одна на пространство и создаётся
                 // чтением, так что запасной вариант нужен только индексу.
                 appearance: state.appearance[0] ?? defaultAppearance(),

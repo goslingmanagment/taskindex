@@ -7,6 +7,8 @@ import type {
   Label,
   OperationSummary,
   Project,
+  Step,
+  Task,
 } from '@shared/model';
 // TI-032: the story of a change, in Russian, built only from the event itself.
 // The stored payload is untouched: this is a presentation layer over `changes`,
@@ -19,6 +21,10 @@ type HistoryContext = {
   // carries `note`; a label keeps its record in the archive, so its name holds.
   projects: readonly Project[];
   labels: readonly Label[];
+  // Name the task a step grew into and the step an event is about (TI-095);
+  // optional, like the others a directory of today.
+  tasks?: readonly Pick<Task, 'id' | 'title'>[];
+  steps?: readonly Pick<Step, 'id' | 'text'>[];
 };
 type HistoryLine = {
   label: string;
@@ -54,6 +60,11 @@ const FIELD_LABELS: Record<string, string> = {
   description: 'Описание',
   color: 'Цвет',
   checklist: 'Шаги',
+  // Fields of a step record (TI-095).
+  done: 'Отметка',
+  result: 'Итог',
+  linkedTaskId: 'Задача',
+  removedAt: 'Шаг',
   originUrl: 'Источник',
   deletedAt: 'Удаление',
   archivedAt: 'Архив',
@@ -77,6 +88,9 @@ const TECHNICAL_FIELDS = new Set([
   'ownerFields',
   'commentCount',
   'position',
+  'doneAt',
+  'doneBy',
+  'doneByLabel',
   'originSystem',
   'originRef',
   'originVersion',
@@ -216,6 +230,7 @@ const CREATING = new Set([
   'project.create',
   'label.create',
   'comment.add',
+  'checklist.add',
 ]);
 function empty(raw: unknown): boolean {
   return (
@@ -231,8 +246,18 @@ function line(
   change: { from: unknown; to: unknown },
   ctx: HistoryContext,
   creating = false,
+  // The step the event is about, when the directory of today knows it.
+  step?: { text: string },
 ): HistoryLine {
   const label = FIELD_LABELS[field]!;
+  const named = (verb: string, prefix = 'Шаг') =>
+    step
+      ? {
+          label,
+          text: `${prefix} ${quote(step.text)} ${verb}`,
+          note: CURRENT_NAMES,
+        }
+      : { label, text: `${prefix} ${verb}` };
   if (field === 'labels')
     return {
       label,
@@ -248,6 +273,22 @@ function line(
   }
   if (field === 'checklist')
     return { label, text: checklistText(change.from, change.to) };
+  // A step's own fields (TI-095): the tick, the removal and the task it grew
+  // into are told as what happened, not as a value that changed.
+  if (field === 'done')
+    return change.to
+      ? named('отмечен выполненным')
+      : named('снята отметка', 'С шага');
+  if (field === 'removedAt')
+    return change.to ? named('убран') : named('возвращён');
+  if (field === 'linkedTaskId') {
+    if (!change.to) return named('больше не связан с задачей');
+    const linked = ctx.tasks?.find((t) => t.id === change.to);
+    const told = named(
+      linked ? `вынесен в задачу ${quote(linked.title)}` : 'вынесен в задачу',
+    );
+    return linked ? { ...told, note: CURRENT_NAMES } : told;
+  }
   if (field === 'focus')
     return { label, text: change.to ? 'Задача в фокусе' : 'Убрана из фокуса' };
   if (field === 'archived')
@@ -286,13 +327,31 @@ export function describeEvent(
 ): HistoryStory {
   const lines: HistoryLine[] = [];
   const technical: HistoryStory['technical'] = [];
-  const creating = CREATING.has(event.command);
+  // The task a promotion creates is a creation; the step it links is not.
+  const creating =
+    CREATING.has(event.command) ||
+    (event.command === 'checklist.promote' && event.entityKind === 'task');
   const order = creating ? null : orderLine(event.changes);
+  const step =
+    event.entityKind === 'step'
+      ? ctx.steps?.find((s) => s.id === event.entityId)
+      : undefined;
+  // A new step is told by its text alone: its open tick and absent link say
+  // nothing yet.
+  if (creating && event.entityKind === 'step') {
+    const text = event.changes.text?.to;
+    lines.push({
+      label: 'Шаг',
+      text:
+        typeof text === 'string' ? `Добавлен шаг ${quote(text)}` : 'Добавлен',
+    });
+    return { lines, technical: Object.entries(event.changes) };
+  }
   for (const field of ORDER) {
     const change = event.changes[field];
     if (!change || field === 'orderKey') continue;
     if (creating && empty(change.to)) continue;
-    lines.push(line(field, change, ctx, creating));
+    lines.push(line(field, change, ctx, creating, step));
   }
   if (order) lines.push(order);
   for (const [field, change] of Object.entries(event.changes)) {

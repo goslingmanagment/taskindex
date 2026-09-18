@@ -54,6 +54,22 @@ export function taskCreateCommand(task: NewTask): Command {
     },
   };
 }
+/** Шаги в конверте task.save (TI-095): текст, отметка, итог и ревизия шага
+ *  как база правки; новый шаг черновика идёт без ревизии; шаг, убранный из
+ *  черновика, отправляется с `removed`, а неизвестные форме шаги сервер не
+ *  трогает. */
+const checklistInput = (items: Task['checklist'], base: Task['checklist']) => [
+  ...items.map((item) => ({
+    id: item.id,
+    text: item.text,
+    done: item.done,
+    result: item.result,
+    ...(item.revision > 0 ? { revision: item.revision } : {}),
+  })),
+  ...base
+    .filter((was) => !items.some((item) => item.id === was.id))
+    .map((was) => ({ id: was.id, text: was.text, removed: true })),
+];
 /** Отправляются только поля, которые отличаются от подтверждённой базы. */
 export function taskSaveCommand(task: Task, base: Task): Command {
   const fields: Record<string, unknown> = {};
@@ -67,7 +83,7 @@ export function taskSaveCommand(task: Task, base: Task): Command {
       ...(Object.keys(fields).length ? { fields } : {}),
       ...(task.status !== base.status ? { status: task.status } : {}),
       ...(!same(task.checklist, base.checklist)
-        ? { checklist: task.checklist }
+        ? { checklist: checklistInput(task.checklist, base.checklist) }
         : {}),
     },
   };
@@ -139,15 +155,35 @@ export function taskFocusCommand(
     },
   };
 }
-/** Отметка шага на столе: отдельная команда, а не сохранение всей карточки. */
+/** Вынос шага в отдельную задачу той же области и направления (TI-095):
+ *  сервер создаёт задачу и связывает шаг одной операцией. */
+export function checklistPromoteCommand(task: Task, itemId: string): Command {
+  const step = task.checklist.find((item) => item.id === itemId);
+  return {
+    command: 'checklist.promote',
+    payload: {
+      taskId: task.id,
+      baseRevision: step?.revision ?? task.revision,
+      itemId,
+    },
+  };
+}
+/** Отметка шага на столе: отдельная команда, а не сохранение всей карточки;
+ *  база правки — ревизия самого шага (TI-095). */
 export function checklistToggleCommand(
   task: Task,
   itemId: string,
   done: boolean,
 ): Command {
+  const step = task.checklist.find((item) => item.id === itemId);
   return {
     command: 'checklist.update',
-    payload: { taskId: task.id, baseRevision: task.revision, itemId, done },
+    payload: {
+      taskId: task.id,
+      baseRevision: step?.revision ?? task.revision,
+      itemId,
+      done,
+    },
   };
 }
 // A label with a revision exists and is renamed; without one it is created

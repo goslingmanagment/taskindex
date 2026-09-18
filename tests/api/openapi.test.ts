@@ -44,7 +44,9 @@ const EXPECTED_OPERATIONS = [
 const EXPECTED_COMPONENTS = [
   'Actor',
   'Me',
+  'ChecklistItem',
   'Task',
+  'Step',
   'Project',
   'Comment',
   'Event',
@@ -131,7 +133,7 @@ describe('OpenAPI is a compact contract for agents (TI-049)', () => {
       '#/components/schemas/Task',
     );
     // The task schema is defined once: every other use is a $ref.
-    expect(text.split('"ownerTouchedAt":{').length - 1).toBe(1);
+    expect(text.split('"commentCount":{').length - 1).toBe(1);
     f.close();
   });
   it('every static segment addressing /api/tasks or /api/projects is a reserved identifier (TI-010, TI-011)', async () => {

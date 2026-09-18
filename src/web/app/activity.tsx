@@ -81,6 +81,8 @@ function EventRow({ event }: { event: DomainEvent }) {
   const story = describeEvent(event, {
     projects: data.projects,
     labels: data.labels,
+    tasks: data.tasks,
+    steps: data.steps,
   });
   return (
     <li className="event-row">

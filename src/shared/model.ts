@@ -43,6 +43,8 @@ export type Actor = z.infer<typeof contracts.actorSchema>;
 export type Project = z.infer<typeof contracts.projectSchema>;
 export type Label = z.infer<typeof contracts.labelSchema>;
 export type Task = z.infer<typeof contracts.taskSchema>;
+export type Step = z.infer<typeof contracts.stepSchema>;
+export type ChecklistItem = z.infer<typeof contracts.checklistItemSchema>;
 export type Comment = z.infer<typeof contracts.commentSchema>;
 export type Agent = z.infer<typeof contracts.agentSchema>;
 export type Appearance = z.infer<typeof contracts.appearanceSchema>;
@@ -71,6 +73,9 @@ export type WorkspaceState = {
   // The owner's label catalogue (0007), archived records included.
   labels: Label[];
   tasks: Task[];
+  // Steps of every task, removed ones included (TI-095); a task shows its
+  // live steps as `checklist`, a projection of this collection.
+  steps: Step[];
   comments: Comment[];
   // One record (id `owner`), kept in an array so it travels the same record
   // paths as tasks and projects: `records`, `applyEvent`, export, replay.
@@ -93,5 +98,6 @@ export type FocusGroup = {
 // Export format: 2 adds operationSeq to operations, 3 adds the appearance
 // preference, 4 adds focusKey and focusLeftAt, 5 adds priority, labels,
 // closes and hideP3 (2026-09-13), 6 retires the label otvet (2026-09-17),
-// 7 adds the label catalogue (2026-09-17). Formats 1-6 are still imported.
-export const FORMAT_VERSION = 7;
+// 7 adds the label catalogue (2026-09-17), 8 turns steps into records
+// (2026-09-18, TI-095). Formats 1-7 are still imported.
+export const FORMAT_VERSION = 8;

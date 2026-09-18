@@ -1,0 +1,2108 @@
+{
+  "formatVersion": 7,
+  "exportedAt": "2026-09-18T12:00:00.000Z",
+  "generation": "fixture-schema-8",
+  "seq": 5,
+  "settings": {
+    "generation": "fixture-schema-8",
+    "timezone": "Europe/Moscow",
+    "schema_version": "8"
+  },
+  "projects": [],
+  "labels": [
+    {
+      "id": "dengi",
+      "name": "деньги",
+      "color": "#298467",
+      "description": "Платёж, долг, приз, финансовое решение; при оплате строка в ledger",
+      "position": 1,
+      "archivedAt": null,
+      "revision": 1,
+      "createdAt": "2026-09-17T21:00:00.000Z",
+      "updatedAt": "2026-09-17T21:00:00.000Z"
+    },
+    {
+      "id": "5-min",
+      "name": "5 мин",
+      "color": "#8290a4",
+      "description": "Делается за несколько минут, годится в просвет",
+      "position": 2,
+      "archivedAt": null,
+      "revision": 1,
+      "createdAt": "2026-09-17T21:00:00.000Z",
+      "updatedAt": "2026-09-17T21:00:00.000Z"
+    },
+    {
+      "id": "lora",
+      "name": "Lora",
+      "color": "#9661bf",
+      "description": "Касается модели Lora",
+      "position": 3,
+      "archivedAt": null,
+      "revision": 1,
+      "createdAt": "2026-09-17T21:00:00.000Z",
+      "updatedAt": "2026-09-17T21:00:00.000Z"
+    },
+    {
+      "id": "lily",
+      "name": "Lily",
+      "color": "#397faf",
+      "description": "Касается модели Lily",
+      "position": 4,
+      "archivedAt": null,
+      "revision": 1,
+      "createdAt": "2026-09-17T21:00:00.000Z",
+      "updatedAt": "2026-09-17T21:00:00.000Z"
+    },
+    {
+      "id": "ari",
+      "name": "Ari",
+      "color": "#a97928",
+      "description": "Касается модели Ari",
+      "position": 5,
+      "archivedAt": null,
+      "revision": 1,
+      "createdAt": "2026-09-17T21:00:00.000Z",
+      "updatedAt": "2026-09-17T21:00:00.000Z"
+    }
+  ],
+  "tasks": [
+    {
+      "id": "plan-task",
+      "area": "development",
+      "projectId": null,
+      "title": "Перенести бота на новый сервер",
+      "status": "todo",
+      "priority": "p2",
+      "labels": [],
+      "closes": null,
+      "note": "",
+      "due": null,
+      "waitingFor": "",
+      "followUp": null,
+      "orderKey": "a0",
+      "focus": false,
+      "focusKey": null,
+      "focusLeftAt": null,
+      "archived": false,
+      "originSystem": null,
+      "originRef": null,
+      "originUrl": null,
+      "originVersion": null,
+      "createdBy": "owner",
+      "createdByLabel": "Владелец",
+      "ownerTouchedAt": "2026-09-08T12:00:00.000Z",
+      "ownerFields": [
+        "archived",
+        "area",
+        "checklist",
+        "closes",
+        "due",
+        "focus",
+        "focusKey",
+        "focusLeftAt",
+        "followUp",
+        "labels",
+        "note",
+        "orderKey",
+        "originUrl",
+        "priority",
+        "projectId",
+        "status",
+        "title",
+        "waitingFor"
+      ],
+      "revision": 4,
+      "createdAt": "2026-09-08T12:00:00.000Z",
+      "updatedAt": "2026-09-08T12:00:00.000Z",
+      "checklist": [
+        {
+          "id": "plan-1",
+          "text": "Поднять контейнер",
+          "done": true
+        },
+        {
+          "id": "plan-3",
+          "text": "Проверить мониторинг",
+          "done": false
+        },
+        {
+          "id": "plan-2",
+          "text": "Перенести базу и проверить бэкап",
+          "done": false
+        }
+      ],
+      "commentCount": 0
+    },
+    {
+      "id": "plain-task",
+      "area": "agency",
+      "projectId": null,
+      "title": "Без шагов",
+      "status": "done",
+      "priority": "p2",
+      "labels": [],
+      "closes": null,
+      "note": "",
+      "due": null,
+      "waitingFor": "",
+      "followUp": null,
+      "orderKey": "a0",
+      "focus": false,
+      "focusKey": null,
+      "focusLeftAt": null,
+      "archived": false,
+      "originSystem": null,
+      "originRef": null,
+      "originUrl": null,
+      "originVersion": null,
+      "createdBy": "owner",
+      "createdByLabel": "Владелец",
+      "ownerTouchedAt": "2026-09-08T12:00:00.000Z",
+      "ownerFields": [
+        "archived",
+        "area",
+        "checklist",
+        "closes",
+        "due",
+        "focus",
+        "focusKey",
+        "focusLeftAt",
+        "followUp",
+        "labels",
+        "note",
+        "orderKey",
+        "originUrl",
+        "priority",
+        "projectId",
+        "status",
+        "title",
+        "waitingFor"
+      ],
+      "revision": 1,
+      "createdAt": "2026-09-08T12:00:00.000Z",
+      "updatedAt": "2026-09-08T12:00:00.000Z",
+      "checklist": [],
+      "commentCount": 0
+    }
+  ],
+  "comments": [],
+  "appearance": [
+    {
+      "id": "owner",
+      "mode": "system",
+      "skinId": "classic",
+      "hideP3": false,
+      "revision": 1,
+      "updatedAt": null
+    }
+  ],
+  "checklistItems": [
+    {
+      "id": "plan-1",
+      "taskId": "plan-task",
+      "text": "Поднять контейнер",
+      "done": true,
+      "position": 0
+    },
+    {
+      "id": "plan-3",
+      "taskId": "plan-task",
+      "text": "Проверить мониторинг",
+      "done": false,
+      "position": 1
+    },
+    {
+      "id": "plan-2",
+      "taskId": "plan-task",
+      "text": "Перенести базу и проверить бэкап",
+      "done": false,
+      "position": 2
+    }
+  ],
+  "agents": [],
+  "events": [
+    {
+      "seq": 1,
+      "at": "2026-09-08T12:00:00.000Z",
+      "actorId": "owner",
+      "actorLabel": "Владелец",
+      "operationId": "plan-create",
+      "entityKind": "task",
+      "entityId": "plan-task",
+      "command": "task.create",
+      "changes": {
+        "id": {
+          "from": null,
+          "to": "plan-task"
+        },
+        "area": {
+          "from": null,
+          "to": "development"
+        },
+        "projectId": {
+          "from": null,
+          "to": null
+        },
+        "title": {
+          "from": null,
+          "to": "Перенести бота на новый сервер"
+        },
+        "status": {
+          "from": null,
+          "to": "todo"
+        },
+        "priority": {
+          "from": null,
+          "to": "p2"
+        },
+        "labels": {
+          "from": null,
+          "to": []
+        },
+        "closes": {
+          "from": null,
+          "to": null
+        },
+        "note": {
+          "from": null,
+          "to": ""
+        },
+        "due": {
+          "from": null,
+          "to": null
+        },
+        "waitingFor": {
+          "from": null,
+          "to": ""
+        },
+        "followUp": {
+          "from": null,
+          "to": null
+        },
+        "orderKey": {
+          "from": null,
+          "to": "a0"
+        },
+        "focus": {
+          "from": null,
+          "to": false
+        },
+        "focusKey": {
+          "from": null,
+          "to": null
+        },
+        "focusLeftAt": {
+          "from": null,
+          "to": null
+        },
+        "archived": {
+          "from": null,
+          "to": false
+        },
+        "checklist": {
+          "from": null,
+          "to": [
+            {
+              "id": "plan-1",
+              "text": "Поднять контейнер",
+              "done": false
+            },
+            {
+              "id": "plan-2",
+              "text": "Перенести базу",
+              "done": false
+            },
+            {
+              "id": "plan-3",
+              "text": "Проверить мониторинг",
+              "done": false
+            }
+          ]
+        },
+        "originSystem": {
+          "from": null,
+          "to": null
+        },
+        "originRef": {
+          "from": null,
+          "to": null
+        },
+        "originUrl": {
+          "from": null,
+          "to": null
+        },
+        "originVersion": {
+          "from": null,
+          "to": null
+        },
+        "createdBy": {
+          "from": null,
+          "to": "owner"
+        },
+        "createdByLabel": {
+          "from": null,
+          "to": "Владелец"
+        },
+        "ownerTouchedAt": {
+          "from": null,
+          "to": "2026-09-08T12:00:00.000Z"
+        },
+        "ownerFields": {
+          "from": null,
+          "to": [
+            "archived",
+            "area",
+            "checklist",
+            "closes",
+            "due",
+            "focus",
+            "focusKey",
+            "focusLeftAt",
+            "followUp",
+            "labels",
+            "note",
+            "orderKey",
+            "originUrl",
+            "priority",
+            "projectId",
+            "status",
+            "title",
+            "waitingFor"
+          ]
+        },
+        "createdAt": {
+          "from": null,
+          "to": "2026-09-08T12:00:00.000Z"
+        }
+      },
+      "recordRevision": 1,
+      "firstSeq": 1,
+      "lastSeq": 1,
+      "generation": "fixture-schema-8"
+    },
+    {
+      "seq": 2,
+      "at": "2026-09-08T12:00:00.000Z",
+      "actorId": "agent:test-agent",
+      "actorLabel": "Тестовый агент",
+      "operationId": "plan-tick",
+      "entityKind": "task",
+      "entityId": "plan-task",
+      "command": "checklist.update",
+      "changes": {
+        "checklist": {
+          "from": [
+            {
+              "id": "plan-1",
+              "text": "Поднять контейнер",
+              "done": false
+            },
+            {
+              "id": "plan-2",
+              "text": "Перенести базу",
+              "done": false
+            },
+            {
+              "id": "plan-3",
+              "text": "Проверить мониторинг",
+              "done": false
+            }
+          ],
+          "to": [
+            {
+              "id": "plan-1",
+              "text": "Поднять контейнер",
+              "done": true
+            },
+            {
+              "id": "plan-2",
+              "text": "Перенести базу",
+              "done": false
+            },
+            {
+              "id": "plan-3",
+              "text": "Проверить мониторинг",
+              "done": false
+            }
+          ]
+        }
+      },
+      "recordRevision": 2,
+      "firstSeq": 2,
+      "lastSeq": 2,
+      "generation": "fixture-schema-8"
+    },
+    {
+      "seq": 3,
+      "at": "2026-09-08T12:00:00.000Z",
+      "actorId": "owner",
+      "actorLabel": "Владелец",
+      "operationId": "plan-owner-edit",
+      "entityKind": "task",
+      "entityId": "plan-task",
+      "command": "checklist.update",
+      "changes": {
+        "checklist": {
+          "from": [
+            {
+              "id": "plan-1",
+              "text": "Поднять контейнер",
+              "done": true
+            },
+            {
+              "id": "plan-2",
+              "text": "Перенести базу",
+              "done": false
+            },
+            {
+              "id": "plan-3",
+              "text": "Проверить мониторинг",
+              "done": false
+            }
+          ],
+          "to": [
+            {
+              "id": "plan-1",
+              "text": "Поднять контейнер",
+              "done": true
+            },
+            {
+              "id": "plan-2",
+              "text": "Перенести базу и проверить бэкап",
+              "done": false
+            },
+            {
+              "id": "plan-3",
+              "text": "Проверить мониторинг",
+              "done": false
+            }
+          ]
+        }
+      },
+      "recordRevision": 3,
+      "firstSeq": 3,
+      "lastSeq": 3,
+      "generation": "fixture-schema-8"
+    },
+    {
+      "seq": 4,
+      "at": "2026-09-08T12:00:00.000Z",
+      "actorId": "agent:test-agent",
+      "actorLabel": "Тестовый агент",
+      "operationId": "plan-reorder",
+      "entityKind": "task",
+      "entityId": "plan-task",
+      "command": "checklist.reorder",
+      "changes": {
+        "checklist": {
+          "from": [
+            {
+              "id": "plan-1",
+              "text": "Поднять контейнер",
+              "done": true
+            },
+            {
+              "id": "plan-2",
+              "text": "Перенести базу и проверить бэкап",
+              "done": false
+            },
+            {
+              "id": "plan-3",
+              "text": "Проверить мониторинг",
+              "done": false
+            }
+          ],
+          "to": [
+            {
+              "id": "plan-1",
+              "text": "Поднять контейнер",
+              "done": true
+            },
+            {
+              "id": "plan-3",
+              "text": "Проверить мониторинг",
+              "done": false
+            },
+            {
+              "id": "plan-2",
+              "text": "Перенести базу и проверить бэкап",
+              "done": false
+            }
+          ]
+        }
+      },
+      "recordRevision": 4,
+      "firstSeq": 4,
+      "lastSeq": 4,
+      "generation": "fixture-schema-8"
+    },
+    {
+      "seq": 5,
+      "at": "2026-09-08T12:00:00.000Z",
+      "actorId": "owner",
+      "actorLabel": "Владелец",
+      "operationId": "plain-create",
+      "entityKind": "task",
+      "entityId": "plain-task",
+      "command": "task.create",
+      "changes": {
+        "id": {
+          "from": null,
+          "to": "plain-task"
+        },
+        "area": {
+          "from": null,
+          "to": "agency"
+        },
+        "projectId": {
+          "from": null,
+          "to": null
+        },
+        "title": {
+          "from": null,
+          "to": "Без шагов"
+        },
+        "status": {
+          "from": null,
+          "to": "done"
+        },
+        "priority": {
+          "from": null,
+          "to": "p2"
+        },
+        "labels": {
+          "from": null,
+          "to": []
+        },
+        "closes": {
+          "from": null,
+          "to": null
+        },
+        "note": {
+          "from": null,
+          "to": ""
+        },
+        "due": {
+          "from": null,
+          "to": null
+        },
+        "waitingFor": {
+          "from": null,
+          "to": ""
+        },
+        "followUp": {
+          "from": null,
+          "to": null
+        },
+        "orderKey": {
+          "from": null,
+          "to": "a0"
+        },
+        "focus": {
+          "from": null,
+          "to": false
+        },
+        "focusKey": {
+          "from": null,
+          "to": null
+        },
+        "focusLeftAt": {
+          "from": null,
+          "to": null
+        },
+        "archived": {
+          "from": null,
+          "to": false
+        },
+        "checklist": {
+          "from": null,
+          "to": []
+        },
+        "originSystem": {
+          "from": null,
+          "to": null
+        },
+        "originRef": {
+          "from": null,
+          "to": null
+        },
+        "originUrl": {
+          "from": null,
+          "to": null
+        },
+        "originVersion": {
+          "from": null,
+          "to": null
+        },
+        "createdBy": {
+          "from": null,
+          "to": "owner"
+        },
+        "createdByLabel": {
+          "from": null,
+          "to": "Владелец"
+        },
+        "ownerTouchedAt": {
+          "from": null,
+          "to": "2026-09-08T12:00:00.000Z"
+        },
+        "ownerFields": {
+          "from": null,
+          "to": [
+            "archived",
+            "area",
+            "checklist",
+            "closes",
+            "due",
+            "focus",
+            "focusKey",
+            "focusLeftAt",
+            "followUp",
+            "labels",
+            "note",
+            "orderKey",
+            "originUrl",
+            "priority",
+            "projectId",
+            "status",
+            "title",
+            "waitingFor"
+          ]
+        },
+        "createdAt": {
+          "from": null,
+          "to": "2026-09-08T12:00:00.000Z"
+        }
+      },
+      "recordRevision": 1,
+      "firstSeq": 5,
+      "lastSeq": 5,
+      "generation": "fixture-schema-8"
+    }
+  ],
+  "operations": [
+    {
+      "id": "plan-create",
+      "operationSeq": 1,
+      "actorId": "owner",
+      "actorLabel": "Владелец",
+      "command": "task.create",
+      "commandHash": "cb3686fef4c08ff7254144aff157b29ef54a0816c74448ea600ef57344eb323e",
+      "status": 200,
+      "result": {
+        "ok": true,
+        "operationId": "plan-create",
+        "generation": "fixture-schema-8",
+        "firstSeq": 1,
+        "lastSeq": 1,
+        "results": [
+          {
+            "record": {
+              "id": "plan-task",
+              "area": "development",
+              "projectId": null,
+              "title": "Перенести бота на новый сервер",
+              "status": "todo",
+              "priority": "p2",
+              "labels": [],
+              "closes": null,
+              "note": "",
+              "due": null,
+              "waitingFor": "",
+              "followUp": null,
+              "orderKey": "a0",
+              "focus": false,
+              "focusKey": null,
+              "focusLeftAt": null,
+              "archived": false,
+              "checklist": [
+                {
+                  "id": "plan-1",
+                  "text": "Поднять контейнер",
+                  "done": false
+                },
+                {
+                  "id": "plan-2",
+                  "text": "Перенести базу",
+                  "done": false
+                },
+                {
+                  "id": "plan-3",
+                  "text": "Проверить мониторинг",
+                  "done": false
+                }
+              ],
+              "commentCount": 0,
+              "originSystem": null,
+              "originRef": null,
+              "originUrl": null,
+              "originVersion": null,
+              "createdBy": "owner",
+              "createdByLabel": "Владелец",
+              "ownerTouchedAt": "2026-09-08T12:00:00.000Z",
+              "ownerFields": [
+                "archived",
+                "area",
+                "checklist",
+                "closes",
+                "due",
+                "focus",
+                "focusKey",
+                "focusLeftAt",
+                "followUp",
+                "labels",
+                "note",
+                "orderKey",
+                "originUrl",
+                "priority",
+                "projectId",
+                "status",
+                "title",
+                "waitingFor"
+              ],
+              "revision": 1,
+              "createdAt": "2026-09-08T12:00:00.000Z",
+              "updatedAt": "2026-09-08T12:00:00.000Z"
+            },
+            "changes": {
+              "id": {
+                "from": null,
+                "to": "plan-task"
+              },
+              "area": {
+                "from": null,
+                "to": "development"
+              },
+              "projectId": {
+                "from": null,
+                "to": null
+              },
+              "title": {
+                "from": null,
+                "to": "Перенести бота на новый сервер"
+              },
+              "status": {
+                "from": null,
+                "to": "todo"
+              },
+              "priority": {
+                "from": null,
+                "to": "p2"
+              },
+              "labels": {
+                "from": null,
+                "to": []
+              },
+              "closes": {
+                "from": null,
+                "to": null
+              },
+              "note": {
+                "from": null,
+                "to": ""
+              },
+              "due": {
+                "from": null,
+                "to": null
+              },
+              "waitingFor": {
+                "from": null,
+                "to": ""
+              },
+              "followUp": {
+                "from": null,
+                "to": null
+              },
+              "orderKey": {
+                "from": null,
+                "to": "a0"
+              },
+              "focus": {
+                "from": null,
+                "to": false
+              },
+              "focusKey": {
+                "from": null,
+                "to": null
+              },
+              "focusLeftAt": {
+                "from": null,
+                "to": null
+              },
+              "archived": {
+                "from": null,
+                "to": false
+              },
+              "checklist": {
+                "from": null,
+                "to": [
+                  {
+                    "id": "plan-1",
+                    "text": "Поднять контейнер",
+                    "done": false
+                  },
+                  {
+                    "id": "plan-2",
+                    "text": "Перенести базу",
+                    "done": false
+                  },
+                  {
+                    "id": "plan-3",
+                    "text": "Проверить мониторинг",
+                    "done": false
+                  }
+                ]
+              },
+              "originSystem": {
+                "from": null,
+                "to": null
+              },
+              "originRef": {
+                "from": null,
+                "to": null
+              },
+              "originUrl": {
+                "from": null,
+                "to": null
+              },
+              "originVersion": {
+                "from": null,
+                "to": null
+              },
+              "createdBy": {
+                "from": null,
+                "to": "owner"
+              },
+              "createdByLabel": {
+                "from": null,
+                "to": "Владелец"
+              },
+              "ownerTouchedAt": {
+                "from": null,
+                "to": "2026-09-08T12:00:00.000Z"
+              },
+              "ownerFields": {
+                "from": null,
+                "to": [
+                  "archived",
+                  "area",
+                  "checklist",
+                  "closes",
+                  "due",
+                  "focus",
+                  "focusKey",
+                  "focusLeftAt",
+                  "followUp",
+                  "labels",
+                  "note",
+                  "orderKey",
+                  "originUrl",
+                  "priority",
+                  "projectId",
+                  "status",
+                  "title",
+                  "waitingFor"
+                ]
+              },
+              "createdAt": {
+                "from": null,
+                "to": "2026-09-08T12:00:00.000Z"
+              }
+            }
+          }
+        ],
+        "events": [
+          {
+            "seq": 1,
+            "at": "2026-09-08T12:00:00.000Z",
+            "actorId": "owner",
+            "actorLabel": "Владелец",
+            "operationId": "plan-create",
+            "entityKind": "task",
+            "entityId": "plan-task",
+            "command": "task.create",
+            "changes": {
+              "id": {
+                "from": null,
+                "to": "plan-task"
+              },
+              "area": {
+                "from": null,
+                "to": "development"
+              },
+              "projectId": {
+                "from": null,
+                "to": null
+              },
+              "title": {
+                "from": null,
+                "to": "Перенести бота на новый сервер"
+              },
+              "status": {
+                "from": null,
+                "to": "todo"
+              },
+              "priority": {
+                "from": null,
+                "to": "p2"
+              },
+              "labels": {
+                "from": null,
+                "to": []
+              },
+              "closes": {
+                "from": null,
+                "to": null
+              },
+              "note": {
+                "from": null,
+                "to": ""
+              },
+              "due": {
+                "from": null,
+                "to": null
+              },
+              "waitingFor": {
+                "from": null,
+                "to": ""
+              },
+              "followUp": {
+                "from": null,
+                "to": null
+              },
+              "orderKey": {
+                "from": null,
+                "to": "a0"
+              },
+              "focus": {
+                "from": null,
+                "to": false
+              },
+              "focusKey": {
+                "from": null,
+                "to": null
+              },
+              "focusLeftAt": {
+                "from": null,
+                "to": null
+              },
+              "archived": {
+                "from": null,
+                "to": false
+              },
+              "checklist": {
+                "from": null,
+                "to": [
+                  {
+                    "id": "plan-1",
+                    "text": "Поднять контейнер",
+                    "done": false
+                  },
+                  {
+                    "id": "plan-2",
+                    "text": "Перенести базу",
+                    "done": false
+                  },
+                  {
+                    "id": "plan-3",
+                    "text": "Проверить мониторинг",
+                    "done": false
+                  }
+                ]
+              },
+              "originSystem": {
+                "from": null,
+                "to": null
+              },
+              "originRef": {
+                "from": null,
+                "to": null
+              },
+              "originUrl": {
+                "from": null,
+                "to": null
+              },
+              "originVersion": {
+                "from": null,
+                "to": null
+              },
+              "createdBy": {
+                "from": null,
+                "to": "owner"
+              },
+              "createdByLabel": {
+                "from": null,
+                "to": "Владелец"
+              },
+              "ownerTouchedAt": {
+                "from": null,
+                "to": "2026-09-08T12:00:00.000Z"
+              },
+              "ownerFields": {
+                "from": null,
+                "to": [
+                  "archived",
+                  "area",
+                  "checklist",
+                  "closes",
+                  "due",
+                  "focus",
+                  "focusKey",
+                  "focusLeftAt",
+                  "followUp",
+                  "labels",
+                  "note",
+                  "orderKey",
+                  "originUrl",
+                  "priority",
+                  "projectId",
+                  "status",
+                  "title",
+                  "waitingFor"
+                ]
+              },
+              "createdAt": {
+                "from": null,
+                "to": "2026-09-08T12:00:00.000Z"
+              }
+            },
+            "recordRevision": 1,
+            "firstSeq": 1,
+            "lastSeq": 1,
+            "generation": "fixture-schema-8"
+          }
+        ]
+      },
+      "firstSeq": 1,
+      "lastSeq": 1,
+      "createdAt": "2026-09-08T12:00:00.000Z",
+      "ok": true,
+      "taskCount": 1,
+      "titles": [
+        "Перенести бота на новый сервер"
+      ]
+    },
+    {
+      "id": "plan-tick",
+      "operationSeq": 2,
+      "actorId": "agent:test-agent",
+      "actorLabel": "Тестовый агент",
+      "command": "checklist.update",
+      "commandHash": "3c1ede42f61c005da64fc02c9f20bd60f358deda3bc0a77c735c28d4e4a17440",
+      "status": 200,
+      "result": {
+        "ok": true,
+        "operationId": "plan-tick",
+        "generation": "fixture-schema-8",
+        "firstSeq": 2,
+        "lastSeq": 2,
+        "results": [
+          {
+            "record": {
+              "id": "plan-task",
+              "area": "development",
+              "projectId": null,
+              "title": "Перенести бота на новый сервер",
+              "status": "todo",
+              "priority": "p2",
+              "labels": [],
+              "closes": null,
+              "note": "",
+              "due": null,
+              "waitingFor": "",
+              "followUp": null,
+              "orderKey": "a0",
+              "focus": false,
+              "focusKey": null,
+              "focusLeftAt": null,
+              "archived": false,
+              "checklist": [
+                {
+                  "id": "plan-1",
+                  "text": "Поднять контейнер",
+                  "done": true
+                },
+                {
+                  "id": "plan-2",
+                  "text": "Перенести базу",
+                  "done": false
+                },
+                {
+                  "id": "plan-3",
+                  "text": "Проверить мониторинг",
+                  "done": false
+                }
+              ],
+              "commentCount": 0,
+              "originSystem": null,
+              "originRef": null,
+              "originUrl": null,
+              "originVersion": null,
+              "createdBy": "owner",
+              "createdByLabel": "Владелец",
+              "ownerTouchedAt": "2026-09-08T12:00:00.000Z",
+              "ownerFields": [
+                "archived",
+                "area",
+                "checklist",
+                "closes",
+                "due",
+                "focus",
+                "focusKey",
+                "focusLeftAt",
+                "followUp",
+                "labels",
+                "note",
+                "orderKey",
+                "originUrl",
+                "priority",
+                "projectId",
+                "status",
+                "title",
+                "waitingFor"
+              ],
+              "revision": 2,
+              "createdAt": "2026-09-08T12:00:00.000Z",
+              "updatedAt": "2026-09-08T12:00:00.000Z"
+            },
+            "changes": {
+              "checklist": {
+                "from": [
+                  {
+                    "id": "plan-1",
+                    "text": "Поднять контейнер",
+                    "done": false
+                  },
+                  {
+                    "id": "plan-2",
+                    "text": "Перенести базу",
+                    "done": false
+                  },
+                  {
+                    "id": "plan-3",
+                    "text": "Проверить мониторинг",
+                    "done": false
+                  }
+                ],
+                "to": [
+                  {
+                    "id": "plan-1",
+                    "text": "Поднять контейнер",
+                    "done": true
+                  },
+                  {
+                    "id": "plan-2",
+                    "text": "Перенести базу",
+                    "done": false
+                  },
+                  {
+                    "id": "plan-3",
+                    "text": "Проверить мониторинг",
+                    "done": false
+                  }
+                ]
+              }
+            },
+            "confirmedOwnerFields": [
+              "checklist"
+            ]
+          }
+        ],
+        "events": [
+          {
+            "seq": 2,
+            "at": "2026-09-08T12:00:00.000Z",
+            "actorId": "agent:test-agent",
+            "actorLabel": "Тестовый агент",
+            "operationId": "plan-tick",
+            "entityKind": "task",
+            "entityId": "plan-task",
+            "command": "checklist.update",
+            "changes": {
+              "checklist": {
+                "from": [
+                  {
+                    "id": "plan-1",
+                    "text": "Поднять контейнер",
+                    "done": false
+                  },
+                  {
+                    "id": "plan-2",
+                    "text": "Перенести базу",
+                    "done": false
+                  },
+                  {
+                    "id": "plan-3",
+                    "text": "Проверить мониторинг",
+                    "done": false
+                  }
+                ],
+                "to": [
+                  {
+                    "id": "plan-1",
+                    "text": "Поднять контейнер",
+                    "done": true
+                  },
+                  {
+                    "id": "plan-2",
+                    "text": "Перенести базу",
+                    "done": false
+                  },
+                  {
+                    "id": "plan-3",
+                    "text": "Проверить мониторинг",
+                    "done": false
+                  }
+                ]
+              }
+            },
+            "recordRevision": 2,
+            "firstSeq": 2,
+            "lastSeq": 2,
+            "generation": "fixture-schema-8"
+          }
+        ]
+      },
+      "firstSeq": 2,
+      "lastSeq": 2,
+      "createdAt": "2026-09-08T12:00:00.000Z",
+      "ok": true,
+      "taskCount": 1,
+      "titles": [
+        "Перенести бота на новый сервер"
+      ]
+    },
+    {
+      "id": "plan-owner-edit",
+      "operationSeq": 3,
+      "actorId": "owner",
+      "actorLabel": "Владелец",
+      "command": "checklist.update",
+      "commandHash": "bcb7ec5e1b09376c12a319de90dbc56cc743d80f31fe54d1fa63565073f75d3c",
+      "status": 200,
+      "result": {
+        "ok": true,
+        "operationId": "plan-owner-edit",
+        "generation": "fixture-schema-8",
+        "firstSeq": 3,
+        "lastSeq": 3,
+        "results": [
+          {
+            "record": {
+              "id": "plan-task",
+              "area": "development",
+              "projectId": null,
+              "title": "Перенести бота на новый сервер",
+              "status": "todo",
+              "priority": "p2",
+              "labels": [],
+              "closes": null,
+              "note": "",
+              "due": null,
+              "waitingFor": "",
+              "followUp": null,
+              "orderKey": "a0",
+              "focus": false,
+              "focusKey": null,
+              "focusLeftAt": null,
+              "archived": false,
+              "checklist": [
+                {
+                  "id": "plan-1",
+                  "text": "Поднять контейнер",
+                  "done": true
+                },
+                {
+                  "id": "plan-2",
+                  "text": "Перенести базу и проверить бэкап",
+                  "done": false
+                },
+                {
+                  "id": "plan-3",
+                  "text": "Проверить мониторинг",
+                  "done": false
+                }
+              ],
+              "commentCount": 0,
+              "originSystem": null,
+              "originRef": null,
+              "originUrl": null,
+              "originVersion": null,
+              "createdBy": "owner",
+              "createdByLabel": "Владелец",
+              "ownerTouchedAt": "2026-09-08T12:00:00.000Z",
+              "ownerFields": [
+                "archived",
+                "area",
+                "checklist",
+                "closes",
+                "due",
+                "focus",
+                "focusKey",
+                "focusLeftAt",
+                "followUp",
+                "labels",
+                "note",
+                "orderKey",
+                "originUrl",
+                "priority",
+                "projectId",
+                "status",
+                "title",
+                "waitingFor"
+              ],
+              "revision": 3,
+              "createdAt": "2026-09-08T12:00:00.000Z",
+              "updatedAt": "2026-09-08T12:00:00.000Z"
+            },
+            "changes": {
+              "checklist": {
+                "from": [
+                  {
+                    "id": "plan-1",
+                    "text": "Поднять контейнер",
+                    "done": true
+                  },
+                  {
+                    "id": "plan-2",
+                    "text": "Перенести базу",
+                    "done": false
+                  },
+                  {
+                    "id": "plan-3",
+                    "text": "Проверить мониторинг",
+                    "done": false
+                  }
+                ],
+                "to": [
+                  {
+                    "id": "plan-1",
+                    "text": "Поднять контейнер",
+                    "done": true
+                  },
+                  {
+                    "id": "plan-2",
+                    "text": "Перенести базу и проверить бэкап",
+                    "done": false
+                  },
+                  {
+                    "id": "plan-3",
+                    "text": "Проверить мониторинг",
+                    "done": false
+                  }
+                ]
+              }
+            }
+          }
+        ],
+        "events": [
+          {
+            "seq": 3,
+            "at": "2026-09-08T12:00:00.000Z",
+            "actorId": "owner",
+            "actorLabel": "Владелец",
+            "operationId": "plan-owner-edit",
+            "entityKind": "task",
+            "entityId": "plan-task",
+            "command": "checklist.update",
+            "changes": {
+              "checklist": {
+                "from": [
+                  {
+                    "id": "plan-1",
+                    "text": "Поднять контейнер",
+                    "done": true
+                  },
+                  {
+                    "id": "plan-2",
+                    "text": "Перенести базу",
+                    "done": false
+                  },
+                  {
+                    "id": "plan-3",
+                    "text": "Проверить мониторинг",
+                    "done": false
+                  }
+                ],
+                "to": [
+                  {
+                    "id": "plan-1",
+                    "text": "Поднять контейнер",
+                    "done": true
+                  },
+                  {
+                    "id": "plan-2",
+                    "text": "Перенести базу и проверить бэкап",
+                    "done": false
+                  },
+                  {
+                    "id": "plan-3",
+                    "text": "Проверить мониторинг",
+                    "done": false
+                  }
+                ]
+              }
+            },
+            "recordRevision": 3,
+            "firstSeq": 3,
+            "lastSeq": 3,
+            "generation": "fixture-schema-8"
+          }
+        ]
+      },
+      "firstSeq": 3,
+      "lastSeq": 3,
+      "createdAt": "2026-09-08T12:00:00.000Z",
+      "ok": true,
+      "taskCount": 1,
+      "titles": [
+        "Перенести бота на новый сервер"
+      ]
+    },
+    {
+      "id": "plan-reorder",
+      "operationSeq": 4,
+      "actorId": "agent:test-agent",
+      "actorLabel": "Тестовый агент",
+      "command": "checklist.reorder",
+      "commandHash": "c6f3420696291082b1018f7b5889555e277f62fb0d49a877bc7c0dfd6eb6e380",
+      "status": 200,
+      "result": {
+        "ok": true,
+        "operationId": "plan-reorder",
+        "generation": "fixture-schema-8",
+        "firstSeq": 4,
+        "lastSeq": 4,
+        "results": [
+          {
+            "record": {
+              "id": "plan-task",
+              "area": "development",
+              "projectId": null,
+              "title": "Перенести бота на новый сервер",
+              "status": "todo",
+              "priority": "p2",
+              "labels": [],
+              "closes": null,
+              "note": "",
+              "due": null,
+              "waitingFor": "",
+              "followUp": null,
+              "orderKey": "a0",
+              "focus": false,
+              "focusKey": null,
+              "focusLeftAt": null,
+              "archived": false,
+              "checklist": [
+                {
+                  "id": "plan-1",
+                  "text": "Поднять контейнер",
+                  "done": true
+                },
+                {
+                  "id": "plan-3",
+                  "text": "Проверить мониторинг",
+                  "done": false
+                },
+                {
+                  "id": "plan-2",
+                  "text": "Перенести базу и проверить бэкап",
+                  "done": false
+                }
+              ],
+              "commentCount": 0,
+              "originSystem": null,
+              "originRef": null,
+              "originUrl": null,
+              "originVersion": null,
+              "createdBy": "owner",
+              "createdByLabel": "Владелец",
+              "ownerTouchedAt": "2026-09-08T12:00:00.000Z",
+              "ownerFields": [
+                "archived",
+                "area",
+                "checklist",
+                "closes",
+                "due",
+                "focus",
+                "focusKey",
+                "focusLeftAt",
+                "followUp",
+                "labels",
+                "note",
+                "orderKey",
+                "originUrl",
+                "priority",
+                "projectId",
+                "status",
+                "title",
+                "waitingFor"
+              ],
+              "revision": 4,
+              "createdAt": "2026-09-08T12:00:00.000Z",
+              "updatedAt": "2026-09-08T12:00:00.000Z"
+            },
+            "changes": {
+              "checklist": {
+                "from": [
+                  {
+                    "id": "plan-1",
+                    "text": "Поднять контейнер",
+                    "done": true
+                  },
+                  {
+                    "id": "plan-2",
+                    "text": "Перенести базу и проверить бэкап",
+                    "done": false
+                  },
+                  {
+                    "id": "plan-3",
+                    "text": "Проверить мониторинг",
+                    "done": false
+                  }
+                ],
+                "to": [
+                  {
+                    "id": "plan-1",
+                    "text": "Поднять контейнер",
+                    "done": true
+                  },
+                  {
+                    "id": "plan-3",
+                    "text": "Проверить мониторинг",
+                    "done": false
+                  },
+                  {
+                    "id": "plan-2",
+                    "text": "Перенести базу и проверить бэкап",
+                    "done": false
+                  }
+                ]
+              }
+            },
+            "confirmedOwnerFields": [
+              "checklist"
+            ]
+          }
+        ],
+        "events": [
+          {
+            "seq": 4,
+            "at": "2026-09-08T12:00:00.000Z",
+            "actorId": "agent:test-agent",
+            "actorLabel": "Тестовый агент",
+            "operationId": "plan-reorder",
+            "entityKind": "task",
+            "entityId": "plan-task",
+            "command": "checklist.reorder",
+            "changes": {
+              "checklist": {
+                "from": [
+                  {
+                    "id": "plan-1",
+                    "text": "Поднять контейнер",
+                    "done": true
+                  },
+                  {
+                    "id": "plan-2",
+                    "text": "Перенести базу и проверить бэкап",
+                    "done": false
+                  },
+                  {
+                    "id": "plan-3",
+                    "text": "Проверить мониторинг",
+                    "done": false
+                  }
+                ],
+                "to": [
+                  {
+                    "id": "plan-1",
+                    "text": "Поднять контейнер",
+                    "done": true
+                  },
+                  {
+                    "id": "plan-3",
+                    "text": "Проверить мониторинг",
+                    "done": false
+                  },
+                  {
+                    "id": "plan-2",
+                    "text": "Перенести базу и проверить бэкап",
+                    "done": false
+                  }
+                ]
+              }
+            },
+            "recordRevision": 4,
+            "firstSeq": 4,
+            "lastSeq": 4,
+            "generation": "fixture-schema-8"
+          }
+        ]
+      },
+      "firstSeq": 4,
+      "lastSeq": 4,
+      "createdAt": "2026-09-08T12:00:00.000Z",
+      "ok": true,
+      "taskCount": 1,
+      "titles": [
+        "Перенести бота на новый сервер"
+      ]
+    },
+    {
+      "id": "plain-create",
+      "operationSeq": 5,
+      "actorId": "owner",
+      "actorLabel": "Владелец",
+      "command": "task.create",
+      "commandHash": "7677d49469a4c93d5d41edb45a8a43618ec7a2181b78fcc72bbbbb41ee4c74f5",
+      "status": 200,
+      "result": {
+        "ok": true,
+        "operationId": "plain-create",
+        "generation": "fixture-schema-8",
+        "firstSeq": 5,
+        "lastSeq": 5,
+        "results": [
+          {
+            "record": {
+              "id": "plain-task",
+              "area": "agency",
+              "projectId": null,
+              "title": "Без шагов",
+              "status": "done",
+              "priority": "p2",
+              "labels": [],
+              "closes": null,
+              "note": "",
+              "due": null,
+              "waitingFor": "",
+              "followUp": null,
+              "orderKey": "a0",
+              "focus": false,
+              "focusKey": null,
+              "focusLeftAt": null,
+              "archived": false,
+              "checklist": [],
+              "commentCount": 0,
+              "originSystem": null,
+              "originRef": null,
+              "originUrl": null,
+              "originVersion": null,
+              "createdBy": "owner",
+              "createdByLabel": "Владелец",
+              "ownerTouchedAt": "2026-09-08T12:00:00.000Z",
+              "ownerFields": [
+                "archived",
+                "area",
+                "checklist",
+                "closes",
+                "due",
+                "focus",
+                "focusKey",
+                "focusLeftAt",
+                "followUp",
+                "labels",
+                "note",
+                "orderKey",
+                "originUrl",
+                "priority",
+                "projectId",
+                "status",
+                "title",
+                "waitingFor"
+              ],
+              "revision": 1,
+              "createdAt": "2026-09-08T12:00:00.000Z",
+              "updatedAt": "2026-09-08T12:00:00.000Z"
+            },
+            "changes": {
+              "id": {
+                "from": null,
+                "to": "plain-task"
+              },
+              "area": {
+                "from": null,
+                "to": "agency"
+              },
+              "projectId": {
+                "from": null,
+                "to": null
+              },
+              "title": {
+                "from": null,
+                "to": "Без шагов"
+              },
+              "status": {
+                "from": null,
+                "to": "done"
+              },
+              "priority": {
+                "from": null,
+                "to": "p2"
+              },
+              "labels": {
+                "from": null,
+                "to": []
+              },
+              "closes": {
+                "from": null,
+                "to": null
+              },
+              "note": {
+                "from": null,
+                "to": ""
+              },
+              "due": {
+                "from": null,
+                "to": null
+              },
+              "waitingFor": {
+                "from": null,
+                "to": ""
+              },
+              "followUp": {
+                "from": null,
+                "to": null
+              },
+              "orderKey": {
+                "from": null,
+                "to": "a0"
+              },
+              "focus": {
+                "from": null,
+                "to": false
+              },
+              "focusKey": {
+                "from": null,
+                "to": null
+              },
+              "focusLeftAt": {
+                "from": null,
+                "to": null
+              },
+              "archived": {
+                "from": null,
+                "to": false
+              },
+              "checklist": {
+                "from": null,
+                "to": []
+              },
+              "originSystem": {
+                "from": null,
+                "to": null
+              },
+              "originRef": {
+                "from": null,
+                "to": null
+              },
+              "originUrl": {
+                "from": null,
+                "to": null
+              },
+              "originVersion": {
+                "from": null,
+                "to": null
+              },
+              "createdBy": {
+                "from": null,
+                "to": "owner"
+              },
+              "createdByLabel": {
+                "from": null,
+                "to": "Владелец"
+              },
+              "ownerTouchedAt": {
+                "from": null,
+                "to": "2026-09-08T12:00:00.000Z"
+              },
+              "ownerFields": {
+                "from": null,
+                "to": [
+                  "archived",
+                  "area",
+                  "checklist",
+                  "closes",
+                  "due",
+                  "focus",
+                  "focusKey",
+                  "focusLeftAt",
+                  "followUp",
+                  "labels",
+                  "note",
+                  "orderKey",
+                  "originUrl",
+                  "priority",
+                  "projectId",
+                  "status",
+                  "title",
+                  "waitingFor"
+                ]
+              },
+              "createdAt": {
+                "from": null,
+                "to": "2026-09-08T12:00:00.000Z"
+              }
+            }
+          }
+        ],
+        "events": [
+          {
+            "seq": 5,
+            "at": "2026-09-08T12:00:00.000Z",
+            "actorId": "owner",
+            "actorLabel": "Владелец",
+            "operationId": "plain-create",
+            "entityKind": "task",
+            "entityId": "plain-task",
+            "command": "task.create",
+            "changes": {
+              "id": {
+                "from": null,
+                "to": "plain-task"
+              },
+              "area": {
+                "from": null,
+                "to": "agency"
+              },
+              "projectId": {
+                "from": null,
+                "to": null
+              },
+              "title": {
+                "from": null,
+                "to": "Без шагов"
+              },
+              "status": {
+                "from": null,
+                "to": "done"
+              },
+              "priority": {
+                "from": null,
+                "to": "p2"
+              },
+              "labels": {
+                "from": null,
+                "to": []
+              },
+              "closes": {
+                "from": null,
+                "to": null
+              },
+              "note": {
+                "from": null,
+                "to": ""
+              },
+              "due": {
+                "from": null,
+                "to": null
+              },
+              "waitingFor": {
+                "from": null,
+                "to": ""
+              },
+              "followUp": {
+                "from": null,
+                "to": null
+              },
+              "orderKey": {
+                "from": null,
+                "to": "a0"
+              },
+              "focus": {
+                "from": null,
+                "to": false
+              },
+              "focusKey": {
+                "from": null,
+                "to": null
+              },
+              "focusLeftAt": {
+                "from": null,
+                "to": null
+              },
+              "archived": {
+                "from": null,
+                "to": false
+              },
+              "checklist": {
+                "from": null,
+                "to": []
+              },
+              "originSystem": {
+                "from": null,
+                "to": null
+              },
+              "originRef": {
+                "from": null,
+                "to": null
+              },
+              "originUrl": {
+                "from": null,
+                "to": null
+              },
+              "originVersion": {
+                "from": null,
+                "to": null
+              },
+              "createdBy": {
+                "from": null,
+                "to": "owner"
+              },
+              "createdByLabel": {
+                "from": null,
+                "to": "Владелец"
+              },
+              "ownerTouchedAt": {
+                "from": null,
+                "to": "2026-09-08T12:00:00.000Z"
+              },
+              "ownerFields": {
+                "from": null,
+                "to": [
+                  "archived",
+                  "area",
+                  "checklist",
+                  "closes",
+                  "due",
+                  "focus",
+                  "focusKey",
+                  "focusLeftAt",
+                  "followUp",
+                  "labels",
+                  "note",
+                  "orderKey",
+                  "originUrl",
+                  "priority",
+                  "projectId",
+                  "status",
+                  "title",
+                  "waitingFor"
+                ]
+              },
+              "createdAt": {
+                "from": null,
+                "to": "2026-09-08T12:00:00.000Z"
+              }
+            },
+            "recordRevision": 1,
+            "firstSeq": 5,
+            "lastSeq": 5,
+            "generation": "fixture-schema-8"
+          }
+        ]
+      },
+      "firstSeq": 5,
+      "lastSeq": 5,
+      "createdAt": "2026-09-08T12:00:00.000Z",
+      "ok": true,
+      "taskCount": 1,
+      "titles": [
+        "Без шагов"
+      ]
+    },
+    {
+      "id": "plan-rejected",
+      "operationSeq": 6,
+      "actorId": "agent:test-agent",
+      "actorLabel": "Тестовый агент",
+      "command": "checklist.add",
+      "commandHash": "d9fbc6ce398957d2005ee08af7222b8e011f931bc5e713206f82849cf5709acf",
+      "status": 409,
+      "result": {
+        "ok": false,
+        "code": "conflict",
+        "message": "Запись изменилась. Ваш текст остался в форме.",
+        "retryable": false,
+        "current": {
+          "id": "plan-task",
+          "area": "development",
+          "projectId": null,
+          "title": "Перенести бота на новый сервер",
+          "status": "todo",
+          "priority": "p2",
+          "labels": [],
+          "closes": null,
+          "note": "",
+          "due": null,
+          "waitingFor": "",
+          "followUp": null,
+          "orderKey": "a0",
+          "focus": false,
+          "focusKey": null,
+          "focusLeftAt": null,
+          "archived": false,
+          "checklist": [
+            {
+              "id": "plan-1",
+              "text": "Поднять контейнер",
+              "done": true
+            },
+            {
+              "id": "plan-3",
+              "text": "Проверить мониторинг",
+              "done": false
+            },
+            {
+              "id": "plan-2",
+              "text": "Перенести базу и проверить бэкап",
+              "done": false
+            }
+          ],
+          "commentCount": 0,
+          "originSystem": null,
+          "originRef": null,
+          "originUrl": null,
+          "originVersion": null,
+          "createdBy": "owner",
+          "createdByLabel": "Владелец",
+          "ownerTouchedAt": "2026-09-08T12:00:00.000Z",
+          "ownerFields": [
+            "archived",
+            "area",
+            "checklist",
+            "closes",
+            "due",
+            "focus",
+            "focusKey",
+            "focusLeftAt",
+            "followUp",
+            "labels",
+            "note",
+            "orderKey",
+            "originUrl",
+            "priority",
+            "projectId",
+            "status",
+            "title",
+            "waitingFor"
+          ],
+          "revision": 4,
+          "createdAt": "2026-09-08T12:00:00.000Z",
+          "updatedAt": "2026-09-08T12:00:00.000Z"
+        },
+        "conflicts": [
+          {
+            "entityKind": "task",
+            "entityId": "plan-task",
+            "fields": [
+              "checklist"
+            ]
+          }
+        ],
+        "operationId": "plan-rejected",
+        "generation": "fixture-schema-8"
+      },
+      "firstSeq": null,
+      "lastSeq": null,
+      "createdAt": "2026-09-08T12:00:00.000Z",
+      "ok": false,
+      "errorCode": "conflict",
+      "errorMessage": "Запись изменилась. Ваш текст остался в форме.",
+      "taskCount": 0,
+      "titles": []
+    }
+  ]
+}

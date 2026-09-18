@@ -132,6 +132,9 @@ export const tasks = sqliteTable(
     index('tasks_project').on(t.projectId),
   ],
 );
+// Steps as records (0008, TI-095): a fractional order key inside the task,
+// who ticked the step and when, its outcome, the task it grew into, a soft
+// removal and the owner's protected fields, all with a revision of their own.
 export const checklistItems = sqliteTable(
   'checklist_items',
   {
@@ -140,10 +143,31 @@ export const checklistItems = sqliteTable(
       .notNull()
       .references(() => tasks.id, { onDelete: 'cascade' }),
     text: text('text').notNull(),
+    orderKey: text('order_key').notNull(),
     done: integer('done', { mode: 'boolean' }).notNull(),
-    position: integer('position').notNull(),
+    doneAt: text('done_at'),
+    doneBy: text('done_by'),
+    doneByLabel: text('done_by_label'),
+    result: text('result').notNull().default(''),
+    linkedTaskId: text('linked_task_id').references(() => tasks.id),
+    removedAt: text('removed_at'),
+    createdBy: text('created_by').notNull(),
+    createdByLabel: text('created_by_label').notNull(),
+    ownerTouchedAt: text('owner_touched_at'),
+    ownerFields: text('owner_fields', { mode: 'json' })
+      .$type<string[]>()
+      .notNull()
+      .default(sql`'[]'`),
+    revision: integer('revision').notNull(),
+    createdAt: text('created_at').notNull(),
+    updatedAt: text('updated_at').notNull(),
   },
-  (t) => [uniqueIndex('checklist_position').on(t.taskId, t.position)],
+  (t) => [
+    uniqueIndex('checklist_order')
+      .on(t.taskId, t.orderKey)
+      .where(sql`removed_at IS NULL`),
+    index('checklist_task').on(t.taskId),
+  ],
 );
 export const comments = sqliteTable(
   'comments',

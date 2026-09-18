@@ -124,13 +124,30 @@ async function fillAutofilled(
   command: CommandName,
   payload: Record<string, unknown>,
 ): Promise<void> {
-  if (command !== 'appearance.update') return;
   if (!autofilled(command).includes('baseRevision')) return;
   if (payload.baseRevision !== undefined) return;
-  const reply = await session.client.request('/api/appearance');
+  if (command === 'appearance.update') {
+    const reply = await session.client.request('/api/appearance');
+    if (exitCode(reply)) throw new ReplyExit(reply);
+    if (typeof reply.body.revision === 'number')
+      payload.baseRevision = reply.body.revision;
+    return;
+  }
+  // A step's revision comes from its task's checklist (TI-095); an unknown
+  // step is left to the server, which answers not_found.
+  const { taskId, itemId } = payload;
+  if (typeof taskId !== 'string' || typeof itemId !== 'string') return;
+  const reply = await session.client.request(
+    `/api/tasks/${encodeURIComponent(taskId)}`,
+  );
   if (exitCode(reply)) throw new ReplyExit(reply);
-  if (typeof reply.body.revision === 'number')
-    payload.baseRevision = reply.body.revision;
+  const checklist = reply.body.checklist;
+  const item = Array.isArray(checklist)
+    ? (checklist as { id?: unknown; revision?: unknown }[]).find(
+        (step) => step.id === itemId,
+      )
+    : undefined;
+  if (typeof item?.revision === 'number') payload.baseRevision = item.revision;
 }
 
 function dryRunOf(args: Arguments): boolean | undefined {

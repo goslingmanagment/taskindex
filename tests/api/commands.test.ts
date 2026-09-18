@@ -116,22 +116,39 @@ describe('transactional commands', () => {
         })
       ).status,
     ).toBe(200);
+    // 0008: a step is a record with a revision of its own; adding or editing
+    // one leaves the task's revision alone.
     await f.post({
       command: 'checklist.add',
-      payload: { taskId: 't', baseRevision: 3, id: 'step', text: 'Шаг' },
+      payload: { taskId: 't', id: 'step', text: 'Шаг' },
     });
+    expect(f.state().tasks[0]!.revision).toBe(3);
+    await f.post({
+      command: 'checklist.update',
+      payload: {
+        taskId: 't',
+        itemId: 'step',
+        baseRevision: 1,
+        text: 'Изменён',
+      },
+    });
+    // A save that edits the step from its stale revision conflicts on the
+    // step and writes nothing, the title included.
     const conflict = await f.post({
       command: 'task.save',
       payload: {
         id: 't',
         baseRevision: 3,
         fields: { title: 'Не записывать' },
-        checklist: [],
+        checklist: [{ id: 'step', text: 'Стало', done: false, revision: 1 }],
       },
     });
     expect(conflict.status).toBe(409);
+    expect(conflict.body).toMatchObject({
+      conflicts: [{ entityKind: 'step', entityId: 'step', fields: ['text'] }],
+    });
     expect(f.state().tasks[0]!.title).toBe('Название');
-    expect(f.state().tasks[0]!.checklist).toHaveLength(1);
+    expect(f.state().tasks[0]!.checklist[0]!.text).toBe('Изменён');
     expect(
       (
         await f.post({
@@ -723,6 +740,7 @@ describe('comments, snapshots, export and stream', () => {
       tasks: [],
       projects: [],
       labels: structuredClone(SEEDED_LABELS),
+      steps: [],
       comments: [],
       appearance: [defaultAppearance()],
     } as WorkspaceState);
@@ -852,7 +870,7 @@ describe('comments, snapshots, export and stream', () => {
     expect(response.status).toBe(200);
     const document = await response.json();
     // Entities and envelopes are components referenced from the routes.
-    expect(document.components.schemas.CommandEnvelope.oneOf).toHaveLength(21);
+    expect(document.components.schemas.CommandEnvelope.oneOf).toHaveLength(23);
     expect(
       document.paths['/api/commands'].post.requestBody.content[
         'application/json'

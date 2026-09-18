@@ -307,3 +307,13 @@
     gap: 10px;
   }
 }
+/* Подпись исполнителя и итог под шагом на столе (TI-095). */
+.desk-step-body {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.desk-step-meta {
+  font-size: 12px;
+  color: var(--text-faint);
+}

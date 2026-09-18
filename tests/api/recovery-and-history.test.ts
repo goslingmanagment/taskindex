@@ -208,7 +208,7 @@ it('validates all redundant backup data and history before replacing any existin
   const original = exportWorkspace(destination.db);
   const corruptions: ((x: ExportData) => void)[] = [
     (x) => {
-      x.checklistItems[0]!.text = 'different';
+      x.steps[0]!.text = 'different';
     },
     (x) => {
       x.seq++;
@@ -217,10 +217,10 @@ it('validates all redundant backup data and history before replacing any existin
       x.operations[0]!.ok = !x.operations[0]!.ok;
     },
     (x) => {
-      x.events[0]!.lastSeq = 2;
+      x.events[0]!.lastSeq = 9;
     },
     (x) => {
-      x.operations.find((o) => o.id === x.events[0]!.operationId)!.lastSeq = 2;
+      x.operations.find((o) => o.id === x.events[0]!.operationId)!.lastSeq = 9;
     },
     (x) => {
       x.events[0]!.operationId = 'missing';
@@ -293,15 +293,20 @@ it('persists valid name swaps and checklist transfers without intermediate uniqu
       id: 'b',
       area: 'agency',
       title: 'B',
-      checklist: [{ id: 'step', text: 'Step', done: false }],
+      checklist: [
+        { id: 'first', text: 'First', done: false },
+        { id: 'second', text: 'Second', done: false },
+      ],
     },
   });
+  // 0008: two steps swap places under the unique (task_id, order_key) index
+  // while another task gains a step, all in one transaction.
   expect(
     (
       await f.batch([
         {
-          command: 'task.save',
-          payload: { id: 'b', baseRevision: 1, checklist: [] },
+          command: 'checklist.reorder',
+          payload: { taskId: 'b', itemIds: ['second', 'first'] },
         },
         {
           command: 'task.save',
@@ -315,7 +320,12 @@ it('persists valid name swaps and checklist transfers without intermediate uniqu
     ).status,
   ).toBe(200);
   expect(f.state().tasks.find((t) => t.id === 'a')!.checklist).toHaveLength(1);
-  expect(f.state().tasks.find((t) => t.id === 'b')!.checklist).toHaveLength(0);
+  expect(
+    f
+      .state()
+      .tasks.find((t) => t.id === 'b')!
+      .checklist.map((item) => item.id),
+  ).toEqual(['second', 'first']);
 });
 
 it('immediately flushes an SSE connection with an empty backlog', async () => {

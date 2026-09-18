@@ -68,6 +68,23 @@
   `validateExport` начинает replay с `SEEDED_LABELS` (те же значения в `src/shared/labels.ts`),
   `upgradeExport` добавляет их экспортам форматов 1–6, формат экспорта поднят до 7. Фикстура
   `tests/fixtures/export-schema-7.json` создана кодом c3c4194. Тест: describe `0007_labels`.
+  2026-09-18: `0008_steps` (TI-095, решение владельца: шаги как записи) — вариант (б). Таблица
+  `checklist_items` пересобирается (`__new_checklist_items` → копия → `DROP` → `RENAME`, как 0002):
+  вместо целой `position` дробный `order_key`, плюс `done_at`, `done_by`, `done_by_label`, `result`,
+  `linked_task_id`, `removed_at`, `created_by`, `created_by_label`, `owner_touched_at`, `owner_fields`,
+  `revision`, `created_at`, `updated_at`; частичный уникальный индекс `checklist_order (task_id,
+  order_key) WHERE removed_at IS NULL`. Backfill в SQL: `order_key` это ключи, которые
+  `generateKeyBetween` дал бы при последовательном добавлении (`'a0'…'az'`, затем `'b00'…`;
+  `legacyStepKey` в `src/shared/steps.ts`), bookkeeping из родительской задачи, `revision 1`,
+  `owner_fields '[]'`; из `tasks.owner_fields` удаляется элемент `"checklist"`. Журнал не
+  переписывается: `applyEvent` превращает события задач с `changes.checklist` в те же записи шагов
+  (`legacySteps`) и убирает `checklist` из `ownerFields` задачи при replay, `validateExport`
+  сравнивает `from` старых событий с проекцией `{id,text,done}`, `taskSchema.checklist` читает
+  прежние `{id,text,done}` в сохранённых результатах через значения по умолчанию
+  (`checklistItemSchema`). Формат экспорта поднят до 8 (`steps` записями вместо `checklistItems`);
+  `upgradeExport` конвертирует строки форматов 1–7 тем же правилом. Фикстура
+  `tests/fixtures/export-schema-8.json` создана кодом cf576a1 (`export-schema-8.seed.mts`).
+  Тест: describe `0008_steps`.
 - Журналы, созданные до появления контрольных сумм, получают `sha256` из файлов образа при
   первом `migrate` с записью `warn` `migration_checksum_backfilled` (допустимо только до
   рабочего переключения; после него backfill только по сверке с архивным SQL релиза).
