@@ -45,7 +45,12 @@ const savedKey = 'taskindex/location';
 // history navigation; the remembered location is used once, when the app
 // opens on a bare `/`.
 /** @internal for tests */
-export function parseLocation(search: string): LocationState {
+export function parseLocation(address: string): LocationState {
+  // Bare queries also support preferences saved before path-based navigation.
+  const path = address.startsWith('/') ? address.split('?')[0]! : '/';
+  const search = address.startsWith('/')
+    ? address.slice(path.length + 1)
+    : address;
   const p = new URLSearchParams(search),
     area = p.get('area');
   return {
@@ -69,16 +74,63 @@ export function parseLocation(search: string): LocationState {
         'parked',
       ].map((k) => [k, p.get(k) === '1']),
     ),
+    ...parsePath(path),
   };
+}
+function parsePath(path: string): Partial<LocationState> {
+  const route = path.replace(/\/$/, '');
+  if (route === '/focus' || route === '/activity')
+    return {
+      focus: route === '/focus',
+      activity: route === '/activity',
+      archive: false,
+    };
+  const match =
+    /^\/([^/]+)(?:\/projects\/([^/]+)|\/(unassigned))?(\/archive)?$/.exec(
+      route,
+    );
+  if (!match || !AREAS.some((area) => area.id === match[1])) return {};
+  try {
+    let project = match[3] ? 'none' : 'all';
+    if (match[2]) project = decodeURIComponent(match[2]);
+    return {
+      area: match[1] as AreaId,
+      project,
+      archive: Boolean(match[4]),
+      focus: false,
+      activity: false,
+    };
+  } catch {
+    // Invalid percent encoding in a manually entered link must not crash the app.
+    return {};
+  }
 }
 /** @internal for tests */
 export function serializeLocation(state: LocationState): string {
+  const globalScreen = state.activity || state.focus;
+  let path = `/${state.area}`;
+  if (state.activity) path = '/activity';
+  else if (state.focus) path = '/focus';
+  if (!globalScreen) {
+    if (state.project === 'none') path += '/unassigned';
+    else if (state.project !== 'all')
+      path += `/projects/${encodeURIComponent(state.project)}`;
+    if (state.archive) path += '/archive';
+  }
+  const inPath = new Set([
+    'focus',
+    'activity',
+    'archive',
+    ...(!globalScreen ? ['area', 'project'] : []),
+  ]);
   const p = new URLSearchParams();
   for (const [key, val] of Object.entries(state))
-    if (val !== false && val !== '')
+    if (!inPath.has(key) && val !== defaultLocation[key as keyof LocationState])
       p.set(key, val === true ? '1' : String(val));
-  return `?${p.toString()}`;
+  const query = p.toString();
+  return `${path}${query ? `?${query}` : ''}`;
 }
+
 function savedLocation(): string {
   try {
     return localStorage.getItem(savedKey) || '';
@@ -86,29 +138,39 @@ function savedLocation(): string {
     return '';
   }
 }
-function rememberLocation(query: string) {
+function rememberLocation(state: LocationState) {
   try {
-    const saved = new URLSearchParams(query);
-    saved.delete('task');
-    saved.delete('q');
-    // TI-078: ящик контекстов — временное окно поверх стола, как карточка.
-    saved.delete('contexts');
-    localStorage.setItem(savedKey, saved.toString());
+    // Open tasks, search text and the context drawer are temporary UI state.
+    localStorage.setItem(
+      savedKey,
+      serializeLocation({ ...state, task: '', q: '', contexts: false }),
+    );
   } catch {
     /* Optional preference. */
   }
 }
+function currentAddress() {
+  return location.pathname + location.search;
+}
+function canonicalize(state: LocationState) {
+  const address = serializeLocation(state);
+  if (currentAddress() !== address) history.replaceState(null, '', address);
+}
 export function useLocationState() {
   const [value, setValue] = useState(() => {
-    const initial = parseLocation(location.search || savedLocation());
+    const address = currentAddress();
+    const initial = parseLocation(address === '/' ? savedLocation() : address);
     // The first history entry carries the state it displays, so "back" to it
     // restores that view instead of whatever was remembered later.
-    if (!location.search)
-      history.replaceState(null, '', serializeLocation(initial));
+    canonicalize(initial);
     return initial;
   });
   useEffect(() => {
-    const listener = () => setValue(parseLocation(location.search));
+    const listener = () => {
+      const next = parseLocation(currentAddress());
+      canonicalize(next);
+      setValue(next);
+    };
     window.addEventListener('popstate', listener);
     return () => window.removeEventListener('popstate', listener);
   }, []);
@@ -116,10 +178,10 @@ export function useLocationState() {
     (patch: Partial<LocationState>, replace = false) =>
       setValue((old) => {
         const next = { ...old, ...patch },
-          query = serializeLocation(next);
-        if (location.search !== query)
-          history[replace ? 'replaceState' : 'pushState'](null, '', query);
-        rememberLocation(query);
+          address = serializeLocation(next);
+        if (currentAddress() !== address)
+          history[replace ? 'replaceState' : 'pushState'](null, '', address);
+        rememberLocation(next);
         return next;
       }),
     [],

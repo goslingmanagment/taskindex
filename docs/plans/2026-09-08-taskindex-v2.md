@@ -481,6 +481,14 @@ URL: `/?area=agency&project=all|none|<id>&view=board|list&task=<id>&q=<текс�
 поиска и переключатели через replaceState. Пустой `/` открывает последнее
 место из localStorage, иначе `agency`, `all`, `board`.
 
+2026-09-18: адреса разделов перенесены в пути `/agency`, `/development`,
+`/personal`, `/focus`, `/activity`; направление — `/<area>/projects/<id>`,
+без направления — `/<area>/unassigned`, архив — суффикс `/archive` области
+или направления. Query-параметры содержат только значения, отличные от
+умолчаний: фильтры, поиск, открытую задачу и контекст глобальных экранов.
+Старые query-ссылки и сохранённое место читаются и приводятся к новому
+формату через replaceState без дополнительного шага в истории.
+
 Черновики в localStorage под ключом `taskindex/drafts/<scope>/<taskId>` со значением
 `{ formatVersion, generation, baseRevision, fields }`. Идентификатор набора
 черновиков вкладки хранится в sessionStorage; Web Lock удерживает за ним одного

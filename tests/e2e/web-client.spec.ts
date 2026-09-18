@@ -202,12 +202,12 @@ test('TI-042 browser back returns to the previous view instead of the remembered
   await expect(
     page.getByRole('heading', { name: 'Разработка', exact: true }),
   ).toBeVisible();
-  expect(page.url()).toContain('area=development');
+  expect(new URL(page.url()).pathname).toBe('/development');
   await page.goBack();
   await expect(
     page.getByRole('heading', { name: 'Агентство', exact: true }),
   ).toBeVisible();
-  expect(page.url()).not.toContain('area=development');
+  await expect(page).toHaveURL(/\/agency$/);
   await page.goForward();
   await expect(
     page.getByRole('heading', { name: 'Разработка', exact: true }),
@@ -237,7 +237,7 @@ test('TI-042 browser back returns to the previous view instead of the remembered
   await expect(
     page.getByRole('dialog', { name: 'Редактирование задачи', exact: true }),
   ).toBeHidden();
-  expect(page.url()).toContain('area=development');
+  expect(new URL(page.url()).pathname).toBe('/development');
   expect(page.url()).toContain('view=list');
   expect(page.url()).not.toContain('task=');
 });
