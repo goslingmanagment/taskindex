@@ -5,7 +5,6 @@ metadata:
   openclaw:
     requires:
       bins: ["taskindex"]
-      env: ["TASKINDEX_URL", "TASKINDEX_TOKEN"]
 ---
 
 # TaskIndex
