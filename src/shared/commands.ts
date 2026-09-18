@@ -849,6 +849,26 @@ function applyTaskSync(
     skipped,
   };
 }
+// TI-095 (owner decision 2026-09-18): the owner's steps are protected by what
+// they say, not as one list. Ticking a step done and adding new steps is the
+// agent's ordinary work on a plan the owner wrote or corrected; rewording,
+// removing or reordering the existing steps, or clearing a tick, changes his
+// decision and needs confirmOwnerFields.
+function overridesOwnerSteps(
+  current: Task['checklist'],
+  next: Task['checklist'],
+): boolean {
+  const kept = next.filter((item) => current.some((c) => c.id === item.id));
+  if (kept.length !== current.length) return true;
+  return current.some((before, index) => {
+    const after = kept[index]!;
+    return (
+      after.id !== before.id ||
+      after.text !== before.text ||
+      (before.done && !after.done)
+    );
+  });
+}
 // The common tail of every direct task write: merge check against the base
 // revision, owner-field confirmation for agents, the patch itself and a new
 // order key when the task moves.
@@ -893,7 +913,13 @@ function commitTaskPatch(
     const current: Record<string, unknown> = record;
     const overridden = Object.keys(patch).filter(
       (key) =>
-        record.ownerFields.includes(key) && !equal(patch[key], current[key]),
+        record.ownerFields.includes(key) &&
+        (key === 'checklist'
+          ? overridesOwnerSteps(
+              record.checklist,
+              patch.checklist as Task['checklist'],
+            )
+          : !equal(patch[key], current[key])),
     );
     if (overridden.length && !s.ctx.confirmOwnerFields)
       fail(

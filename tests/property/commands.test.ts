@@ -217,9 +217,26 @@ it('random command sequences by owner and agents preserve invariants, the event 
           )
             for (const event of history.slice(seen))
               if (event.entityKind === 'task' && event.entityId === t.id)
-                for (const key of Object.keys(event.changes))
-                  if (key !== 'orderKey')
-                    expect(protectedBefore.has(key)).toBe(false);
+                for (const [key, change] of Object.entries(event.changes)) {
+                  if (key === 'orderKey') continue;
+                  // TI-095: the owner's steps are protected one by one. An
+                  // unconfirmed agent may append steps and tick them, never
+                  // reword, drop, reorder or untick what the owner has.
+                  if (key === 'checklist' && protectedBefore.has(key)) {
+                    type Step = { id: string; text: string; done: boolean };
+                    const from = change.from as Step[];
+                    const kept = (change.to as Step[]).filter((step) =>
+                      from.some((prior) => prior.id === step.id),
+                    );
+                    expect(
+                      kept.map((s) => ({ id: s.id, text: s.text })),
+                    ).toEqual(from.map((s) => ({ id: s.id, text: s.text })));
+                    for (const [i, step] of kept.entries())
+                      if (from[i]!.done) expect(step.done).toBe(true);
+                    continue;
+                  }
+                  expect(protectedBefore.has(key)).toBe(false);
+                }
         }
         // Plan 13, criterion 1: focus keys are unique and focus mirrors the key;
         // a task that is done or archived is never on the desk.

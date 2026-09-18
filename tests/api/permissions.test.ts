@@ -784,22 +784,120 @@ describe('owner fields need an explicit confirmation from agents', () => {
     );
     expect(success(owner).results[0]!.confirmedOwnerFields).toBeUndefined();
   });
-  it('protects the whole checklist once the owner touched it, in single commands and batches, until confirmed', async () => {
+  // TI-095 (owner decision 2026-09-18): the owner's steps are protected by
+  // what they say, not the list as a whole. An agent working through the plan
+  // ticks steps and appends new ones without a flag; rewording, removing or
+  // reordering the owner's steps, or clearing a tick, needs confirmOwnerFields.
+  it('TI-095: after the owner edited a step, an agent still ticks steps and appends new ones without confirmation', async () => {
     const f = await seed(setup());
     success(
       await f.post(
         {
-          command: 'checklist.add',
+          command: 'task.save',
           payload: {
-            id: 's1',
-            taskId: 'ta',
+            id: 'ta',
             baseRevision: task(f, 'ta').revision,
-            text: 'Шаг агента',
+            checklist: [
+              { id: 's1', text: 'Первый', done: false },
+              { id: 's2', text: 'Второй', done: false },
+            ],
           },
         },
         { role: 'agent' },
       ),
     );
+    // The owner fixes the wording of the first step: the checklist is now his.
+    success(
+      await f.post({
+        command: 'checklist.update',
+        payload: {
+          taskId: 'ta',
+          baseRevision: task(f, 'ta').revision,
+          itemId: 's1',
+          text: 'Первый шаг',
+        },
+      }),
+    );
+    expect(task(f, 'ta').ownerFields).toContain('checklist');
+    const tick = await f.post(
+      {
+        command: 'checklist.update',
+        payload: {
+          taskId: 'ta',
+          baseRevision: task(f, 'ta').revision,
+          itemId: 's1',
+          done: true,
+        },
+      },
+      { role: 'agent' },
+    );
+    expect(tick.status).toBe(200);
+    expect(success(tick).results[0]!.confirmedOwnerFields).toBeUndefined();
+    const add = await f.post(
+      {
+        command: 'checklist.add',
+        payload: {
+          taskId: 'ta',
+          baseRevision: task(f, 'ta').revision,
+          id: 's3',
+          text: 'Третий',
+          position: 1,
+        },
+      },
+      { role: 'agent' },
+    );
+    expect(add.status).toBe(200);
+    expect(task(f, 'ta').checklist.map((i) => i.id)).toEqual([
+      's1',
+      's3',
+      's2',
+    ]);
+    // A full save that only ticks and appends passes as well.
+    const save = await f.post(
+      {
+        command: 'task.save',
+        payload: {
+          id: 'ta',
+          baseRevision: task(f, 'ta').revision,
+          checklist: [
+            { id: 's1', text: 'Первый шаг', done: true },
+            { id: 's3', text: 'Третий', done: true },
+            { id: 's2', text: 'Второй', done: true },
+            { id: 's4', text: 'Четвёртый', done: false },
+          ],
+        },
+      },
+      { role: 'agent' },
+    );
+    expect(save.status).toBe(200);
+    expect(success(save).results[0]!.confirmedOwnerFields).toBeUndefined();
+    expect(task(f, 'ta').checklist.map((i) => i.id)).toEqual([
+      's1',
+      's3',
+      's2',
+      's4',
+    ]);
+    expect(task(f, 'ta').ownerFields).toContain('checklist');
+  });
+  it("TI-095: rewording, removing, reordering or unticking the owner's steps needs confirmation, in single commands and batches", async () => {
+    const f = await seed(setup());
+    success(
+      await f.post(
+        {
+          command: 'task.save',
+          payload: {
+            id: 'ta',
+            baseRevision: task(f, 'ta').revision,
+            checklist: [
+              { id: 's1', text: 'Первый', done: false },
+              { id: 's2', text: 'Второй', done: false },
+            ],
+          },
+        },
+        { role: 'agent' },
+      ),
+    );
+    // The owner ticks the first step himself.
     success(
       await f.post({
         command: 'checklist.update',
@@ -813,38 +911,51 @@ describe('owner fields need an explicit confirmation from agents', () => {
     );
     expect(task(f, 'ta').ownerFields).toContain('checklist');
     const before = snapshot(f);
-    const add = await f.post(
-      {
-        command: 'checklist.add',
+    const base = () => task(f, 'ta').revision;
+    const overriding: (() => Command)[] = [
+      () => ({
+        command: 'checklist.update',
         payload: {
           taskId: 'ta',
-          baseRevision: task(f, 'ta').revision,
-          text: 'Ещё шаг',
+          baseRevision: base(),
+          itemId: 's2',
+          text: 'Другой текст',
         },
-      },
-      { role: 'agent' },
-    );
-    expect(add.body).toMatchObject({
-      code: 'forbidden',
-      conflicts: [{ fields: ['checklist'] }],
-    });
+      }),
+      () => ({
+        command: 'checklist.remove',
+        payload: { taskId: 'ta', baseRevision: base(), itemId: 's2' },
+      }),
+      () => ({
+        command: 'checklist.reorder',
+        payload: { taskId: 'ta', baseRevision: base(), itemIds: ['s2', 's1'] },
+      }),
+      () => ({
+        command: 'checklist.update',
+        payload: {
+          taskId: 'ta',
+          baseRevision: base(),
+          itemId: 's1',
+          done: false,
+        },
+      }),
+    ];
+    for (const command of overriding) {
+      const refused = await f.post(command(), { role: 'agent' });
+      expect(refused.body).toMatchObject({
+        code: 'forbidden',
+        conflicts: [{ fields: ['checklist'] }],
+      });
+    }
     const batch = await f.batch(
       [
         {
           command: 'task.update',
-          payload: {
-            id: 'ta',
-            baseRevision: task(f, 'ta').revision,
-            note: 'ok',
-          },
+          payload: { id: 'ta', baseRevision: base(), note: 'ok' },
         },
         {
           command: 'checklist.remove',
-          payload: {
-            taskId: 'ta',
-            baseRevision: task(f, 'ta').revision,
-            itemId: 's1',
-          },
+          payload: { taskId: 'ta', baseRevision: base(), itemId: 's1' },
         },
       ],
       { role: 'agent' },
@@ -855,19 +966,11 @@ describe('owner fields need an explicit confirmation from agents', () => {
       [
         {
           command: 'task.update',
-          payload: {
-            id: 'ta',
-            baseRevision: task(f, 'ta').revision,
-            note: 'ok',
-          },
+          payload: { id: 'ta', baseRevision: base(), note: 'ok' },
         },
         {
-          command: 'checklist.add',
-          payload: {
-            taskId: 'ta',
-            baseRevision: task(f, 'ta').revision,
-            text: 'Ещё шаг',
-          },
+          command: 'checklist.remove',
+          payload: { taskId: 'ta', baseRevision: base(), itemId: 's1' },
         },
       ],
       { role: 'agent', confirmOwnerFields: true },
@@ -876,7 +979,7 @@ describe('owner fields need an explicit confirmation from agents', () => {
     expect(
       success(confirmed).results.map((r) => r.confirmedOwnerFields),
     ).toEqual([undefined, ['checklist']]);
-    expect(task(f, 'ta').checklist).toHaveLength(2);
+    expect(task(f, 'ta').checklist.map((i) => i.id)).toEqual(['s2']);
   });
 });
 it('states the policy in /api/context rules', async () => {
