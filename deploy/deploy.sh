@@ -189,6 +189,9 @@ main() {
   inject after-open
   save_current_release open
   trap - ERR
+  # The release is verified and recorded; superseded images go last and never fail it.
+  prune_superseded_images "taskindex:$target" "$previous_image" \
+    || printf '%s\n' 'Image prune failed; the release is unaffected.' >&2
   printf '%s\n' "$health"
 }
 # --plan: a read-only description of what main would do. Nothing is created: no runtime
