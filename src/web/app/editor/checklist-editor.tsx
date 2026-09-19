@@ -1,4 +1,4 @@
-import { ArrowUpRight, ListChecks, Plus, X } from 'lucide-react';
+import { ArrowUpRight, Plus, Square, X } from 'lucide-react';
 import { LIMITS } from '@shared/limits';
 import type { ChecklistItem, Task } from '@shared/model';
 import { draftChecklistItem } from '@shared/steps';
@@ -33,20 +33,21 @@ export function ChecklistEditor({
   const linkedTitle = (id: string) =>
     data.tasks.find((t) => t.id === id)?.title ?? 'задача';
   return (
-    <section className="detail-section">
-      <h3>
-        <ListChecks size={18} />
-        Шаги
-        <span>
-          {done} / {draft.checklist.length}
-        </span>
-      </h3>
+    <section className="steps-section">
       {draft.checklist.length > 0 && (
-        <Progress
-          className="checklist-progress"
-          aria-label="Выполненные шаги"
-          value={(done / draft.checklist.length) * 100}
-        />
+        <>
+          <h3>
+            Шаги
+            <span>
+              {done} / {draft.checklist.length}
+            </span>
+          </h3>
+          <Progress
+            className="checklist-progress"
+            aria-label="Выполненные шаги"
+            value={(done / draft.checklist.length) * 100}
+          />
+        </>
       )}
       {draft.checklist.map((c) => {
         const byline = stepByline(c, timezone);
@@ -155,6 +156,7 @@ export function ChecklistEditor({
           }
         }}
       >
+        <Square size={16} aria-hidden="true" />
         <Input
           placeholder="Добавить шаг…"
           aria-label="Новый шаг"

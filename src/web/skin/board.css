@@ -164,15 +164,6 @@
 .inline-create .form-error {
   font-size: 12px;
 }
-.date-row {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-.date-row [data-slot='button'] {
-  font-size: 13px;
-  color: var(--text-faint);
-}
 .list-view .column-empty {
   display: none;
 }

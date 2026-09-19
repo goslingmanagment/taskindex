@@ -87,8 +87,12 @@ test('TI-086 badges, editor fields, menu and the server preference survive reloa
     .getByRole('button', { name: `Открыть: ${urgent.title}`, exact: true })
     .click();
   const save = page.getByRole('button', { name: 'Сохранить', exact: true });
+  // The label picker is a menu behind the «Метка» chip; it stays open while
+  // labels are toggled and keeps each label's description.
+  const labelMenu = page.getByRole('button', { name: 'Метка', exact: true });
+  await labelMenu.click();
   for (const label of LABELS) {
-    const checkbox = page.getByRole('checkbox', {
+    const checkbox = page.getByRole('menuitemcheckbox', {
       name: `Метка: ${label.name}`,
       exact: true,
     });
@@ -97,21 +101,29 @@ test('TI-086 badges, editor fields, menu and the server preference survive reloa
   }
   // Server canonicalization means toggling a label back restores a clean form,
   // including tasks originally sent with labels in another order by an agent.
-  const lora = page.getByRole('checkbox', { name: 'Метка: Lora', exact: true });
-  await lora.click();
-  await expect(save).toBeEnabled();
-  await lora.click();
-  await expect(save).toBeDisabled();
-  const priority = page.getByRole('combobox', {
-    name: 'Приоритет задачи',
+  const lora = page.getByRole('menuitemcheckbox', {
+    name: 'Метка: Lora',
     exact: true,
   });
+  await lora.click();
+  await page.keyboard.press('Escape');
+  await expect(save).toBeEnabled();
+  await expect(
+    page.getByRole('button', { name: 'Снять метку Lora', exact: true }),
+  ).toHaveCount(0);
+  await labelMenu.click();
+  await lora.click();
+  await page.keyboard.press('Escape');
+  await expect(save).toBeDisabled();
+  const priority = page.getByRole('button', { name: /^Приоритет задачи/ });
   await expect(priority).toContainText('P1');
   await priority.click();
-  await page.getByRole('option', { name: /^P2/ }).click();
+  await page.getByRole('menuitemradio', { name: /^P2/ }).click();
+  await labelMenu.click();
   await page
-    .getByRole('checkbox', { name: 'Метка: деньги', exact: true })
+    .getByRole('menuitemcheckbox', { name: 'Метка: деньги', exact: true })
     .click();
+  await page.keyboard.press('Escape');
   await page
     .getByRole('textbox', { name: 'Слаг проблемы', exact: true })
     .fill('traffic-materials');

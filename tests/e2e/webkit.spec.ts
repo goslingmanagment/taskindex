@@ -35,14 +35,11 @@ async function openTask(page: Page, name: string) {
     .click();
   await expect(title(page)).toBeVisible();
 }
-// Известная причина прошлого отката (docs/acceptance/test-debt.md): секция
-// «Заметка» раскрыта только когда заметка уже сохранена на сервере
-// (`editor.tsx:137`, `more.note = !!task.note`). После сохранения и после
-// перезагрузки её надо раскрывать явно, иначе поля в DOM просто нет.
+// Поле заметки стоит в карточке всегда (раскладка «Чипы и текст»): прежняя
+// кнопка раскрытия секции ушла вместе с причиной отката из
+// docs/acceptance/test-debt.md.
 async function showNote(page: Page) {
   const field = note(page);
-  if ((await field.count()) === 0)
-    await page.getByRole('button', { name: 'Заметка', exact: true }).click();
   await expect(field).toBeVisible();
   return field;
 }
@@ -80,7 +77,6 @@ test('WebKit: создание, правка и сохранение при пе
   const name = 'Э2Э WebKit: правка';
   await createTask(page, name);
   await openTask(page, name);
-  await page.getByRole('button', { name: 'Заметка', exact: true }).click();
   await note(page).fill('Заметка из WebKit');
   await page.getByRole('button', { name: 'Сохранить', exact: true }).click();
   await expect(
@@ -111,7 +107,6 @@ test('WebKit: черновик переживает перезагрузку (We
   await createTask(page, name);
   await openTask(page, name);
   await title(page).fill('Э2Э WebKit: несохранённое название');
-  await page.getByRole('button', { name: 'Заметка', exact: true }).click();
   await note(page).fill('Несохранённая заметка');
   await expect(page.getByText('Есть изменения', { exact: true })).toBeVisible();
   page.on('dialog', (dialog) => void dialog.accept());
@@ -129,7 +124,6 @@ test('WebKit: чеклист, комментарии и индикатор не�
   const name = 'Э2Э WebKit: карточка';
   await createTask(page, name);
   await openTask(page, name);
-  await page.getByRole('button', { name: 'Шаги', exact: true }).click();
   await page
     .getByRole('textbox', { name: 'Новый шаг', exact: true })
     .fill('Первый шаг');

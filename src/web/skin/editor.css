@@ -1,49 +1,199 @@
-/* Лист редактора: поля, шаги, ожидание, конфликт. Файл подключается со слоем skin из styles.css. */
+/* Лист редактора: шапка, строка чипов, заметка, шаги, ожидание, конфликт.
+   Файл подключается со слоем skin из styles.css.
+   Раскладка «Чипы и текст» (выбор владельца 2026-09-19): вся мета задачи одной
+   строкой чипов под заголовком, как на карточке доски; заметка и шаги читаются
+   как текст; «В начало очереди» и «В архив» живут в «···» шапки. */
 .editor-header > div {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 2px;
+}
+.editor-crumb {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  min-height: 30px;
+  margin-left: -8px;
+  padding: 0 8px;
+  border-radius: var(--radius-md);
+  font-size: 13px;
+  text-align: left;
+  color: var(--muted-foreground);
+}
+.editor-crumb > span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.editor-crumb:hover,
+.editor-crumb[data-popup-open] {
+  background: var(--muted);
+  color: var(--foreground);
+}
+.editor-crumb:focus-visible,
+.meta-chip:focus-visible,
+.chip-remove:focus-visible {
+  outline: 2px solid var(--ring-medium);
+  outline-offset: 2px;
 }
 .editor-title:focus {
   box-shadow: 0 2px 0 var(--accent-underline);
 }
-.editor-fields label {
-  font-size: 13px;
+/* Меню редактора: примитив берёт ширину у кнопки-чипа, здесь она идёт от
+   содержимого, как у меню карточки. */
+.editor-menu {
+  width: max-content;
+  min-width: 12rem;
+  max-width: calc(100vw - 16px);
+}
+.label-menu {
+  max-width: min(20rem, calc(100vw - 16px));
+}
+.label-choice {
+  align-items: flex-start;
+}
+.label-choice .menu-lead {
+  height: 20px;
+}
+.label-choice-text {
+  display: grid;
+  gap: 1px;
+  min-width: 0;
+}
+.label-choice-text small {
+  font-size: 12px;
+  line-height: 1.4;
+  white-space: normal;
+  color: var(--muted-foreground);
+}
+.menu-note {
+  margin: 4px 0 0;
+  padding: 7px 8px 4px;
+  border-top: 1px solid var(--border);
+  font-size: 12px;
+  color: var(--muted-foreground);
+}
+.editor-meta {
   display: flex;
-  flex-direction: column;
-  gap: 8px;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 20px;
+}
+.meta-chip {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  max-width: 100%;
+  min-height: 28px;
+  padding: 0 10px;
+  border: 1px solid transparent;
+  border-radius: var(--radius-md);
+  font-size: 13px;
+  white-space: nowrap;
+  color: var(--secondary-foreground);
+  background: var(--muted);
+}
+.meta-chip:hover,
+.meta-chip[data-popup-open],
+.meta-chip:focus-within {
+  border-color: var(--input);
+}
+.meta-chip > svg {
+  flex: none;
   color: var(--text-faint);
 }
-.full-field {
-  grid-column: 1/-1;
+.meta-chip .priority-mark {
+  margin-top: 0;
+  padding: 0;
+  border: 0;
+  font-size: 12px;
 }
-.detail-section h3 {
-  display: flex;
-  gap: 8px;
-  align-items: center;
-  font-size: 14px;
-  font-weight: 600;
-  margin-bottom: 12px;
-}
-.date-field {
-  border: 1px solid var(--line-soft);
-  border-radius: 6px;
-  padding: 8px 10px;
+.meta-chip-add {
+  border: 1px dashed var(--input);
   color: var(--muted-foreground);
-  font-family: inherit;
-  background: var(--card);
-  font-size: 14px;
+  background: transparent;
+}
+.meta-chip-add:hover,
+.meta-chip-add[data-popup-open] {
+  border-style: solid;
+  color: var(--foreground);
+}
+/* Срок: на чипе подпись как на карточке («Завтра», «22 сент»), а поле даты
+   лежит поверх прозрачным слоем, поэтому клик и клавиатура попадают в него. */
+.due-chip.overdue {
+  color: var(--destructive-text);
+}
+.due-input {
+  position: absolute;
+  inset: 0 26px 0 0;
+  width: auto;
+  min-width: 0;
+  opacity: 0;
+}
+.chip-remove {
+  display: grid;
+  place-items: center;
+  width: 18px;
+  height: 18px;
+  margin-right: -5px;
+  border-radius: var(--radius-sm);
+  color: var(--text-faint);
+}
+.chip-remove:hover {
+  color: var(--foreground);
+  background: var(--border);
+}
+.closes-input {
   min-width: 0;
   max-width: 100%;
+  padding: 0;
+  border: 0;
+  outline: 0;
+  font: inherit;
+  color: inherit;
+  background: transparent;
 }
-.add-details:empty {
-  display: none;
-}
-.detail-section h3 > span {
-  margin-left: auto;
-  font-size: 12px;
+.closes-input::placeholder {
   color: var(--text-faint);
+}
+.field-hint {
+  margin: -12px 0 20px;
+  font-size: 12px;
+  color: var(--muted-foreground);
+}
+.note-input {
+  min-height: 52px;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+  font-size: 16px;
+  line-height: 1.65;
+  resize: none;
+  background: transparent;
+}
+.note-input::placeholder {
+  color: var(--text-faint);
+}
+.steps-section {
+  margin-top: 18px;
+}
+.steps-section h3 {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--muted-foreground);
+}
+.steps-section h3 > span {
   font-weight: 400;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-faint);
 }
 .checklist-row {
   display: flex;
@@ -67,23 +217,35 @@
   color: var(--text-faint);
 }
 .checklist-progress {
-  margin-bottom: 15px;
+  margin-bottom: 12px;
 }
+/* Строка нового шага продолжает список: пустой квадрат на месте флажка и поле
+   без рамки; кнопка «+» видна, когда в поле есть текст. */
 .new-step {
   display: flex;
-  gap: 8px;
-  margin-top: 11px;
+  align-items: center;
+  gap: 10px;
+  color: var(--text-faint);
+}
+.new-step > svg {
+  flex: none;
 }
 .new-step [data-slot='input'] {
-  font-size: 14px;
-  border-style: dashed;
+  min-height: 37px;
+  padding: 6px;
+  border: 0;
+  box-shadow: none;
+  font-size: 16px;
+  background: transparent;
+}
+.new-step [data-slot='input']::placeholder {
+  color: var(--text-faint);
 }
 .new-step [data-slot='button'] {
   color: var(--text-faint);
 }
-.secondary-actions [data-slot='button'] {
-  color: var(--text-faint);
-  font-size: 13px;
+.new-step [data-slot='button']:disabled {
+  visibility: hidden;
 }
 .editor-actions {
   display: flex;
@@ -99,9 +261,6 @@
 @media (width < theme(--breakpoint-md)) {
   .save-hint {
     display: none;
-  }
-  .secondary-actions [data-slot='button'] {
-    font-size: 12px;
   }
 }
 .editor-conflict {
@@ -132,14 +291,9 @@
   flex-direction: row;
   justify-content: space-between;
   align-items: center;
-  padding: 17px 25px;
+  gap: 12px;
+  padding: 12px 16px 12px 25px;
   border-color: var(--border);
-}
-.editor-eyebrow {
-  font-size: 12px;
-  letter-spacing: 0.04em;
-  font-weight: 500;
-  color: var(--muted-foreground);
 }
 .editor-body {
   overflow-y: auto;
@@ -147,103 +301,19 @@
   padding: 25px 28px;
 }
 .editor-title {
+  display: block;
   width: 100%;
   border: 0;
   background: transparent;
-  resize: vertical;
+  resize: none;
   outline: none;
+  field-sizing: content;
   font-size: 24px;
   line-height: 1.4;
   font-weight: 600;
   letter-spacing: -0.4px;
-  min-height: 68px;
-  margin-bottom: 18px;
-}
-.editor-fields {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 14px 18px;
-}
-.editor-fields label {
-  font-size: 13px;
-  color: var(--muted-foreground);
-}
-.editor-location {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 14px;
-  margin-top: 17px;
-  padding-bottom: 15px;
-  border-bottom: 1px solid var(--border);
-  font-size: 13px;
-  color: var(--muted-foreground);
-}
-.editor-location [data-slot='button'] {
-  font-size: 13px;
-  color: var(--muted-foreground);
-}
-.editor-move {
-  margin-top: 16px;
-}
-.editor-state {
-  display: grid;
-  gap: 14px;
-  max-width: 225px;
-}
-.label-picker {
-  display: grid;
-  gap: 10px;
-}
-.label-option {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 8px;
-  font-size: 14px;
-  cursor: pointer;
-}
-.label-option small {
-  flex-basis: 100%;
-  padding-left: 30px;
-  font-size: 12px;
-  color: var(--muted-foreground);
-}
-.field-hint {
-  margin: 6px 0 0;
-  font-size: 12px;
-  color: var(--muted-foreground);
-}
-.add-details {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 14px;
-  margin-top: 23px;
-}
-.add-details [data-slot='button'] {
-  font-size: 13px;
-  border-color: var(--line-soft);
-  border: 0;
-  background: transparent;
-  padding: 0 2px;
-  height: 30px;
-  color: var(--muted-foreground);
-}
-.detail-section {
-  margin-top: 24px;
-}
-.detail-section h3 {
-  color: var(--foreground);
-}
-.note-input {
-  font-size: 16px;
-  line-height: 1.6;
-  min-height: 115px;
-  border: 1px solid var(--line-soft);
-  padding: 12px;
-  resize: vertical;
-  background: var(--card);
-  border-color: var(--border);
+  min-height: 34px;
+  margin-bottom: 14px;
 }
 .editor-footer {
   border-top: 1px solid var(--line-soft);
@@ -255,16 +325,6 @@
   font-size: 12px;
   margin-right: auto;
   color: var(--muted-foreground);
-}
-.secondary-actions {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-top: 30px;
-  padding-top: 14px;
-  border-top: 1px solid var(--line-soft);
-  gap: 10px;
-  border-color: var(--border);
 }
 @media (width < theme(--breakpoint-md)) {
   .task-sheet {
@@ -278,17 +338,10 @@
     font-size: 23px;
   }
   .editor-header {
-    padding: 15px 19px;
+    padding: 10px 10px 10px 19px;
   }
-  .editor-location {
-    gap: 8px;
-  }
-  .editor-fields {
-    gap: 15px;
-    grid-template-columns: 1fr;
-  }
-  .editor-state {
-    max-width: none;
+  .meta-chip {
+    min-height: 32px;
   }
   .editor-footer {
     padding: 14px 16px;
@@ -296,13 +349,6 @@
   .editor-footer [data-slot='button'] {
     height: 42px;
   }
-}
-.editor-state > label {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  font-size: 13px;
-  color: var(--muted-foreground);
 }
 /* Шаги как записи (TI-095): под отмеченным шагом подпись исполнителя, строка
    итога и чип задачи, в которую вырос шаг. */

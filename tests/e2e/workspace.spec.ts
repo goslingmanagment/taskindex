@@ -36,17 +36,16 @@ test('real owner login, atomic editor save, comments, and operation history', as
   await page
     .getByRole('button', { name: `Открыть: ${title}`, exact: true })
     .click();
-  await page.getByRole('button', { name: 'Заметка', exact: true }).click();
   await page
     .getByRole('textbox', { name: 'Заметка к задаче', exact: true })
     .fill('Контекст владельца');
-  await page
-    .getByRole('combobox', { name: 'Состояние задачи', exact: true })
-    .click();
+  await page.getByRole('button', { name: /^Состояние задачи/ }).click();
   await expect(
-    page.getByRole('option', { name: 'Жду', exact: true }),
+    page.getByRole('menuitemradio', { name: 'Жду', exact: true }),
   ).toHaveCount(0);
-  await page.getByRole('option', { name: 'В работе', exact: true }).click();
+  await page
+    .getByRole('menuitemradio', { name: 'В работе', exact: true })
+    .click();
   const save = page.waitForRequest(
     (request) =>
       request.url().endsWith('/api/commands') &&

@@ -50,10 +50,11 @@ test('the owner creates a label in the dialog, puts it on a task and archives it
 
   // The editor picker lists the new label; saving shows it on the card.
   await card.locator('.card-open').click();
-  await page.getByRole('button', { name: 'Метки', exact: true }).click();
+  await page.getByRole('button', { name: 'Метка', exact: true }).click();
   await page
-    .getByRole('checkbox', { name: `Метка: ${name}`, exact: true })
+    .getByRole('menuitemcheckbox', { name: `Метка: ${name}`, exact: true })
     .click();
+  await page.keyboard.press('Escape');
   await page.getByRole('button', { name: 'Сохранить', exact: true }).click();
   await expect(
     page.getByRole('dialog', { name: 'Редактирование задачи', exact: true }),

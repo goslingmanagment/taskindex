@@ -198,11 +198,12 @@ test('TI-091 legacy waiting tasks stay visible and the five-column layout works 
   await page
     .getByRole('button', { name: 'Открыть: Проверить материалы', exact: true })
     .click();
-  await page
-    .getByRole('combobox', { name: 'Состояние задачи', exact: true })
-    .click();
+  await page.getByRole('button', { name: /^Состояние задачи/ }).click();
   await expect(
-    page.getByRole('option', { name: 'Жду', exact: true }),
+    page.getByRole('menuitemradio', { name: 'Очередь', exact: true }),
+  ).toHaveAttribute('aria-checked', 'true');
+  await expect(
+    page.getByRole('menuitemradio', { name: 'Жду', exact: true }),
   ).toHaveCount(0);
   await page.keyboard.press('Escape');
   await page.keyboard.press('Escape');
