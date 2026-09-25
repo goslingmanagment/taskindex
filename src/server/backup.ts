@@ -29,7 +29,7 @@ import { defaultAppearance } from '../shared/domain-schemas.js';
 import { upgradeExport } from './export-upgrade.js';
 import { DEFAULT_APPEARANCE_ID } from '../shared/appearance.js';
 import { ENTITIES } from '../shared/entities.js';
-import { listAgents } from './agents.js';
+import { agentSnapshots, listAgents } from './agents.js';
 
 export function exportWorkspace(db: DatabaseHandle): ExportData {
   return withRead(db, (): ExportData => {
@@ -114,6 +114,7 @@ export function validateExport(data: ExportData) {
     invalid('нарушена непрерывная последовательность событий.');
   const operations = new Map(data.operations.map((o) => [o.id, o]));
   const byOperation = new Map<string, typeof data.events>();
+  const snapshots = agentSnapshots(data.agents);
   // 0007 seeds the label catalogue in SQL, so the journal starts with these
   // five records (data rule variant b); every later change is an event.
   let replay: WorkspaceState = {
@@ -167,12 +168,17 @@ export function validateExport(data: ExportData) {
               ? change.from.filter((field) => field !== 'checklist')
               : change.from
           : change.from;
+      // A write after a rename starts from the name the row had by then.
+      const read = (value: unknown) =>
+        before ? snapshots.value(e.entityKind, key, before, value) : value;
       if (
         !same(
-          from,
-          e.entityKind === 'task' && key === 'checklist'
-            ? legacyView(stored)
-            : stored,
+          read(from),
+          read(
+            e.entityKind === 'task' && key === 'checklist'
+              ? legacyView(stored)
+              : stored,
+          ),
         )
       )
         invalid('история изменений не соответствует предыдущему состоянию.');
@@ -233,11 +239,11 @@ export function validateExport(data: ExportData) {
       t.focusKey = t.focus ? (stored.get(t.id)?.focusKey ?? null) : null;
   }
   const normalized = (state: WorkspaceState) => ({
-    tasks: sorted(state.tasks),
+    tasks: sorted(state.tasks.map((t) => snapshots.record('task', t))),
     projects: sorted(state.projects),
     labels: sorted(state.labels),
-    steps: sorted(state.steps),
-    comments: sorted(state.comments),
+    steps: sorted(state.steps.map((s) => snapshots.record('step', s))),
+    comments: sorted(state.comments.map((c) => snapshots.record('comment', c))),
     appearance: sorted(state.appearance),
   });
   if (!same(normalized(replay), normalized(data)))

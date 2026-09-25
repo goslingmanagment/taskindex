@@ -159,9 +159,11 @@ docker compose -f deploy/compose.yml run --rm --no-deps -T app taskindex-admin a
 docker compose -f deploy/compose.yml run --rm --no-deps -T app taskindex-admin agent rename claude-mac --label 'Claude Mac'
 ```
 
-`agent rename` меняет подпись агента и подпись «от …» на его карточках и
-комментариях (снимок `createdByLabel` в задачах); журналы событий и операций
-хранят подпись своего времени. Открытые вкладки увидят новую подпись после
+`agent rename` меняет подпись агента и его подпись на карточках, шагах и
+комментариях (снимки `createdByLabel`, `doneByLabel`, `actorLabel`); журналы
+событий и операций хранят подпись своего времени. Проверка экспорта сверяет
+такие снимки агента по самому агенту, а не по подписи, поэтому копии после
+переименования восстанавливаются. Открытые вкладки увидят новую подпись после
 перезагрузки страницы.
 
 Ключ имеет вид `ti_<43 символа base64url>`; в базе хранится только SHA-256
@@ -385,10 +387,23 @@ bash deploy/pull-backup.sh            # → ~/Backups/taskindex/<UTC>/{taskindex
 
 Скрипт делает согласованную копию через SQLite backup API внутри работающего
 контейнера и `taskindex-admin export`, проверяет размер и JSON, хранит последние
-30 копий. Запускать по расписанию с мака (launchd, раз в сутки) или руками перед
+30 датированных копий (`TASKINDEX_BACKUP_KEEP`). Другие папки каталога (`logs/`,
+`releases/`, ручные) в счёт не входят и не удаляются. `release.sh` снимает две
+копии за релиз, поэтому 30 копий покрывают меньше 30 дней, если релизов много.
+Запускать по расписанию с мака (launchd, раз в сутки) или руками перед
 рискованными операциями. `LITESTREAM_HEARTBEAT_URL` при этом пустой — heartbeat
 выключен (проверено на 0.5.12), `AWS_*` не нужны. Восстановление из копии —
 раздел «Восстановление»: `quarantine-and-install <копия>` плюс `mark-restored`.
+
+Расписание на маке: `~/Library/LaunchAgents/ru.gosling-agency.taskindex-backup.plist`,
+каждый день в 04:30, логи в `~/Backups/taskindex/logs/`. Задание запускает копию
+скрипта `~/Backups/taskindex/pull-backup.sh`, а не файл репозитория. После
+изменения `deploy/pull-backup.sh` и слияния в `main` обновить копию из основного
+чекаута; путь в plist не меняется, перезагружать задание не нужно:
+
+```sh
+install -m 700 deploy/pull-backup.sh ~/Backups/taskindex/pull-backup.sh
+```
 
 ## Мониторинг репликации и RPO
 
