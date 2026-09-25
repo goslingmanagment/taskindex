@@ -17,8 +17,9 @@ import type {
   Appearance,
   Label,
   Step,
+  Proposal,
 } from './model.js';
-import { byFocusKey, byOrder } from './queries.js';
+import { byFocusKey, byOrder, todayInTimezone } from './queries.js';
 import {
   legacyChecklistItems,
   legacySteps,
@@ -26,13 +27,25 @@ import {
   projectChecklist,
   stepKeyAt,
 } from './steps.js';
-import type { FocusPosition } from './schemas.js';
-import { assertNever, fail } from './errors.js';
+import {
+  commandPayloadSchemas,
+  PROPOSAL_COMMANDS,
+  proposalCommandIssues,
+  type FocusPosition,
+} from './schemas.js';
+import { assertNever, fail, formatIssuePath } from './errors.js';
 import { LIMITS } from './limits.js';
 import { DEFAULT_APPEARANCE_ID } from './appearance.js';
 import { ENTITIES, STEP_EXECUTION_FIELDS } from './entities.js';
 import { DEFAULT_PRIORITY } from './labels.js';
 import { uniqueSlug } from './slug.js';
+import {
+  addDays,
+  byQueue,
+  closedMessage,
+  findProposal,
+  staleReason,
+} from './proposals.js';
 type ChangeEffect = {
   entityKind: EntityKind;
   entityId: string;
@@ -72,6 +85,9 @@ type CommandContext = {
   operationId?: string;
   // Envelope flag: the agent acknowledges it is changing owner decisions.
   confirmOwnerFields?: boolean;
+  // The workspace time zone (settings.timezone): proposal.deliver counts the
+  // owner's «today» in it.
+  timezone?: string;
 };
 // Owner-only fields: agents cannot set them directly; task.sync skips them.
 const ownerOnlyFields = ['focus', 'focusPosition'] as const;
@@ -126,6 +142,15 @@ const isLabel = (record: Entity): record is Label => 'archivedAt' in record;
 const isStep = (record: Entity): record is Step => 'removedAt' in record;
 const hasOwnerFields = (record: Entity): record is Task | Step =>
   'ownerFields' in record;
+// Scope propose (spec 2026-09-25, plan §1.4): every read, and of the writes
+// only these two. The night shift proposes; it never writes the board.
+const PROPOSE_COMMANDS: ReadonlySet<CommandName> = new Set([
+  'proposal.create',
+  'proposal.deliver',
+]);
+function requirePropose(actor: Actor) {
+  if (actor.scope === 'read') fail('forbidden', 'У ключа недостаточно прав.');
+}
 function requireScope(actor: Actor, kind: EntityKind) {
   // Appearance is the owner's own preference: no agent scope reaches it, and
   // task.sync never touches it (TI-025).
@@ -141,7 +166,11 @@ function requireScope(actor: Actor, kind: EntityKind) {
       fail('forbidden', 'Метки заводит и меняет только владелец.');
     return;
   }
-  if (actor.scope === 'read' || (kind === 'project' && actor.scope !== 'write'))
+  if (
+    actor.scope === 'read' ||
+    actor.scope === 'propose' ||
+    (kind === 'project' && actor.scope !== 'write')
+  )
     fail('forbidden', 'У ключа недостаточно прав.');
 }
 // -1, 0 or 1 for values a comparison operator already orders (BigInt, string).
@@ -198,6 +227,7 @@ function records(state: WorkspaceState, kind: 'comment'): Comment[];
 function records(state: WorkspaceState, kind: 'appearance'): Appearance[];
 function records(state: WorkspaceState, kind: 'label'): Label[];
 function records(state: WorkspaceState, kind: 'step'): Step[];
+function records(state: WorkspaceState, kind: 'proposal'): Proposal[];
 function records(state: WorkspaceState, kind: EntityKind): Entity[];
 function records(state: WorkspaceState, kind: EntityKind): Entity[] {
   return state[ENTITIES[kind].collection];
@@ -208,6 +238,7 @@ function get(state: WorkspaceState, kind: 'comment', id: string): Comment;
 function get(state: WorkspaceState, kind: 'appearance', id: string): Appearance;
 function get(state: WorkspaceState, kind: 'label', id: string): Label;
 function get(state: WorkspaceState, kind: 'step', id: string): Step;
+function get(state: WorkspaceState, kind: 'proposal', id: string): Proposal;
 function get(state: WorkspaceState, kind: EntityKind, id: string): Entity;
 function get(state: WorkspaceState, kind: EntityKind, id: string): Entity {
   return (
@@ -443,6 +474,38 @@ export function assertInvariants(
   for (const n of liveCount.values())
     if (n > LIMITS.checklistItems)
       fail('invalid', `В задаче не больше ${LIMITS.checklistItems} шагов.`);
+  // Proposals (spec 2026-09-25): one id and one fingerprint for all time, a
+  // number only while shown and never two shown under one number, tasks that
+  // exist.
+  const proposalIds = new Set<string>(),
+    fingerprints = new Map<string, Proposal>(),
+    numbers = new Map<number, Proposal>();
+  for (const p of state.proposals) {
+    if (proposalIds.has(p.id))
+      fail('invalid', 'Идентификатор предложения уже занят.');
+    proposalIds.add(p.id);
+    const twin = fingerprints.get(p.fingerprint);
+    if (twin)
+      fail('conflict', 'Предложение с таким отпечатком уже есть.', {
+        current: unchanged(twin, p),
+      });
+    fingerprints.set(p.fingerprint, p);
+    if ((p.status === 'shown') !== (p.number !== null))
+      fail('invalid', 'Номер есть только у показанного предложения.');
+    if (p.number !== null) {
+      const holder = numbers.get(p.number);
+      if (holder)
+        fail('conflict', 'Номер предложения уже занят.', {
+          current: unchanged(holder, p),
+        });
+      numbers.set(p.number, p);
+    }
+    if (
+      (p.taskId !== null && !taskIds.has(p.taskId)) ||
+      (p.resultTaskId !== null && !taskIds.has(p.resultTaskId))
+    )
+      fail('invalid', 'Предложение ссылается на отсутствующую задачу.');
+  }
 }
 // One command application: the cloned state, the context, the effects
 // collected so far and `emit`, which records a change and stamps the record.
@@ -485,6 +548,25 @@ function applyUndo(s: Session, p: CommandOf<'undo'>['payload']): CommandResult {
   }
   if (target.some((e) => e.command === 'project.create'))
     fail('not_undoable', 'Создание проекта не отменяется.');
+  // A proposal comes and goes by its own commands: creating and showing are
+  // the night shift's bookkeeping, and a decision goes back only whole, with
+  // the task write it made (spec 2026-09-25, §5.1).
+  if (
+    target.some(
+      (e) =>
+        e.command === 'proposal.create' || e.command === 'proposal.deliver',
+    )
+  )
+    fail('not_undoable', 'Создание и показ предложений не отменяются.');
+  if (
+    'seq' in p &&
+    target.some((e) => e.entityKind === 'proposal') &&
+    s.history.forOperation(target[0]!.operationId).length > 1
+  )
+    fail(
+      'not_undoable',
+      'Решение по предложению отменяется только целиком: undo --operation.',
+    );
   const targetSeqs = new Set(target.map((e) => e.seq));
   const groups = new Map<string, DomainEvent[]>();
   for (const e of target) {
@@ -1374,6 +1456,305 @@ function applyChecklist(
       return assertNever(command);
   }
 }
+// Agent proposals (spec 2026-09-25, plan 2026-09-25-proposals-phase1 §1.2).
+type ProposalTaskCommand = CommandOf<(typeof PROPOSAL_COMMANDS)[number]>;
+type ProposedCommand = Proposal['command'];
+// A proposal is created once per fingerprint for all time: a repeat answers
+// the earlier record in whatever status it is, so a refusal holds.
+function applyProposalCreate(
+  s: Session,
+  p: CommandOf<'proposal.create'>['payload'],
+): CommandResult {
+  const earlier = s.state.proposals.find(
+    (x) => x.fingerprint === p.fingerprint,
+  );
+  if (earlier)
+    return { record: earlier, changes: {}, proposal: earlier, existing: true };
+  const id = p.id ?? s.ctx.ids();
+  if (s.state.proposals.some((x) => x.id === id))
+    fail('conflict', 'Идентификатор предложения уже занят.');
+  // The payload is stored as its command reads it (trimmed): the morning
+  // message shows exactly what «да» will execute.
+  const payload: Record<string, unknown> = commandPayloadSchemas[
+    p.command.command
+  ].parse(p.command.payload);
+  const change = p.kind === 'task_change';
+  const taskId = change ? String(payload.id) : null;
+  if (taskId !== null) {
+    const task =
+      s.state.tasks.find((t) => t.id === taskId) ??
+      fail('not_found', 'Задача предложения не найдена.');
+    if (task.archived)
+      fail('invalid', 'Задача в архиве: предложение по ней не создаётся.');
+  }
+  const record: Proposal = {
+    id,
+    kind: p.kind,
+    taskId,
+    baseRevision: change ? Number(payload.baseRevision) : null,
+    command: { command: p.command.command, payload },
+    reason: p.reason,
+    evidence: p.evidence,
+    fingerprint: p.fingerprint,
+    rank: p.rank,
+    status: 'queued',
+    number: null,
+    shownOn: null,
+    decidedAt: null,
+    decidedBy: null,
+    decidedByLabel: null,
+    decisionReason: null,
+    patch: null,
+    resultTaskId: null,
+    createdBy: s.ctx.actor.id,
+    createdByLabel: s.ctx.actor.label,
+    revision: 0,
+    createdAt: s.ctx.now,
+    updatedAt: s.ctx.now,
+  };
+  s.state.proposals.push(record);
+  const changes = s.emit('proposal', undefined, record);
+  return { record, changes, proposal: record, existing: false };
+}
+// An outcome: the number is free again, the actor and the moment are kept.
+function decideProposal(
+  s: Session,
+  proposal: Proposal,
+  status: Proposal['status'],
+  reason: string | null,
+  extra: Partial<Pick<Proposal, 'patch' | 'resultTaskId'>> = {},
+): Changes {
+  const before = structuredClone(proposal);
+  Object.assign(proposal, {
+    status,
+    number: null,
+    decidedAt: s.ctx.now,
+    decidedBy: s.ctx.actor.id,
+    decidedByLabel: s.ctx.actor.label,
+    decisionReason: reason,
+    ...extra,
+  });
+  return s.emit('proposal', before, proposal);
+}
+const PROPOSAL_NUMBERS = Array.from(
+  { length: LIMITS.proposalNumbers },
+  (_, i) => i + 1,
+);
+// The morning delivery (plan §1.2, steps 1-5), one operation. A day that
+// already showed proposals answers what is still shown from it and changes
+// nothing: a repeat is idempotent, and the owner never gets more than the
+// limit in one day, even after answering the first batch.
+function applyProposalDeliver(
+  s: Session,
+  p: CommandOf<'proposal.deliver'>['payload'],
+): CommandResult {
+  const today = todayInTimezone(s.ctx.timezone ?? 'Europe/Moscow', s.ctx.now);
+  const list = s.state.proposals;
+  const summary = (expired: string[], stale: string[]): CommandResult => ({
+    record: null,
+    changes: {},
+    date: today,
+    shown: list
+      .filter((x) => x.status === 'shown' && x.shownOn === today)
+      .toSorted((a, b) => a.number! - b.number!),
+    queued: list.filter((x) => x.status === 'queued').length,
+    expired,
+    stale,
+  });
+  if (list.some((x) => x.shownOn === today)) return summary([], []);
+  const expired: string[] = [],
+    stale: string[] = [];
+  const cutoff = addDays(today, -LIMITS.proposalShownDays);
+  for (const x of list)
+    if (x.status === 'shown' && x.shownOn! < cutoff) {
+      decideProposal(
+        s,
+        x,
+        'expired',
+        `нет ответа ${LIMITS.proposalShownDays} дня после показа`,
+      );
+      expired.push(x.id);
+    }
+  for (const x of list) {
+    if (x.status !== 'queued' && x.status !== 'shown') continue;
+    const reason = staleReason(s.state, x);
+    if (!reason) continue;
+    decideProposal(s, x, 'stale', reason);
+    stale.push(x.id);
+  }
+  const taken = new Set(
+    list.flatMap((x) => (x.status === 'shown' ? [x.number!] : [])),
+  );
+  let left = p.limit ?? LIMITS.proposalsPerDay;
+  for (const x of list.filter((y) => y.status === 'queued').toSorted(byQueue)) {
+    const number = PROPOSAL_NUMBERS.find((n) => !taken.has(n));
+    if (left === 0 || number === undefined) break;
+    const before = structuredClone(x);
+    Object.assign(x, { status: 'shown', number, shownOn: today });
+    s.emit('proposal', before, x);
+    taken.add(number);
+    left--;
+  }
+  return summary(expired, stale);
+}
+// The owner's patch over the proposed payload, one level deep. The key
+// `command` changes the kind of action on the same task (spec §5.4: «в
+// архив» becomes «закрыть»); the new payload starts from the task and the
+// revision the proposal saw.
+function patchedCommand(
+  proposal: Proposal,
+  patch: Record<string, unknown> | undefined,
+): ProposedCommand {
+  if (!patch) return proposal.command;
+  const { command: name, ...fields } = patch;
+  if (name === undefined || name === proposal.command.command)
+    return {
+      command: proposal.command.command,
+      payload: { ...proposal.command.payload, ...fields },
+    };
+  const known =
+    PROPOSAL_COMMANDS.find((command) => command === name) ??
+    fail('invalid', 'Правка владельца не подходит к предложению.', {
+      issues: [
+        {
+          path: 'payload.patch.command',
+          message: `Ожидается одна из команд: ${PROPOSAL_COMMANDS.join(', ')}`,
+        },
+      ],
+    });
+  return {
+    command: known,
+    payload:
+      proposal.kind === 'task_change'
+        ? {
+            id: proposal.taskId,
+            baseRevision: proposal.baseRevision,
+            ...fields,
+          }
+        : fields,
+  };
+}
+// Where an issue of the patched command points inside the accept payload.
+function patchIssuePath(path: (string | number)[]): string {
+  const [head, next, ...rest] = path;
+  let inside = path;
+  if (head === 'command') inside = next === 'payload' ? rest : ['command'];
+  return formatIssuePath(['payload', 'patch', ...inside]);
+}
+// The proposed task command runs as the owner's instruction: he answered
+// «да» to this exact change, so his protected fields count as confirmed. Its
+// events carry the task command's own name, so the task's history reads as
+// an ordinary write of the accepting agent.
+function runProposedCommand(
+  s: Session,
+  command: ProposalTaskCommand,
+): CommandResult {
+  requireScope(s.ctx.actor, 'task');
+  const inner: Session = {
+    ...s,
+    ctx: { ...s.ctx, confirmOwnerFields: true },
+    name: command.command,
+    emit: (kind, before, after, cmd = command.command) =>
+      s.emit(kind, before, after, cmd),
+  };
+  return command.command === 'task.create'
+    ? applyTaskCreate(inner, command.payload)
+    : applyTaskWrite(inner, command);
+}
+function applyProposalAccept(
+  s: Session,
+  p: CommandOf<'proposal.accept'>['payload'],
+): CommandResult {
+  const proposal = findProposal(s.state, p.ref);
+  if (proposal.status !== 'shown')
+    fail('conflict', closedMessage(proposal.status), { current: proposal });
+  const command = patchedCommand(proposal, p.patch);
+  const issues = proposalCommandIssues({
+    kind: proposal.kind,
+    taskId: proposal.taskId,
+    baseRevision: proposal.baseRevision,
+    command,
+  });
+  if (issues.length)
+    fail('invalid', 'Правка владельца не подходит к предложению.', {
+      issues: issues.map((issue) => ({
+        path: patchIssuePath(issue.path),
+        message: issue.message,
+      })),
+    });
+  // The task moved on since the proposal: the proposal is withdrawn and the
+  // task stays as it is. That is an outcome to keep, not a refusal, so the
+  // operation succeeds with `task: null` (dated note in the plan, §1.2).
+  const stale = staleReason(s.state, proposal);
+  if (stale) {
+    const changes = decideProposal(s, proposal, 'stale', stale);
+    return {
+      record: proposal,
+      changes,
+      proposal,
+      task: null,
+      reason: `Предложение устарело: ${stale}. Задача не изменена.`,
+    };
+  }
+  // The one cast: `parse` of a name picked at runtime cannot tell `tsc` that
+  // the payload belongs to that same name.
+  const result = runProposedCommand(s, {
+    command: command.command,
+    payload: commandPayloadSchemas[command.command].parse(command.payload),
+  } as ProposalTaskCommand);
+  const task = result.record as Task;
+  const changes = decideProposal(s, proposal, 'accepted', null, {
+    patch: p.patch ?? null,
+    resultTaskId: task.id,
+  });
+  return {
+    record: proposal,
+    changes,
+    proposal,
+    task,
+    ...(result.confirmedOwnerFields
+      ? { confirmedOwnerFields: result.confirmedOwnerFields }
+      : {}),
+  };
+}
+function applyProposalReject(
+  s: Session,
+  p: CommandOf<'proposal.reject'>['payload'],
+): CommandResult {
+  const proposal = findProposal(s.state, p.ref);
+  if (proposal.status !== 'shown' && proposal.status !== 'queued')
+    fail('conflict', closedMessage(proposal.status), { current: proposal });
+  const changes = decideProposal(s, proposal, 'rejected', p.reason ?? null);
+  return { record: proposal, changes, proposal };
+}
+// The night shift creates and shows (scope propose and up); an agent with
+// tasks or write, or the owner, accepts and rejects.
+function applyProposal(
+  s: Session,
+  command: CommandOf<
+    | 'proposal.create'
+    | 'proposal.deliver'
+    | 'proposal.accept'
+    | 'proposal.reject'
+  >,
+): CommandResult {
+  switch (command.command) {
+    case 'proposal.create':
+      requirePropose(s.ctx.actor);
+      return applyProposalCreate(s, command.payload);
+    case 'proposal.deliver':
+      requirePropose(s.ctx.actor);
+      return applyProposalDeliver(s, command.payload);
+    case 'proposal.accept':
+      requireScope(s.ctx.actor, 'proposal');
+      return applyProposalAccept(s, command.payload);
+    case 'proposal.reject':
+      requireScope(s.ctx.actor, 'proposal');
+      return applyProposalReject(s, command.payload);
+    default:
+      return assertNever(command);
+  }
+}
 // The caller validates: the server through commandEnvelopeSchema in
 // operations.ts, the web client through typed builders. `command.command`
 // is exhaustive here, so a new payload schema without a branch fails `tsc`.
@@ -1413,7 +1794,9 @@ export function applyCommand(
       effects.push({
         entityKind: kind,
         entityId: after.id,
-        ...('taskId' in after ? { taskId: after.taskId } : {}),
+        // A comment or a step belongs to its task's history; a proposal is
+        // not the task's record and stays out of it.
+        ...(isComment(after) || isStep(after) ? { taskId: after.taskId } : {}),
         command: cmd,
         changes,
         recordRevision: after.revision,
@@ -1422,8 +1805,19 @@ export function applyCommand(
       return changes;
     },
   };
+  if (ctx.actor.scope === 'propose' && !PROPOSE_COMMANDS.has(command.command))
+    fail(
+      'forbidden',
+      'Ключ propose только предлагает: доступны proposal create и proposal deliver.',
+    );
   let result: CommandResult;
   switch (command.command) {
+    case 'proposal.create':
+    case 'proposal.deliver':
+    case 'proposal.accept':
+    case 'proposal.reject':
+      result = applyProposal(s, command);
+      break;
     case 'undo':
       result = applyUndo(s, command.payload);
       break;

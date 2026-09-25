@@ -68,6 +68,7 @@ export function validateExport(data: ExportData) {
     data.labels,
     data.steps,
     data.comments,
+    data.proposals,
     data.agents,
     data.operations,
   ])
@@ -123,6 +124,7 @@ export function validateExport(data: ExportData) {
     tasks: [],
     steps: [],
     comments: [],
+    proposals: [],
     appearance: [defaultAppearance()],
   };
   // A task event of the journal written before 0008 carries the checklist
@@ -244,6 +246,7 @@ export function validateExport(data: ExportData) {
     labels: sorted(state.labels),
     steps: sorted(state.steps.map((s) => snapshots.record('step', s))),
     comments: sorted(state.comments.map((c) => snapshots.record('comment', c))),
+    proposals: sorted(state.proposals),
     appearance: sorted(state.appearance),
   });
   if (!same(normalized(replay), normalized(data)))
@@ -286,6 +289,7 @@ export function importWorkspace(
         schema.tasks,
         schema.checklistItems,
         schema.comments,
+        schema.proposals,
         schema.events,
         schema.operations,
       ].some((table) => db.orm.select().from(table).get()) ||
@@ -308,6 +312,7 @@ export function importWorkspace(
       schema.user,
       schema.appearance,
       schema.comments,
+      schema.proposals,
       schema.checklistItems,
       schema.tasks,
       schema.projects,

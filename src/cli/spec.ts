@@ -114,7 +114,9 @@ export const WRITE_FLAGS: FlagSpec[] = [
   ),
 ];
 
-const sinceFlag = flag(
+// The journal position of digest, activity, inbox and events: `--since last`
+// resolves the saved cursor. Other reads may name a `since` of their own.
+export const sinceFlag = flag(
   'since',
   'string',
   'Читать после события с этим seq: число (для since > 0 нужен --generation исходного курсора) или `last` — seq и generation из сохранённого курсора (без курсора: 0 и текущее поколение)',
@@ -369,6 +371,37 @@ export const READS: ReadSpec[] = [
     example: 'taskindex export --out backup.json',
   },
   {
+    group: 'proposals',
+    route: '/api/proposals',
+    pageable: true,
+    query: [
+      flag(
+        'status',
+        'string',
+        'Статусы через запятую: queued, shown, accepted, rejected, expired, stale',
+      ),
+      flag(
+        'since',
+        'string',
+        'Только созданные не раньше этой даты YYYY-MM-DD (в поясе владельца)',
+      ),
+    ],
+    summary:
+      'Предложения агентов с фильтром по статусу и дате создания, постранично',
+    example: 'taskindex proposals --status shown',
+  },
+  {
+    group: 'proposal',
+    action: 'get',
+    route: '/api/proposals/{id}',
+    positional: [
+      id('REF', 'id', 'Номер среди показанных сейчас или идентификатор'),
+    ],
+    query: [],
+    summary: 'Одно предложение: номер среди показанных или идентификатор',
+    example: 'taskindex proposal get 3',
+  },
+  {
     group: 'me',
     route: '/api/me',
     query: [],
@@ -587,6 +620,43 @@ const WRITE_COMMANDS: Record<CommandName, Omit<WriteSpec, 'command'>> = {
     summary: 'Выбрать режим оформления и скин (только владелец)',
     example:
       'taskindex appearance set --base-revision 1 --mode dark --skin-id focus',
+  },
+  'proposal.create': {
+    group: 'proposal',
+    action: 'create',
+    positional: [
+      optionalId('Идентификатор нового предложения (по умолчанию новый)'),
+    ],
+    summary:
+      'Положить предложение в очередь; повтор fingerprint отвечает existing: true',
+    example: 'taskindex proposal create --file proposal.json',
+  },
+  'proposal.deliver': {
+    group: 'proposal',
+    action: 'deliver',
+    positional: [],
+    summary:
+      'Показать предложения на сегодня: номера, истечение, stale; повтор в тот же день ничего не меняет',
+    example: 'taskindex proposal deliver --limit 5',
+  },
+  'proposal.accept': {
+    group: 'proposal',
+    action: 'accept',
+    positional: [
+      id('REF', 'ref', 'Номер среди показанных сейчас или идентификатор'),
+    ],
+    summary:
+      'Принять предложение по слову владельца: выполнить его команду (с правкой --patch)',
+    example: 'taskindex proposal accept 3 --patch \'{"due":"2026-09-26"}\'',
+  },
+  'proposal.reject': {
+    group: 'proposal',
+    action: 'reject',
+    positional: [
+      id('REF', 'ref', 'Номер среди показанных сейчас или идентификатор'),
+    ],
+    summary: 'Отклонить предложение по слову владельца, с причиной',
+    example: "taskindex proposal reject 4 --reason 'Это понятно из названия'",
   },
   undo: {
     group: 'undo',

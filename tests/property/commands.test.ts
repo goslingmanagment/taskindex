@@ -12,7 +12,7 @@ import type {
   DomainEvent,
   WorkspaceState,
 } from '../../src/shared/model.js';
-import { agent, owner } from '../api/helpers.js';
+import { agent, nightShift, owner } from '../api/helpers.js';
 import { defaultAppearance } from '../../src/shared/domain-schemas.js';
 import { SEEDED_LABELS } from '../../src/shared/labels.js';
 const actors: Actor[] = [owner, agent, { ...agent, scope: 'tasks' }];
@@ -22,7 +22,7 @@ it('random command sequences by owner and agents preserve invariants, the event 
       fc.array(
         fc.record({
           task: fc.integer({ min: 0, max: 2 }),
-          action: fc.integer({ min: 0, max: 9 }),
+          action: fc.integer({ min: 0, max: 12 }),
           actor: fc.integer({ min: 0, max: 2 }),
           confirm: fc.boolean(),
           value: fc.integer({ min: 0, max: 99 }),
@@ -36,6 +36,7 @@ it('random command sequences by owner and agents preserve invariants, the event 
           tasks: [],
           steps: [],
           comments: [],
+          proposals: [],
           appearance: [defaultAppearance()],
         };
         let projection: WorkspaceState = {
@@ -44,6 +45,7 @@ it('random command sequences by owner and agents preserve invariants, the event 
           tasks: [],
           steps: [],
           comments: [],
+          proposals: [],
           appearance: [defaultAppearance()],
         };
         const history: DomainEvent[] = [];
@@ -206,6 +208,83 @@ it('random command sequences by owner and agents preserve invariants, the event 
               actor,
               action.confirm,
             );
+          } else if (action.action === 10) {
+            // Spec 2026-09-25: the night shift proposes a new task or one
+            // change of this task, as it saw it.
+            const kind = action.value % 4;
+            const evidence = [
+              {
+                source: 'board' as const,
+                ref: t.id,
+                at: '2026-09-08',
+                quote: 'q',
+              },
+            ];
+            code = apply(
+              {
+                command: 'proposal.create',
+                payload:
+                  kind === 0
+                    ? {
+                        kind: 'new_task',
+                        command: {
+                          command: 'task.create',
+                          payload: {
+                            area: 'agency',
+                            title: `P${action.value}`,
+                          },
+                        },
+                        reason: 'r',
+                        evidence,
+                        fingerprint: `new:${action.value}`,
+                        rank: 1,
+                      }
+                    : {
+                        kind: 'task_change',
+                        command: {
+                          command: (
+                            [
+                              'task.update',
+                              'task.move',
+                              'task.archive',
+                            ] as const
+                          )[kind - 1]!,
+                          payload: {
+                            ...base,
+                            ...(kind === 1 ? { note: `P${action.value}` } : {}),
+                            ...(kind === 2 ? { status: 'done' } : {}),
+                          },
+                        },
+                        reason: 'r',
+                        evidence,
+                        fingerprint: `change:${t.id}:${t.revision}:${kind}`,
+                        rank: 2,
+                      },
+              },
+              nightShift,
+            );
+          } else if (action.action === 11)
+            code = apply(
+              { command: 'proposal.deliver', payload: {} },
+              nightShift,
+            );
+          else if (action.action === 12) {
+            // An agent or the owner answers a shown proposal by its number.
+            const shown = state.proposals.filter((p) => p.status === 'shown');
+            const target = shown[action.value % Math.max(shown.length, 1)];
+            if (!target) continue;
+            code = apply(
+              action.value % 2 === 0
+                ? {
+                    command: 'proposal.accept',
+                    payload: { ref: String(target.number) },
+                  }
+                : {
+                    command: 'proposal.reject',
+                    payload: { ref: String(target.number), reason: 'нет' },
+                  },
+              actor,
+            );
           } else if (action.action === 7) {
             // Plan 13: a desk position by the owner; agents are refused.
             const other = state.tasks[(action.task + 1) % 3]!;
@@ -244,11 +323,14 @@ it('random command sequences by owner and agents preserve invariants, the event 
           }
           // A direct agent command without confirmation never changes a field
           // the owner decided on (undo of another agent's operation may restore one).
+          // An accepted proposal is the owner's own instruction (spec
+          // 2026-09-25): its owner fields count as confirmed.
           if (
             actor.kind !== 'owner' &&
             !action.confirm &&
             code === undefined &&
-            action.action !== 6
+            action.action !== 6 &&
+            action.action !== 12
           )
             for (const event of history.slice(seen))
               if (event.entityKind === 'task' && event.entityId === t.id)
@@ -274,7 +356,12 @@ it('random command sequences by owner and agents preserve invariants, the event 
                 }
           // TI-095: an unconfirmed agent never changes a field the owner
           // decided on a step, and never removes a step he touched.
-          if (actor.kind !== 'owner' && !action.confirm && code === undefined)
+          if (
+            actor.kind !== 'owner' &&
+            !action.confirm &&
+            code === undefined &&
+            action.action !== 12
+          )
             for (const event of history.slice(seen))
               if (event.entityKind === 'step') {
                 const decided = protectedSteps.get(event.entityId);

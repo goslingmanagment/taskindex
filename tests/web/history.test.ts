@@ -7,6 +7,10 @@ import type {
 } from '../../src/shared/model';
 import { SEEDED_LABELS } from '../../src/shared/labels';
 import { actorOptions, describeEvent } from '../../src/web/app/history';
+import {
+  commandLabel,
+  HIDDEN_ACTIVITY_COMMANDS,
+} from '../../src/web/app/labels';
 
 // TI-032: the history is a story, not a dump of enum ids, order keys and JSON.
 // Every case below is checked against the event alone — the formatter may not
@@ -461,6 +465,44 @@ describe('TI-095 the history tells step events', () => {
       'Название: «Настроить мониторинг»',
       'Состояние: «Очередь»',
       'Заметка: «Шаг задачи «Перенести бота» (t).»',
+    ]);
+  });
+});
+describe('agent proposals in the history (spec 2026-09-25)', () => {
+  it('tells a proposal event by its outcome and reason and keeps the rest technical', () => {
+    const story = describeEvent(
+      {
+        ...event(
+          {
+            status: { from: 'shown', to: 'rejected' },
+            number: { from: 3, to: null },
+            decisionReason: { from: null, to: 'Это понятно из названия' },
+            decidedBy: { from: null, to: 'agent:openclaw' },
+          },
+          'proposal.reject',
+        ),
+        entityKind: 'proposal',
+        entityId: 'p-1',
+      },
+      ctx,
+    );
+    expect(story.lines.map((l) => `${l.label}: ${l.text}`)).toEqual([
+      'Предложение: Отклонено',
+      'Причина: «Это понятно из названия»',
+    ]);
+    expect(story.technical.map(([field]) => field)).toContain('number');
+  });
+  it('names the four proposal commands and hides the night shift bookkeeping from «Активность»', () => {
+    for (const command of [
+      'proposal.create',
+      'proposal.deliver',
+      'proposal.accept',
+      'proposal.reject',
+    ])
+      expect(commandLabel(command)).not.toBe(command);
+    expect([...HIDDEN_ACTIVITY_COMMANDS]).toEqual([
+      'proposal.create',
+      'proposal.deliver',
     ]);
   });
 });

@@ -44,6 +44,7 @@ it('writeState by touched entities equals writeState by full diff after every ra
           tasks: [],
           steps: [],
           comments: [],
+          proposals: [],
           appearance: [defaultAppearance()],
         };
         const history: DomainEvent[] = [];

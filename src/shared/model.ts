@@ -44,6 +44,7 @@ export type Project = z.infer<typeof contracts.projectSchema>;
 export type Label = z.infer<typeof contracts.labelSchema>;
 export type Task = z.infer<typeof contracts.taskSchema>;
 export type Step = z.infer<typeof contracts.stepSchema>;
+export type Proposal = z.infer<typeof contracts.proposalSchema>;
 export type ChecklistItem = z.infer<typeof contracts.checklistItemSchema>;
 export type Comment = z.infer<typeof contracts.commentSchema>;
 export type Agent = z.infer<typeof contracts.agentSchema>;
@@ -77,6 +78,9 @@ export type WorkspaceState = {
   // live steps as `checklist`, a projection of this collection.
   steps: Step[];
   comments: Comment[];
+  // Agent proposals in every status (spec 2026-09-25): kept apart from the
+  // board, answered by the owner through an agent.
+  proposals: Proposal[];
   // One record (id `owner`), kept in an array so it travels the same record
   // paths as tasks and projects: `records`, `applyEvent`, export, replay.
   appearance: Appearance[];
@@ -99,5 +103,6 @@ export type FocusGroup = {
 // preference, 4 adds focusKey and focusLeftAt, 5 adds priority, labels,
 // closes and hideP3 (2026-09-13), 6 retires the label otvet (2026-09-17),
 // 7 adds the label catalogue (2026-09-17), 8 turns steps into records
-// (2026-09-18, TI-095). Formats 1-7 are still imported.
-export const FORMAT_VERSION = 8;
+// (2026-09-18, TI-095), 9 adds agent proposals (2026-09-25). Formats 1-8 are
+// still imported.
+export const FORMAT_VERSION = 9;

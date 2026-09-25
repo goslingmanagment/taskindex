@@ -321,10 +321,33 @@ function orderLine(changes: Changes): HistoryLine | null {
   if ('status' in changes || 'area' in changes) return null;
   return { label: FIELD_LABELS.orderKey!, text: 'Изменён порядок' };
 }
+// An agent proposal (spec 2026-09-25) is told by its outcome and the reason
+// given; everything else about it stays in the technical details.
+const PROPOSAL_OUTCOMES: Record<string, string> = {
+  queued: 'В очереди',
+  shown: 'Показано владельцу',
+  accepted: 'Принято',
+  rejected: 'Отклонено',
+  expired: 'Истекло без ответа',
+  stale: 'Устарело: задача изменилась',
+};
+function proposalStory(event: DomainEvent): HistoryStory {
+  const status = event.changes.status?.to;
+  const reason = event.changes.decisionReason?.to;
+  const outcome =
+    typeof status === 'string' ? PROPOSAL_OUTCOMES[status] : undefined;
+  const lines: HistoryLine[] = [
+    { label: 'Предложение', text: outcome ?? 'Изменено' },
+  ];
+  if (typeof reason === 'string' && reason)
+    lines.push({ label: 'Причина', text: quote(reason) });
+  return { lines, technical: Object.entries(event.changes) };
+}
 export function describeEvent(
   event: DomainEvent,
   ctx: HistoryContext,
 ): HistoryStory {
+  if (event.entityKind === 'proposal') return proposalStory(event);
   const lines: HistoryLine[] = [];
   const technical: HistoryStory['technical'] = [];
   // The task a promotion creates is a creation; the step it links is not.

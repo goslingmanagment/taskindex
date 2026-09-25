@@ -11,6 +11,12 @@ import {
   labelIdSchema,
   labelsSchema,
   closesSchema,
+  evidenceSchema,
+  proposalCommandSchema,
+  proposalKindSchema,
+  proposalPatchSchema,
+  proposalRankSchema,
+  PROPOSAL_STATUSES,
 } from './schemas.js';
 import { LIMITS } from './limits.js';
 import { DEFAULT_PRIORITY } from './labels.js';
@@ -35,7 +41,11 @@ export const actorSchema = z
     id: z.string().describe('Идентичность актора'),
     label: z.string().describe('Имя актора'),
     kind: z.enum(['owner', 'agent']).describe('Владелец или агент'),
-    scope: z.enum(['read', 'tasks', 'write']).describe('Права'),
+    scope: z
+      .enum(['read', 'propose', 'tasks', 'write'])
+      .describe(
+        'Права: read чтение, propose чтение и предложения, tasks задачи и комментарии, write всё',
+      ),
     agentId: idSchema.optional(),
   })
   .meta({ id: 'Actor' });
@@ -232,6 +242,69 @@ export const stepSchema = z
   })
   .strict()
   .meta({ id: 'Step' });
+// An agent proposal (spec 2026-09-25, plan §1.1): an exact task command the
+// owner answers with «да» or «нет». Kept apart from the board: no task list,
+// digest or Focus shows it.
+export const proposalSchema = z
+  .object({
+    id: idSchema,
+    kind: proposalKindSchema,
+    taskId: idSchema
+      .nullable()
+      .describe('Задача изменения (task_change) или null у новой задачи'),
+    baseRevision: revision
+      .nullable()
+      .describe('Revision задачи, которую видел автор; null у новой задачи'),
+    command: proposalCommandSchema,
+    reason: z
+      .string()
+      .min(1)
+      .max(LIMITS.proposalReason)
+      .describe('Почему предлагается'),
+    evidence: z
+      .array(evidenceSchema)
+      .min(1)
+      .max(LIMITS.proposalEvidence)
+      .describe('Доказательства'),
+    fingerprint: z
+      .string()
+      .min(1)
+      .max(LIMITS.proposalFingerprint)
+      .describe('Ключ повтора, уникален за всё время'),
+    rank: proposalRankSchema,
+    status: z
+      .enum(PROPOSAL_STATUSES)
+      .describe(
+        'queued в очереди, shown показано, accepted принято, rejected отклонено, expired истекло без ответа, stale задача изменилась',
+      ),
+    number: z
+      .number()
+      .int()
+      .min(1)
+      .max(LIMITS.proposalNumbers)
+      .nullable()
+      .describe('Номер, по которому отвечает владелец; только у shown'),
+    shownOn: dateSchema.describe('Дата показа в часовом поясе владельца'),
+    decidedAt: nullableStamp.describe('Когда предложение получило итог'),
+    decidedBy: z.string().nullable().describe('Актор итога'),
+    decidedByLabel: z.string().nullable().describe('Подпись актора итога'),
+    decisionReason: z
+      .string()
+      .max(LIMITS.proposalReason)
+      .nullable()
+      .describe('Причина отказа, stale или expired'),
+    patch: proposalPatchSchema.nullable(),
+    resultTaskId: idSchema
+      .nullable()
+      .describe('Задача, созданная или изменённая принятием'),
+    createdBy: z.string().describe('Автор предложения'),
+    createdByLabel: z.string().describe('Подпись автора'),
+    revision,
+    createdAt: stamp,
+    updatedAt: stamp,
+  })
+  .strict()
+  .meta({ id: 'Proposal' });
 export const commentSchema = z
   .object({
     id: idSchema,
@@ -294,8 +367,11 @@ export const entitySchema = z
     appearanceSchema,
     labelSchema,
     stepSchema,
+    proposalSchema,
   ])
-  .describe('Задача, проект, комментарий, оформление, метка или шаг')
+  .describe(
+    'Задача, проект, комментарий, оформление, метка, шаг или предложение',
+  )
   .meta({ id: 'Entity' });
 export const changesSchema = z
   .record(
@@ -371,7 +447,9 @@ export const commandResultSchema = z
     existing: z
       .boolean()
       .optional()
-      .describe('Задача источника уже существует'),
+      .describe(
+        'Задача источника или предложение с тем же fingerprint уже существует',
+      ),
     applied: z.array(z.string()).optional().describe('Применённые поля'),
     skipped: z
       .union([
@@ -392,6 +470,38 @@ export const commandResultSchema = z
       .describe(
         'Поля из ownerFields, изменённые агентом с confirmOwnerFields: true (след поручения)',
       ),
+    // Agent proposals (plan 2026-09-25-proposals-phase1 §1.2).
+    proposal: proposalSchema
+      .optional()
+      .describe('Предложение после proposal.create, accept или reject'),
+    task: z
+      .union([taskSchema, z.null()])
+      .optional()
+      .describe(
+        'Задача, созданная или изменённая proposal.accept; null, если предложение стало stale',
+      ),
+    date: z
+      .string()
+      .optional()
+      .describe('proposal.deliver: сегодня в часовом поясе владельца'),
+    shown: z
+      .array(proposalSchema)
+      .optional()
+      .describe('proposal.deliver: показанные сегодня, по номеру'),
+    queued: z
+      .number()
+      .int()
+      .nonnegative()
+      .optional()
+      .describe('proposal.deliver: сколько осталось в очереди'),
+    expired: z
+      .array(idSchema)
+      .optional()
+      .describe('proposal.deliver: истекшие этим вызовом'),
+    stale: z
+      .array(idSchema)
+      .optional()
+      .describe('proposal.deliver: снятые этим вызовом, задача изменилась'),
   })
   .strict()
   .meta({ id: 'CommandResult' });
@@ -547,21 +657,32 @@ const legacyExportFields = {
   ...exportFields,
   tasks: z.array(legacyTaskSchema),
 };
+const recordExportFields = {
+  ...baseExportFields,
+  steps: z
+    .array(stepSchema)
+    .describe('Шаги всех задач полными записями, включая удалённые'),
+  labels: z.array(labelSchema).describe('Каталог меток, включая архивные'),
+  operations: z.array(exportedOperationSchema),
+  appearance: z
+    .array(appearanceSchema)
+    .describe('Предпочтение оформления владельца (одна запись)'),
+};
 export const exportSchema = z
   .object({
-    formatVersion: z.literal(8),
-    ...baseExportFields,
-    steps: z
-      .array(stepSchema)
-      .describe('Шаги всех задач полными записями, включая удалённые'),
-    labels: z.array(labelSchema).describe('Каталог меток, включая архивные'),
-    operations: z.array(exportedOperationSchema),
-    appearance: z
-      .array(appearanceSchema)
-      .describe('Предпочтение оформления владельца (одна запись)'),
+    formatVersion: z.literal(9),
+    ...recordExportFields,
+    proposals: z
+      .array(proposalSchema)
+      .describe('Предложения агентов во всех статусах'),
   })
   .strict()
   .meta({ id: 'Export' });
+// Format 8 (schema version 9): no agent proposals. Import adds none, exactly
+// what 0009_proposals.sql leaves in an existing database.
+export const exportSchemaV8 = z
+  .object({ formatVersion: z.literal(8), ...recordExportFields })
+  .strict();
 // Format 7 (schema version 8): steps as rows of text, tick and position.
 // Import turns them into step records exactly as 0008_steps.sql does to an
 // existing database.

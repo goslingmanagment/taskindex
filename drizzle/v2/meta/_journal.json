@@ -64,6 +64,13 @@
       "when": 1789735469656,
       "tag": "0008_steps",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "6",
+      "when": 1790304088971,
+      "tag": "0009_proposals",
+      "breakpoints": true
     }
   ]
 }

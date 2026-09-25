@@ -10,7 +10,7 @@ import * as schema from './schema.js';
 import type { Actor, Scope } from '../shared/model.js';
 import { fail } from '../shared/errors.js';
 import { z } from '../shared/schemas.js';
-const scopeSchema = z.enum(['read', 'tasks', 'write']);
+const scopeSchema = z.enum(['read', 'propose', 'tasks', 'write']);
 // SHA-256 → base64url without padding: the same function the former Better Auth
 // api-key plugin used (`defaultKeyHasher`), so migrated hashes keep working.
 /** @internal for tests */

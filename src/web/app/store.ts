@@ -80,6 +80,7 @@ const empty = (): WorkspaceState => ({
   tasks: [],
   steps: [],
   comments: [],
+  proposals: [],
   appearance: [defaultAppearance()],
 });
 const opKey = (id: string) => `taskindex/ops/${id}`;
@@ -253,6 +254,7 @@ export class WorkspaceStore {
         labels: snapshot.labels,
         steps: snapshot.steps,
         comments: [],
+        proposals: [],
         appearance: [snapshot.appearance ?? defaultAppearance()],
       },
       loading: false,

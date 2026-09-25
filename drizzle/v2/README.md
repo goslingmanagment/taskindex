@@ -85,6 +85,16 @@
   `upgradeExport` конвертирует строки форматов 1–7 тем же правилом. Фикстура
   `tests/fixtures/export-schema-8.json` создана кодом cf576a1 (`export-schema-8.seed.mts`).
   Тест: describe `0008_steps`.
+  2026-09-25: `0009_proposals` (спека `docs/specs/2026-09-25-agent-proposals.md`) — вариант (б).
+  Новая таблица `proposals` с внешними ключами `task_id` и `result_task_id` на `tasks`,
+  уникальным `proposals_fingerprint` (отпечаток один за всё время) и частичным уникальным
+  `proposals_number … WHERE number IS NOT NULL` (номер у одного показанного). Переноса данных
+  нет: в существующей базе предложений нет. `validateExport` воспроизводит события
+  `entityKind: proposal` как любые записи, `upgradeExport` даёт форматам 1–8 пустой список,
+  формат экспорта поднят до 9. `writeState` сначала снимает номера изменённых предложений,
+  потом пишет строки: один показ может освободить номер и отдать его другому. Фикстура
+  `tests/fixtures/export-schema-9.json` создана кодом f2ab3d5 (`export-schema-9.seed.mts`).
+  Тест: describe `0009_proposals`.
 - Журналы, созданные до появления контрольных сумм, получают `sha256` из файлов образа при
   первом `migrate` с записью `warn` `migration_checksum_backfilled` (допустимо только до
   рабочего переключения; после него backfill только по сверке с архивным SQL релиза).

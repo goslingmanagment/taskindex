@@ -951,3 +951,134 @@ describe('стол Focus в CLI (TI-078)', () => {
     });
   });
 });
+
+describe('agent proposals in the CLI (spec 2026-09-25)', () => {
+  it('builds proposal payloads from --payload, REF and flags; a propose key is remembered; proposals --since is a date, not a cursor', async () => {
+    const sent: Record<string, unknown>[] = [];
+    const urls: string[] = [];
+    const test = await setup(
+      (url, init) => {
+        urls.push(`${url.pathname}${url.search}`);
+        if (url.pathname === '/api/commands') {
+          sent.push(JSON.parse(requestBody(init)) as Record<string, unknown>);
+          return json(success(init));
+        }
+        return json({
+          generation: 'g_first',
+          seq: 0,
+          items: [],
+          more: false,
+          nextCursor: null,
+        });
+      },
+      {
+        ...actor,
+        id: 'agent:night-shift',
+        agentId: 'night-shift',
+        scope: 'propose',
+      },
+    );
+    const draft = {
+      kind: 'task_change',
+      taskId: 't1',
+      baseRevision: 3,
+      command: {
+        command: 'task.archive',
+        payload: { id: 't1', baseRevision: 3 },
+      },
+      reason: 'Дата прошла',
+      evidence: [
+        { source: 'board', ref: 't1', at: '2026-09-25', quote: 'Стрижка' },
+      ],
+      fingerprint: 'audit:dated:t1:2026-09-21',
+      rank: 3,
+    };
+    expect(
+      await test.run([
+        'proposal',
+        'create',
+        '--payload',
+        JSON.stringify(draft),
+        '--generation',
+        'g_first',
+      ]),
+    ).toBe(0);
+    expect(sent[0]).toMatchObject({
+      command: 'proposal.create',
+      payload: draft,
+    });
+    expect(
+      await test.run([
+        'proposal',
+        'deliver',
+        '--limit',
+        '5',
+        '--generation',
+        'g_first',
+      ]),
+    ).toBe(0);
+    expect(sent[1]).toMatchObject({
+      command: 'proposal.deliver',
+      payload: { limit: 5 },
+    });
+    expect(
+      await test.run([
+        'proposal',
+        'accept',
+        '3',
+        '--patch',
+        '{"due":"2026-09-26"}',
+        '--generation',
+        'g_first',
+      ]),
+    ).toBe(0);
+    expect(sent[2]).toMatchObject({
+      command: 'proposal.accept',
+      payload: { ref: '3', patch: { due: '2026-09-26' } },
+    });
+    expect(
+      await test.run([
+        'proposal',
+        'reject',
+        '4',
+        '--reason',
+        'Это понятно',
+        '--generation',
+        'g_first',
+      ]),
+    ).toBe(0);
+    expect(sent[3]).toMatchObject({
+      command: 'proposal.reject',
+      payload: { ref: '4', reason: 'Это понятно' },
+    });
+    // A limit above five is refused locally with the field named.
+    expect(
+      await test.run([
+        'proposal',
+        'deliver',
+        '--limit',
+        '6',
+        '--generation',
+        'g_first',
+      ]),
+    ).toBe(2);
+    expect(test.output.at(-1)).toMatchObject({
+      code: 'invalid_arguments',
+      issues: [expect.objectContaining({ path: 'limit' })],
+    });
+    expect(
+      await test.run([
+        'proposals',
+        '--status',
+        'queued,shown',
+        '--since',
+        '2026-09-20',
+      ]),
+    ).toBe(0);
+    expect(urls.at(-1)).toBe(
+      '/api/proposals?status=queued%2Cshown&since=2026-09-20',
+    );
+    expect(await test.run(['proposal', 'get', '3'])).toBe(0);
+    expect(urls.at(-1)).toBe('/api/proposals/3');
+  });
+});

@@ -38,7 +38,7 @@ import {
 } from '@shared/domain-schemas';
 import { ApiError, request } from './api';
 import { workspaceStore } from './store';
-import { commandLabels, taskCount } from './labels';
+import { commandLabels, HIDDEN_ACTIVITY_COMMANDS, taskCount } from './labels';
 import { actorOptions, ALL_ACTORS, describeEvent } from './history';
 import { useDraft } from './use-draft';
 import {
@@ -111,7 +111,10 @@ function EventRow({ event }: { event: DomainEvent }) {
         <Button
           variant="ghost"
           size="sm"
-          disabled={event.command === 'project.create'}
+          disabled={
+            event.command === 'project.create' ||
+            event.entityKind === 'proposal'
+          }
           onClick={() => void undo({ seq: event.seq })}
         >
           Отменить
@@ -269,6 +272,9 @@ export function Activity({
     }
   }
   const options = actorOptions(agents, page?.items ?? []);
+  const shown = page?.items.filter(
+    (operation) => !HIDDEN_ACTIVITY_COMMANDS.has(operation.command),
+  );
   return (
     <section className="activity-view">
       <p className="focus-hint">
@@ -309,7 +315,7 @@ export function Activity({
         </p>
       )}
       {!page && !error && <p role="status">Загружаем активность…</p>}
-      {page && !page.items.length && (
+      {page && !shown?.length && !page.more && (
         <p className="focus-hint">
           {actor
             ? 'У этого автора пока нет операций.'
@@ -317,7 +323,7 @@ export function Activity({
         </p>
       )}
       <div className="operation-list">
-        {page?.items.map((operation) => (
+        {shown?.map((operation) => (
           <OperationRow key={operation.id} operation={operation} />
         ))}
       </div>

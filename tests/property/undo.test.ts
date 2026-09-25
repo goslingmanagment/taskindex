@@ -72,6 +72,7 @@ function workspace() {
     labels: structuredClone(SEEDED_LABELS),
     steps: [],
     comments: [],
+    proposals: [],
     appearance: [defaultAppearance()],
   };
   const history: DomainEvent[] = [];

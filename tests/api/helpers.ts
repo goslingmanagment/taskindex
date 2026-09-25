@@ -33,6 +33,14 @@ export const otherAgent: Actor = {
   kind: 'agent',
   scope: 'write',
 };
+// The night shift (spec 2026-09-25): reads everything, writes proposals only.
+export const nightShift: Actor = {
+  id: 'agent:night-shift',
+  agentId: 'night-shift',
+  label: 'Ночная смена',
+  kind: 'agent',
+  scope: 'propose',
+};
 export function fixture(
   setup:
     | 'held'
@@ -41,10 +49,14 @@ export function fixture(
         mode?: 'held' | 'open';
         hub?: EventHub;
         sseBacklogLimit?: number;
+        now?: () => string;
       } = 'open',
 ) {
-  const { mode = 'open', ...rest } =
-    typeof setup === 'string' ? { mode: setup } : setup;
+  const {
+    mode = 'open',
+    now = () => '2026-09-08T12:00:00.000Z',
+    ...rest
+  } = typeof setup === 'string' ? { mode: setup } : setup;
   const db = openDatabase(':memory:');
   migrate(db);
   const app = createApp({
@@ -54,7 +66,7 @@ export function fixture(
     trustedOrigins: ['http://localhost:5173'],
     writes: mode,
     deploymentId: 'test-deploy',
-    now: () => '2026-09-08T12:00:00.000Z',
+    now,
     authorize: (r) =>
       r.headers.get('x-test-role') === 'none'
         ? null
@@ -66,7 +78,9 @@ export function fixture(
               ? { ...agent, scope: 'read' }
               : r.headers.get('x-test-role') === 'agent2'
                 ? otherAgent
-                : owner,
+                : r.headers.get('x-test-role') === 'propose'
+                  ? nightShift
+                  : owner,
   });
   async function post(
     command: Command,

@@ -742,6 +742,7 @@ describe('comments, snapshots, export and stream', () => {
       labels: structuredClone(SEEDED_LABELS),
       steps: [],
       comments: [],
+      proposals: [],
       appearance: [defaultAppearance()],
     } as WorkspaceState);
     expect(projection).toEqual(f.state());
@@ -870,7 +871,7 @@ describe('comments, snapshots, export and stream', () => {
     expect(response.status).toBe(200);
     const document = await response.json();
     // Entities and envelopes are components referenced from the routes.
-    expect(document.components.schemas.CommandEnvelope.oneOf).toHaveLength(23);
+    expect(document.components.schemas.CommandEnvelope.oneOf).toHaveLength(27);
     expect(
       document.paths['/api/commands'].post.requestBody.content[
         'application/json'
