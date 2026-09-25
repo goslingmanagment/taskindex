@@ -355,11 +355,14 @@ it('random command sequences by owner and agents preserve invariants, the event 
                   expect(protectedBefore.has(key)).toBe(false);
                 }
           // TI-095: an unconfirmed agent never changes a field the owner
-          // decided on a step, and never removes a step he touched.
+          // decided on a step, and never removes a step he touched. An
+          // agent's undo of its own confirmed removal brings the owner's
+          // step back: that restores his decision, it does not make one.
           if (
             actor.kind !== 'owner' &&
             !action.confirm &&
             code === undefined &&
+            action.action !== 6 &&
             action.action !== 12
           )
             for (const event of history.slice(seen))
@@ -415,6 +418,15 @@ it('random command sequences by owner and agents preserve invariants, the event 
             { task: 0, action: 10, actor: 0, confirm: false, value: 0 },
             { task: 0, action: 11, actor: 0, confirm: false, value: 0 },
             { task: 0, action: 12, actor: 1, confirm: false, value: 0 },
+          ],
+        ],
+        // numRuns 3000: the owner adds a step, an agent removes it with
+        // confirmation and then undoes its own removal.
+        [
+          [
+            { task: 2, action: 5, actor: 0, confirm: false, value: 0 },
+            { task: 2, action: 9, actor: 1, confirm: true, value: 0 },
+            { task: 0, action: 6, actor: 1, confirm: false, value: 0 },
           ],
         ],
       ],
