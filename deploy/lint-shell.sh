@@ -6,7 +6,7 @@ set -Eeuo pipefail
 repo=$(cd "$(dirname "$0")/.." && pwd)
 cd "$repo"
 shopt -s nullglob
-scripts=(deploy/*.sh deploy/drill/*.sh scripts/agent/*.sh)
+scripts=(deploy/*.sh deploy/drill/*.sh scripts/agent/*.sh scripts/night-shift/*.sh)
 bash -n "${scripts[@]}"
 if command -v shellcheck >/dev/null; then
   shellcheck -x -S warning "${scripts[@]}"
