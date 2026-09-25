@@ -24,6 +24,7 @@ import {
   withoutEvents,
   readEventsForOperation,
   generation,
+  getSetting,
   latestOperationSeq,
   latestSeq,
   readState,
@@ -93,6 +94,9 @@ export function executeOperation(
             }),
           ];
     const previous = options.projection?.read() ?? readState(db);
+    // The owner's «today» for proposal.deliver, the same setting the read
+    // routes use.
+    const timezone = getSetting(db, 'timezone') ?? 'Europe/Moscow';
     let state = previous;
     const events: DomainEvent[] = [];
     // The reducer asks the journal only for what it needs (plan 01, step 2):
@@ -122,6 +126,7 @@ export function executeOperation(
           history,
           operationId: envelope.operationId,
           confirmOwnerFields: envelope.confirmOwnerFields === true,
+          timezone,
         });
         state = applied.state;
         results.push(applied.result);

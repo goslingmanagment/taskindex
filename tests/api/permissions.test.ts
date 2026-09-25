@@ -55,8 +55,38 @@ async function seed(f: ReturnType<typeof setup>) {
       { id: 'agent-comment', role: 'agent' },
     ),
   );
+  // Spec 2026-09-25: the night shift queued and showed one proposal (№ 1).
+  success(
+    await f.post(proposal('pr', 'seeded'), {
+      id: 'night-proposal',
+      role: 'propose',
+    }),
+  );
+  success(
+    await f.post(
+      { command: 'proposal.deliver', payload: {} },
+      { id: 'night-deliver', role: 'propose' },
+    ),
+  );
   return f;
 }
+const proposal = (id: string, fingerprint: string): Command => ({
+  command: 'proposal.create',
+  payload: {
+    id,
+    kind: 'new_task',
+    command: {
+      command: 'task.create',
+      payload: { area: 'agency', title: 'Предложенная задача' },
+    },
+    reason: 'Договорились',
+    evidence: [{ source: 'board', ref: 'ta', at: '2026-09-08', quote: 'Да' }],
+    fingerprint,
+    rank: 2,
+  },
+});
+const PROPOSE_ONLY =
+  'Ключ propose только предлагает: доступны proposal create и proposal deliver.';
 const task = (f: ReturnType<typeof setup>, id: string): Task =>
   f.state().tasks.find((t) => t.id === id)!;
 describe('permission matrix: direct commands', () => {
@@ -297,6 +327,108 @@ describe('permission matrix: direct commands', () => {
         command: 'comment.remove',
         payload: { commentId: 'c' },
       }),
+    },
+    // Scope propose (spec 2026-09-25, plan §1.4): every read, two writes.
+    {
+      title: 'propose agent creates a proposal',
+      role: 'propose',
+      status: 200,
+      command: () => proposal('pr-2', 'second'),
+    },
+    {
+      title: 'propose agent delivers proposals',
+      role: 'propose',
+      status: 200,
+      command: () => ({ command: 'proposal.deliver', payload: { limit: 5 } }),
+    },
+    ...(
+      [
+        [
+          'task.create',
+          () => ({
+            command: 'task.create',
+            payload: { area: 'agency', title: 'Сам' },
+          }),
+        ],
+        [
+          'task.update',
+          (f) => ({
+            command: 'task.update',
+            payload: {
+              id: 'ta',
+              baseRevision: task(f, 'ta').revision,
+              note: 'n',
+            },
+          }),
+        ],
+        [
+          'comment.add',
+          () => ({
+            command: 'comment.add',
+            payload: { taskId: 'ta', text: 'Ночью' },
+          }),
+        ],
+        [
+          'proposal.accept',
+          () => ({ command: 'proposal.accept', payload: { ref: '1' } }),
+        ],
+        [
+          'proposal.reject',
+          () => ({ command: 'proposal.reject', payload: { ref: '1' } }),
+        ],
+        [
+          'undo',
+          () => ({
+            command: 'undo',
+            payload: { operationId: 'night-proposal' },
+          }),
+        ],
+      ] as [string, (f: ReturnType<typeof setup>) => Command][]
+    ).map(([name, command]) => ({
+      title: `propose agent cannot ${name}`,
+      role: 'propose',
+      status: 403,
+      message: PROPOSE_ONLY,
+      command,
+    })),
+    {
+      title: 'read agent cannot create a proposal',
+      role: 'read',
+      status: 403,
+      command: () => proposal('pr-3', 'third'),
+    },
+    {
+      title: 'tasks agent creates a proposal',
+      role: 'tasks',
+      status: 200,
+      command: () => proposal('pr-4', 'fourth'),
+    },
+    {
+      title: 'write agent accepts a shown proposal',
+      role: 'agent',
+      status: 200,
+      command: () => ({ command: 'proposal.accept', payload: { ref: '1' } }),
+    },
+    {
+      title: 'tasks agent rejects a shown proposal',
+      role: 'tasks',
+      status: 200,
+      command: () => ({
+        command: 'proposal.reject',
+        payload: { ref: 'pr', reason: 'Не нужно' },
+      }),
+    },
+    {
+      title: 'read agent cannot accept a proposal',
+      role: 'read',
+      status: 403,
+      command: () => ({ command: 'proposal.accept', payload: { ref: '1' } }),
+    },
+    {
+      title: 'owner accepts a proposal',
+      role: 'owner',
+      status: 200,
+      command: () => ({ command: 'proposal.accept', payload: { ref: 'pr' } }),
     },
   ];
   it.each(cases)('$title', async ({ role, command, status, message }) => {

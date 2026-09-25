@@ -35,6 +35,7 @@ function state(count = 2): WorkspaceState {
       },
     ],
     comments: [],
+    proposals: [],
     appearance: [defaultAppearance()],
   };
 }

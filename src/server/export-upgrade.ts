@@ -17,23 +17,34 @@ import {
   exportSchemaV5,
   exportSchemaV6,
   exportSchemaV7,
+  exportSchemaV8,
 } from '../shared/domain-schemas.js';
 
-// Reads formats 1-8. Older formats carry steps as rows of text, tick and
-// position (7 and before), lack the label catalogue (6), may carry the
-// retired label otvet (5), lack task fields (4), desk keys (3), appearance
-// (2) or operationSeq (1). Defaults match their SQL migrations; operation
-// positions use (createdAt, id). See drizzle/v2/README.md.
+// Reads formats 1-9. Older formats lack agent proposals (8 and before),
+// carry steps as rows of text, tick and position (7 and before), lack the
+// label catalogue (6), may carry the retired label otvet (5), lack task
+// fields (4), desk keys (3), appearance (2) or operationSeq (1). Defaults
+// match their SQL migrations; operation positions use (createdAt, id). See
+// drizzle/v2/README.md.
 export function upgradeExport(raw: unknown): ExportData {
   const version = z
     .object({ formatVersion: z.unknown() })
     .loose()
     .parse(raw).formatVersion;
   if (version === FORMAT_VERSION) return exportSchema.parse(raw);
+  // Formats 1-8: no proposals, exactly what 0009_proposals.sql leaves in an
+  // existing database.
+  if (version === 8)
+    return {
+      ...exportSchemaV8.parse(raw),
+      formatVersion: FORMAT_VERSION,
+      proposals: [],
+    };
   if (version === 7)
     return withStepRecords({
       ...exportSchemaV7.parse(raw),
       formatVersion: FORMAT_VERSION,
+      proposals: [],
     });
   return withStepRecords(withCatalogueLabels(upgradeLegacy(raw, version)));
 }
@@ -73,11 +84,12 @@ function withStepRecords(data: WithRows): ExportData {
 // an existing database, and a task keeps only its labels (0006 dropped the
 // retired one the same way). Events and stored results stay as written
 // (applyEvent replays them to these rows).
-type Legacy = Omit<WithRows, 'labels'>;
+type Legacy = Omit<WithRows, 'labels' | 'proposals'>;
 function withCatalogueLabels(data: Legacy): WithRows {
   const seeded = new Set(SEEDED_LABELS.map((l) => l.id));
   return {
     ...data,
+    proposals: [],
     labels: structuredClone(SEEDED_LABELS),
     tasks: data.tasks.map((t) => ({
       ...t,

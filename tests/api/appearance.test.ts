@@ -212,6 +212,7 @@ describe('appearance preference of the owner', () => {
       appearance: _appearance,
       labels: _labels,
       steps: _steps,
+      proposals: _proposals,
       ...current
     } = exportWorkspace(f.db);
     // Format 2 carried step rows, not records (0008); the workspace has none.

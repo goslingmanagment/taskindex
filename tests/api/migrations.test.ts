@@ -256,3 +256,21 @@ it('backfills checksums for a journal written before they existed and warns once
   migrate(legacy, { logger: { warn: (fields) => warnings.push(fields) } });
   expect(warnings).toHaveLength(1);
 });
+it('0009_proposals keeps a fingerprint unique for all time and a number for one proposal, in the database itself', () => {
+  const db = openDatabase(':memory:');
+  cleanup.push(() => db.close());
+  migrate(db);
+  const insert = db.sqlite.prepare(
+    `INSERT INTO proposals(id, kind, command, reason, evidence, fingerprint, rank, status, number, created_by, created_by_label, revision, created_at, updated_at)
+     VALUES (?, 'new_task', '{}', 'r', '[]', ?, 2, ?, ?, 'agent:n', 'N', 1, 'T', 'T')`,
+  );
+  insert.run('p1', 'fp-1', 'rejected', null);
+  expect(() => insert.run('p2', 'fp-1', 'queued', null)).toThrow(/UNIQUE/);
+  insert.run('p3', 'fp-3', 'shown', 1);
+  expect(() => insert.run('p4', 'fp-4', 'shown', 1)).toThrow(/UNIQUE/);
+  insert.run('p5', 'fp-5', 'queued', null);
+  insert.run('p6', 'fp-6', 'shown', 2);
+  expect(
+    db.sqlite.prepare('SELECT COUNT(*) AS n FROM proposals').get(),
+  ).toEqual({ n: 4 });
+});

@@ -38,6 +38,10 @@ export function describeApi(api: OpenAPIHono<Env>, baseURL: string): void {
       { name: 'tasks', description: 'Задачи, снимок и Focus' },
       { name: 'projects', description: 'Проекты' },
       { name: 'comments', description: 'Комментарии' },
+      {
+        name: 'proposals',
+        description: 'Предложения агентов: очередь, показ, решения владельца',
+      },
       { name: 'operations', description: 'Журнал операций' },
       { name: 'events', description: 'События и поток' },
       { name: 'context', description: 'Справочник, сводка, экспорт' },

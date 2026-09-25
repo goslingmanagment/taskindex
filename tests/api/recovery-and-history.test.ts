@@ -4,6 +4,7 @@ import {
   exportWorkspace,
   importWorkspace,
   createAgent,
+  renameAgent,
 } from '../../src/server/admin.js';
 import { generation, latestSeq } from '../../src/server/db.js';
 import type {
@@ -252,6 +253,110 @@ it('validates all redundant backup data and history before replacing any existin
   const restored = exportWorkspace(destination.db);
   importWorkspace(destination.db, restored, { replace: true });
   expect(destination.state()).toEqual(source.state());
+});
+
+it('restores a backup taken after an agent rename rewrote its name on cards, comments and steps', async () => {
+  const source = setup();
+  createAgent(source.db, { id: 'test-agent', label: 'Тестовый агент' });
+  success(
+    await source.post(
+      {
+        command: 'task.create',
+        payload: {
+          id: 't',
+          area: 'agency',
+          title: 'Агентская',
+          checklist: [
+            { id: 's1', text: 'Один' },
+            { id: 's2', text: 'Два' },
+          ],
+        },
+      },
+      { role: 'agent' },
+    ),
+  );
+  for (const itemId of ['s1', 's2'])
+    success(
+      await source.post(
+        {
+          command: 'checklist.update',
+          payload: { taskId: 't', itemId, baseRevision: 1, done: true },
+        },
+        { role: 'agent' },
+      ),
+    );
+  success(
+    await source.post(
+      {
+        command: 'comment.add',
+        payload: { id: 'c', taskId: 't', text: 'Сделано' },
+      },
+      { role: 'agent' },
+    ),
+  );
+  success(
+    await source.post({
+      command: 'task.create',
+      payload: { id: 'o', area: 'personal', title: 'Владельца' },
+    }),
+  );
+  expect(
+    renameAgent(source.db, { id: 'test-agent', label: 'Агент Мак' }),
+  ).toEqual({
+    id: 'test-agent',
+    label: 'Агент Мак',
+    tasks: 1,
+    comments: 1,
+    steps: 2,
+  });
+  // The board reads one name: the card, its comment and its steps.
+  const renamed = source.state();
+  expect(renamed.tasks.find((t) => t.id === 't')).toMatchObject({
+    createdByLabel: 'Агент Мак',
+    checklist: [{ doneByLabel: 'Агент Мак' }, { doneByLabel: 'Агент Мак' }],
+  });
+  expect(
+    renamed.steps.map((s) => [s.id, s.createdByLabel, s.doneByLabel]),
+  ).toEqual([
+    ['s1', 'Агент Мак', 'Агент Мак'],
+    ['s2', 'Агент Мак', 'Агент Мак'],
+  ]);
+  expect(renamed.comments[0]!.actorLabel).toBe('Агент Мак');
+  expect(renamed.tasks.find((t) => t.id === 'o')!.createdByLabel).toBe(
+    'Владелец',
+  );
+  // The owner unticks a step the agent ticked under its former name: the
+  // journal records the name the row had at that moment.
+  success(
+    await source.post({
+      command: 'checklist.update',
+      payload: { taskId: 't', itemId: 's1', baseRevision: 2, done: false },
+    }),
+  );
+  const backup = exportWorkspace(source.db);
+  const destination = setup();
+  importWorkspace(destination.db, backup, { replace: true });
+  expect(destination.state()).toEqual(source.state());
+  // The journal still decides who wrote a record, and the owner's name is
+  // never rewritten outside it.
+  const corruptions: ((x: ExportData) => void)[] = [
+    (x) => {
+      x.tasks.find((t) => t.id === 'o')!.createdByLabel = 'Кто-то';
+    },
+    (x) => {
+      x.comments[0]!.actorId = 'owner';
+    },
+    (x) => {
+      x.steps.find((s) => s.id === 's2')!.doneBy = 'agent:other';
+    },
+  ];
+  for (const corrupt of corruptions) {
+    const damaged = structuredClone(backup);
+    corrupt(damaged);
+    expect(() =>
+      importWorkspace(destination.db, damaged, { replace: true }),
+    ).toThrow(/Повреждённый экспорт/);
+  }
 });
 
 it('persists valid name swaps and checklist transfers without intermediate uniqueness failures', async () => {

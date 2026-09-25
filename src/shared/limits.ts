@@ -33,4 +33,16 @@ export const LIMITS = {
   deskNext: 2,
   deskRecent: 3,
   deskRecentDays: 14,
+  // Agent proposals (spec 2026-09-25): a reason and quotes short enough for
+  // one Telegram message, a card note shown whole, numbers the owner answers
+  // by, at most five shown a day and three days to answer.
+  proposalReason: 300,
+  proposalEvidence: 3,
+  proposalEvidenceRef: 200,
+  proposalQuote: 200,
+  proposalFingerprint: 200,
+  proposalNote: 300,
+  proposalNumbers: 15,
+  proposalsPerDay: 5,
+  proposalShownDays: 3,
 } as const;

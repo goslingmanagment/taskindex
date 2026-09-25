@@ -88,6 +88,8 @@ export function readState(db: DatabaseHandle): WorkspaceState {
     tasks,
     steps,
     comments,
+    // A proposal row is the proposal record (0009).
+    proposals: db.orm.select().from(schema.proposals).all(),
     appearance: [readAppearance(db)],
   };
 }
@@ -177,6 +179,7 @@ export type Touched = {
   tasks: Set<string>;
   steps: Set<string>;
   comments: Set<string>;
+  proposals: Set<string>;
   appearance: boolean;
 };
 export function touchedByEvents(
@@ -188,6 +191,7 @@ export function touchedByEvents(
     tasks: new Set(),
     steps: new Set(),
     comments: new Set(),
+    proposals: new Set(),
     appearance: false,
   };
   for (const e of events)
@@ -196,6 +200,7 @@ export function touchedByEvents(
     else if (e.entityKind === 'label') touched.labels.add(e.entityId);
     else if (e.entityKind === 'comment') touched.comments.add(e.entityId);
     else if (e.entityKind === 'step') touched.steps.add(e.entityId);
+    else if (e.entityKind === 'proposal') touched.proposals.add(e.entityId);
     else touched.appearance = true;
   return touched;
 }
@@ -318,5 +323,27 @@ export function writeState(
       .insert(schema.comments)
       .values(c)
       .onConflictDoUpdate({ target: schema.comments.id, set: c })
+      .run();
+  // Proposals after tasks (they point at them). One delivery may free a
+  // number and give it to another proposal: the numbers of the changed rows
+  // are released first, under the unique index of shown numbers.
+  const previousProposals = byId(previous?.proposals);
+  const changedProposals = differs(
+    state.proposals,
+    previousProposals,
+    touched?.proposals,
+  );
+  for (const p of changedProposals)
+    if (previousProposals.has(p.id) && previousProposals.get(p.id)!.number)
+      db.orm
+        .update(schema.proposals)
+        .set({ number: null })
+        .where(eq(schema.proposals.id, p.id))
+        .run();
+  for (const p of changedProposals)
+    db.orm
+      .insert(schema.proposals)
+      .values(p)
+      .onConflictDoUpdate({ target: schema.proposals.id, set: p })
       .run();
 }

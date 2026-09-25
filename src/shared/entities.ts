@@ -2,6 +2,7 @@ import type {
   Comment,
   Label,
   Project,
+  Proposal,
   Step,
   Task,
   WorkspaceState,
@@ -20,6 +21,7 @@ export const ENTITY_KINDS = [
   'appearance',
   'label',
   'step',
+  'proposal',
 ] as const;
 type EntityKindName = (typeof ENTITY_KINDS)[number];
 
@@ -78,6 +80,19 @@ const labelFields = new Set<keyof Label>([
   'archivedAt',
 ]);
 const appearanceFields = new Set(['mode', 'skinId', 'hideP3']);
+// A proposal (spec 2026-09-25): its content is fixed at creation; what moves
+// is its way to an outcome, and undo of an accept puts that way back.
+const proposalFields = new Set<keyof Proposal>([
+  'status',
+  'number',
+  'shownOn',
+  'decidedAt',
+  'decidedBy',
+  'decidedByLabel',
+  'decisionReason',
+  'patch',
+  'resultTaskId',
+]);
 
 type EntityDefinition = {
   // Where the records of this kind live in the workspace state.
@@ -97,4 +112,8 @@ export const ENTITIES = {
   },
   label: { collection: 'labels', subjectFields: fields(labelFields) },
   step: { collection: 'steps', subjectFields: fields(stepFields) },
+  proposal: {
+    collection: 'proposals',
+    subjectFields: fields(proposalFields),
+  },
 } satisfies Record<EntityKindName, EntityDefinition>;

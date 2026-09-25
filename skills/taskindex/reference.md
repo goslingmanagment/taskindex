@@ -149,6 +149,45 @@ scope, чужой комментарий — нет. Ошибку владель
 `--base-revision` CLI берёт revision из `appearance get`); агенту сервер
 отвечает 403 `forbidden`.
 
+## Предложения агентов
+
+Предложение это точная команда задачи, которая ждёт «да» владельца: `new_task`
+(`task.create`) или `task_change` (`task.update`, `task.move` только в `done`,
+`task.archive`) с `taskId` и `baseRevision` задачи, которую видел автор. Доска,
+`snapshot`, `digest` и Focus их не показывают; «Активность» владельца скрывает
+создание и показ.
+
+- `taskindex proposals [--status queued,shown] [--since ДАТА] [--all]`: список по
+  времени создания, постранично как `tasks`; `taskindex proposal get N|ID`.
+  `N` из одной-двух цифр это номер среди показанных сейчас.
+- `taskindex proposal create --payload '{"kind","taskId","baseRevision","command":{"command","payload"},"reason","evidence":[{"source","ref","at","quote"}],"fingerprint","rank"}'`:
+  в очередь; тот же `fingerprint` в любом статусе новой записи не даёт,
+  `results[0].existing: true` и прежнее предложение (отказ держится). По «да»
+  выполняется только то, что видно в утреннем сообщении: `focus`,
+  `focusPosition`, `position`, `origin`, отмеченный шаг (`done: true`) и итог
+  шага (`result`) предложение не несёт (400 `invalid`), заметка новой задачи
+  до 300 символов.
+- `taskindex proposal deliver [--limit 1..5]`: утренний показ одной операцией.
+  `results[0]` это `{date, shown, queued, expired, stale}`: показанные сегодня
+  по номеру, сколько осталось, какие истекли (3 дня без ответа) и какие стали
+  `stale` (задача изменилась, в архиве или закрыта). Повтор в тот же день
+  отвечает тем же и ничего не меняет; больше пяти в день не показывается.
+- `taskindex proposal accept N|ID [--patch JSON]`: выполняет команду
+  предложения с правкой владельца поверх `payload` (ключ `command` меняет вид
+  действия) как его поручение: поля из `ownerFields` считаются
+  подтверждёнными (`confirmedOwnerFields`). `results[0]` это `{proposal,
+  task}`. Задача изменилась после предложения: ответ успешный, `task: null`,
+  `proposal.status: stale`, `reason` объясняет, задача не тронута. Не `shown`:
+  `conflict` с названием статуса.
+- `taskindex proposal reject N|ID [--reason ТЕКСТ]`: из `shown` или `queued`.
+- `undo --operation ID` принятия откатывает и запись задачи, и решение
+  (предложение снова `shown`); `undo SEQ` любого события принятия, записи
+  задачи тоже, отвечает `not_undoable`; создание и показ не отменяются.
+
+Scope `propose` (ночная смена): все чтения и только `proposal create` и
+`proposal deliver`, остальное `forbidden`. `accept` и `reject` нужны `tasks`
+или `write`.
+
 ## Примеры ответов
 
 1. `taskindex task create --area agency --title 'Проверить отчёт' --due 2026-09-10`
@@ -181,12 +220,13 @@ scope, чужой комментарий — нет. Ошибку владель
 generation. `generation_changed` требует свежего контекста и новой оценки
 действия после восстановления базы (`cursor reset`, затем `digest`).
 
-`taskindex export --out FILE` пишет полный экспорт формата 7: у каждой операции
+`taskindex export --out FILE` пишет полный экспорт формата 9: у каждой операции
 обязателен `operationSeq` (позиция в журнале операций), в `settings` обязателен
 `schema_version`, и рядом с задачами лежит запись `appearance` — предпочтение
 оформления владельца, ровно одна. Формат 5 включает `priority`, `labels`, `closes`
-и `appearance.hideP3`. Форматы 1–4 читаются импортом с восстановлением
-отсутствующих полей по умолчанию, но не пишутся.
+и `appearance.hideP3`, формат 8 шаги записями, формат 9 предложения агентов.
+Форматы 1–8 читаются импортом с восстановлением отсутствующих полей по
+умолчанию, но не пишутся.
 
 Коды выхода: 0 успех; 1 сервер, сеть или неизвестный исход; 2 аргументы;
 3 конфликт/неприменимая отмена/смена поколения; 4 нет доступа. Смотри JSON `code`,

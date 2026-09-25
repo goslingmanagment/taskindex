@@ -11,6 +11,7 @@ import type {
   DomainEvent,
   OperationError,
   OperationSuccess,
+  Proposal,
 } from '../shared/model.js';
 // Ж1 (plan 09, step 6): a stored success carries no `events` — the journal is
 // the only copy, and reads rebuild them from it. Rows written before that
@@ -18,7 +19,11 @@ import type {
 export type StoredResult =
   | (Omit<OperationSuccess, 'events'> & { events?: DomainEvent[] })
   | OperationError;
-import { commandNames } from '../shared/schemas.js';
+import {
+  commandNames,
+  PROPOSAL_KINDS,
+  PROPOSAL_STATUSES,
+} from '../shared/schemas.js';
 import { APPEARANCE_MODES } from '../shared/appearance.js';
 import { DEFAULT_PRIORITY, PRIORITY_IDS } from '../shared/labels.js';
 const commandColumn = [...commandNames, 'batch'] as const;
@@ -185,6 +190,47 @@ export const comments = sqliteTable(
   },
   (t) => [index('comments_task_created').on(t.taskId, t.createdAt)],
 );
+// Agent proposals (0009, spec 2026-09-25): a task command waiting for the
+// owner's «да», kept apart from the board. The fingerprint is unique for all
+// time; a number belongs to one shown proposal at a time.
+export const proposals = sqliteTable(
+  'proposals',
+  {
+    id: text('id').primaryKey(),
+    kind: text('kind', { enum: PROPOSAL_KINDS }).notNull(),
+    taskId: text('task_id').references(() => tasks.id),
+    baseRevision: integer('base_revision'),
+    command: text('command', { mode: 'json' })
+      .$type<Proposal['command']>()
+      .notNull(),
+    reason: text('reason').notNull(),
+    evidence: text('evidence', { mode: 'json' })
+      .$type<Proposal['evidence']>()
+      .notNull(),
+    fingerprint: text('fingerprint').notNull(),
+    rank: integer('rank').$type<Proposal['rank']>().notNull(),
+    status: text('status', { enum: PROPOSAL_STATUSES }).notNull(),
+    number: integer('number'),
+    shownOn: text('shown_on'),
+    decidedAt: text('decided_at'),
+    decidedBy: text('decided_by'),
+    decidedByLabel: text('decided_by_label'),
+    decisionReason: text('decision_reason'),
+    patch: text('patch', { mode: 'json' }).$type<Record<string, unknown>>(),
+    resultTaskId: text('result_task_id').references(() => tasks.id),
+    createdBy: text('created_by').notNull(),
+    createdByLabel: text('created_by_label').notNull(),
+    revision: integer('revision').notNull(),
+    createdAt: text('created_at').notNull(),
+    updatedAt: text('updated_at').notNull(),
+  },
+  (t) => [
+    uniqueIndex('proposals_fingerprint').on(t.fingerprint),
+    uniqueIndex('proposals_number')
+      .on(t.number)
+      .where(sql`number IS NOT NULL`),
+  ],
+);
 export const agents = sqliteTable('agents', {
   id: text('id').primaryKey(),
   label: text('label').notNull(),
@@ -303,7 +349,10 @@ export const agentKeys = sqliteTable(
     agentId: text('agent_id')
       .notNull()
       .references(() => agents.id),
-    scope: text('scope', { enum: ['read', 'tasks', 'write'] }).notNull(),
+    // TEXT in SQLite: `propose` (2026-09-25) needed no migration.
+    scope: text('scope', {
+      enum: ['read', 'propose', 'tasks', 'write'],
+    }).notNull(),
     keyHash: text('key_hash').notNull(),
     name: text('name'),
     createdAt: text('created_at').notNull(),

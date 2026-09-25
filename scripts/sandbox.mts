@@ -10,7 +10,8 @@
 //   npm run sandbox -- --json             описание окружения JSON вместо export
 //   npm run sandbox -- --stop [--keep]    остановить сервер и удалить каталог
 //   --writes held --deployment ID         сценарий шага 6 агентского цикла
-//   --agents claude:write,codex:tasks     набор агентов и прав
+//   --agents claude:write,codex:tasks     набор агентов и прав (read, propose,
+//                                         tasks, write)
 import { spawn } from 'node:child_process';
 import { randomBytes } from 'node:crypto';
 import {
@@ -180,7 +181,7 @@ function agentsFromFlag(value: string | true | undefined): [string, Scope][] {
   const spec = typeof value === 'string' ? value : 'claude:write,codex:tasks';
   return spec.split(',').map((item) => {
     const [id, scope] = item.split(':');
-    if (!id || !['read', 'tasks', 'write'].includes(scope ?? ''))
+    if (!id || !['read', 'propose', 'tasks', 'write'].includes(scope ?? ''))
       throw new Error(`--agents: ожидается id:scope, получено "${item}"`);
     return [id, scope as Scope];
   });

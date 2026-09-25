@@ -186,6 +186,74 @@ const projectColor = z
   .string()
   .regex(/^#[a-fA-F0-9]{6}$/)
   .describe('Цвет #rrggbb');
+// Agent proposals (spec 2026-09-25, plan 2026-09-25-proposals-phase1 §1): an
+// exact task command waiting for the owner's «да». A proposal is addressed by
+// its number among the shown ones or by its id, so an id of one or two digits
+// is refused.
+export const PROPOSAL_KINDS = ['new_task', 'task_change'] as const;
+export const PROPOSAL_STATUSES = [
+  'queued',
+  'shown',
+  'accepted',
+  'rejected',
+  'expired',
+  'stale',
+] as const;
+export const PROPOSAL_COMMANDS = [
+  'task.create',
+  'task.update',
+  'task.move',
+  'task.archive',
+] as const;
+export const proposalKindSchema = z
+  .enum(PROPOSAL_KINDS)
+  .describe('new_task — новая задача, task_change — изменение задачи на доске');
+export const proposalRankSchema = z
+  .union([z.literal(1), z.literal(2), z.literal(3)])
+  .describe(
+    '1 срочное (кто-то ждёт владельца или срок в пределах 3 дней), 2 обычное, 3 уборка доски',
+  );
+export const proposalCommandSchema = z
+  .object({
+    command: z
+      .enum(PROPOSAL_COMMANDS)
+      .describe('Команда, которая выполнится по «да»'),
+    payload: z
+      .record(z.string(), z.unknown())
+      .describe(
+        'Полный payload этой команды; проверяется её схемой (taskindex context → commands)',
+      ),
+  })
+  .strict()
+  .describe(
+    'Точная команда: task.create для новой задачи; task.update, task.move (только в done) или task.archive для изменения',
+  );
+export const evidenceSchema = z
+  .object({
+    source: z
+      .enum(['session', 'telegram', 'board'])
+      .describe('Источник: сессия агента, Телеграм или доска'),
+    ref: text(LIMITS.proposalEvidenceRef, true).describe(
+      'Где именно: сессия, чат, задача',
+    ),
+    at: z
+      .union([dateSchema.unwrap(), z.iso.datetime({ offset: true })])
+      .describe('Дата YYYY-MM-DD или момент ISO'),
+    quote: text(LIMITS.proposalQuote, true).describe('Цитата из источника'),
+  })
+  .strict();
+export const proposalPatchSchema = z
+  .record(z.string(), z.unknown())
+  .describe(
+    'Правка владельца поверх payload предложения (глубина одна: поля payload); ключ command меняет вид действия изменения задачи',
+  );
+const proposalRefSchema = idSchema.describe(
+  'Номер среди показанных сейчас (1–15) или идентификатор предложения',
+);
+const proposalIdSchema = newIdSchema.refine(
+  (id) => !/^\d\d?$/.test(id),
+  'Одна-две цифры это номер показанного предложения, не идентификатор',
+);
 const schemas = {
   // Labels are the owner's catalogue (0007): only the owner creates, renames,
   // archives and restores them. Archiving removes the label from every task in
@@ -410,8 +478,190 @@ const schemas = {
       .object({ operationId: idSchema.describe('Операция для отмены') })
       .strict(),
   ]),
+  // Agent proposals: the night shift creates and shows them (scope propose),
+  // an agent with tasks or write accepts or rejects them on the owner's word.
+  'proposal.create': z
+    .object({
+      id: proposalIdSchema.optional(),
+      kind: proposalKindSchema,
+      taskId: idSchema
+        .nullable()
+        .optional()
+        .describe(
+          'Задача изменения (task_change), равна payload.id команды; у новой задачи нет',
+        ),
+      baseRevision: revisionSchema
+        .nullable()
+        .optional()
+        .describe(
+          'Revision задачи, которую видел автор (task_change), равна payload.baseRevision команды',
+        ),
+      command: proposalCommandSchema,
+      reason: text(LIMITS.proposalReason, true).describe(
+        'Почему предлагается, для человека',
+      ),
+      evidence: z
+        .array(evidenceSchema)
+        .min(1)
+        .max(LIMITS.proposalEvidence)
+        .describe(
+          `Доказательства, 1–${LIMITS.proposalEvidence}: {source, ref, at, quote}`,
+        ),
+      fingerprint: text(LIMITS.proposalFingerprint, true).describe(
+        'Ключ повтора: предложение с тем же отпечатком (в любом статусе) заново не создаётся',
+      ),
+      rank: proposalRankSchema,
+    })
+    .strict()
+    .superRefine((draft, ctx) => {
+      for (const issue of proposalCommandIssues(draft))
+        ctx.addIssue({
+          code: 'custom',
+          path: issue.path,
+          message: issue.message,
+        });
+    }),
+  'proposal.deliver': z
+    .object({
+      limit: z
+        .number()
+        .int()
+        .min(1)
+        .max(LIMITS.proposalsPerDay)
+        .optional()
+        .describe(
+          `Сколько показать сегодня, 1–${LIMITS.proposalsPerDay} (по умолчанию ${LIMITS.proposalsPerDay})`,
+        ),
+    })
+    .strict(),
+  'proposal.accept': z
+    .object({ ref: proposalRefSchema, patch: proposalPatchSchema.optional() })
+    .strict(),
+  'proposal.reject': z
+    .object({
+      ref: proposalRefSchema,
+      reason: text(LIMITS.proposalReason, true)
+        .optional()
+        .describe('Причина отказа словами владельца'),
+    })
+    .strict(),
 };
 export const commandPayloadSchemas = schemas;
+type ProposalDraft = {
+  kind: (typeof PROPOSAL_KINDS)[number];
+  taskId?: string | null;
+  baseRevision?: number | null;
+  command: z.infer<typeof proposalCommandSchema>;
+};
+type ProposalIssue = { path: (string | number)[]; message: string };
+// The rules of a proposed command (plan §1.1) beyond the command's own schema:
+// the kind matches the command, a change names its task and revision, a move
+// only finishes, a card note fits the morning message and focus stays the
+// owner's. A new task carries nothing the morning message does not show:
+// no place on the board, no link to an outside source (its dedupe could turn
+// «да» into a pointer to another task, and task.sync would later rewrite the
+// card) and no step ticked or reported (the tick would credit the accepting
+// agent with work it did not do). The id stays: it names the record and
+// changes nothing the owner gets. Checked on proposal.create and again on the
+// owner's patch.
+export function proposalCommandIssues(draft: ProposalDraft): ProposalIssue[] {
+  const { command, payload } = draft.command;
+  const issues: ProposalIssue[] = [];
+  const add = (path: (string | number)[], message: string) =>
+    issues.push({ path, message });
+  const parsed = schemas[command].safeParse(payload);
+  if (!parsed.success)
+    for (const issue of parsed.error.issues)
+      add(
+        [
+          'command',
+          'payload',
+          ...issue.path.map((key) =>
+            typeof key === 'number' ? key : String(key),
+          ),
+        ],
+        issue.message,
+      );
+  for (const key of ['focus', 'focusPosition'])
+    if (Object.hasOwn(payload, key))
+      add(
+        ['command', 'payload', key],
+        'Фокус ставит только владелец: в предложении его нет',
+      );
+  if (command === 'task.create') {
+    if (
+      typeof payload.note === 'string' &&
+      payload.note.trim().length > LIMITS.proposalNote
+    )
+      add(
+        ['command', 'payload', 'note'],
+        `Заметка предложенной задачи не длиннее ${LIMITS.proposalNote} символов`,
+      );
+    if (Object.hasOwn(payload, 'position'))
+      add(
+        ['command', 'payload', 'position'],
+        'Место в колонке предложение не задаёт',
+      );
+    if (Object.hasOwn(payload, 'origin'))
+      add(
+        ['command', 'payload', 'origin'],
+        'Связь с источником предложение не задаёт: откуда дело, говорит evidence',
+      );
+    const steps = Array.isArray(payload.checklist) ? payload.checklist : [];
+    for (const [index, step] of steps.entries()) {
+      const item = (step ?? {}) as Record<string, unknown>;
+      if (item.done === true)
+        add(
+          ['command', 'payload', 'checklist', index, 'done'],
+          'Шаг предложенной задачи открыт: отметку ставит исполнитель',
+        );
+      if (typeof item.result === 'string' && item.result.trim())
+        add(
+          ['command', 'payload', 'checklist', index, 'result'],
+          'Итог шага пишет исполнитель: в предложении его нет',
+        );
+    }
+  }
+  if (draft.kind === 'new_task') {
+    if (command !== 'task.create')
+      add(
+        ['command', 'command'],
+        'Новая задача предлагается командой task.create',
+      );
+    if (draft.taskId != null) add(['taskId'], 'У новой задачи нет taskId');
+    if (draft.baseRevision != null)
+      add(['baseRevision'], 'У новой задачи нет baseRevision');
+    return issues;
+  }
+  if (command === 'task.create') {
+    add(
+      ['command', 'command'],
+      'Изменение задачи предлагается командой task.update, task.move или task.archive',
+    );
+    return issues;
+  }
+  if (draft.taskId != null && payload.id !== draft.taskId)
+    add(['taskId'], 'taskId должен совпадать с payload.id команды');
+  if (draft.baseRevision != null && payload.baseRevision !== draft.baseRevision)
+    add(
+      ['baseRevision'],
+      'baseRevision должна совпадать с payload.baseRevision команды',
+    );
+  if (command === 'task.move') {
+    if (payload.status !== 'done')
+      add(
+        ['command', 'payload', 'status'],
+        'Предложение переносит задачу только в done',
+      );
+    for (const key of ['before', 'after'])
+      if (Object.hasOwn(payload, key))
+        add(
+          ['command', 'payload', key],
+          'Место в колонке предложение не задаёт',
+        );
+  }
+  return issues;
+}
 export type CommandName = keyof typeof schemas;
 export const commandNames = Object.keys(schemas) as [
   CommandName,

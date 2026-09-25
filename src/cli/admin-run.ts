@@ -45,7 +45,7 @@ export async function runAdmin(
           'agent list',
           'agent rename ID --label LABEL',
           'agent disable ID',
-          'agent-key create --agent ID --scope read|tasks|write --out /protected/key.json',
+          'agent-key create --agent ID --scope read|propose|tasks|write --out /protected/key.json',
           'agent-key list [--agent ID]',
           'agent-key revoke ID',
           'import FILE [--replace]',
@@ -134,8 +134,8 @@ export async function runAdmin(
             '--out (защищённый файл для нового ключа)',
           );
           const scope = required(flagString(args.flags, 'scope'), '--scope');
-          if (!['read', 'tasks', 'write'].includes(scope))
-            throw new ArgumentError('--scope: read, tasks или write');
+          if (!['read', 'propose', 'tasks', 'write'].includes(scope))
+            throw new ArgumentError('--scope: read, propose, tasks или write');
           const key = admin.createAgentKey(db, {
             agentId: required(flagString(args.flags, 'agent'), '--agent'),
             scope: scope as Scope,

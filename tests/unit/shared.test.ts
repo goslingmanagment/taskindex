@@ -153,6 +153,7 @@ describe('command unions are generated from the payload registry (TI-019)', () =
       labels: [],
       steps: [],
       comments: [],
+      proposals: [],
       appearance: [defaultAppearance()],
     };
     // Every kind names a collection that exists in the state, and no two
@@ -210,6 +211,7 @@ const create = (id: string, patch: Partial<Task> = {}): Task => {
       labels: structuredClone(SEEDED_LABELS),
       steps: [],
       comments: [],
+      proposals: [],
       appearance: [defaultAppearance()],
     },
     { command: 'task.create', payload: { id, area: 'agency', title: id } },
@@ -508,6 +510,7 @@ describe('shared queries and validation', () => {
       labels: structuredClone(SEEDED_LABELS),
       steps: [],
       comments: [],
+      proposals: [],
       appearance: [defaultAppearance()],
     };
     const copy = structuredClone(state);

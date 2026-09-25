@@ -7,8 +7,11 @@
 #
 # Server side: a consistent copy via the SQLite backup API (deploy/database.mjs backup, inside the
 # running app container) and `taskindex-admin export` (logical export the importer accepts).
-# Keeps the last TASKINDEX_BACKUP_KEEP (default 30) copies locally. Never writes to the server
-# except the temporary /data/backups/pull-*.db, which is removed after transfer.
+# Keeps the last TASKINDEX_BACKUP_KEEP (default 30) dated copies locally; other folders of the
+# backup directory (logs/, releases/, hand-made ones) are neither counted nor removed. Never
+# writes to the server except the temporary /data/backups/pull-*.db, removed after transfer.
+# launchd on the Mac runs a copy of this file: after changing it, reinstall the copy
+# (deploy/README.md, «Копии на маке»).
 set -Eeuo pipefail
 umask 077
 host=${TASKINDEX_HOST:-root@45.8.230.111}
@@ -31,6 +34,7 @@ ssh "$host" "$app taskindex-admin export" > "$target/export.json"
 size=$(wc -c < "$target/taskindex.db" | tr -d ' ')
 [[ $size -gt 4096 ]] || { printf 'Backup looks empty (%s bytes): %s\n' "$size" "$target" >&2; exit 1; }
 node -e 'JSON.parse(require("fs").readFileSync(process.argv[1], "utf8"))' "$target/export.json"
-# Rotate: keep the newest $keep directories (portable: BSD tail on macOS, GNU on Linux).
-ls -1d "${target%/*}"/*/ 2>/dev/null | sort -r | tail -n +"$((keep + 1))" | while read -r old; do rm -rf "$old"; done
+# Rotate: keep the newest $keep dated copies (portable: BSD tail on macOS, GNU on Linux).
+copies=("${target%/*}"/[0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9]T[0-9][0-9][0-9][0-9][0-9][0-9]Z/)
+printf '%s\n' "${copies[@]}" | sort -r | tail -n +"$((keep + 1))" | while read -r old; do rm -rf "$old"; done
 printf '{"ok":true,"path":"%s","dbBytes":%s}\n' "$target" "$size"

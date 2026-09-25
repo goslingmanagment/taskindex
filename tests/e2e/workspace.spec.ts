@@ -1,7 +1,14 @@
 import { test, expect, type Page } from '@playwright/test';
-import type { Snapshot, Task, OperationError } from '../../src/shared/model';
+import type {
+  Snapshot,
+  Task,
+  OperationError,
+  OperationSuccess,
+  Proposal,
+} from '../../src/shared/model';
 import {
   TOUCH_HOLD_MS,
+  agentCommand,
   command,
   openWorkspace,
   signIn,
@@ -457,6 +464,82 @@ test('activity identifies a rejected command and cannot undo it', async ({
   ).toBeHidden();
   await expect(row.locator('[role="alert"]')).toHaveCount(0);
   await expect(row.getByText(result.message, { exact: true })).toBeVisible();
+});
+
+// Spec 2026-09-25 §5.1: an accepted proposal goes back only whole. In
+// «Активность» its task write has no undo of its own; in the task's history
+// the same event takes back the whole decision.
+test('an accepted proposal goes back only whole, from the activity and from the task history', async ({
+  page,
+}) => {
+  await openWorkspace(page);
+  await page.setViewportSize({ width: 1440, height: 1000 });
+  const title = `Э2Э: принятое предложение ${crypto.randomUUID().slice(0, 8)}`;
+  const created = await agentCommand(page, 'proposal.create', {
+    kind: 'new_task',
+    command: { command: 'task.create', payload: { area: 'agency', title } },
+    reason: 'Договорились в чате',
+    evidence: [
+      { source: 'board', ref: 'e2e', at: '2026-09-25', quote: 'договорились' },
+    ],
+    fingerprint: `e2e:${title}`,
+    rank: 1,
+  });
+  expect(created.ok()).toBe(true);
+  const proposalId = ((await created.json()) as OperationSuccess).results[0]!
+    .proposal!.id;
+  expect((await agentCommand(page, 'proposal.deliver', {})).ok()).toBe(true);
+  const accepted = await agentCommand(page, 'proposal.accept', {
+    ref: proposalId,
+  });
+  expect(accepted.ok()).toBe(true);
+  const decision = (await accepted.json()) as OperationSuccess;
+  const taskId = decision.results[0]!.task!.id;
+  const read = async () => ({
+    task: (await (
+      await page.request.get(`/api/tasks/${taskId}`)
+    ).json()) as Task,
+    proposal: (await (
+      await page.request.get(`/api/proposals/${proposalId}`)
+    ).json()) as Proposal,
+  });
+
+  await page.getByRole('button', { name: 'Активность', exact: true }).click();
+  const row = page.locator(
+    `.operation-row[data-operation-id="${decision.operationId}"]`,
+  );
+  await expect(row.locator('.operation-heading')).toContainText(
+    'Принято предложение',
+  );
+  await expect(
+    row
+      .locator('.operation-heading')
+      .getByRole('button', { name: 'Отменить', exact: true }),
+  ).toBeEnabled();
+  await row.locator('.operation-heading').getByRole('button').first().click();
+  const events = row.locator('.event-row');
+  await expect(events).toHaveCount(2);
+  for (const index of [0, 1])
+    await expect(
+      events.nth(index).getByRole('button', { name: 'Отменить', exact: true }),
+    ).toBeDisabled();
+
+  await page.getByRole('button', { name: 'Агентство', exact: true }).click();
+  await page
+    .getByRole('button', { name: `Открыть: ${title}`, exact: true })
+    .click();
+  await page.getByRole('button', { name: 'История', exact: true }).click();
+  const creation = page
+    .locator('.task-discussion .event-row')
+    .filter({ hasText: 'Создана задача' });
+  await expect(creation).toHaveCount(1);
+  await creation.getByRole('button', { name: 'Отменить', exact: true }).click();
+  await expect
+    .poll(async () => {
+      const { task, proposal } = await read();
+      return [task.archived, proposal.status, proposal.resultTaskId];
+    })
+    .toEqual([true, 'shown', null]);
 });
 
 // TI-070: выход из пространства отзывает сессию, поэтому сцена работает не с

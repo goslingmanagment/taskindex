@@ -17,6 +17,9 @@
     "isolatedModules": true,
     "jsx": "react-jsx",
     "incremental": true,
+    // scripts/night-shift runs under plain Node (type stripping), whose
+    // relative imports name the real `.mts` file.
+    "allowImportingTsExtensions": true,
     "paths": {
       "@/*": ["./src/web/*"],
       "@web/*": ["./src/web/*"],
@@ -32,6 +35,7 @@
     "tests/cli",
     "tests/deploy",
     "tests/e2e",
+    "scripts/night-shift",
     "vite.config.ts",
     "vitest.config.ts",
     "tsdown.config.ts"

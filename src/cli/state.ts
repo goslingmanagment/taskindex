@@ -30,7 +30,7 @@ const identitySchema = z
     agentId: z.string().regex(/^[A-Za-z0-9_-]{1,80}$/),
     label: z.string(),
     kind: z.enum(['owner', 'agent']),
-    scope: z.enum(['read', 'tasks', 'write']),
+    scope: z.enum(['read', 'propose', 'tasks', 'write']),
     fetchedAt: z.iso.datetime({ offset: true }),
   })
   .strict();

@@ -1,0 +1,2698 @@
+{
+  "formatVersion": 8,
+  "exportedAt": "2026-09-25T12:00:00.000Z",
+  "generation": "fixture-schema-9",
+  "seq": 9,
+  "settings": {
+    "generation": "fixture-schema-9",
+    "timezone": "Europe/Moscow",
+    "schema_version": "9"
+  },
+  "projects": [],
+  "labels": [
+    {
+      "id": "dengi",
+      "name": "деньги",
+      "color": "#298467",
+      "description": "Платёж, долг, приз, финансовое решение; при оплате строка в ledger",
+      "position": 1,
+      "archivedAt": null,
+      "revision": 1,
+      "createdAt": "2026-09-17T21:00:00.000Z",
+      "updatedAt": "2026-09-17T21:00:00.000Z"
+    },
+    {
+      "id": "5-min",
+      "name": "5 мин",
+      "color": "#8290a4",
+      "description": "Делается за несколько минут, годится в просвет",
+      "position": 2,
+      "archivedAt": null,
+      "revision": 1,
+      "createdAt": "2026-09-17T21:00:00.000Z",
+      "updatedAt": "2026-09-17T21:00:00.000Z"
+    },
+    {
+      "id": "lora",
+      "name": "Lora",
+      "color": "#9661bf",
+      "description": "Касается модели Lora",
+      "position": 3,
+      "archivedAt": null,
+      "revision": 1,
+      "createdAt": "2026-09-17T21:00:00.000Z",
+      "updatedAt": "2026-09-17T21:00:00.000Z"
+    },
+    {
+      "id": "lily",
+      "name": "Lily",
+      "color": "#397faf",
+      "description": "Касается модели Lily",
+      "position": 4,
+      "archivedAt": null,
+      "revision": 1,
+      "createdAt": "2026-09-17T21:00:00.000Z",
+      "updatedAt": "2026-09-17T21:00:00.000Z"
+    },
+    {
+      "id": "ari",
+      "name": "Ari",
+      "color": "#a97928",
+      "description": "Касается модели Ari",
+      "position": 5,
+      "archivedAt": null,
+      "revision": 1,
+      "createdAt": "2026-09-17T21:00:00.000Z",
+      "updatedAt": "2026-09-17T21:00:00.000Z"
+    }
+  ],
+  "tasks": [
+    {
+      "id": "visit-task",
+      "area": "personal",
+      "projectId": null,
+      "title": "Стрижка 21.09",
+      "status": "todo",
+      "priority": "p2",
+      "labels": [],
+      "closes": null,
+      "note": "",
+      "due": "2026-09-21",
+      "waitingFor": "",
+      "followUp": null,
+      "orderKey": "a0",
+      "focus": false,
+      "focusKey": null,
+      "focusLeftAt": null,
+      "archived": false,
+      "originSystem": null,
+      "originRef": null,
+      "originUrl": null,
+      "originVersion": null,
+      "createdBy": "owner",
+      "createdByLabel": "Владелец",
+      "ownerTouchedAt": "2026-09-08T12:00:00.000Z",
+      "ownerFields": [
+        "archived",
+        "area",
+        "closes",
+        "due",
+        "focus",
+        "focusKey",
+        "focusLeftAt",
+        "followUp",
+        "labels",
+        "note",
+        "orderKey",
+        "originUrl",
+        "priority",
+        "projectId",
+        "status",
+        "title",
+        "waitingFor"
+      ],
+      "revision": 1,
+      "createdAt": "2026-09-08T12:00:00.000Z",
+      "updatedAt": "2026-09-08T12:00:00.000Z",
+      "checklist": [],
+      "commentCount": 0
+    },
+    {
+      "id": "agent-task",
+      "area": "development",
+      "projectId": null,
+      "title": "Ответить на вопросы ревью",
+      "status": "todo",
+      "priority": "p1",
+      "labels": [],
+      "closes": null,
+      "note": "",
+      "due": null,
+      "waitingFor": "",
+      "followUp": null,
+      "orderKey": "a0",
+      "focus": false,
+      "focusKey": null,
+      "focusLeftAt": null,
+      "archived": false,
+      "originSystem": null,
+      "originRef": null,
+      "originUrl": null,
+      "originVersion": null,
+      "createdBy": "agent:test-agent",
+      "createdByLabel": "Тестовый агент",
+      "ownerTouchedAt": "2026-09-08T12:00:00.000Z",
+      "ownerFields": [
+        "title"
+      ],
+      "revision": 2,
+      "createdAt": "2026-09-08T12:00:00.000Z",
+      "updatedAt": "2026-09-08T12:00:00.000Z",
+      "checklist": [
+        {
+          "id": "agent-step-1",
+          "text": "Прочитать отчёт",
+          "done": true,
+          "doneAt": "2026-09-08T12:00:00.000Z",
+          "doneBy": "agent:test-agent",
+          "doneByLabel": "Тестовый агент",
+          "result": "Девять вопросов",
+          "linkedTaskId": null,
+          "revision": 2
+        },
+        {
+          "id": "agent-step-2",
+          "text": "Ответить на вопросы",
+          "done": false,
+          "doneAt": null,
+          "doneBy": null,
+          "doneByLabel": null,
+          "result": "",
+          "linkedTaskId": null,
+          "revision": 1
+        }
+      ],
+      "commentCount": 1
+    },
+    {
+      "id": "old-task",
+      "area": "agency",
+      "projectId": null,
+      "title": "Старая задача",
+      "status": "todo",
+      "priority": "p2",
+      "labels": [],
+      "closes": null,
+      "note": "",
+      "due": null,
+      "waitingFor": "",
+      "followUp": null,
+      "orderKey": "a0",
+      "focus": false,
+      "focusKey": null,
+      "focusLeftAt": null,
+      "archived": true,
+      "originSystem": null,
+      "originRef": null,
+      "originUrl": null,
+      "originVersion": null,
+      "createdBy": "owner",
+      "createdByLabel": "Владелец",
+      "ownerTouchedAt": "2026-09-08T12:00:00.000Z",
+      "ownerFields": [
+        "archived",
+        "area",
+        "closes",
+        "due",
+        "focus",
+        "focusKey",
+        "focusLeftAt",
+        "followUp",
+        "labels",
+        "note",
+        "orderKey",
+        "originUrl",
+        "priority",
+        "projectId",
+        "status",
+        "title",
+        "waitingFor"
+      ],
+      "revision": 2,
+      "createdAt": "2026-09-08T12:00:00.000Z",
+      "updatedAt": "2026-09-08T12:00:00.000Z",
+      "checklist": [],
+      "commentCount": 0
+    }
+  ],
+  "steps": [
+    {
+      "id": "agent-step-1",
+      "taskId": "agent-task",
+      "text": "Прочитать отчёт",
+      "orderKey": "a0",
+      "done": true,
+      "doneAt": "2026-09-08T12:00:00.000Z",
+      "doneBy": "agent:test-agent",
+      "doneByLabel": "Тестовый агент",
+      "result": "Девять вопросов",
+      "linkedTaskId": null,
+      "removedAt": null,
+      "createdBy": "agent:test-agent",
+      "createdByLabel": "Тестовый агент",
+      "ownerTouchedAt": null,
+      "ownerFields": [],
+      "revision": 2,
+      "createdAt": "2026-09-08T12:00:00.000Z",
+      "updatedAt": "2026-09-08T12:00:00.000Z"
+    },
+    {
+      "id": "agent-step-2",
+      "taskId": "agent-task",
+      "text": "Ответить на вопросы",
+      "orderKey": "a1",
+      "done": false,
+      "doneAt": null,
+      "doneBy": null,
+      "doneByLabel": null,
+      "result": "",
+      "linkedTaskId": null,
+      "removedAt": null,
+      "createdBy": "agent:test-agent",
+      "createdByLabel": "Тестовый агент",
+      "ownerTouchedAt": null,
+      "ownerFields": [],
+      "revision": 1,
+      "createdAt": "2026-09-08T12:00:00.000Z",
+      "updatedAt": "2026-09-08T12:00:00.000Z"
+    }
+  ],
+  "comments": [
+    {
+      "id": "owner-comment",
+      "taskId": "agent-task",
+      "actorId": "owner",
+      "actorLabel": "Владелец",
+      "text": "Жду",
+      "revision": 1,
+      "createdAt": "2026-09-08T12:00:00.000Z",
+      "deletedAt": null
+    }
+  ],
+  "appearance": [
+    {
+      "id": "owner",
+      "mode": "system",
+      "skinId": "classic",
+      "hideP3": false,
+      "revision": 1,
+      "updatedAt": null
+    }
+  ],
+  "agents": [],
+  "events": [
+    {
+      "seq": 1,
+      "at": "2026-09-08T12:00:00.000Z",
+      "actorId": "owner",
+      "actorLabel": "Владелец",
+      "operationId": "visit-create",
+      "entityKind": "task",
+      "entityId": "visit-task",
+      "command": "task.create",
+      "changes": {
+        "id": {
+          "from": null,
+          "to": "visit-task"
+        },
+        "area": {
+          "from": null,
+          "to": "personal"
+        },
+        "projectId": {
+          "from": null,
+          "to": null
+        },
+        "title": {
+          "from": null,
+          "to": "Стрижка 21.09"
+        },
+        "status": {
+          "from": null,
+          "to": "todo"
+        },
+        "priority": {
+          "from": null,
+          "to": "p2"
+        },
+        "labels": {
+          "from": null,
+          "to": []
+        },
+        "closes": {
+          "from": null,
+          "to": null
+        },
+        "note": {
+          "from": null,
+          "to": ""
+        },
+        "due": {
+          "from": null,
+          "to": "2026-09-21"
+        },
+        "waitingFor": {
+          "from": null,
+          "to": ""
+        },
+        "followUp": {
+          "from": null,
+          "to": null
+        },
+        "orderKey": {
+          "from": null,
+          "to": "a0"
+        },
+        "focus": {
+          "from": null,
+          "to": false
+        },
+        "focusKey": {
+          "from": null,
+          "to": null
+        },
+        "focusLeftAt": {
+          "from": null,
+          "to": null
+        },
+        "archived": {
+          "from": null,
+          "to": false
+        },
+        "originSystem": {
+          "from": null,
+          "to": null
+        },
+        "originRef": {
+          "from": null,
+          "to": null
+        },
+        "originUrl": {
+          "from": null,
+          "to": null
+        },
+        "originVersion": {
+          "from": null,
+          "to": null
+        },
+        "createdBy": {
+          "from": null,
+          "to": "owner"
+        },
+        "createdByLabel": {
+          "from": null,
+          "to": "Владелец"
+        },
+        "ownerTouchedAt": {
+          "from": null,
+          "to": "2026-09-08T12:00:00.000Z"
+        },
+        "ownerFields": {
+          "from": null,
+          "to": [
+            "archived",
+            "area",
+            "closes",
+            "due",
+            "focus",
+            "focusKey",
+            "focusLeftAt",
+            "followUp",
+            "labels",
+            "note",
+            "orderKey",
+            "originUrl",
+            "priority",
+            "projectId",
+            "status",
+            "title",
+            "waitingFor"
+          ]
+        },
+        "createdAt": {
+          "from": null,
+          "to": "2026-09-08T12:00:00.000Z"
+        }
+      },
+      "recordRevision": 1,
+      "firstSeq": 1,
+      "lastSeq": 1,
+      "generation": "fixture-schema-9"
+    },
+    {
+      "seq": 2,
+      "at": "2026-09-08T12:00:00.000Z",
+      "actorId": "agent:test-agent",
+      "actorLabel": "Тестовый агент",
+      "operationId": "agent-create",
+      "entityKind": "task",
+      "entityId": "agent-task",
+      "command": "task.create",
+      "changes": {
+        "id": {
+          "from": null,
+          "to": "agent-task"
+        },
+        "area": {
+          "from": null,
+          "to": "development"
+        },
+        "projectId": {
+          "from": null,
+          "to": null
+        },
+        "title": {
+          "from": null,
+          "to": "Проверить отчёт ревью"
+        },
+        "status": {
+          "from": null,
+          "to": "todo"
+        },
+        "priority": {
+          "from": null,
+          "to": "p1"
+        },
+        "labels": {
+          "from": null,
+          "to": []
+        },
+        "closes": {
+          "from": null,
+          "to": null
+        },
+        "note": {
+          "from": null,
+          "to": ""
+        },
+        "due": {
+          "from": null,
+          "to": null
+        },
+        "waitingFor": {
+          "from": null,
+          "to": ""
+        },
+        "followUp": {
+          "from": null,
+          "to": null
+        },
+        "orderKey": {
+          "from": null,
+          "to": "a0"
+        },
+        "focus": {
+          "from": null,
+          "to": false
+        },
+        "focusKey": {
+          "from": null,
+          "to": null
+        },
+        "focusLeftAt": {
+          "from": null,
+          "to": null
+        },
+        "archived": {
+          "from": null,
+          "to": false
+        },
+        "originSystem": {
+          "from": null,
+          "to": null
+        },
+        "originRef": {
+          "from": null,
+          "to": null
+        },
+        "originUrl": {
+          "from": null,
+          "to": null
+        },
+        "originVersion": {
+          "from": null,
+          "to": null
+        },
+        "createdBy": {
+          "from": null,
+          "to": "agent:test-agent"
+        },
+        "createdByLabel": {
+          "from": null,
+          "to": "Тестовый агент"
+        },
+        "ownerTouchedAt": {
+          "from": null,
+          "to": null
+        },
+        "ownerFields": {
+          "from": null,
+          "to": []
+        },
+        "createdAt": {
+          "from": null,
+          "to": "2026-09-08T12:00:00.000Z"
+        }
+      },
+      "recordRevision": 1,
+      "firstSeq": 2,
+      "lastSeq": 4,
+      "generation": "fixture-schema-9"
+    },
+    {
+      "seq": 3,
+      "at": "2026-09-08T12:00:00.000Z",
+      "actorId": "agent:test-agent",
+      "actorLabel": "Тестовый агент",
+      "operationId": "agent-create",
+      "entityKind": "step",
+      "entityId": "agent-step-1",
+      "command": "task.create",
+      "changes": {
+        "id": {
+          "from": null,
+          "to": "agent-step-1"
+        },
+        "taskId": {
+          "from": null,
+          "to": "agent-task"
+        },
+        "text": {
+          "from": null,
+          "to": "Прочитать отчёт"
+        },
+        "orderKey": {
+          "from": null,
+          "to": "a0"
+        },
+        "done": {
+          "from": null,
+          "to": false
+        },
+        "doneAt": {
+          "from": null,
+          "to": null
+        },
+        "doneBy": {
+          "from": null,
+          "to": null
+        },
+        "doneByLabel": {
+          "from": null,
+          "to": null
+        },
+        "result": {
+          "from": null,
+          "to": ""
+        },
+        "linkedTaskId": {
+          "from": null,
+          "to": null
+        },
+        "removedAt": {
+          "from": null,
+          "to": null
+        },
+        "createdBy": {
+          "from": null,
+          "to": "agent:test-agent"
+        },
+        "createdByLabel": {
+          "from": null,
+          "to": "Тестовый агент"
+        },
+        "ownerTouchedAt": {
+          "from": null,
+          "to": null
+        },
+        "ownerFields": {
+          "from": null,
+          "to": []
+        },
+        "createdAt": {
+          "from": null,
+          "to": "2026-09-08T12:00:00.000Z"
+        }
+      },
+      "recordRevision": 1,
+      "firstSeq": 2,
+      "lastSeq": 4,
+      "generation": "fixture-schema-9",
+      "taskId": "agent-task"
+    },
+    {
+      "seq": 4,
+      "at": "2026-09-08T12:00:00.000Z",
+      "actorId": "agent:test-agent",
+      "actorLabel": "Тестовый агент",
+      "operationId": "agent-create",
+      "entityKind": "step",
+      "entityId": "agent-step-2",
+      "command": "task.create",
+      "changes": {
+        "id": {
+          "from": null,
+          "to": "agent-step-2"
+        },
+        "taskId": {
+          "from": null,
+          "to": "agent-task"
+        },
+        "text": {
+          "from": null,
+          "to": "Ответить на вопросы"
+        },
+        "orderKey": {
+          "from": null,
+          "to": "a1"
+        },
+        "done": {
+          "from": null,
+          "to": false
+        },
+        "doneAt": {
+          "from": null,
+          "to": null
+        },
+        "doneBy": {
+          "from": null,
+          "to": null
+        },
+        "doneByLabel": {
+          "from": null,
+          "to": null
+        },
+        "result": {
+          "from": null,
+          "to": ""
+        },
+        "linkedTaskId": {
+          "from": null,
+          "to": null
+        },
+        "removedAt": {
+          "from": null,
+          "to": null
+        },
+        "createdBy": {
+          "from": null,
+          "to": "agent:test-agent"
+        },
+        "createdByLabel": {
+          "from": null,
+          "to": "Тестовый агент"
+        },
+        "ownerTouchedAt": {
+          "from": null,
+          "to": null
+        },
+        "ownerFields": {
+          "from": null,
+          "to": []
+        },
+        "createdAt": {
+          "from": null,
+          "to": "2026-09-08T12:00:00.000Z"
+        }
+      },
+      "recordRevision": 1,
+      "firstSeq": 2,
+      "lastSeq": 4,
+      "generation": "fixture-schema-9",
+      "taskId": "agent-task"
+    },
+    {
+      "seq": 5,
+      "at": "2026-09-08T12:00:00.000Z",
+      "actorId": "agent:test-agent",
+      "actorLabel": "Тестовый агент",
+      "operationId": "agent-tick",
+      "entityKind": "step",
+      "entityId": "agent-step-1",
+      "command": "checklist.update",
+      "changes": {
+        "done": {
+          "from": false,
+          "to": true
+        },
+        "doneAt": {
+          "from": null,
+          "to": "2026-09-08T12:00:00.000Z"
+        },
+        "doneBy": {
+          "from": null,
+          "to": "agent:test-agent"
+        },
+        "doneByLabel": {
+          "from": null,
+          "to": "Тестовый агент"
+        },
+        "result": {
+          "from": "",
+          "to": "Девять вопросов"
+        }
+      },
+      "recordRevision": 2,
+      "firstSeq": 5,
+      "lastSeq": 5,
+      "generation": "fixture-schema-9",
+      "taskId": "agent-task"
+    },
+    {
+      "seq": 6,
+      "at": "2026-09-08T12:00:00.000Z",
+      "actorId": "owner",
+      "actorLabel": "Владелец",
+      "operationId": "owner-rename",
+      "entityKind": "task",
+      "entityId": "agent-task",
+      "command": "task.update",
+      "changes": {
+        "title": {
+          "from": "Проверить отчёт ревью",
+          "to": "Ответить на вопросы ревью"
+        },
+        "ownerTouchedAt": {
+          "from": null,
+          "to": "2026-09-08T12:00:00.000Z"
+        },
+        "ownerFields": {
+          "from": [],
+          "to": [
+            "title"
+          ]
+        }
+      },
+      "recordRevision": 2,
+      "firstSeq": 6,
+      "lastSeq": 6,
+      "generation": "fixture-schema-9"
+    },
+    {
+      "seq": 7,
+      "at": "2026-09-08T12:00:00.000Z",
+      "actorId": "owner",
+      "actorLabel": "Владелец",
+      "operationId": "owner-comment",
+      "entityKind": "comment",
+      "entityId": "owner-comment",
+      "command": "comment.add",
+      "changes": {
+        "id": {
+          "from": null,
+          "to": "owner-comment"
+        },
+        "taskId": {
+          "from": null,
+          "to": "agent-task"
+        },
+        "actorId": {
+          "from": null,
+          "to": "owner"
+        },
+        "actorLabel": {
+          "from": null,
+          "to": "Владелец"
+        },
+        "text": {
+          "from": null,
+          "to": "Жду"
+        },
+        "createdAt": {
+          "from": null,
+          "to": "2026-09-08T12:00:00.000Z"
+        },
+        "deletedAt": {
+          "from": null,
+          "to": null
+        }
+      },
+      "recordRevision": 1,
+      "firstSeq": 7,
+      "lastSeq": 7,
+      "generation": "fixture-schema-9",
+      "taskId": "agent-task"
+    },
+    {
+      "seq": 8,
+      "at": "2026-09-08T12:00:00.000Z",
+      "actorId": "owner",
+      "actorLabel": "Владелец",
+      "operationId": "old-create",
+      "entityKind": "task",
+      "entityId": "old-task",
+      "command": "task.create",
+      "changes": {
+        "id": {
+          "from": null,
+          "to": "old-task"
+        },
+        "area": {
+          "from": null,
+          "to": "agency"
+        },
+        "projectId": {
+          "from": null,
+          "to": null
+        },
+        "title": {
+          "from": null,
+          "to": "Старая задача"
+        },
+        "status": {
+          "from": null,
+          "to": "todo"
+        },
+        "priority": {
+          "from": null,
+          "to": "p2"
+        },
+        "labels": {
+          "from": null,
+          "to": []
+        },
+        "closes": {
+          "from": null,
+          "to": null
+        },
+        "note": {
+          "from": null,
+          "to": ""
+        },
+        "due": {
+          "from": null,
+          "to": null
+        },
+        "waitingFor": {
+          "from": null,
+          "to": ""
+        },
+        "followUp": {
+          "from": null,
+          "to": null
+        },
+        "orderKey": {
+          "from": null,
+          "to": "a0"
+        },
+        "focus": {
+          "from": null,
+          "to": false
+        },
+        "focusKey": {
+          "from": null,
+          "to": null
+        },
+        "focusLeftAt": {
+          "from": null,
+          "to": null
+        },
+        "archived": {
+          "from": null,
+          "to": false
+        },
+        "originSystem": {
+          "from": null,
+          "to": null
+        },
+        "originRef": {
+          "from": null,
+          "to": null
+        },
+        "originUrl": {
+          "from": null,
+          "to": null
+        },
+        "originVersion": {
+          "from": null,
+          "to": null
+        },
+        "createdBy": {
+          "from": null,
+          "to": "owner"
+        },
+        "createdByLabel": {
+          "from": null,
+          "to": "Владелец"
+        },
+        "ownerTouchedAt": {
+          "from": null,
+          "to": "2026-09-08T12:00:00.000Z"
+        },
+        "ownerFields": {
+          "from": null,
+          "to": [
+            "archived",
+            "area",
+            "closes",
+            "due",
+            "focus",
+            "focusKey",
+            "focusLeftAt",
+            "followUp",
+            "labels",
+            "note",
+            "orderKey",
+            "originUrl",
+            "priority",
+            "projectId",
+            "status",
+            "title",
+            "waitingFor"
+          ]
+        },
+        "createdAt": {
+          "from": null,
+          "to": "2026-09-08T12:00:00.000Z"
+        }
+      },
+      "recordRevision": 1,
+      "firstSeq": 8,
+      "lastSeq": 8,
+      "generation": "fixture-schema-9"
+    },
+    {
+      "seq": 9,
+      "at": "2026-09-08T12:00:00.000Z",
+      "actorId": "owner",
+      "actorLabel": "Владелец",
+      "operationId": "old-archive",
+      "entityKind": "task",
+      "entityId": "old-task",
+      "command": "task.archive",
+      "changes": {
+        "archived": {
+          "from": false,
+          "to": true
+        }
+      },
+      "recordRevision": 2,
+      "firstSeq": 9,
+      "lastSeq": 9,
+      "generation": "fixture-schema-9"
+    }
+  ],
+  "operations": [
+    {
+      "id": "visit-create",
+      "operationSeq": 1,
+      "actorId": "owner",
+      "actorLabel": "Владелец",
+      "command": "task.create",
+      "commandHash": "6689077bdc99d0b93c2f4da2ee435359e44c95fe640d65e22f0e941924ffe51d",
+      "status": 200,
+      "result": {
+        "ok": true,
+        "operationId": "visit-create",
+        "generation": "fixture-schema-9",
+        "firstSeq": 1,
+        "lastSeq": 1,
+        "results": [
+          {
+            "record": {
+              "id": "visit-task",
+              "area": "personal",
+              "projectId": null,
+              "title": "Стрижка 21.09",
+              "status": "todo",
+              "priority": "p2",
+              "labels": [],
+              "closes": null,
+              "note": "",
+              "due": "2026-09-21",
+              "waitingFor": "",
+              "followUp": null,
+              "orderKey": "a0",
+              "focus": false,
+              "focusKey": null,
+              "focusLeftAt": null,
+              "archived": false,
+              "checklist": [],
+              "commentCount": 0,
+              "originSystem": null,
+              "originRef": null,
+              "originUrl": null,
+              "originVersion": null,
+              "createdBy": "owner",
+              "createdByLabel": "Владелец",
+              "ownerTouchedAt": "2026-09-08T12:00:00.000Z",
+              "ownerFields": [
+                "archived",
+                "area",
+                "closes",
+                "due",
+                "focus",
+                "focusKey",
+                "focusLeftAt",
+                "followUp",
+                "labels",
+                "note",
+                "orderKey",
+                "originUrl",
+                "priority",
+                "projectId",
+                "status",
+                "title",
+                "waitingFor"
+              ],
+              "revision": 1,
+              "createdAt": "2026-09-08T12:00:00.000Z",
+              "updatedAt": "2026-09-08T12:00:00.000Z"
+            },
+            "changes": {
+              "id": {
+                "from": null,
+                "to": "visit-task"
+              },
+              "area": {
+                "from": null,
+                "to": "personal"
+              },
+              "projectId": {
+                "from": null,
+                "to": null
+              },
+              "title": {
+                "from": null,
+                "to": "Стрижка 21.09"
+              },
+              "status": {
+                "from": null,
+                "to": "todo"
+              },
+              "priority": {
+                "from": null,
+                "to": "p2"
+              },
+              "labels": {
+                "from": null,
+                "to": []
+              },
+              "closes": {
+                "from": null,
+                "to": null
+              },
+              "note": {
+                "from": null,
+                "to": ""
+              },
+              "due": {
+                "from": null,
+                "to": "2026-09-21"
+              },
+              "waitingFor": {
+                "from": null,
+                "to": ""
+              },
+              "followUp": {
+                "from": null,
+                "to": null
+              },
+              "orderKey": {
+                "from": null,
+                "to": "a0"
+              },
+              "focus": {
+                "from": null,
+                "to": false
+              },
+              "focusKey": {
+                "from": null,
+                "to": null
+              },
+              "focusLeftAt": {
+                "from": null,
+                "to": null
+              },
+              "archived": {
+                "from": null,
+                "to": false
+              },
+              "originSystem": {
+                "from": null,
+                "to": null
+              },
+              "originRef": {
+                "from": null,
+                "to": null
+              },
+              "originUrl": {
+                "from": null,
+                "to": null
+              },
+              "originVersion": {
+                "from": null,
+                "to": null
+              },
+              "createdBy": {
+                "from": null,
+                "to": "owner"
+              },
+              "createdByLabel": {
+                "from": null,
+                "to": "Владелец"
+              },
+              "ownerTouchedAt": {
+                "from": null,
+                "to": "2026-09-08T12:00:00.000Z"
+              },
+              "ownerFields": {
+                "from": null,
+                "to": [
+                  "archived",
+                  "area",
+                  "closes",
+                  "due",
+                  "focus",
+                  "focusKey",
+                  "focusLeftAt",
+                  "followUp",
+                  "labels",
+                  "note",
+                  "orderKey",
+                  "originUrl",
+                  "priority",
+                  "projectId",
+                  "status",
+                  "title",
+                  "waitingFor"
+                ]
+              },
+              "createdAt": {
+                "from": null,
+                "to": "2026-09-08T12:00:00.000Z"
+              }
+            }
+          }
+        ],
+        "events": [
+          {
+            "seq": 1,
+            "at": "2026-09-08T12:00:00.000Z",
+            "actorId": "owner",
+            "actorLabel": "Владелец",
+            "operationId": "visit-create",
+            "entityKind": "task",
+            "entityId": "visit-task",
+            "command": "task.create",
+            "changes": {
+              "id": {
+                "from": null,
+                "to": "visit-task"
+              },
+              "area": {
+                "from": null,
+                "to": "personal"
+              },
+              "projectId": {
+                "from": null,
+                "to": null
+              },
+              "title": {
+                "from": null,
+                "to": "Стрижка 21.09"
+              },
+              "status": {
+                "from": null,
+                "to": "todo"
+              },
+              "priority": {
+                "from": null,
+                "to": "p2"
+              },
+              "labels": {
+                "from": null,
+                "to": []
+              },
+              "closes": {
+                "from": null,
+                "to": null
+              },
+              "note": {
+                "from": null,
+                "to": ""
+              },
+              "due": {
+                "from": null,
+                "to": "2026-09-21"
+              },
+              "waitingFor": {
+                "from": null,
+                "to": ""
+              },
+              "followUp": {
+                "from": null,
+                "to": null
+              },
+              "orderKey": {
+                "from": null,
+                "to": "a0"
+              },
+              "focus": {
+                "from": null,
+                "to": false
+              },
+              "focusKey": {
+                "from": null,
+                "to": null
+              },
+              "focusLeftAt": {
+                "from": null,
+                "to": null
+              },
+              "archived": {
+                "from": null,
+                "to": false
+              },
+              "originSystem": {
+                "from": null,
+                "to": null
+              },
+              "originRef": {
+                "from": null,
+                "to": null
+              },
+              "originUrl": {
+                "from": null,
+                "to": null
+              },
+              "originVersion": {
+                "from": null,
+                "to": null
+              },
+              "createdBy": {
+                "from": null,
+                "to": "owner"
+              },
+              "createdByLabel": {
+                "from": null,
+                "to": "Владелец"
+              },
+              "ownerTouchedAt": {
+                "from": null,
+                "to": "2026-09-08T12:00:00.000Z"
+              },
+              "ownerFields": {
+                "from": null,
+                "to": [
+                  "archived",
+                  "area",
+                  "closes",
+                  "due",
+                  "focus",
+                  "focusKey",
+                  "focusLeftAt",
+                  "followUp",
+                  "labels",
+                  "note",
+                  "orderKey",
+                  "originUrl",
+                  "priority",
+                  "projectId",
+                  "status",
+                  "title",
+                  "waitingFor"
+                ]
+              },
+              "createdAt": {
+                "from": null,
+                "to": "2026-09-08T12:00:00.000Z"
+              }
+            },
+            "recordRevision": 1,
+            "firstSeq": 1,
+            "lastSeq": 1,
+            "generation": "fixture-schema-9"
+          }
+        ]
+      },
+      "firstSeq": 1,
+      "lastSeq": 1,
+      "createdAt": "2026-09-08T12:00:00.000Z",
+      "ok": true,
+      "taskCount": 1,
+      "titles": [
+        "Стрижка 21.09"
+      ]
+    },
+    {
+      "id": "agent-create",
+      "operationSeq": 2,
+      "actorId": "agent:test-agent",
+      "actorLabel": "Тестовый агент",
+      "command": "task.create",
+      "commandHash": "92cb34e0c17818d22e489a4ef0c678e235d7927133ab0cbf02378f01469041a9",
+      "status": 200,
+      "result": {
+        "ok": true,
+        "operationId": "agent-create",
+        "generation": "fixture-schema-9",
+        "firstSeq": 2,
+        "lastSeq": 4,
+        "results": [
+          {
+            "record": {
+              "id": "agent-task",
+              "area": "development",
+              "projectId": null,
+              "title": "Проверить отчёт ревью",
+              "status": "todo",
+              "priority": "p1",
+              "labels": [],
+              "closes": null,
+              "note": "",
+              "due": null,
+              "waitingFor": "",
+              "followUp": null,
+              "orderKey": "a0",
+              "focus": false,
+              "focusKey": null,
+              "focusLeftAt": null,
+              "archived": false,
+              "checklist": [
+                {
+                  "id": "agent-step-1",
+                  "text": "Прочитать отчёт",
+                  "done": false,
+                  "doneAt": null,
+                  "doneBy": null,
+                  "doneByLabel": null,
+                  "result": "",
+                  "linkedTaskId": null,
+                  "revision": 1
+                },
+                {
+                  "id": "agent-step-2",
+                  "text": "Ответить на вопросы",
+                  "done": false,
+                  "doneAt": null,
+                  "doneBy": null,
+                  "doneByLabel": null,
+                  "result": "",
+                  "linkedTaskId": null,
+                  "revision": 1
+                }
+              ],
+              "commentCount": 0,
+              "originSystem": null,
+              "originRef": null,
+              "originUrl": null,
+              "originVersion": null,
+              "createdBy": "agent:test-agent",
+              "createdByLabel": "Тестовый агент",
+              "ownerTouchedAt": null,
+              "ownerFields": [],
+              "revision": 1,
+              "createdAt": "2026-09-08T12:00:00.000Z",
+              "updatedAt": "2026-09-08T12:00:00.000Z"
+            },
+            "changes": {
+              "id": {
+                "from": null,
+                "to": "agent-task"
+              },
+              "area": {
+                "from": null,
+                "to": "development"
+              },
+              "projectId": {
+                "from": null,
+                "to": null
+              },
+              "title": {
+                "from": null,
+                "to": "Проверить отчёт ревью"
+              },
+              "status": {
+                "from": null,
+                "to": "todo"
+              },
+              "priority": {
+                "from": null,
+                "to": "p1"
+              },
+              "labels": {
+                "from": null,
+                "to": []
+              },
+              "closes": {
+                "from": null,
+                "to": null
+              },
+              "note": {
+                "from": null,
+                "to": ""
+              },
+              "due": {
+                "from": null,
+                "to": null
+              },
+              "waitingFor": {
+                "from": null,
+                "to": ""
+              },
+              "followUp": {
+                "from": null,
+                "to": null
+              },
+              "orderKey": {
+                "from": null,
+                "to": "a0"
+              },
+              "focus": {
+                "from": null,
+                "to": false
+              },
+              "focusKey": {
+                "from": null,
+                "to": null
+              },
+              "focusLeftAt": {
+                "from": null,
+                "to": null
+              },
+              "archived": {
+                "from": null,
+                "to": false
+              },
+              "originSystem": {
+                "from": null,
+                "to": null
+              },
+              "originRef": {
+                "from": null,
+                "to": null
+              },
+              "originUrl": {
+                "from": null,
+                "to": null
+              },
+              "originVersion": {
+                "from": null,
+                "to": null
+              },
+              "createdBy": {
+                "from": null,
+                "to": "agent:test-agent"
+              },
+              "createdByLabel": {
+                "from": null,
+                "to": "Тестовый агент"
+              },
+              "ownerTouchedAt": {
+                "from": null,
+                "to": null
+              },
+              "ownerFields": {
+                "from": null,
+                "to": []
+              },
+              "createdAt": {
+                "from": null,
+                "to": "2026-09-08T12:00:00.000Z"
+              }
+            }
+          }
+        ],
+        "events": [
+          {
+            "seq": 2,
+            "at": "2026-09-08T12:00:00.000Z",
+            "actorId": "agent:test-agent",
+            "actorLabel": "Тестовый агент",
+            "operationId": "agent-create",
+            "entityKind": "task",
+            "entityId": "agent-task",
+            "command": "task.create",
+            "changes": {
+              "id": {
+                "from": null,
+                "to": "agent-task"
+              },
+              "area": {
+                "from": null,
+                "to": "development"
+              },
+              "projectId": {
+                "from": null,
+                "to": null
+              },
+              "title": {
+                "from": null,
+                "to": "Проверить отчёт ревью"
+              },
+              "status": {
+                "from": null,
+                "to": "todo"
+              },
+              "priority": {
+                "from": null,
+                "to": "p1"
+              },
+              "labels": {
+                "from": null,
+                "to": []
+              },
+              "closes": {
+                "from": null,
+                "to": null
+              },
+              "note": {
+                "from": null,
+                "to": ""
+              },
+              "due": {
+                "from": null,
+                "to": null
+              },
+              "waitingFor": {
+                "from": null,
+                "to": ""
+              },
+              "followUp": {
+                "from": null,
+                "to": null
+              },
+              "orderKey": {
+                "from": null,
+                "to": "a0"
+              },
+              "focus": {
+                "from": null,
+                "to": false
+              },
+              "focusKey": {
+                "from": null,
+                "to": null
+              },
+              "focusLeftAt": {
+                "from": null,
+                "to": null
+              },
+              "archived": {
+                "from": null,
+                "to": false
+              },
+              "originSystem": {
+                "from": null,
+                "to": null
+              },
+              "originRef": {
+                "from": null,
+                "to": null
+              },
+              "originUrl": {
+                "from": null,
+                "to": null
+              },
+              "originVersion": {
+                "from": null,
+                "to": null
+              },
+              "createdBy": {
+                "from": null,
+                "to": "agent:test-agent"
+              },
+              "createdByLabel": {
+                "from": null,
+                "to": "Тестовый агент"
+              },
+              "ownerTouchedAt": {
+                "from": null,
+                "to": null
+              },
+              "ownerFields": {
+                "from": null,
+                "to": []
+              },
+              "createdAt": {
+                "from": null,
+                "to": "2026-09-08T12:00:00.000Z"
+              }
+            },
+            "recordRevision": 1,
+            "firstSeq": 2,
+            "lastSeq": 4,
+            "generation": "fixture-schema-9"
+          },
+          {
+            "seq": 3,
+            "at": "2026-09-08T12:00:00.000Z",
+            "actorId": "agent:test-agent",
+            "actorLabel": "Тестовый агент",
+            "operationId": "agent-create",
+            "entityKind": "step",
+            "entityId": "agent-step-1",
+            "command": "task.create",
+            "changes": {
+              "id": {
+                "from": null,
+                "to": "agent-step-1"
+              },
+              "taskId": {
+                "from": null,
+                "to": "agent-task"
+              },
+              "text": {
+                "from": null,
+                "to": "Прочитать отчёт"
+              },
+              "orderKey": {
+                "from": null,
+                "to": "a0"
+              },
+              "done": {
+                "from": null,
+                "to": false
+              },
+              "doneAt": {
+                "from": null,
+                "to": null
+              },
+              "doneBy": {
+                "from": null,
+                "to": null
+              },
+              "doneByLabel": {
+                "from": null,
+                "to": null
+              },
+              "result": {
+                "from": null,
+                "to": ""
+              },
+              "linkedTaskId": {
+                "from": null,
+                "to": null
+              },
+              "removedAt": {
+                "from": null,
+                "to": null
+              },
+              "createdBy": {
+                "from": null,
+                "to": "agent:test-agent"
+              },
+              "createdByLabel": {
+                "from": null,
+                "to": "Тестовый агент"
+              },
+              "ownerTouchedAt": {
+                "from": null,
+                "to": null
+              },
+              "ownerFields": {
+                "from": null,
+                "to": []
+              },
+              "createdAt": {
+                "from": null,
+                "to": "2026-09-08T12:00:00.000Z"
+              }
+            },
+            "recordRevision": 1,
+            "firstSeq": 2,
+            "lastSeq": 4,
+            "generation": "fixture-schema-9",
+            "taskId": "agent-task"
+          },
+          {
+            "seq": 4,
+            "at": "2026-09-08T12:00:00.000Z",
+            "actorId": "agent:test-agent",
+            "actorLabel": "Тестовый агент",
+            "operationId": "agent-create",
+            "entityKind": "step",
+            "entityId": "agent-step-2",
+            "command": "task.create",
+            "changes": {
+              "id": {
+                "from": null,
+                "to": "agent-step-2"
+              },
+              "taskId": {
+                "from": null,
+                "to": "agent-task"
+              },
+              "text": {
+                "from": null,
+                "to": "Ответить на вопросы"
+              },
+              "orderKey": {
+                "from": null,
+                "to": "a1"
+              },
+              "done": {
+                "from": null,
+                "to": false
+              },
+              "doneAt": {
+                "from": null,
+                "to": null
+              },
+              "doneBy": {
+                "from": null,
+                "to": null
+              },
+              "doneByLabel": {
+                "from": null,
+                "to": null
+              },
+              "result": {
+                "from": null,
+                "to": ""
+              },
+              "linkedTaskId": {
+                "from": null,
+                "to": null
+              },
+              "removedAt": {
+                "from": null,
+                "to": null
+              },
+              "createdBy": {
+                "from": null,
+                "to": "agent:test-agent"
+              },
+              "createdByLabel": {
+                "from": null,
+                "to": "Тестовый агент"
+              },
+              "ownerTouchedAt": {
+                "from": null,
+                "to": null
+              },
+              "ownerFields": {
+                "from": null,
+                "to": []
+              },
+              "createdAt": {
+                "from": null,
+                "to": "2026-09-08T12:00:00.000Z"
+              }
+            },
+            "recordRevision": 1,
+            "firstSeq": 2,
+            "lastSeq": 4,
+            "generation": "fixture-schema-9",
+            "taskId": "agent-task"
+          }
+        ]
+      },
+      "firstSeq": 2,
+      "lastSeq": 4,
+      "createdAt": "2026-09-08T12:00:00.000Z",
+      "ok": true,
+      "taskCount": 1,
+      "titles": [
+        "Ответить на вопросы ревью"
+      ]
+    },
+    {
+      "id": "agent-tick",
+      "operationSeq": 3,
+      "actorId": "agent:test-agent",
+      "actorLabel": "Тестовый агент",
+      "command": "checklist.update",
+      "commandHash": "fa968590aa424f3ec33d8e6cfdfa5c98f91187e8673fe67806099087138a9031",
+      "status": 200,
+      "result": {
+        "ok": true,
+        "operationId": "agent-tick",
+        "generation": "fixture-schema-9",
+        "firstSeq": 5,
+        "lastSeq": 5,
+        "results": [
+          {
+            "record": {
+              "id": "agent-step-1",
+              "taskId": "agent-task",
+              "text": "Прочитать отчёт",
+              "orderKey": "a0",
+              "done": true,
+              "doneAt": "2026-09-08T12:00:00.000Z",
+              "doneBy": "agent:test-agent",
+              "doneByLabel": "Тестовый агент",
+              "result": "Девять вопросов",
+              "linkedTaskId": null,
+              "removedAt": null,
+              "createdBy": "agent:test-agent",
+              "createdByLabel": "Тестовый агент",
+              "ownerTouchedAt": null,
+              "ownerFields": [],
+              "revision": 2,
+              "createdAt": "2026-09-08T12:00:00.000Z",
+              "updatedAt": "2026-09-08T12:00:00.000Z"
+            },
+            "changes": {
+              "done": {
+                "from": false,
+                "to": true
+              },
+              "doneAt": {
+                "from": null,
+                "to": "2026-09-08T12:00:00.000Z"
+              },
+              "doneBy": {
+                "from": null,
+                "to": "agent:test-agent"
+              },
+              "doneByLabel": {
+                "from": null,
+                "to": "Тестовый агент"
+              },
+              "result": {
+                "from": "",
+                "to": "Девять вопросов"
+              }
+            }
+          }
+        ],
+        "events": [
+          {
+            "seq": 5,
+            "at": "2026-09-08T12:00:00.000Z",
+            "actorId": "agent:test-agent",
+            "actorLabel": "Тестовый агент",
+            "operationId": "agent-tick",
+            "entityKind": "step",
+            "entityId": "agent-step-1",
+            "command": "checklist.update",
+            "changes": {
+              "done": {
+                "from": false,
+                "to": true
+              },
+              "doneAt": {
+                "from": null,
+                "to": "2026-09-08T12:00:00.000Z"
+              },
+              "doneBy": {
+                "from": null,
+                "to": "agent:test-agent"
+              },
+              "doneByLabel": {
+                "from": null,
+                "to": "Тестовый агент"
+              },
+              "result": {
+                "from": "",
+                "to": "Девять вопросов"
+              }
+            },
+            "recordRevision": 2,
+            "firstSeq": 5,
+            "lastSeq": 5,
+            "generation": "fixture-schema-9",
+            "taskId": "agent-task"
+          }
+        ]
+      },
+      "firstSeq": 5,
+      "lastSeq": 5,
+      "createdAt": "2026-09-08T12:00:00.000Z",
+      "ok": true,
+      "taskCount": 1,
+      "titles": [
+        "Ответить на вопросы ревью"
+      ]
+    },
+    {
+      "id": "owner-rename",
+      "operationSeq": 4,
+      "actorId": "owner",
+      "actorLabel": "Владелец",
+      "command": "task.update",
+      "commandHash": "e611eb148a8b0969b3f4c0cd6cbea5edaddd887cb13015d41d0dda69a9eafb53",
+      "status": 200,
+      "result": {
+        "ok": true,
+        "operationId": "owner-rename",
+        "generation": "fixture-schema-9",
+        "firstSeq": 6,
+        "lastSeq": 6,
+        "results": [
+          {
+            "record": {
+              "id": "agent-task",
+              "area": "development",
+              "projectId": null,
+              "title": "Ответить на вопросы ревью",
+              "status": "todo",
+              "priority": "p1",
+              "labels": [],
+              "closes": null,
+              "note": "",
+              "due": null,
+              "waitingFor": "",
+              "followUp": null,
+              "orderKey": "a0",
+              "focus": false,
+              "focusKey": null,
+              "focusLeftAt": null,
+              "archived": false,
+              "checklist": [
+                {
+                  "id": "agent-step-1",
+                  "text": "Прочитать отчёт",
+                  "done": true,
+                  "doneAt": "2026-09-08T12:00:00.000Z",
+                  "doneBy": "agent:test-agent",
+                  "doneByLabel": "Тестовый агент",
+                  "result": "Девять вопросов",
+                  "linkedTaskId": null,
+                  "revision": 2
+                },
+                {
+                  "id": "agent-step-2",
+                  "text": "Ответить на вопросы",
+                  "done": false,
+                  "doneAt": null,
+                  "doneBy": null,
+                  "doneByLabel": null,
+                  "result": "",
+                  "linkedTaskId": null,
+                  "revision": 1
+                }
+              ],
+              "commentCount": 0,
+              "originSystem": null,
+              "originRef": null,
+              "originUrl": null,
+              "originVersion": null,
+              "createdBy": "agent:test-agent",
+              "createdByLabel": "Тестовый агент",
+              "ownerTouchedAt": "2026-09-08T12:00:00.000Z",
+              "ownerFields": [
+                "title"
+              ],
+              "revision": 2,
+              "createdAt": "2026-09-08T12:00:00.000Z",
+              "updatedAt": "2026-09-08T12:00:00.000Z"
+            },
+            "changes": {
+              "title": {
+                "from": "Проверить отчёт ревью",
+                "to": "Ответить на вопросы ревью"
+              },
+              "ownerTouchedAt": {
+                "from": null,
+                "to": "2026-09-08T12:00:00.000Z"
+              },
+              "ownerFields": {
+                "from": [],
+                "to": [
+                  "title"
+                ]
+              }
+            }
+          }
+        ],
+        "events": [
+          {
+            "seq": 6,
+            "at": "2026-09-08T12:00:00.000Z",
+            "actorId": "owner",
+            "actorLabel": "Владелец",
+            "operationId": "owner-rename",
+            "entityKind": "task",
+            "entityId": "agent-task",
+            "command": "task.update",
+            "changes": {
+              "title": {
+                "from": "Проверить отчёт ревью",
+                "to": "Ответить на вопросы ревью"
+              },
+              "ownerTouchedAt": {
+                "from": null,
+                "to": "2026-09-08T12:00:00.000Z"
+              },
+              "ownerFields": {
+                "from": [],
+                "to": [
+                  "title"
+                ]
+              }
+            },
+            "recordRevision": 2,
+            "firstSeq": 6,
+            "lastSeq": 6,
+            "generation": "fixture-schema-9"
+          }
+        ]
+      },
+      "firstSeq": 6,
+      "lastSeq": 6,
+      "createdAt": "2026-09-08T12:00:00.000Z",
+      "ok": true,
+      "taskCount": 1,
+      "titles": [
+        "Ответить на вопросы ревью"
+      ]
+    },
+    {
+      "id": "owner-comment",
+      "operationSeq": 5,
+      "actorId": "owner",
+      "actorLabel": "Владелец",
+      "command": "comment.add",
+      "commandHash": "b7d3d8a2cc33bf66d7a08b7ce4e12b455619faf3c90cf5d5f005df7c19996656",
+      "status": 200,
+      "result": {
+        "ok": true,
+        "operationId": "owner-comment",
+        "generation": "fixture-schema-9",
+        "firstSeq": 7,
+        "lastSeq": 7,
+        "results": [
+          {
+            "record": {
+              "id": "owner-comment",
+              "taskId": "agent-task",
+              "actorId": "owner",
+              "actorLabel": "Владелец",
+              "text": "Жду",
+              "revision": 1,
+              "createdAt": "2026-09-08T12:00:00.000Z",
+              "deletedAt": null
+            },
+            "changes": {
+              "id": {
+                "from": null,
+                "to": "owner-comment"
+              },
+              "taskId": {
+                "from": null,
+                "to": "agent-task"
+              },
+              "actorId": {
+                "from": null,
+                "to": "owner"
+              },
+              "actorLabel": {
+                "from": null,
+                "to": "Владелец"
+              },
+              "text": {
+                "from": null,
+                "to": "Жду"
+              },
+              "createdAt": {
+                "from": null,
+                "to": "2026-09-08T12:00:00.000Z"
+              },
+              "deletedAt": {
+                "from": null,
+                "to": null
+              }
+            }
+          }
+        ],
+        "events": [
+          {
+            "seq": 7,
+            "at": "2026-09-08T12:00:00.000Z",
+            "actorId": "owner",
+            "actorLabel": "Владелец",
+            "operationId": "owner-comment",
+            "entityKind": "comment",
+            "entityId": "owner-comment",
+            "command": "comment.add",
+            "changes": {
+              "id": {
+                "from": null,
+                "to": "owner-comment"
+              },
+              "taskId": {
+                "from": null,
+                "to": "agent-task"
+              },
+              "actorId": {
+                "from": null,
+                "to": "owner"
+              },
+              "actorLabel": {
+                "from": null,
+                "to": "Владелец"
+              },
+              "text": {
+                "from": null,
+                "to": "Жду"
+              },
+              "createdAt": {
+                "from": null,
+                "to": "2026-09-08T12:00:00.000Z"
+              },
+              "deletedAt": {
+                "from": null,
+                "to": null
+              }
+            },
+            "recordRevision": 1,
+            "firstSeq": 7,
+            "lastSeq": 7,
+            "generation": "fixture-schema-9",
+            "taskId": "agent-task"
+          }
+        ]
+      },
+      "firstSeq": 7,
+      "lastSeq": 7,
+      "createdAt": "2026-09-08T12:00:00.000Z",
+      "ok": true,
+      "taskCount": 1,
+      "titles": [
+        "Ответить на вопросы ревью"
+      ]
+    },
+    {
+      "id": "old-create",
+      "operationSeq": 6,
+      "actorId": "owner",
+      "actorLabel": "Владелец",
+      "command": "task.create",
+      "commandHash": "2c9e39914e33acffd261f82453f8cdba0d2ab8bafcd93b2a1d0e61abd554c03c",
+      "status": 200,
+      "result": {
+        "ok": true,
+        "operationId": "old-create",
+        "generation": "fixture-schema-9",
+        "firstSeq": 8,
+        "lastSeq": 8,
+        "results": [
+          {
+            "record": {
+              "id": "old-task",
+              "area": "agency",
+              "projectId": null,
+              "title": "Старая задача",
+              "status": "todo",
+              "priority": "p2",
+              "labels": [],
+              "closes": null,
+              "note": "",
+              "due": null,
+              "waitingFor": "",
+              "followUp": null,
+              "orderKey": "a0",
+              "focus": false,
+              "focusKey": null,
+              "focusLeftAt": null,
+              "archived": false,
+              "checklist": [],
+              "commentCount": 0,
+              "originSystem": null,
+              "originRef": null,
+              "originUrl": null,
+              "originVersion": null,
+              "createdBy": "owner",
+              "createdByLabel": "Владелец",
+              "ownerTouchedAt": "2026-09-08T12:00:00.000Z",
+              "ownerFields": [
+                "archived",
+                "area",
+                "closes",
+                "due",
+                "focus",
+                "focusKey",
+                "focusLeftAt",
+                "followUp",
+                "labels",
+                "note",
+                "orderKey",
+                "originUrl",
+                "priority",
+                "projectId",
+                "status",
+                "title",
+                "waitingFor"
+              ],
+              "revision": 1,
+              "createdAt": "2026-09-08T12:00:00.000Z",
+              "updatedAt": "2026-09-08T12:00:00.000Z"
+            },
+            "changes": {
+              "id": {
+                "from": null,
+                "to": "old-task"
+              },
+              "area": {
+                "from": null,
+                "to": "agency"
+              },
+              "projectId": {
+                "from": null,
+                "to": null
+              },
+              "title": {
+                "from": null,
+                "to": "Старая задача"
+              },
+              "status": {
+                "from": null,
+                "to": "todo"
+              },
+              "priority": {
+                "from": null,
+                "to": "p2"
+              },
+              "labels": {
+                "from": null,
+                "to": []
+              },
+              "closes": {
+                "from": null,
+                "to": null
+              },
+              "note": {
+                "from": null,
+                "to": ""
+              },
+              "due": {
+                "from": null,
+                "to": null
+              },
+              "waitingFor": {
+                "from": null,
+                "to": ""
+              },
+              "followUp": {
+                "from": null,
+                "to": null
+              },
+              "orderKey": {
+                "from": null,
+                "to": "a0"
+              },
+              "focus": {
+                "from": null,
+                "to": false
+              },
+              "focusKey": {
+                "from": null,
+                "to": null
+              },
+              "focusLeftAt": {
+                "from": null,
+                "to": null
+              },
+              "archived": {
+                "from": null,
+                "to": false
+              },
+              "originSystem": {
+                "from": null,
+                "to": null
+              },
+              "originRef": {
+                "from": null,
+                "to": null
+              },
+              "originUrl": {
+                "from": null,
+                "to": null
+              },
+              "originVersion": {
+                "from": null,
+                "to": null
+              },
+              "createdBy": {
+                "from": null,
+                "to": "owner"
+              },
+              "createdByLabel": {
+                "from": null,
+                "to": "Владелец"
+              },
+              "ownerTouchedAt": {
+                "from": null,
+                "to": "2026-09-08T12:00:00.000Z"
+              },
+              "ownerFields": {
+                "from": null,
+                "to": [
+                  "archived",
+                  "area",
+                  "closes",
+                  "due",
+                  "focus",
+                  "focusKey",
+                  "focusLeftAt",
+                  "followUp",
+                  "labels",
+                  "note",
+                  "orderKey",
+                  "originUrl",
+                  "priority",
+                  "projectId",
+                  "status",
+                  "title",
+                  "waitingFor"
+                ]
+              },
+              "createdAt": {
+                "from": null,
+                "to": "2026-09-08T12:00:00.000Z"
+              }
+            }
+          }
+        ],
+        "events": [
+          {
+            "seq": 8,
+            "at": "2026-09-08T12:00:00.000Z",
+            "actorId": "owner",
+            "actorLabel": "Владелец",
+            "operationId": "old-create",
+            "entityKind": "task",
+            "entityId": "old-task",
+            "command": "task.create",
+            "changes": {
+              "id": {
+                "from": null,
+                "to": "old-task"
+              },
+              "area": {
+                "from": null,
+                "to": "agency"
+              },
+              "projectId": {
+                "from": null,
+                "to": null
+              },
+              "title": {
+                "from": null,
+                "to": "Старая задача"
+              },
+              "status": {
+                "from": null,
+                "to": "todo"
+              },
+              "priority": {
+                "from": null,
+                "to": "p2"
+              },
+              "labels": {
+                "from": null,
+                "to": []
+              },
+              "closes": {
+                "from": null,
+                "to": null
+              },
+              "note": {
+                "from": null,
+                "to": ""
+              },
+              "due": {
+                "from": null,
+                "to": null
+              },
+              "waitingFor": {
+                "from": null,
+                "to": ""
+              },
+              "followUp": {
+                "from": null,
+                "to": null
+              },
+              "orderKey": {
+                "from": null,
+                "to": "a0"
+              },
+              "focus": {
+                "from": null,
+                "to": false
+              },
+              "focusKey": {
+                "from": null,
+                "to": null
+              },
+              "focusLeftAt": {
+                "from": null,
+                "to": null
+              },
+              "archived": {
+                "from": null,
+                "to": false
+              },
+              "originSystem": {
+                "from": null,
+                "to": null
+              },
+              "originRef": {
+                "from": null,
+                "to": null
+              },
+              "originUrl": {
+                "from": null,
+                "to": null
+              },
+              "originVersion": {
+                "from": null,
+                "to": null
+              },
+              "createdBy": {
+                "from": null,
+                "to": "owner"
+              },
+              "createdByLabel": {
+                "from": null,
+                "to": "Владелец"
+              },
+              "ownerTouchedAt": {
+                "from": null,
+                "to": "2026-09-08T12:00:00.000Z"
+              },
+              "ownerFields": {
+                "from": null,
+                "to": [
+                  "archived",
+                  "area",
+                  "closes",
+                  "due",
+                  "focus",
+                  "focusKey",
+                  "focusLeftAt",
+                  "followUp",
+                  "labels",
+                  "note",
+                  "orderKey",
+                  "originUrl",
+                  "priority",
+                  "projectId",
+                  "status",
+                  "title",
+                  "waitingFor"
+                ]
+              },
+              "createdAt": {
+                "from": null,
+                "to": "2026-09-08T12:00:00.000Z"
+              }
+            },
+            "recordRevision": 1,
+            "firstSeq": 8,
+            "lastSeq": 8,
+            "generation": "fixture-schema-9"
+          }
+        ]
+      },
+      "firstSeq": 8,
+      "lastSeq": 8,
+      "createdAt": "2026-09-08T12:00:00.000Z",
+      "ok": true,
+      "taskCount": 1,
+      "titles": [
+        "Старая задача"
+      ]
+    },
+    {
+      "id": "old-archive",
+      "operationSeq": 7,
+      "actorId": "owner",
+      "actorLabel": "Владелец",
+      "command": "task.archive",
+      "commandHash": "245404a1aa62395ebed4777fa52db946caecf5acaa667e5f03ec4bc44b7df12c",
+      "status": 200,
+      "result": {
+        "ok": true,
+        "operationId": "old-archive",
+        "generation": "fixture-schema-9",
+        "firstSeq": 9,
+        "lastSeq": 9,
+        "results": [
+          {
+            "record": {
+              "id": "old-task",
+              "area": "agency",
+              "projectId": null,
+              "title": "Старая задача",
+              "status": "todo",
+              "priority": "p2",
+              "labels": [],
+              "closes": null,
+              "note": "",
+              "due": null,
+              "waitingFor": "",
+              "followUp": null,
+              "orderKey": "a0",
+              "focus": false,
+              "focusKey": null,
+              "focusLeftAt": null,
+              "archived": true,
+              "checklist": [],
+              "commentCount": 0,
+              "originSystem": null,
+              "originRef": null,
+              "originUrl": null,
+              "originVersion": null,
+              "createdBy": "owner",
+              "createdByLabel": "Владелец",
+              "ownerTouchedAt": "2026-09-08T12:00:00.000Z",
+              "ownerFields": [
+                "archived",
+                "area",
+                "closes",
+                "due",
+                "focus",
+                "focusKey",
+                "focusLeftAt",
+                "followUp",
+                "labels",
+                "note",
+                "orderKey",
+                "originUrl",
+                "priority",
+                "projectId",
+                "status",
+                "title",
+                "waitingFor"
+              ],
+              "revision": 2,
+              "createdAt": "2026-09-08T12:00:00.000Z",
+              "updatedAt": "2026-09-08T12:00:00.000Z"
+            },
+            "changes": {
+              "archived": {
+                "from": false,
+                "to": true
+              }
+            }
+          }
+        ],
+        "events": [
+          {
+            "seq": 9,
+            "at": "2026-09-08T12:00:00.000Z",
+            "actorId": "owner",
+            "actorLabel": "Владелец",
+            "operationId": "old-archive",
+            "entityKind": "task",
+            "entityId": "old-task",
+            "command": "task.archive",
+            "changes": {
+              "archived": {
+                "from": false,
+                "to": true
+              }
+            },
+            "recordRevision": 2,
+            "firstSeq": 9,
+            "lastSeq": 9,
+            "generation": "fixture-schema-9"
+          }
+        ]
+      },
+      "firstSeq": 9,
+      "lastSeq": 9,
+      "createdAt": "2026-09-08T12:00:00.000Z",
+      "ok": true,
+      "taskCount": 1,
+      "titles": [
+        "Старая задача"
+      ]
+    },
+    {
+      "id": "agent-rejected",
+      "operationSeq": 8,
+      "actorId": "agent:test-agent",
+      "actorLabel": "Тестовый агент",
+      "command": "task.update",
+      "commandHash": "d765ea7b4688cf2bc88560f441f26146643f4b141a26d4c8d628aa956f9db002",
+      "status": 409,
+      "result": {
+        "ok": false,
+        "code": "conflict",
+        "message": "Запись изменилась. Ваш текст остался в форме.",
+        "retryable": false,
+        "current": {
+          "id": "agent-task",
+          "area": "development",
+          "projectId": null,
+          "title": "Ответить на вопросы ревью",
+          "status": "todo",
+          "priority": "p1",
+          "labels": [],
+          "closes": null,
+          "note": "",
+          "due": null,
+          "waitingFor": "",
+          "followUp": null,
+          "orderKey": "a0",
+          "focus": false,
+          "focusKey": null,
+          "focusLeftAt": null,
+          "archived": false,
+          "checklist": [
+            {
+              "id": "agent-step-1",
+              "text": "Прочитать отчёт",
+              "done": true,
+              "doneAt": "2026-09-08T12:00:00.000Z",
+              "doneBy": "agent:test-agent",
+              "doneByLabel": "Тестовый агент",
+              "result": "Девять вопросов",
+              "linkedTaskId": null,
+              "revision": 2
+            },
+            {
+              "id": "agent-step-2",
+              "text": "Ответить на вопросы",
+              "done": false,
+              "doneAt": null,
+              "doneBy": null,
+              "doneByLabel": null,
+              "result": "",
+              "linkedTaskId": null,
+              "revision": 1
+            }
+          ],
+          "commentCount": 1,
+          "originSystem": null,
+          "originRef": null,
+          "originUrl": null,
+          "originVersion": null,
+          "createdBy": "agent:test-agent",
+          "createdByLabel": "Тестовый агент",
+          "ownerTouchedAt": "2026-09-08T12:00:00.000Z",
+          "ownerFields": [
+            "title"
+          ],
+          "revision": 2,
+          "createdAt": "2026-09-08T12:00:00.000Z",
+          "updatedAt": "2026-09-08T12:00:00.000Z"
+        },
+        "conflicts": [
+          {
+            "entityKind": "task",
+            "entityId": "agent-task",
+            "fields": [
+              "title"
+            ]
+          }
+        ],
+        "operationId": "agent-rejected",
+        "generation": "fixture-schema-9"
+      },
+      "firstSeq": null,
+      "lastSeq": null,
+      "createdAt": "2026-09-08T12:00:00.000Z",
+      "ok": false,
+      "errorCode": "conflict",
+      "errorMessage": "Запись изменилась. Ваш текст остался в форме.",
+      "taskCount": 0,
+      "titles": []
+    }
+  ]
+}

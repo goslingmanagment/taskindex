@@ -132,6 +132,7 @@ describe('server-only administration', () => {
       label: 'Claude Mac',
       tasks: 1,
       comments: 1,
+      steps: 0,
     });
     const after = openDatabase(test.env.DATABASE_PATH);
     expect(readTask(after, 'task-by-agent')?.createdByLabel).toBe('Claude Mac');

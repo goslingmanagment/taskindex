@@ -14,6 +14,7 @@ import {
   GLOBAL_FLAGS,
   PAGE_FLAGS,
   commandName,
+  sinceFlag,
   type ReadSpec,
 } from './spec.js';
 
@@ -202,6 +203,8 @@ async function resolveSince(
   spec: ReadSpec,
 ): Promise<Arguments['flags']> {
   const flags = { ...session.args.flags };
+  // `proposals --since DATE` is a date filter, not a journal position.
+  if (!spec.query.includes(sinceFlag)) return flags;
   if (flags.since === 'last') {
     const cursor = await session.state.readCursor(session.identity);
     if (spec.group === 'activity') {

@@ -26,6 +26,7 @@ import { registerStreamRoutes } from './routes/stream.js';
 import { registerContextRoutes } from './routes/context.js';
 import { registerDigestRoutes } from './routes/digest.js';
 import { registerFocusRoutes } from './routes/focus.js';
+import { registerProposalRoutes } from './routes/proposals.js';
 import { describeApi } from './http/document.js';
 
 /** @internal for tests */
@@ -128,7 +129,8 @@ export function createApp(options: AppOptions) {
   const withStream = registerStreamRoutes(withOperations, deps);
   const withContext = registerContextRoutes(withStream, deps);
   const withDigest = registerDigestRoutes(withContext, deps);
-  const api = registerFocusRoutes(withDigest, deps);
+  const withFocus = registerFocusRoutes(withDigest, deps);
+  const api = registerProposalRoutes(withFocus, deps);
 
   describeApi(api, baseURL);
   return Object.assign(api, { closeStreams: () => hub.closeAll() });

@@ -24,7 +24,18 @@ export const commandLabels: Record<string, string> = {
   'checklist.reorder': 'Переставлены шаги',
   'checklist.promote': 'Шаг вынесен в задачу',
   'appearance.update': 'Изменено оформление',
+  'proposal.create': 'Предложение в очереди',
+  'proposal.deliver': 'Предложения показаны',
+  'proposal.accept': 'Принято предложение',
+  'proposal.reject': 'Отклонено предложение',
 };
+// The night shift's bookkeeping (spec 2026-09-25, §5.1): creating, showing
+// and expiring proposals stay out of the owner's «Активность»; an accepted
+// proposal is visible there as the task write it made.
+export const HIDDEN_ACTIVITY_COMMANDS: ReadonlySet<string> = new Set([
+  'proposal.create',
+  'proposal.deliver',
+]);
 export const commandLabel = (command: string) =>
   commandLabels[command] || command;
 

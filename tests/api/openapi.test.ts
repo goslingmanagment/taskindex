@@ -40,6 +40,8 @@ const EXPECTED_OPERATIONS = [
   'getContext',
   'getDigest',
   'getFocus',
+  'listProposals',
+  'getProposal',
 ];
 const EXPECTED_COMPONENTS = [
   'Actor',
@@ -47,6 +49,7 @@ const EXPECTED_COMPONENTS = [
   'ChecklistItem',
   'Task',
   'Step',
+  'Proposal',
   'Project',
   'Comment',
   'Event',
@@ -71,14 +74,18 @@ async function document(f: ReturnType<typeof fixture>) {
   return { text, doc: JSON.parse(text) as Document };
 }
 describe('OpenAPI is a compact contract for agents (TI-049)', () => {
-  it('is served with a key, stays under 150 KB and names every operation with summary, tags and security', async () => {
+  it('is served with a key, stays under 180 KB and names every operation with summary, tags and security', async () => {
     const f = fixture();
     const denied = await f.app.request('/api/openapi.json', {
       headers: { 'x-test-role': 'none' },
     });
     expect(denied.status).toBe(401);
     const { text, doc } = await document(f);
-    expect(text.length).toBeLessThan(150_000);
+    // 2026-09-25: agent proposals (four commands, two reads) took the
+    // document from 148 to 174 KB; Command and CommandEnvelope repeat every
+    // payload by design, so the budget moved to 180 KB rather than the
+    // contract losing descriptions.
+    expect(text.length).toBeLessThan(180_000);
     const operations = Object.values(doc.paths).flatMap((methods) =>
       Object.values(methods),
     );
