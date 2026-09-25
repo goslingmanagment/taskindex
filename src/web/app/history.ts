@@ -343,6 +343,12 @@ function proposalStory(event: DomainEvent): HistoryStory {
     lines.push({ label: 'Причина', text: quote(reason) });
   return { lines, technical: Object.entries(event.changes) };
 }
+// A decision on a proposal goes back only whole, with the task write it made
+// (spec 2026-09-25, §5.1): the server refuses to undo any event of such an
+// operation by seq, the task's event included. `events` is the whole
+// operation, the same test the server makes.
+export const decidesProposal = (events: readonly DomainEvent[]) =>
+  events.length > 1 && events.some((e) => e.entityKind === 'proposal');
 export function describeEvent(
   event: DomainEvent,
   ctx: HistoryContext,

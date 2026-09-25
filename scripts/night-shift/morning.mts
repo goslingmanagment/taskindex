@@ -120,6 +120,11 @@ export function nightShiftFailure(
     : first.message;
 }
 
+// The card of a new task: every field `task.create` fills with something
+// other than its default, in the words of fieldChange below. Placement,
+// origin and ticked or reported steps never get this far: the proposal check
+// refuses them (proposalCommandIssues in src/shared/schemas.ts). The task id
+// goes unshown: it names the record and changes nothing the owner gets.
 function newTaskLines(
   proposal: ProposalView,
   catalog: Catalog,
@@ -136,12 +141,24 @@ function newTaskLines(
     : [];
   if (labels.length)
     meta.push(labels.map((id) => nameOf(catalog.labels, id)).join(', '));
+  // The queue is where a new task lands anyway.
+  if (field('status') && field('status') !== 'todo')
+    meta.push(`состояние ${nameOf(catalog.statuses, field('status'))}`);
   if (field('due')) meta.push(`срок ${dayMonth(field('due'))}`);
+  if (field('followUp')) meta.push(`вернуться ${dayMonth(field('followUp'))}`);
+  if (field('waitingFor')) meta.push(`ждём «${field('waitingFor')}»`);
+  if (field('closes')) meta.push(`закрывает ${field('closes')}`);
   const lines = [
     `${proposal.number}. ${field('title')}`,
     indent(meta.join(' · ')),
   ];
   if (field('note').trim()) lines.push(indent(field('note').trim()));
+  // A step marked removed is not created.
+  const steps = (Array.isArray(payload.checklist) ? payload.checklist : [])
+    .map((step) => step as { text?: unknown; removed?: unknown })
+    .filter((step) => step.removed !== true)
+    .map((step) => `– ${text(step.text).split('\n').join('\n  ')}`);
+  if (steps.length) lines.push(indent(['Шаги:', ...steps].join('\n')));
   if (proposal.evidence.length)
     lines.push(
       indent(

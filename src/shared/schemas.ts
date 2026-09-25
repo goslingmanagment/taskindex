@@ -557,7 +557,13 @@ type ProposalIssue = { path: (string | number)[]; message: string };
 // The rules of a proposed command (plan §1.1) beyond the command's own schema:
 // the kind matches the command, a change names its task and revision, a move
 // only finishes, a card note fits the morning message and focus stays the
-// owner's. Checked on proposal.create and again on the owner's patch.
+// owner's. A new task carries nothing the morning message does not show:
+// no place on the board, no link to an outside source (its dedupe could turn
+// «да» into a pointer to another task, and task.sync would later rewrite the
+// card) and no step ticked or reported (the tick would credit the accepting
+// agent with work it did not do). The id stays: it names the record and
+// changes nothing the owner gets. Checked on proposal.create and again on the
+// owner's patch.
 export function proposalCommandIssues(draft: ProposalDraft): ProposalIssue[] {
   const { command, payload } = draft.command;
   const issues: ProposalIssue[] = [];
@@ -582,15 +588,40 @@ export function proposalCommandIssues(draft: ProposalDraft): ProposalIssue[] {
         ['command', 'payload', key],
         'Фокус ставит только владелец: в предложении его нет',
       );
-  if (
-    command === 'task.create' &&
-    typeof payload.note === 'string' &&
-    payload.note.trim().length > LIMITS.proposalNote
-  )
-    add(
-      ['command', 'payload', 'note'],
-      `Заметка предложенной задачи не длиннее ${LIMITS.proposalNote} символов`,
-    );
+  if (command === 'task.create') {
+    if (
+      typeof payload.note === 'string' &&
+      payload.note.trim().length > LIMITS.proposalNote
+    )
+      add(
+        ['command', 'payload', 'note'],
+        `Заметка предложенной задачи не длиннее ${LIMITS.proposalNote} символов`,
+      );
+    if (Object.hasOwn(payload, 'position'))
+      add(
+        ['command', 'payload', 'position'],
+        'Место в колонке предложение не задаёт',
+      );
+    if (Object.hasOwn(payload, 'origin'))
+      add(
+        ['command', 'payload', 'origin'],
+        'Связь с источником предложение не задаёт: откуда дело, говорит evidence',
+      );
+    const steps = Array.isArray(payload.checklist) ? payload.checklist : [];
+    for (const [index, step] of steps.entries()) {
+      const item = (step ?? {}) as Record<string, unknown>;
+      if (item.done === true)
+        add(
+          ['command', 'payload', 'checklist', index, 'done'],
+          'Шаг предложенной задачи открыт: отметку ставит исполнитель',
+        );
+      if (typeof item.result === 'string' && item.result.trim())
+        add(
+          ['command', 'payload', 'checklist', index, 'result'],
+          'Итог шага пишет исполнитель: в предложении его нет',
+        );
+    }
+  }
   if (draft.kind === 'new_task') {
     if (command !== 'task.create')
       add(

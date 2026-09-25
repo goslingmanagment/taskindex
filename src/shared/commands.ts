@@ -550,7 +550,9 @@ function applyUndo(s: Session, p: CommandOf<'undo'>['payload']): CommandResult {
     fail('not_undoable', 'Создание проекта не отменяется.');
   // A proposal comes and goes by its own commands: creating and showing are
   // the night shift's bookkeeping, and a decision goes back only whole, with
-  // the task write it made (spec 2026-09-25, §5.1).
+  // the task write it made (spec 2026-09-25, §5.1). By seq that holds for
+  // every event of the operation, the task's included: the task write alone
+  // would leave the proposal accepted with nothing behind it.
   if (
     target.some(
       (e) =>
@@ -558,15 +560,17 @@ function applyUndo(s: Session, p: CommandOf<'undo'>['payload']): CommandResult {
     )
   )
     fail('not_undoable', 'Создание и показ предложений не отменяются.');
-  if (
-    'seq' in p &&
-    target.some((e) => e.entityKind === 'proposal') &&
-    s.history.forOperation(target[0]!.operationId).length > 1
-  )
-    fail(
-      'not_undoable',
-      'Решение по предложению отменяется только целиком: undo --operation.',
-    );
+  if ('seq' in p) {
+    const operation = s.history.forOperation(target[0]!.operationId);
+    if (
+      operation.length > 1 &&
+      operation.some((e) => e.entityKind === 'proposal')
+    )
+      fail(
+        'not_undoable',
+        'Решение по предложению отменяется только целиком: undo --operation.',
+      );
+  }
   const targetSeqs = new Set(target.map((e) => e.seq));
   const groups = new Map<string, DomainEvent[]>();
   for (const e of target) {

@@ -39,7 +39,12 @@ import {
 import { ApiError, request } from './api';
 import { workspaceStore } from './store';
 import { commandLabels, HIDDEN_ACTIVITY_COMMANDS, taskCount } from './labels';
-import { actorOptions, ALL_ACTORS, describeEvent } from './history';
+import {
+  actorOptions,
+  ALL_ACTORS,
+  decidesProposal,
+  describeEvent,
+} from './history';
 import { useDraft } from './use-draft';
 import {
   commentAddCommand,
@@ -69,10 +74,44 @@ async function undo(payload: { seq: number } | { operationId: string }) {
     });
   }
 }
+// The task's history shows only the task's part of an operation, so an event
+// of a longer one looks at the whole first: the task write of an accepted
+// proposal goes back together with the decision (spec 2026-09-25, §5.1),
+// anything else by its own seq.
+async function undoEvent(event: DomainEvent) {
+  if (event.firstSeq !== event.lastSeq) {
+    let operation: StoredOperation;
+    try {
+      operation = await request(
+        `/api/operations/${encodeURIComponent(event.operationId)}`,
+        storedOperationSchema,
+      );
+    } catch (error_) {
+      toast.add({
+        title:
+          error_ instanceof Error ? error_.message : 'Не удалось отменить.',
+        type: 'error',
+      });
+      return;
+    }
+    if (operation.result.ok && decidesProposal(operation.result.events))
+      return undo({ operationId: event.operationId });
+  }
+  return undo({ seq: event.seq });
+}
 // TI-032: one event told in words. Who and when comes from the event itself,
 // what changed from `describeEvent`; the stored payload stays available under
-// «Технические детали» for a report or a bug.
-function EventRow({ event }: { event: DomainEvent }) {
+// «Технические детали» for a report or a bug. `operation` is every event of
+// the event's operation when the row sits inside it in «Активность»: a part
+// of a proposal decision has no undo of its own there, the operation's
+// «Отменить» above takes the decision back whole.
+function EventRow({
+  event,
+  operation,
+}: {
+  event: DomainEvent;
+  operation?: readonly DomainEvent[];
+}) {
   const { data } = useSyncExternalStore(
     workspaceStore.subscribe,
     workspaceStore.getSnapshot,
@@ -113,9 +152,12 @@ function EventRow({ event }: { event: DomainEvent }) {
           size="sm"
           disabled={
             event.command === 'project.create' ||
-            event.entityKind === 'proposal'
+            event.entityKind === 'proposal' ||
+            (operation !== undefined && decidesProposal(operation))
           }
-          onClick={() => void undo({ seq: event.seq })}
+          onClick={() =>
+            void (operation ? undo({ seq: event.seq }) : undoEvent(event))
+          }
         >
           Отменить
         </Button>
@@ -410,8 +452,8 @@ function OperationRow({ operation }: { operation: OperationSummary }) {
         )}
         <ol className="event-list">
           {detail?.result.ok &&
-            detail.result.events.map((event) => (
-              <EventRow key={event.seq} event={event} />
+            detail.result.events.map((event, _, events) => (
+              <EventRow key={event.seq} event={event} operation={events} />
             ))}
         </ol>
       </CollapsibleContent>

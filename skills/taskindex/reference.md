@@ -162,7 +162,11 @@ scope, чужой комментарий — нет. Ошибку владель
   `N` из одной-двух цифр это номер среди показанных сейчас.
 - `taskindex proposal create --payload '{"kind","taskId","baseRevision","command":{"command","payload"},"reason","evidence":[{"source","ref","at","quote"}],"fingerprint","rank"}'`:
   в очередь; тот же `fingerprint` в любом статусе новой записи не даёт,
-  `results[0].existing: true` и прежнее предложение (отказ держится).
+  `results[0].existing: true` и прежнее предложение (отказ держится). По «да»
+  выполняется только то, что видно в утреннем сообщении: `focus`,
+  `focusPosition`, `position`, `origin`, отмеченный шаг (`done: true`) и итог
+  шага (`result`) предложение не несёт (400 `invalid`), заметка новой задачи
+  до 300 символов.
 - `taskindex proposal deliver [--limit 1..5]`: утренний показ одной операцией.
   `results[0]` это `{date, shown, queued, expired, stale}`: показанные сегодня
   по номеру, сколько осталось, какие истекли (3 дня без ответа) и какие стали
@@ -177,7 +181,8 @@ scope, чужой комментарий — нет. Ошибку владель
   `conflict` с названием статуса.
 - `taskindex proposal reject N|ID [--reason ТЕКСТ]`: из `shown` или `queued`.
 - `undo --operation ID` принятия откатывает и запись задачи, и решение
-  (предложение снова `shown`); создание и показ не отменяются.
+  (предложение снова `shown`); `undo SEQ` любого события принятия, записи
+  задачи тоже, отвечает `not_undoable`; создание и показ не отменяются.
 
 Scope `propose` (ночная смена): все чтения и только `proposal create` и
 `proposal deliver`, остальное `forbidden`. `accept` и `reject` нужны `tasks`

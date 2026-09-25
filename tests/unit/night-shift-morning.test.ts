@@ -11,6 +11,10 @@ import {
 import type { RunReport } from '../../scripts/night-shift/report.mts';
 import { SEEDED_LABELS } from '../../src/shared/labels';
 import { AREAS, STATUSES } from '../../src/shared/model';
+import {
+  commandPayloadSchemas,
+  proposalCommandIssues,
+} from '../../src/shared/schemas';
 
 // The board's own names, as `taskindex context` returns them.
 const catalog: Catalog = {
@@ -215,6 +219,197 @@ describe('morning message: new tasks and changes', () => {
         '   Почему: дата в названии прошла 5 дней назад',
       ].join('\n'),
     );
+  });
+});
+
+describe('morning message: a new task shows everything «да» creates', () => {
+  it('renders a state other than the queue, the follow-up, what is awaited, the closed problem and the steps', () => {
+    counter = 0;
+    const shown = [
+      proposal({
+        kind: 'new_task',
+        command: {
+          command: 'task.create',
+          payload: {
+            area: 'agency',
+            projectId: 'traffic',
+            title: 'Отправить отчёт по трафику',
+            status: 'doing',
+            due: '2026-09-27',
+            followUp: '2026-09-29',
+            waitingFor: 'цифры от Coraline',
+            closes: 'traffic-report',
+            note: 'Отчёт за неделю.',
+            checklist: [
+              { text: 'Собрать цифры за неделю' },
+              { text: 'Проверить ссылки\nи отметить битые' },
+              { text: 'Черновик, который не создаётся', removed: true },
+            ],
+          },
+        },
+        reason: 'Coraline ждёт отчёт',
+        evidence: [
+          {
+            source: 'telegram',
+            ref: 'telegram:coraline',
+            at: '2026-09-24T09:10:00.000Z',
+            quote: 'жду отчёт к пятнице',
+          },
+        ],
+      }),
+      // The queue is where a new task lands anyway: it goes unsaid.
+      proposal({
+        kind: 'new_task',
+        command: {
+          command: 'task.create',
+          payload: {
+            area: 'personal',
+            title: 'Записаться к стоматологу',
+            status: 'todo',
+            checklist: [],
+          },
+        },
+        reason: 'обещал записаться',
+      }),
+    ];
+    expect(morning({ deliver: deliver(shown, 0) })).toBe(
+      [
+        'Предложения на 26.09 · 2 из 2',
+        '',
+        'Новые задачи',
+        '1. Отправить отчёт по трафику',
+        '   Агентство · Трафик · P2 · состояние В работе · срок 27.09 · вернуться 29.09 · ждём «цифры от Coraline» · закрывает traffic-report',
+        '   Отчёт за неделю.',
+        '   Шаги:',
+        '   – Собрать цифры за неделю',
+        '   – Проверить ссылки',
+        '     и отметить битые',
+        '   Откуда: Телеграм, 24.09: «жду отчёт к пятнице»',
+        '2. Записаться к стоматологу',
+        '   Личное · P2',
+        '   Откуда: доска, 25.09: «доска»',
+      ].join('\n'),
+    );
+  });
+});
+
+describe('morning message: no field of a proposed command goes unshown', () => {
+  // Every field task.create takes, each with a value that is not the
+  // default. A new field of the command fails here until the message shows
+  // it or the proposal check refuses it.
+  const createSamples: Record<string, unknown> = {
+    area: 'agency',
+    title: 'Отправить отчёт',
+    projectId: 'traffic',
+    note: 'Отчёт за неделю',
+    due: '2026-09-27',
+    waitingFor: 'цифры',
+    followUp: '2026-09-29',
+    priority: 'p1',
+    labels: ['lora'],
+    closes: 'traffic-report',
+    focus: true,
+    status: 'done',
+    checklist: [{ text: 'Собрать цифры' }],
+    id: 'report',
+    origin: { system: 'os', ref: 'problem-1' },
+    position: { after: 'pack' },
+  };
+  const renderNew = (payload: Record<string, unknown>) =>
+    morning({
+      deliver: deliver(
+        [
+          proposal({
+            kind: 'new_task',
+            command: { command: 'task.create', payload },
+            reason: 'обещано',
+            number: 1,
+          }),
+        ],
+        0,
+      ),
+    });
+
+  it('shows or refuses every field of task.create; the id names the record and changes nothing the owner gets', () => {
+    expect(Object.keys(createSamples).toSorted()).toEqual(
+      Object.keys(commandPayloadSchemas['task.create'].shape).toSorted(),
+    );
+    // Valid values: a refusal below is the proposal rule, not a typo.
+    expect(
+      commandPayloadSchemas['task.create'].safeParse(createSamples).success,
+    ).toBe(true);
+    const base = { area: 'agency', title: 'Отправить отчёт' };
+    const hidden = Object.entries(createSamples).flatMap(([key, value]) => {
+      if (key in base) return [];
+      const payload = { ...base, [key]: value };
+      const refused =
+        proposalCommandIssues({
+          kind: 'new_task',
+          command: { command: 'task.create', payload },
+        }).length > 0;
+      return refused || renderNew(payload) !== renderNew(base) ? [] : [key];
+    });
+    expect(hidden).toEqual(['id']);
+  });
+
+  it('shows or refuses every field of task.update', () => {
+    const samples: Record<string, unknown> = {
+      area: 'development',
+      projectId: 'traffic',
+      title: 'Автозаполнение заметок Fansly',
+      note: 'Какие поля заполнять',
+      due: '2026-10-02',
+      waitingFor: 'ответ Coraline',
+      followUp: '2026-10-03',
+      priority: 'p1',
+      labels: ['lora'],
+      closes: 'fansly-notes',
+      focus: true,
+      focusPosition: { first: true },
+    };
+    expect(Object.keys(samples).toSorted()).toEqual(
+      Object.keys(commandPayloadSchemas['task.update'].shape)
+        .filter((key) => key !== 'id' && key !== 'baseRevision')
+        .toSorted(),
+    );
+    expect(
+      commandPayloadSchemas['task.update'].safeParse({
+        id: 'fansly',
+        baseRevision: 2,
+        ...samples,
+      }).success,
+    ).toBe(true);
+    const render = (fields: Record<string, unknown>) =>
+      morning({
+        deliver: deliver(
+          [
+            proposal({
+              kind: 'task_change',
+              command: {
+                command: 'task.update',
+                payload: { id: 'fansly', baseRevision: 2, ...fields },
+              },
+              reason: 'карточка неточная',
+              number: 1,
+            }),
+          ],
+          0,
+        ),
+      });
+    const hidden = Object.entries(samples).flatMap(([key, value]) => {
+      const refused =
+        proposalCommandIssues({
+          kind: 'task_change',
+          taskId: 'fansly',
+          baseRevision: 2,
+          command: {
+            command: 'task.update',
+            payload: { id: 'fansly', baseRevision: 2, [key]: value },
+          },
+        }).length > 0;
+      return refused || render({ [key]: value }) !== render({}) ? [] : [key];
+    });
+    expect(hidden).toEqual([]);
   });
 });
 

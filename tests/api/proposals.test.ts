@@ -240,6 +240,36 @@ describe('proposal.create', () => {
       }),
       'payload.command.payload.focus',
     );
+    // What «да» creates is what the morning message shows: a place on the
+    // board, a link to an outside source and a step already ticked or
+    // reported are not in the card, so a proposal does not carry them.
+    for (const [key, value, path] of [
+      ['position', { after: 'visit' }, 'payload.command.payload.position'],
+      [
+        'origin',
+        { system: 'os', ref: 'problem-1' },
+        'payload.command.payload.origin',
+      ],
+      [
+        'checklist',
+        [{ text: 'Собрать цифры' }, { text: 'Отправить', done: true }],
+        'payload.command.payload.checklist[1].done',
+      ],
+      [
+        'checklist',
+        [{ text: 'Отправить', result: 'Отправлено 24.09' }],
+        'payload.command.payload.checklist[0].result',
+      ],
+    ] as const)
+      await refused(
+        newTask(`hidden-${path}`, {
+          command: {
+            command: 'task.create',
+            payload: { area: 'agency', title: 'Отправить отчёт', [key]: value },
+          },
+        }),
+        path,
+      );
     await refused(newTask('digits', { id: '7' }), 'payload.id');
     await refused(
       change(visit, 'task.move', { status: 'doing' }, 'move-doing'),
@@ -498,6 +528,18 @@ describe('proposal.accept', () => {
       status: 'shown',
       number: 3,
     });
+    // The owner's patch of a new task holds to the same card rules.
+    await propose(f, newTask('patched-new', { id: 'p-patched', rank: 1 }));
+    f.clock.now = '2026-09-26T07:00:00.000Z';
+    await deliver(f);
+    const placed = await accept(f, 'p-patched', {
+      area: 'personal',
+      position: { after: 'finish' },
+    });
+    expect(placed.status).toBe(400);
+    expect(
+      (placed.body as OperationError).issues?.map((i) => i.path),
+    ).toContain('payload.patch.position');
   });
   it('withdraws the proposal as stale, keeps that outcome and leaves the task alone when the task changed after the proposal', async () => {
     const f = setup();
@@ -634,6 +676,74 @@ describe('proposal.accept', () => {
         'Создание и показ предложений не отменяются.',
       );
     }
+  });
+  it('refuses to undo the task write of an acceptance on its own: the task and the decision go back only together', async () => {
+    const f = setup();
+    await propose(
+      f,
+      newTask('report', {
+        id: 'p-report',
+        command: {
+          command: 'task.create',
+          payload: {
+            area: 'agency',
+            title: 'Отправить отчёт',
+            checklist: [{ text: 'Собрать цифры' }],
+          },
+        },
+      }),
+    );
+    await deliver(f);
+    const accepted = success(await accept(f, '1', undefined, { id: 'acc' }));
+    const created = accepted.results[0]!.task!;
+    expect(accepted.events.map((e) => e.entityKind)).toEqual([
+      'task',
+      'step',
+      'proposal',
+    ]);
+    // Neither the agent nor the owner takes back one part by its seq: the
+    // task write without the decision would leave the proposal «accepted»
+    // with nothing behind it.
+    for (const event of accepted.events.filter(
+      (e) => e.entityKind !== 'proposal',
+    ))
+      for (const role of ['agent', 'owner']) {
+        const bySeq = await f.post(
+          { command: 'undo', payload: { seq: event.seq } },
+          { role },
+        );
+        expect(bySeq.status).toBe(409);
+        expect(bySeq.body).toMatchObject({
+          code: 'not_undoable',
+          message:
+            'Решение по предложению отменяется только целиком: undo --operation.',
+        });
+      }
+    expect(task(f, created.id).archived).toBe(false);
+    expect(proposal(f, 'p-report').status).toBe('accepted');
+    const undone = success(
+      await f.post(
+        { command: 'undo', payload: { operationId: 'acc' } },
+        { role: 'agent' },
+      ),
+    );
+    expect(
+      undone.results[0]!.records!.map((record) => [
+        record.id,
+        'archived' in record ? record.archived : undefined,
+        'status' in record ? record.status : undefined,
+      ]),
+    ).toEqual([
+      [created.id, true, 'todo'],
+      [f.state().steps[0]!.id, undefined, undefined],
+      ['p-report', undefined, 'shown'],
+    ]);
+    expect(f.state().steps[0]!.removedAt).not.toBeNull();
+    expect(proposal(f, 'p-report')).toMatchObject({
+      status: 'shown',
+      number: 1,
+      resultTaskId: null,
+    });
   });
 });
 

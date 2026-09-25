@@ -6,7 +6,11 @@ import type {
   Project,
 } from '../../src/shared/model';
 import { SEEDED_LABELS } from '../../src/shared/labels';
-import { actorOptions, describeEvent } from '../../src/web/app/history';
+import {
+  actorOptions,
+  decidesProposal,
+  describeEvent,
+} from '../../src/web/app/history';
 import {
   commandLabel,
   HIDDEN_ACTIVITY_COMMANDS,
@@ -504,5 +508,23 @@ describe('agent proposals in the history (spec 2026-09-25)', () => {
       'proposal.create',
       'proposal.deliver',
     ]);
+  });
+  it('knows an operation deciding a proposal: its task write has no undo of its own', () => {
+    const part = (entityKind: DomainEvent['entityKind'], seq: number) => ({
+      ...event(
+        {},
+        entityKind === 'proposal' ? 'proposal.accept' : 'task.create',
+      ),
+      entityKind,
+      seq,
+      firstSeq: 7,
+      lastSeq: 9,
+    });
+    const accepted = [part('task', 7), part('step', 8), part('proposal', 9)];
+    expect(decidesProposal(accepted)).toBe(true);
+    // A plain task creation with its steps undoes event by event, and a
+    // rejection is its one proposal event.
+    expect(decidesProposal(accepted.slice(0, 2))).toBe(false);
+    expect(decidesProposal([part('proposal', 9)])).toBe(false);
   });
 });
