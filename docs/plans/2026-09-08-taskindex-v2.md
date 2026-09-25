@@ -165,6 +165,10 @@ UTC. Календарные даты `due` и `followUp` остаются стр
 | `comment.add` | `taskId`, `id?`, `text` | новая запись `comment`, задачу не трогает |
 | `comment.remove` | `commentId` | `deleted_at`; разрешено автору комментария и владельцу |
 | `undo` | `seq` либо `operationId` | поля отменяемого события или всех событий операции |
+| `proposal.create` | `id?`, `kind`, `taskId?`, `baseRevision?`, `command` (`{command, payload}`), `reason`, `evidence[]`, `fingerprint`, `rank` | новая запись `proposal` (2026-09-25, спека предложений); повтор `fingerprint` ничего не пишет, `existing: true`; scope `propose` и выше |
+| `proposal.deliver` | `limit?` (1–5) | `status`, `number`, `shownOn` показанных; `expired` и `stale` снятых; повтор в тот же день ничего не пишет; scope `propose` и выше |
+| `proposal.accept` | `ref` (номер среди показанных или id), `patch?` | запись задачи командой предложения (поля владельца подтверждены) и `status`, `number`, `decided*`, `patch`, `resultTaskId` предложения; устаревшая задача: только `stale`; scope `tasks`, `write` |
+| `proposal.reject` | `ref`, `reason?` | `status`, `number`, `decided*`, `decisionReason`; scope `tasks`, `write` |
 
 2026-09-13 (TI-086): `task.create`, `task.sync` (`fields`), `task.update`, `task.save` (`fields`) принимают `priority` (`p1|p2|p3`, по умолчанию `p2`), `labels` (до 8 слагов каталога `src/shared/labels.ts`) и `closes` (слаг или `null`); `appearance.update` принимает `hideP3`. Приоритет не сортирует колонку. Спека: `docs/specs/2026-09-12-owner-workflow.md` §4.
 
