@@ -396,6 +396,9 @@ it('random command sequences by owner and agents preserve invariants, the event 
             event.command !== 'undo'
           ) {
             expect(event.changes.focus.to).toBe(false);
+            // A task an agent creates (an accepted proposal) starts off the
+            // desk: its creation does not leave it.
+            if (event.changes.focus.from === null) continue;
             expect(
               event.changes.status?.to === 'done' ||
                 event.changes.archived?.to === true,
@@ -403,6 +406,18 @@ it('random command sequences by owner and agents preserve invariants, the event 
           }
       },
     ),
-    { numRuns: 75 },
+    {
+      numRuns: 75,
+      // CI seed -1842381715: an agent accepts a proposed new task.
+      examples: [
+        [
+          [
+            { task: 0, action: 10, actor: 0, confirm: false, value: 0 },
+            { task: 0, action: 11, actor: 0, confirm: false, value: 0 },
+            { task: 0, action: 12, actor: 1, confirm: false, value: 0 },
+          ],
+        ],
+      ],
+    },
   );
 });
