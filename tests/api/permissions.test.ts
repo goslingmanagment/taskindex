@@ -1228,6 +1228,119 @@ describe('owner fields need an explicit confirmation from agents', () => {
       's3',
     ]);
   });
+  // Owner decision 2026-09-26: undoing its own confirmed write restores the
+  // owner's value, but undoing that undo writes the change again, so it needs
+  // the same confirmation as the direct write.
+  it('TI-096: requires confirmOwnerFields to undo an undo that writes an owner field again, by operation and by seq; other fields redo freely', async () => {
+    const f = await seed(setup());
+    const step = () => f.state().steps.find((s) => s.id === 'os')!;
+    success(
+      await f.post({
+        command: 'checklist.add',
+        payload: { taskId: 't', id: 'os', text: 'Шаг владельца' },
+      }),
+    );
+    success(
+      await f.post(
+        {
+          command: 'checklist.remove',
+          payload: { taskId: 't', baseRevision: step().revision, itemId: 'os' },
+        },
+        { role: 'agent', id: 'agent-remove', confirmOwnerFields: true },
+      ),
+    );
+    const unremove = success(
+      await f.post(
+        { command: 'undo', payload: { operationId: 'agent-remove' } },
+        { role: 'agent', id: 'agent-unremove' },
+      ),
+    );
+    expect(step().removedAt).toBeNull();
+    const before = snapshot(f);
+    for (const payload of [
+      { operationId: 'agent-unremove' },
+      { seq: unremove.firstSeq! },
+    ]) {
+      const denied = await f.post(
+        { command: 'undo', payload },
+        { role: 'agent' },
+      );
+      expect(denied.status).toBe(403);
+      expect(denied.body).toMatchObject({
+        code: 'forbidden',
+        message: expect.stringContaining(PROTECTED),
+        conflicts: [
+          { entityKind: 'step', entityId: 'os', fields: ['removedAt'] },
+        ],
+      });
+    }
+    expect(snapshot(f)).toBe(before);
+    const redone = await f.post(
+      { command: 'undo', payload: { operationId: 'agent-unremove' } },
+      { role: 'agent', confirmOwnerFields: true },
+    );
+    expect(success(redone).results[0]).toMatchObject({
+      confirmedOwnerFields: ['removedAt'],
+    });
+    expect(step().removedAt).not.toBeNull();
+    // A task field: the title of the owner's task.
+    success(
+      await f.post(
+        {
+          command: 'task.update',
+          payload: {
+            id: 't',
+            baseRevision: task(f, 't').revision,
+            title: 'Агента',
+          },
+        },
+        { role: 'agent', id: 'agent-rename', confirmOwnerFields: true },
+      ),
+    );
+    success(
+      await f.post(
+        { command: 'undo', payload: { operationId: 'agent-rename' } },
+        { role: 'agent', id: 'agent-unrename' },
+      ),
+    );
+    expect(task(f, 't').title).toBe('Владельца');
+    const rename = await f.post(
+      { command: 'undo', payload: { operationId: 'agent-unrename' } },
+      { role: 'agent' },
+    );
+    expect(rename.body).toMatchObject({
+      code: 'forbidden',
+      conflicts: [{ entityKind: 'task', entityId: 't', fields: ['title'] }],
+    });
+    expect(task(f, 't').title).toBe('Владельца');
+    // A field the owner never decided on redoes without confirmation.
+    success(
+      await f.post(
+        {
+          command: 'task.update',
+          payload: {
+            id: 'ta',
+            baseRevision: task(f, 'ta').revision,
+            note: 'заметка',
+          },
+        },
+        { role: 'agent', id: 'agent-note' },
+      ),
+    );
+    success(
+      await f.post(
+        { command: 'undo', payload: { operationId: 'agent-note' } },
+        { role: 'agent', id: 'agent-unnote' },
+      ),
+    );
+    success(
+      await f.post(
+        { command: 'undo', payload: { operationId: 'agent-unnote' } },
+        { role: 'agent' },
+      ),
+    );
+    expect(task(f, 'ta').note).toBe('заметка');
+  });
 });
 it('states the policy in /api/context rules', async () => {
   const f = setup();
