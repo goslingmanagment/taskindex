@@ -109,8 +109,11 @@ it('random command sequences by owner and agents preserve invariants, the event 
           const actor = actors[action.actor]!;
           const t = state.tasks[action.task]!;
           const base = { id: t.id, baseRevision: t.revision };
-          const protectedBefore = new Set(t.ownerFields);
-          // TI-095: the owner's fields of every step, before the command.
+          // The owner's fields of every task and (TI-095) every step, before
+          // the command: an undo may reach a task other than `t`.
+          const protectedTasks = new Map(
+            state.tasks.map((x) => [x.id, new Set(x.ownerFields)]),
+          );
           const protectedSteps = new Map(
             state.steps.map((s) => [s.id, new Set(s.ownerFields)]),
           );
@@ -118,6 +121,8 @@ it('random command sequences by owner and agents preserve invariants, the event 
             state.steps.filter((s) => s.taskId === taskId && !s.removedAt);
           const seen = history.length;
           let code: string | undefined;
+          // An undo whose target is itself an undo writes a change again.
+          let redo = false;
           if (action.action === 0)
             code = apply(
               {
@@ -314,6 +319,9 @@ it('random command sequences by owner and agents preserve invariants, the event 
             const ownerEvents = history.some(
               (e) => e.operationId === lastOperation && e.actorId === 'owner',
             );
+            redo = history.some(
+              (e) => e.operationId === lastOperation && e.command === 'undo',
+            );
             code = apply(
               { command: 'undo', payload: { operationId: lastOperation } },
               actor,
@@ -322,24 +330,30 @@ it('random command sequences by owner and agents preserve invariants, the event 
               expect(code).toBe('forbidden');
           }
           // A direct agent command without confirmation never changes a field
-          // the owner decided on (undo of another agent's operation may restore one).
-          // An accepted proposal is the owner's own instruction (spec
-          // 2026-09-25): its owner fields count as confirmed.
-          if (
+          // the owner decided on. An undo here always runs without the flag:
+          // undoing a write gives the owner his value back (undo of another
+          // agent's operation may restore one), but undoing an undo writes
+          // the change again and is checked as a direct write (owner
+          // decision 2026-09-26). An accepted proposal is the owner's own
+          // instruction (spec 2026-09-25): its owner fields count as confirmed.
+          const unconfirmed =
             actor.kind !== 'owner' &&
-            !action.confirm &&
             code === undefined &&
-            action.action !== 6 &&
-            action.action !== 12
-          )
-            for (const event of history.slice(seen))
-              if (event.entityKind === 'task' && event.entityId === t.id)
+            (action.action === 6
+              ? redo
+              : !action.confirm && action.action !== 12);
+          if (unconfirmed)
+            for (const event of history.slice(seen)) {
+              const decided =
+                event.entityKind === 'task' &&
+                protectedTasks.get(event.entityId);
+              if (decided)
                 for (const [key, change] of Object.entries(event.changes)) {
                   if (key === 'orderKey') continue;
                   // TI-095: the owner's steps are protected one by one. An
                   // unconfirmed agent may append steps and tick them, never
                   // reword, drop, reorder or untick what the owner has.
-                  if (key === 'checklist' && protectedBefore.has(key)) {
+                  if (key === 'checklist' && decided.has(key)) {
                     type Step = { id: string; text: string; done: boolean };
                     const from = change.from as Step[];
                     const kept = (change.to as Step[]).filter((step) =>
@@ -352,27 +366,21 @@ it('random command sequences by owner and agents preserve invariants, the event 
                       if (from[i]!.done) expect(step.done).toBe(true);
                     continue;
                   }
-                  expect(protectedBefore.has(key)).toBe(false);
-                }
-          // TI-095: an unconfirmed agent never changes a field the owner
-          // decided on a step, and never removes a step he touched. An
-          // agent's undo of its own confirmed removal brings the owner's
-          // step back: that restores his decision, it does not make one.
-          if (
-            actor.kind !== 'owner' &&
-            !action.confirm &&
-            code === undefined &&
-            action.action !== 6 &&
-            action.action !== 12
-          )
-            for (const event of history.slice(seen))
-              if (event.entityKind === 'step') {
-                const decided = protectedSteps.get(event.entityId);
-                if (!decided) continue;
-                for (const key of Object.keys(event.changes))
                   expect(decided.has(key)).toBe(false);
-                if (event.changes.removedAt?.to) expect(decided.size).toBe(0);
+                }
+              // TI-095: nor a field the owner decided on a step, nor removes
+              // a step he touched. An agent's undo of its own confirmed
+              // removal brings his step back: that restores his decision,
+              // it does not make one; undoing that undo removes it again.
+              const step =
+                event.entityKind === 'step' &&
+                protectedSteps.get(event.entityId);
+              if (step) {
+                for (const key of Object.keys(event.changes))
+                  expect(step.has(key)).toBe(false);
+                if (event.changes.removedAt?.to) expect(step.size).toBe(0);
               }
+            }
         }
         // Plan 13, criterion 1: focus keys are unique and focus mirrors the key;
         // a task that is done or archived is never on the desk.
@@ -427,6 +435,24 @@ it('random command sequences by owner and agents preserve invariants, the event 
             { task: 2, action: 5, actor: 0, confirm: false, value: 0 },
             { task: 2, action: 9, actor: 1, confirm: true, value: 0 },
             { task: 0, action: 6, actor: 1, confirm: false, value: 0 },
+          ],
+        ],
+        // Owner decision 2026-09-26: undoing that undo removes the owner's
+        // step again, and undoing an undo of a confirmed note rewrites his
+        // note; both need confirmation.
+        [
+          [
+            { task: 2, action: 5, actor: 0, confirm: false, value: 0 },
+            { task: 2, action: 9, actor: 1, confirm: true, value: 0 },
+            { task: 0, action: 6, actor: 1, confirm: false, value: 0 },
+            { task: 0, action: 6, actor: 1, confirm: false, value: 0 },
+          ],
+        ],
+        [
+          [
+            { task: 1, action: 0, actor: 2, confirm: true, value: 7 },
+            { task: 0, action: 6, actor: 2, confirm: false, value: 0 },
+            { task: 0, action: 6, actor: 2, confirm: false, value: 0 },
           ],
         ],
       ],

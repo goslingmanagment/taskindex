@@ -142,6 +142,12 @@ const isLabel = (record: Entity): record is Label => 'archivedAt' in record;
 const isStep = (record: Entity): record is Step => 'removedAt' in record;
 const hasOwnerFields = (record: Entity): record is Task | Step =>
   'ownerFields' in record;
+// A field an agent changes only with confirmOwnerFields: one the owner
+// decided on. Removing a step discards everything he decided on it, so a
+// step with any owner field is protected from removal as a whole.
+const isOwnerDecided = (record: Task | Step, key: string) =>
+  record.ownerFields.includes(key) ||
+  (isStep(record) && key === 'removedAt' && record.ownerFields.length > 0);
 // Scope propose (spec 2026-09-25, plan §1.4): every read, and of the writes
 // only these two. The night shift proposes; it never writes the board.
 const PROPOSE_COMMANDS: ReadonlySet<CommandName> = new Set([
@@ -530,6 +536,39 @@ type UndoInverse = {
   base: number;
   keys: string[];
 };
+// Owner decision 2026-09-26: an agent's undo of a write gives the owner his
+// value back and needs no flag, but undoing that undo writes the change
+// again, so the owner's fields it changes need confirmOwnerFields, as the
+// direct write did (the task's board order is not his decision there either).
+// Returns the confirmed fields.
+function redoneOwnerFields(
+  s: Session,
+  kind: EntityKind,
+  record: Entity,
+  values: Record<string, unknown>,
+): string[] {
+  if (!isAgent(s) || !hasOwnerFields(record) || !record.ownerTouchedAt)
+    return [];
+  const current: Record<string, unknown> = record;
+  const overridden = Object.keys(values).filter(
+    (key) =>
+      !(isTask(record) && key === 'orderKey') &&
+      isOwnerDecided(record, key) &&
+      !equal(values[key], current[key]),
+  );
+  if (overridden.length && !s.ctx.confirmOwnerFields)
+    fail(
+      'forbidden',
+      'Поле защищено владельцем: отмена отмены повторяет правку, подтвердите поручение флагом confirmOwnerFields: true.',
+      {
+        current: record,
+        conflicts: [
+          { entityKind: kind, entityId: record.id, fields: overridden },
+        ],
+      },
+    );
+  return overridden;
+}
 function applyUndo(s: Session, p: CommandOf<'undo'>['payload']): CommandResult {
   const target =
     'seq' in p
@@ -584,6 +623,7 @@ function applyUndo(s: Session, p: CommandOf<'undo'>['payload']): CommandResult {
   }[] = [];
   let firstConflict: Entity | undefined;
   const inverses: UndoInverse[] = [];
+  const confirmed: string[] = [];
   for (const events of groups.values()) {
     events.sort((a, b) => a.seq - b.seq);
     const first = events[0]!;
@@ -621,6 +661,8 @@ function applyUndo(s: Session, p: CommandOf<'undo'>['payload']): CommandResult {
     requireScope(s.ctx.actor, kind);
     if (isComment(record) && isAgent(s) && record.actorId !== s.ctx.actor.id)
       fail('forbidden', 'Нельзя отменить чужой комментарий.');
+    if (events.some((e) => e.command === 'undo'))
+      confirmed.push(...redoneOwnerFields(s, kind, record, values));
     const keys = created
       ? Object.keys(record).filter((k) => isSubjectField(kind, k))
       : Object.keys(values);
@@ -666,9 +708,12 @@ function applyUndo(s: Session, p: CommandOf<'undo'>['payload']): CommandResult {
     changed.push(inverse.record);
     single = { record: inverse.record, changes };
   }
+  const trace = confirmed.length
+    ? { confirmedOwnerFields: [...new Set(confirmed)] }
+    : {};
   return inverses.length === 1
-    ? single!
-    : { record: null, records: changed, changes: {} };
+    ? { ...single!, ...trace }
+    : { record: null, records: changed, changes: {}, ...trace };
 }
 function applyProjectCreate(
   s: Session,
@@ -1235,13 +1280,8 @@ function commitStepPatch(
   if (isAgent(s) && record.ownerTouchedAt) {
     const current: Record<string, unknown> = record;
     const wanted: Record<string, unknown> = patch;
-    // Removing a step discards everything the owner decided on it, so a
-    // step with any owner field is protected from removal as a whole.
     const overridden = keys.filter(
-      (key) =>
-        (record.ownerFields.includes(key) ||
-          (key === 'removedAt' && record.ownerFields.length > 0)) &&
-        !equal(wanted[key], current[key]),
+      (key) => isOwnerDecided(record, key) && !equal(wanted[key], current[key]),
     );
     if (overridden.length && !s.ctx.confirmOwnerFields)
       fail(
