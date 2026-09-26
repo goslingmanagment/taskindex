@@ -216,7 +216,8 @@ N|ID`. `N` означает номер среди показанных сейч�
      позже сегодняшнего, rank 2, причина «срок прошёл DATE».
    - Задача в «Сделать», не P3, без срока, по журналу 14 дней без событий:
      `task.archive`, rank 3, причина «14 дней без движения».
-   - `fingerprint`: `audit:dated:<taskId>:<due>`, `audit:overdue:<taskId>:<due>`,
+   - `fingerprint`: `audit:dated:<taskId>:<due>:<revision>`,
+     `audit:overdue:<taskId>:<due>:<revision>`,
      `audit:stale:<taskId>:<seq последнего события>`. Изменилась задача:
      появится новый отпечаток и новое предложение; не изменилась: отказ
      держится.

@@ -205,7 +205,7 @@ function datedDraft(task: Task, date: string | null, today: string) {
     },
     {
       reason: `дата в названии прошла ${days} ${daysWord(days)} назад`,
-      fingerprint: `audit:dated:${task.id}:${task.due ?? 'none'}`,
+      fingerprint: `audit:dated:${task.id}:${task.due ?? 'none'}:${task.revision}`,
       rank: 3,
       at: date,
       quote: `${quoted(task)}, ${task.due ? `срок ${dayMonth(task.due)}` : 'срока нет'}`,
@@ -227,7 +227,7 @@ function overdueDraft(task: Task, today: string) {
     },
     {
       reason: `срок прошёл ${dayMonth(task.due)}`,
-      fingerprint: `audit:overdue:${task.id}:${task.due}`,
+      fingerprint: `audit:overdue:${task.id}:${task.due}:${task.revision}`,
       rank: 2,
       at: task.due,
       quote: `${quoted(task)}, срок ${dayMonth(task.due)}`,

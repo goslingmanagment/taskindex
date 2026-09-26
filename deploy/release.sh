@@ -72,7 +72,7 @@ set -Eeuo pipefail
 dir="/var/tmp/taskindex-release-$sha"
 trap 'rm -rf "$dir"' EXIT
 rm -rf "$dir" && mkdir -p "$dir" && cd "$dir"
-curl -fsSL --max-time 900 -o image.zip "$url"
+curl -fsSL --max-time 1800 -o image.zip "$url"
 unzip -o -q image.zip || python3 -m zipfile -e image.zip .
 docker load -i "taskindex-$sha.tar.gz" >/dev/null
 REMOTE
@@ -88,7 +88,8 @@ git push -q "$host:$bare_on_host" "$sha:refs/heads/main"
 deploy="cd '$repo_on_host' && set -a && . '$remote_env' && set +a && bash deploy/deploy.sh"
 if $plan; then
   say "plan (checkout unchanged)"
-  remote "set -e; $deploy --plan --image '$image' '$sha'"
+  # Fetch only: the plan needs the commit known to the checkout, which stays where it is.
+  remote "set -e; cd '$repo_on_host' && git fetch -q origin && $deploy --plan --image '$image' '$sha'"
   say "plan only: nothing deployed"
   exit 0
 fi

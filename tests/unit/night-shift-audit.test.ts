@@ -269,13 +269,13 @@ describe('night shift audit rules', () => {
           quote: '«Стрижка в Барской 21.09», срок 21.09',
         },
       ],
-      fingerprint: 'audit:dated:haircut:2026-09-21',
+      fingerprint: 'audit:dated:haircut:2026-09-21:5',
       rank: 3,
     });
     expect(drafts.get('lfk')).toMatchObject({
       command: { command: 'task.archive' },
       reason: 'дата в названии прошла 4 дня назад',
-      fingerprint: 'audit:dated:lfk:none',
+      fingerprint: 'audit:dated:lfk:none:3',
       evidence: [{ at: '2026-09-21', quote: '«ЛФК 21.09», срока нет' }],
     });
   });
@@ -299,14 +299,14 @@ describe('night shift audit rules', () => {
           quote: '«Сдать отчёт по трафику», срок 20.09',
         },
       ],
-      fingerprint: 'audit:overdue:traffic-report:2026-09-20',
+      fingerprint: 'audit:overdue:traffic-report:2026-09-20:7',
       rank: 2,
     });
     // P3 is spared only by the idle rule; a date in the title other than
     // the due date leaves the overdue rule in charge.
     expect(drafts.get('photo-archive')).toMatchObject({
       command: { command: 'task.update', payload: { due: '2026-10-02' } },
-      fingerprint: 'audit:overdue:photo-archive:2026-09-24',
+      fingerprint: 'audit:overdue:photo-archive:2026-09-24:3',
       rank: 2,
     });
     expect(drafts.get('call-moved')).toMatchObject({
@@ -432,7 +432,26 @@ describe('night shift audit drafts', () => {
       }),
     );
     expect(moved.get('traffic-report')?.fingerprint).toBe(
-      'audit:overdue:traffic-report:2026-09-23',
+      'audit:overdue:traffic-report:2026-09-23:8',
+    );
+    // A note edited after the proposal leaves the date alone but makes the
+    // earlier proposal stale: the next night proposes again (review of PR #7).
+    const edited = byTask(
+      auditBoard({
+        tasks: snapshot.tasks.map((item) =>
+          item.id === 'traffic-report' || item.id === 'haircut'
+            ? { ...item, note: 'уточнил', revision: item.revision + 1 }
+            : item,
+        ),
+        lastEventAt: new Map(),
+        today: TODAY,
+      }),
+    );
+    expect(edited.get('traffic-report')?.fingerprint).toBe(
+      'audit:overdue:traffic-report:2026-09-20:8',
+    );
+    expect(edited.get('haircut')?.fingerprint).toBe(
+      'audit:dated:haircut:2026-09-21:6',
     );
   });
 });
