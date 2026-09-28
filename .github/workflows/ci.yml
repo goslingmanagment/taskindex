@@ -3,10 +3,16 @@
 # org.opencontainers.image.revision. Реестр (GHCR) по решению владельца не используется.
 # Параллельно: check (типы, линт, vitest, сборка), четыре job e2e на отдельных машинах
 # (functional в двух шардах, visual+static+dark, webkit) и image после check. release.sh ждёт зелёный прогон целиком.
+# Пул машин: переменная репозитория CI_POOL=pc отправляет check и e2e на self-hosted раннеры
+# на ПК владельца (метка ci-pc; e2e — только на раннер с меткой ti-e2e, потому что у e2e
+# фиксированные порты и два прогона одновременно не работают), любое другое значение или её
+# отсутствие — на GitHub-hosted. Повторный запуск (run_attempt > 1) всегда идёт на GitHub:
+# ПК мог умереть посреди прогона. image всегда на GitHub-hosted.
 name: ci
 on:
+  # Ветки без PR не проверяются: push только в main и теги, остальное через pull_request.
   push:
-    branches: ['**']
+    branches: [main]
     tags: ['v*']
   pull_request:
 concurrency:
@@ -16,14 +22,15 @@ permissions:
   contents: read
 jobs:
   check:
-    runs-on: ubuntu-latest
+    runs-on: ${{ vars.CI_POOL == 'pc' && github.run_attempt == '1' && fromJSON('["self-hosted","ci-pc"]') || 'ubuntu-24.04' }}
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@v5
       - uses: actions/setup-node@v5
         with:
           node-version-file: .node-version
-          cache: npm
+          # На self-hosted npm-кэш живёт в $HOME раннера; кэш actions только на GitHub-hosted.
+          cache: ${{ runner.environment == 'github-hosted' && 'npm' || '' }}
       - run: npm ci
       # check = typecheck + lint + unused-exports + format:check + lint:shell + build + check:skin + vitest
       - run: npm run check
@@ -52,23 +59,28 @@ jobs:
             install: webkit chromium-headless-shell
             projects: webkit webkit-dark
             shard: 1/1
-    runs-on: ubuntu-latest
+    runs-on: ${{ vars.CI_POOL == 'pc' && github.run_attempt == '1' && fromJSON('["self-hosted","ci-pc","ti-e2e"]') || 'ubuntu-24.04' }}
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v5
       - uses: actions/setup-node@v5
         with:
           node-version-file: .node-version
-          cache: npm
+          # На self-hosted npm-кэш живёт в $HOME раннера; кэш actions только на GitHub-hosted.
+          cache: ${{ runner.environment == 'github-hosted' && 'npm' || '' }}
       - run: npm ci
       - id: playwright
         run: echo "version=$(node -p "require('@playwright/test/package.json').version")" >> "$GITHUB_OUTPUT"
-      # Браузер кэшируется по версии Playwright; системные пакеты ставит --with-deps.
+      # Браузер кэшируется по версии Playwright; системные пакеты ставит --with-deps (нужен sudo),
+      # на self-hosted они предустановлены, а sudo нет.
       - uses: actions/cache@v4
         with:
           path: ~/.cache/ms-playwright
           key: playwright-${{ runner.os }}-${{ steps.playwright.outputs.version }}-${{ matrix.name }}
-      - run: npx playwright install --with-deps ${{ matrix.install }}
+      - if: runner.environment == 'github-hosted'
+        run: npx playwright install --with-deps ${{ matrix.install }}
+      - if: runner.environment != 'github-hosted'
+        run: npx playwright install ${{ matrix.install }}
       - run: npm run e2e -- --shard ${{ matrix.shard }} --project ${{ matrix.projects }}
       - uses: actions/upload-artifact@v4
         if: always()
@@ -80,7 +92,7 @@ jobs:
   image:
     needs: check
     if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/'))
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v5
@@ -102,4 +114,5 @@ jobs:
             taskindex-${{ github.sha }}.tar.gz
             image-id.txt
           if-no-files-found: error
-          retention-days: 30
+          # release.sh сначала берёт образ, уже загруженный на VPS; архив нужен только для новых релизов.
+          retention-days: 7

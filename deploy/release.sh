@@ -58,8 +58,13 @@ if remote "docker image inspect '$image' >/dev/null 2>&1"; then
   printf 'already loaded on %s\n' "$host" >&2
 else
   artifact_id=$(gh api "repos/{owner}/{repo}/actions/runs/$run_id/artifacts" \
-    --jq ".artifacts[] | select(.name == \"taskindex-image-$sha\") | .id")
-  [[ -n $artifact_id ]] || { printf 'Artifact taskindex-image-%s not found in run %s.\n' "$sha" "$run_id" >&2; exit 1; }
+    --jq ".artifacts[] | select(.name == \"taskindex-image-$sha\" and (.expired | not)) | .id" | tail -n 1)
+  # The artifact lives 7 days (ci.yml); an expired one stays listed after `gh run rerun` rebuilt it.
+  [[ -n $artifact_id ]] || {
+    printf 'Artifact taskindex-image-%s missing or expired in run %s: gh run rerun %s rebuilds it.\n' \
+      "$sha" "$run_id" "$run_id" >&2
+    exit 1
+  }
   slug=$(gh repo view --json nameWithOwner --jq .nameWithOwner)
   # A HEAD request answers 302 with a short-lived signed URL; the VPS downloads it directly,
   # which is much faster than pulling 150 MB to the Mac and pushing it back over SSH.
