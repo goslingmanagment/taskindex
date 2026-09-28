@@ -5,8 +5,9 @@
 # (functional в двух шардах, visual+static+dark, webkit) и image после check. release.sh ждёт зелёный прогон целиком.
 name: ci
 on:
+  # Ветки без PR не проверяются: push только в main и теги, остальное через pull_request.
   push:
-    branches: ['**']
+    branches: [main]
     tags: ['v*']
   pull_request:
 concurrency:
@@ -16,7 +17,7 @@ permissions:
   contents: read
 jobs:
   check:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@v5
@@ -52,7 +53,7 @@ jobs:
             install: webkit chromium-headless-shell
             projects: webkit webkit-dark
             shard: 1/1
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v5
@@ -76,11 +77,13 @@ jobs:
           name: test-results-${{ matrix.name }}-${{ github.sha }}
           path: test-results
           if-no-files-found: ignore
+          # Перезапуск job в том же прогоне загружает артефакт с тем же именем: без overwrite 409.
+          overwrite: true
           retention-days: 14
   image:
     needs: check
     if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/'))
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v5
@@ -102,4 +105,6 @@ jobs:
             taskindex-${{ github.sha }}.tar.gz
             image-id.txt
           if-no-files-found: error
-          retention-days: 30
+          overwrite: true
+          # release.sh сначала берёт образ, уже загруженный на VPS; архив нужен только для новых релизов.
+          retention-days: 7
