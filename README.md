@@ -1,7 +1,7 @@
 # TaskIndex v2
 
 Все находки ревью, решения и критерии закрытия собраны в
-[issues.md](/Users/dmitriy/code/taskindex/issues.md). В реестре есть ссылки на
+[issues.md](/Users/dmitriy/code/5-management/taskindex/issues.md). В реестре есть ссылки на
 исходные отчёты Astra/Fable и подробные планы, включая тёмную тему и скины.
 
 Личная доска задач с одинаковыми операциями для владельца и ИИ-агентов.
