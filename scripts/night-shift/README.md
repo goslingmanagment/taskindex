@@ -107,7 +107,7 @@ TASKINDEX_BIN=dist/cli/index.js node scripts/night-shift/morning.mts
 ## Кроны OpenClaw
 
 Ставит ведущий после выпуска, когда ключ `night-shift` заведён на проде.
-Оба крона запускают код из основного чекаута `/Users/dmitriy/code/taskindex`
+Оба крона запускают код из основного чекаута `/Users/dmitriy/code/5-management/taskindex`
 (он всегда на выпущенном `main`), создаются выключенными.
 
 Ночная смена, 04:30 по Москве, без доставки:
@@ -120,8 +120,8 @@ openclaw cron add \
   --description 'Проверка доски TaskIndex без нейросети: предложения в очередь, отчёт last-run.json; без доставки' \
   --cron '30 4 * * *' --tz Europe/Moscow --exact \
   --session isolated \
-  --command-argv '["/bin/bash","/Users/dmitriy/code/taskindex/scripts/night-shift/run.sh"]' \
-  --command-cwd /Users/dmitriy/code/taskindex \
+  --command-argv '["/bin/bash","/Users/dmitriy/code/5-management/taskindex/scripts/night-shift/run.sh"]' \
+  --command-cwd /Users/dmitriy/code/5-management/taskindex \
   --timeout-seconds 300 --output-max-bytes 4000 \
   --no-deliver \
   --disabled
@@ -137,8 +137,8 @@ openclaw cron add \
   --description 'До 5 предложений TaskIndex на сегодня владельцу; NO_REPLY, если показывать нечего и сбоя нет' \
   --cron '0 10 * * *' --tz Europe/Moscow --exact \
   --session isolated \
-  --command-argv '["/Users/dmitriy/.local/bin/node","/Users/dmitriy/code/taskindex/scripts/night-shift/morning.mts"]' \
-  --command-cwd /Users/dmitriy/code/taskindex \
+  --command-argv '["/Users/dmitriy/.local/bin/node","/Users/dmitriy/code/5-management/taskindex/scripts/night-shift/morning.mts"]' \
+  --command-cwd /Users/dmitriy/code/5-management/taskindex \
   --command-env TASKINDEX_AGENT=night-shift \
   --command-env TASKINDEX_BIN=/Users/dmitriy/.local/bin/taskindex \
   --timeout-seconds 120 --output-max-bytes 12000 \
