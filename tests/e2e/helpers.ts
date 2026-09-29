@@ -22,8 +22,10 @@ export const OWNER = {
 // network stack and run with slot N; GitHub-hosted and local runs use slot 0,
 // the historical ports. One slot spans 4001–4373, less than the step, so two
 // slots never overlap, and the highest slot stays below 10000, where the PC's
-// ephemeral port range begins.
-export const PORT_SLOT_STEP = 500;
+// ephemeral port range begins. The step is 450, not 500: with 500, slot 2 put
+// the main web server on 5173 — Vite's default and `npm run dev`'s port — which
+// a dev server in the owner's other WSL distro (same network stack) may hold.
+export const PORT_SLOT_STEP = 450;
 export const MAX_PORT_SLOT = 11;
 export function portSlot(raw: string | undefined): number {
   const value = raw?.trim() ?? '';
