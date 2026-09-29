@@ -1,8 +1,9 @@
 # Гейт релиза (TI-016) и сборка образа (TI-068). Автодеплоя нет: образ — артефакт workflow,
 # который переносится на VPS вручную (docker load) и проверяется deploy.sh по метке
 # org.opencontainers.image.revision. Реестр (GHCR) по решению владельца не используется.
-# Параллельно: check (типы, линт, vitest, сборка), четыре job e2e на отдельных машинах
-# (functional в двух шардах, visual+static+dark, webkit) и image после check. release.sh ждёт зелёный прогон целиком.
+# Параллельно: check (типы, линт, vitest, сборка), четыре job e2e (functional в двух шардах,
+# visual+static+dark, webkit) и image после check; на GitHub каждая job на своей машине, на ПК
+# их делят два раннера, и они идут волнами. release.sh ждёт зелёный прогон целиком.
 #
 # Пул машин: переменная репозитория CI_POOL=pc отправляет все jobs на self-hosted раннеры на ПК
 # владельца (winpc-taskindex-N, метка ci-pc), любое другое значение или её отсутствие — на
@@ -103,7 +104,7 @@ jobs:
           if [ "$RUNNER_ENVIRONMENT" = self-hosted ]; then export TASKINDEX_E2E_SLOT="${RUNNER_NAME##*-}"; fi
           echo "$RUNNER_NAME: TASKINDEX_E2E_SLOT=${TASKINDEX_E2E_SLOT:-0}"
           npm run e2e -- --shard ${{ matrix.shard }} --project ${{ matrix.projects }}
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         if: always()
         with:
           name: test-results-${{ matrix.name }}-${{ github.sha }}
@@ -130,7 +131,7 @@ jobs:
           docker image inspect --format '{{.Id}}' "taskindex:${GITHUB_SHA}" > image-id.txt
           docker save "taskindex:${GITHUB_SHA}" | gzip -1 > "taskindex-${GITHUB_SHA}.tar.gz"
           ls -l "taskindex-${GITHUB_SHA}.tar.gz" image-id.txt
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: taskindex-image-${{ github.sha }}
           path: |

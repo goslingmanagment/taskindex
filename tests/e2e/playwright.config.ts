@@ -88,7 +88,9 @@ export default defineConfig({
       command: 'node node_modules/tsx/dist/cli.mjs tests/e2e/server.ts',
       url: base.url,
       reuseExistingServer: false,
-      timeout: 90000,
+      // 90 с не хватало, когда ПК CI был перегружен (29.09: 13 джоб разом, вся память и swap):
+      // сервер поднимался дольше и e2e падал, не начав тестов.
+      timeout: 180000,
       env: {
         TASKINDEX_E2E_BASE: base.name,
         TASKINDEX_E2E_API_PORT: String(base.api),
