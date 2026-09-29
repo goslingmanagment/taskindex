@@ -13,8 +13,28 @@ export const OWNER = {
 } as const;
 // TI-070: каждый проект Playwright работает со своей чистой базой, поэтому у
 // каждой базы своя пара портов и свой файл `storageState`. Порты фиксированы
-// (не «свободный порт»), потому что прогоны сериализуются общей блокировкой в
-// `run-e2e.sh`; 4001/4173 сохранены за основной базой ради совместимости.
+// (не «свободный порт»); 4001/4173 сохранены за основной базой ради
+// совместимости.
+//
+// Port slots: TASKINDEX_E2E_SLOT=N shifts every fixture port (five API, five
+// web, the static server) by N × PORT_SLOT_STEP, so several e2e runs can share
+// one machine. CI runners on the owner's PC (winpc-taskindex-N) share one
+// network stack and run with slot N; GitHub-hosted and local runs use slot 0,
+// the historical ports. One slot spans 4001–4373, less than the step, so two
+// slots never overlap, and the highest slot stays below 10000, where the PC's
+// ephemeral port range begins.
+export const PORT_SLOT_STEP = 500;
+export const MAX_PORT_SLOT = 11;
+export function portSlot(raw: string | undefined): number {
+  const value = raw?.trim() ?? '';
+  if (value === '') return 0;
+  if (!/^\d+$/.test(value) || Number(value) > MAX_PORT_SLOT)
+    throw new Error(
+      `TASKINDEX_E2E_SLOT: ожидалось целое от 0 до ${MAX_PORT_SLOT}, получено «${raw}».`,
+    );
+  return Number(value);
+}
+const PORT_OFFSET = portSlot(process.env.TASKINDEX_E2E_SLOT) * PORT_SLOT_STEP;
 export type BaseName = 'main' | 'visual' | 'dark' | 'webkit' | 'webkit-dark';
 export type Base = {
   readonly name: BaseName;
@@ -38,9 +58,9 @@ export const AUTH_DIR = 'test-results/e2e-auth';
 function base(name: BaseName, api: number, web: number, now?: string): Base {
   return {
     name,
-    api,
-    web,
-    url: `http://localhost:${web}`,
+    api: api + PORT_OFFSET,
+    web: web + PORT_OFFSET,
+    url: `http://localhost:${web + PORT_OFFSET}`,
     storageState: `${AUTH_DIR}/${name}.json`,
     ...(now ? { now } : {}),
   };
@@ -55,6 +75,9 @@ export const BASES: readonly Base[] = [
 export function baseOf(name: BaseName): Base {
   return BASES.find((item) => item.name === name)!;
 }
+// TI-069: the `static` project's production server (`static-server.ts`).
+export const STATIC_PORT = 4373 + PORT_OFFSET;
+export const STATIC_URL = `http://localhost:${STATIC_PORT}`;
 // TI-076: a second author in the fixture, so the activity feed has something to
 // filter. The key is seeded by `server.ts` with this exact value.
 export const AGENT = {

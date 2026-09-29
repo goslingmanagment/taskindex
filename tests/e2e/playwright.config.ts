@@ -1,15 +1,17 @@
 import { defineConfig, devices } from '@playwright/test';
-import { BASES, baseOf } from './helpers';
+import { BASES, STATIC_PORT, STATIC_URL, baseOf } from './helpers';
 // TI-070: у каждого проекта своя чистая база (`tests/e2e/server.ts` берёт имя,
 // порты и замороженные часы из окружения) и своя сессия владельца, записанная
 // проектом `setup` в `storageState`. Ни один проект не видит записей другого,
 // поэтому порядок файлов и порядок проектов больше ни на что не влияет.
 //
 // * `setup` — вход владельца по паролю на каждой базе;
-// * `functional` — обычные спеки на базе `main` (порты 4001/4173);
+// * `functional` — обычные спеки на базе `main` (порты 4001/4173 в слоте 0,
+//   см. TASKINDEX_E2E_SLOT в `helpers.ts`);
 // * `visual` — только `visual.spec.ts`: единственный проект, снимающий эталон,
 //   на замороженных часах сервера и браузера;
-// * `static` (TI-069) — production-сборка через `src/server/index.ts` на 4373;
+// * `static` (TI-069) — production-сборка через `src/server/index.ts` на 4373
+//   (слот 0);
 // * `dark` (TI-025) — сцены с `prefers-color-scheme: dark`;
 // * `webkit` и `webkit-dark` (TI-018) — `devices['Desktop Safari']`; браузер
 //   ставится командой `npx playwright install webkit`.
@@ -97,9 +99,10 @@ export default defineConfig({
     {
       cwd: process.cwd(),
       command: 'node node_modules/tsx/dist/cli.mjs tests/e2e/static-server.ts',
-      url: 'http://localhost:4373/health',
+      url: `${STATIC_URL}/health`,
       reuseExistingServer: false,
       timeout: 120000,
+      env: { TASKINDEX_E2E_STATIC_PORT: String(STATIC_PORT) },
     },
   ],
 });
