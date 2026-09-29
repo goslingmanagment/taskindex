@@ -3,6 +3,14 @@
 # org.opencontainers.image.revision. Реестр (GHCR) по решению владельца не используется.
 # Параллельно: check (типы, линт, vitest, сборка), четыре job e2e на отдельных машинах
 # (functional в двух шардах, visual+static+dark, webkit) и image после check. release.sh ждёт зелёный прогон целиком.
+#
+# Пул машин: переменная репозитория CI_POOL=pc отправляет все jobs на self-hosted раннеры на ПК
+# владельца (winpc-taskindex-N, метка ci-pc), любое другое значение или её отсутствие — на
+# GitHub-hosted ubuntu-24.04. Повторный запуск (run_attempt > 1) всегда идёт на GitHub: ПК мог
+# умереть посреди прогона. Раннеры ПК делят один $HOME (кэш npm ~/.npm и браузеры Playwright
+# ~/.cache/ms-playwright живут там между прогонами, кэш actions не нужен), один сетевой стек (e2e
+# раннера N работает в слоте портов N, TASKINDEX_E2E_SLOT в tests/e2e/helpers.ts) и rootless Docker;
+# sudo у них нет: системные пакеты Playwright и прочее ставит root-setup.sh в 1-platform/ci-runners.
 name: ci
 on:
   # Ветки без PR не проверяются: push только в main и теги, остальное через pull_request.
@@ -17,14 +25,27 @@ permissions:
   contents: read
 jobs:
   check:
-    runs-on: ubuntu-24.04
+    runs-on: ${{ vars.CI_POOL == 'pc' && github.run_attempt == '1' && fromJSON('["self-hosted","ci-pc"]') || 'ubuntu-24.04' }}
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@v5
       - uses: actions/setup-node@v5
         with:
           node-version-file: .node-version
-          cache: npm
+          # Кэш npm из actions только на GitHub-hosted: на ПК ~/.npm общий и постоянный.
+          cache: ${{ runner.environment == 'github-hosted' && 'npm' || '' }}
+      # lint:shell в CI без shellcheck падает. В образе ubuntu-24.04 он из apt (0.9.0); на ПК apt
+      # без sudo недоступен, поэтому, если root его не поставил, тот же 0.9.0 из релиза апстрима.
+      - name: shellcheck on self-hosted
+        if: runner.environment == 'self-hosted'
+        run: |
+          if command -v shellcheck >/dev/null; then shellcheck --version | sed -n 2p; exit 0; fi
+          archive="$RUNNER_TEMP/shellcheck.tar.xz"
+          curl -fsSL -o "$archive" \
+            https://github.com/koalaman/shellcheck/releases/download/v0.9.0/shellcheck-v0.9.0.linux.x86_64.tar.xz
+          echo "700324c6dd0ebea0117591c6cc9d7350d9c7c5c287acbad7630fa17b1d4d9e2f  $archive" | sha256sum -c -
+          tar -xJf "$archive" -C "$RUNNER_TEMP"
+          echo "$RUNNER_TEMP/shellcheck-v0.9.0" >> "$GITHUB_PATH"
       - run: npm ci
       # check = typecheck + lint + unused-exports + format:check + lint:shell + build + check:skin + vitest
       - run: npm run check
@@ -53,24 +74,35 @@ jobs:
             install: webkit chromium-headless-shell
             projects: webkit webkit-dark
             shard: 1/1
-    runs-on: ubuntu-24.04
+    runs-on: ${{ vars.CI_POOL == 'pc' && github.run_attempt == '1' && fromJSON('["self-hosted","ci-pc"]') || 'ubuntu-24.04' }}
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v5
       - uses: actions/setup-node@v5
         with:
           node-version-file: .node-version
-          cache: npm
+          cache: ${{ runner.environment == 'github-hosted' && 'npm' || '' }}
       - run: npm ci
+      # GitHub-hosted: браузер кэшируется по версии Playwright, системные пакеты ставит --with-deps.
       - id: playwright
+        if: runner.environment == 'github-hosted'
         run: echo "version=$(node -p "require('@playwright/test/package.json').version")" >> "$GITHUB_OUTPUT"
-      # Браузер кэшируется по версии Playwright; системные пакеты ставит --with-deps.
       - uses: actions/cache@v4
+        if: runner.environment == 'github-hosted'
         with:
           path: ~/.cache/ms-playwright
           key: playwright-${{ runner.os }}-${{ steps.playwright.outputs.version }}-${{ matrix.name }}
-      - run: npx playwright install --with-deps ${{ matrix.install }}
-      - run: npm run e2e -- --shard ${{ matrix.shard }} --project ${{ matrix.projects }}
+      - if: runner.environment == 'github-hosted'
+        run: npx playwright install --with-deps ${{ matrix.install }}
+      # ПК: системные пакеты уже стоят (sudo нет), браузеры лежат в общем ~/.cache/ms-playwright;
+      # одновременные установки Playwright сериализует блокировкой __dirlock в этом каталоге.
+      - if: runner.environment == 'self-hosted'
+        run: npx playwright install ${{ matrix.install }}
+      # Раннер winpc-taskindex-N берёт слот портов N; GitHub-hosted — слот 0, исходные порты.
+      - run: |
+          if [ "$RUNNER_ENVIRONMENT" = self-hosted ]; then export TASKINDEX_E2E_SLOT="${RUNNER_NAME##*-}"; fi
+          echo "$RUNNER_NAME: TASKINDEX_E2E_SLOT=${TASKINDEX_E2E_SLOT:-0}"
+          npm run e2e -- --shard ${{ matrix.shard }} --project ${{ matrix.projects }}
       - uses: actions/upload-artifact@v4
         if: always()
         with:
@@ -83,7 +115,7 @@ jobs:
   image:
     needs: check
     if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/'))
-    runs-on: ubuntu-24.04
+    runs-on: ${{ vars.CI_POOL == 'pc' && github.run_attempt == '1' && fromJSON('["self-hosted","ci-pc"]') || 'ubuntu-24.04' }}
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v5
@@ -108,3 +140,7 @@ jobs:
           overwrite: true
           # release.sh сначала берёт образ, уже загруженный на VPS; архив нужен только для новых релизов.
           retention-days: 7
+      # ПК: образ уже в архиве, в общем rootless Docker остаются только слои кэша сборки.
+      - name: Remove the image from the shared Docker
+        if: always() && runner.environment == 'self-hosted'
+        run: docker image rm "taskindex:${GITHUB_SHA}" >/dev/null 2>&1 || true

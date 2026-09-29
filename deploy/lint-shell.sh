@@ -13,6 +13,8 @@ if command -v shellcheck >/dev/null; then
 else
   printf '%s\n' 'lint:shell: shellcheck не установлен, проверка пропущена (brew install shellcheck /' \
     'apt install shellcheck); в CI она обязательна.' >&2
+  # В CI (в том числе на раннерах ПК без apt) гейт без shellcheck молча не проходит.
+  [[ ${CI:-} != true ]] || exit 1
 fi
 # Символы, не байты: awk считает по-разному на macOS и Linux, bash ${#line} — по локали UTF-8.
 for candidate in C.UTF-8 en_US.UTF-8 UTF-8; do

@@ -1,12 +1,12 @@
 import { test, expect, type Page, type BrowserContext } from '@playwright/test';
 import { writeFileSync } from 'node:fs';
-import { OWNER } from './helpers';
+import { OWNER, STATIC_URL } from './helpers';
 
 // TI-085: opt-in timing regression on the production bundle, in a fresh static
 // fixture. Chrome/CPU x4 is a reproducible local stress profile, not a CI SLA.
 // TASKINDEX_UI_PERF=1 npm run e2e -- latency.static.spec.ts --project=static
 test.use({
-  baseURL: 'http://localhost:4373',
+  baseURL: STATIC_URL,
   channel: 'chrome',
   viewport: { width: 1440, height: 1000 },
   // Trace snapshots traverse the entire DOM after every Playwright call and
@@ -19,14 +19,14 @@ let ownerCookies: Awaited<ReturnType<BrowserContext['cookies']>> = [];
 
 async function signIn(page: Page) {
   const response = await page.request.post('/api/auth/sign-in/email', {
-    headers: { Origin: 'http://localhost:4373' },
+    headers: { Origin: STATIC_URL },
     data: OWNER,
   });
   expect(response.ok()).toBe(true);
 }
 
 test.beforeAll(async ({ browser }) => {
-  const page = await browser.newPage({ baseURL: 'http://localhost:4373' });
+  const page = await browser.newPage({ baseURL: STATIC_URL });
   await signIn(page);
   ownerCookies = await page.context().cookies();
   const state = await (await page.request.get('/api/snapshot')).json();
@@ -52,7 +52,7 @@ test.beforeAll(async ({ browser }) => {
   }));
   for (let offset = 0; offset < commands.length; offset += 50) {
     const response = await page.request.post('/api/commands/batch', {
-      headers: { Origin: 'http://localhost:4373' },
+      headers: { Origin: STATIC_URL },
       data: {
         generation: state.generation,
         operationId: crypto.randomUUID(),

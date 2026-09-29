@@ -1,6 +1,7 @@
 import { test, expect } from '@playwright/test';
+import { STATIC_URL } from './helpers';
 // TI-069: production bundle served by src/server/index.ts (project `static`).
-test.use({ baseURL: 'http://localhost:4373' });
+test.use({ baseURL: STATIC_URL });
 
 test('the production bundle preserves a deep link through sign-in and reload', async ({
   page,
