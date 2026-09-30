@@ -260,9 +260,10 @@ id даёт `gh run view <run-id> --json jobs`, его же печатает `re
 
 CI запускается на PR, push в `main` и теги `v*`. При переменной репозитория `CI_POOL=pc` все jobs,
 включая `image`, идут на раннеры на ПК владельца, иначе и при любом перезапуске (в том числе
-только job `image`) — на GitHub-hosted `ubuntu-24.04`.
+только job `image`) — на GitHub-hosted `ubuntu-24.04`. На ПК job `check` выполняет те же части
+`npm run check` параллельно (`scripts/ci-parallel-check.mjs`).
 
-Локально те же команды в том же порядке выполняет `node scripts/gate.mjs`
+Локально те же команды по очереди выполняет `node scripts/gate.mjs`
 (`--image` дополнительно собирает образ с меткой, `--strict` отказывает на
 незакоммиченном дереве, чтобы чужой зелёный check не засчитывался); отчёт с
 commit, версиями инструментов и id образа пишется в `test-results/gate.json`.

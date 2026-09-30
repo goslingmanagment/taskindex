@@ -237,7 +237,7 @@ bash deploy/drill/deploy-drill.sh
 `check` проверяет активное дерево v2: типы, lint, формат, скрипты развёртывания
 (`npm run lint:shell`: `bash -n` и, если установлен, `shellcheck -S warning` по
 `deploy/*.sh`) и unit/API/property/store/CLI тесты. `scripts/gate.mjs` — локальный
-гейт релиза теми же командами и в том же порядке, что jobs `check` и `e2e` в CI, с отчётом
+гейт релиза теми же командами, что jobs `check` и `e2e` в CI (по очереди), с отчётом
 `test-results/gate.json`. Приёмка агентского цикла: `npm run agent-cycle` поверх sandbox
 выполняет автоматизируемые шаги, ручные описаны в
 [docs/acceptance/agent-cycle.md](docs/acceptance/agent-cycle.md). E2E запускает изолированные настоящие SQLite и Better Auth в `/tmp`
