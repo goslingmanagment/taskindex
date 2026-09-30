@@ -3,7 +3,8 @@
 # org.opencontainers.image.revision. Реестр (GHCR) по решению владельца не используется.
 # Параллельно: check (типы, линт, vitest, сборка), четыре job e2e (functional в двух шардах,
 # visual+static+dark, webkit) и image после check; на GitHub каждая job на своей машине, на ПК
-# их делят два раннера, и они идут волнами. release.sh ждёт зелёный прогон целиком.
+# их делят два раннера, и они идут волнами, а части check там идут параллельно внутри job
+# (scripts/ci-parallel-check.mjs). release.sh ждёт зелёный прогон целиком.
 #
 # Пул машин: переменная репозитория CI_POOL=pc отправляет все jobs на self-hosted раннеры на ПК
 # владельца (winpc-taskindex-N, метка ci-pc), любое другое значение или её отсутствие — на
@@ -49,7 +50,13 @@ jobs:
           echo "$RUNNER_TEMP/shellcheck-v0.9.0" >> "$GITHUB_PATH"
       - run: npm ci
       # check = typecheck + lint + unused-exports + format:check + lint:shell + build + check:skin + vitest
-      - run: npm run check
+      - if: runner.environment != 'self-hosted'
+        run: npm run check
+      # ПК: те же части из scripts.check параллельно (precheck первым, build → check:skin цепочкой),
+      # логи частей группами в конце; незнакомый скрипту состав check идёт обычным npm run check.
+      # exec: сигнал отмены раннер шлёт только процессу шага — скрипт гасит части и печатает их логи.
+      - if: runner.environment == 'self-hosted'
+        run: exec node scripts/ci-parallel-check.mjs
   e2e:
     name: e2e (${{ matrix.name }})
     strategy:

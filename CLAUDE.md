@@ -39,7 +39,11 @@
   `v*`; ветка без PR не проверяется. Переменная репозитория `CI_POOL=pc`
   отправляет все jobs на раннеры на ПК владельца (`winpc-taskindex-N`, e2e
   в слоте портов N), иначе и при перезапуске прогона они идут на
-  GitHub-hosted `ubuntu-24.04`. На ПК e2e ставит браузеры без `--with-deps`:
+  GitHub-hosted `ubuntu-24.04`. На ПК job `check` запускает те же части
+  `npm run check` параллельно (`scripts/ci-parallel-check.mjs`, логи частей
+  группами в конце шага); новую часть или хук `check` вписать в `PARTS`
+  этого скрипта, иначе падает его тест, а на ПК `check` идёт по очереди.
+  На ПК e2e ставит браузеры без `--with-deps`:
   системные пакеты Playwright там ставит `ci-runners/winpc/root-setup.sh`
   под свою `PLAYWRIGHT_VERSION`; при смене версии `@playwright/test`
   поменять её там и прогнать `root-setup.sh` на winpc.
