@@ -84,7 +84,9 @@ export function planCheck(scripts) {
     const lane = after && lanes.find((candidate) => candidate.includes(after));
     if (lane) lane.push(name);
     else if (after)
-      return unknown(`${name} читает вывод ${after}, а ${after} в check позже`);
+      return unknown(
+        `${name} читает вывод ${after}, а ${after} в check не раньше`,
+      );
     else lanes.push([name]);
   }
   return { ok: true, before, parts, lanes };
