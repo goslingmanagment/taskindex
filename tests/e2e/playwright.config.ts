@@ -1,5 +1,5 @@
 import { defineConfig, devices } from '@playwright/test';
-import { BASES, STATIC_PORT, STATIC_URL, baseOf } from './helpers';
+import { SERVERS, STATIC_PORT, STATIC_URL, baseOf } from './helpers';
 // TI-070: у каждого проекта своя чистая база (`tests/e2e/server.ts` берёт имя,
 // порты и замороженные часы из окружения) и своя сессия владельца, записанная
 // проектом `setup` в `storageState`. Ни один проект не видит записей другого,
@@ -82,8 +82,9 @@ export default defineConfig({
       },
     },
   ],
+  // Серверы только выбранных проектов при TASKINDEX_E2E_PROJECTS (`e2eServers` в helpers.ts).
   webServer: [
-    ...BASES.map((base) => ({
+    ...SERVERS.bases.map((base) => ({
       cwd: process.cwd(),
       command: 'node node_modules/tsx/dist/cli.mjs tests/e2e/server.ts',
       url: base.url,
@@ -98,13 +99,18 @@ export default defineConfig({
         ...(base.now ? { TASKINDEX_E2E_NOW: base.now } : {}),
       },
     })),
-    {
-      cwd: process.cwd(),
-      command: 'node node_modules/tsx/dist/cli.mjs tests/e2e/static-server.ts',
-      url: `${STATIC_URL}/health`,
-      reuseExistingServer: false,
-      timeout: 120000,
-      env: { TASKINDEX_E2E_STATIC_PORT: String(STATIC_PORT) },
-    },
+    ...(SERVERS.static
+      ? [
+          {
+            cwd: process.cwd(),
+            command:
+              'node node_modules/tsx/dist/cli.mjs tests/e2e/static-server.ts',
+            url: `${STATIC_URL}/health`,
+            reuseExistingServer: false,
+            timeout: 120000,
+            env: { TASKINDEX_E2E_STATIC_PORT: String(STATIC_PORT) },
+          },
+        ]
+      : []),
   ],
 });

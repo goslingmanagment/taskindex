@@ -111,6 +111,10 @@ jobs:
           if [ "$RUNNER_ENVIRONMENT" = self-hosted ]; then export TASKINDEX_E2E_SLOT="${RUNNER_NAME##*-}"; fi
           echo "$RUNNER_NAME: TASKINDEX_E2E_SLOT=${TASKINDEX_E2E_SLOT:-0}"
           npm run e2e -- --shard ${{ matrix.shard }} --project ${{ matrix.projects }}
+        env:
+          # Серверы только этих проектов (tests/e2e/helpers.ts): все шесть по 0,3–1 ГБ на каждый
+          # job теснили на ПК hub, приходивший поверх уже идущего e2e.
+          TASKINDEX_E2E_PROJECTS: ${{ matrix.projects }}
       - uses: actions/upload-artifact@v7
         if: always()
         with:
