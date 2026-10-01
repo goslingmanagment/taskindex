@@ -62,7 +62,8 @@ jobs:
       - if: runner.environment != 'self-hosted'
         run: npm run check
       # ПК: те же части из scripts.check параллельно (precheck первым, build → check:skin цепочкой),
-      # логи частей группами в конце; незнакомый скрипту состав check идёт обычным npm run check.
+      # логи частей в конце, зелёные свёрнуты в группы; незнакомый скрипту состав check или тело
+      # части идёт обычным npm run check.
       # exec: сигнал отмены раннер шлёт только процессу шага — скрипт гасит части и печатает их логи.
       - if: runner.environment == 'self-hosted'
         run: exec node scripts/ci-parallel-check.mjs
