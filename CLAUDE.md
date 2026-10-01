@@ -35,7 +35,8 @@
   Playwright, семь проектов на фиксированных портах; два прогона
   одновременно работают только в разных слотах портов
   (`TASKINDEX_E2E_SLOT=N` сдвигает все порты на N×450, README «Проверки»).
-  Новый проект Playwright вписать в `PROJECT_SERVER` (`tests/e2e/helpers.ts`):
+  Новый проект Playwright вписать в `PROJECT_SERVER` (`tests/e2e/helpers.ts`)
+  и в матрицу e2e в `ci.yml` (сверяет `tests/cli/ci-workflow.test.ts`):
   e2e-job в CI поднимает серверы только своих проектов
   (`TASKINDEX_E2E_PROJECTS`).
 - CI (`.github/workflows/ci.yml`) запускается на PR, push в `main` и теги

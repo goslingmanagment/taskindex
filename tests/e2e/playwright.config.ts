@@ -18,6 +18,10 @@ import { SERVERS, STATIC_PORT, STATIC_URL, baseOf } from './helpers';
 export default defineConfig({
   testDir: '.',
   testMatch: '**/*.spec.ts',
+  // Playwright's default lets a leftover `test.only` run alone and exit 0,
+  // which in CI hid the rest of the project behind a green job. Locally
+  // `.only` stays allowed.
+  forbidOnly: !!process.env.CI,
   fullyParallel: false,
   workers: 1,
   timeout: 60000,
