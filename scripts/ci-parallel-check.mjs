@@ -15,14 +15,21 @@
 // tsconfig.tsbuildinfo that typecheck writes; unused-exports and format:check
 // read sources; lint:shell reads deploy/ and scripts/; the tests write only
 // to temp directories (tests/api/paths.test.ts serves the web client from one
-// via TASKINDEX_WEB_DIR).
+// via TASKINDEX_WEB_DIR), so `test` may run while `build` empties dist.
+//
+// All of that is known of the bodies pinned in PARTS and INNER below, not of
+// whatever a part of the same name runs later: `npm run check` runs `test`
+// only after `build`, here it runs while `vite build` and `tsdown` empty dist.
+// So a part, its hooks and every script they `npm run` must have exactly the
+// pinned body.
 //
 // Each part logs to its own file under $RUNNER_TEMP; at the end the logs are
-// printed in the order of `check`, one `::group::` per part with its exit code
-// and time, and the exit code is 1 if any part failed. SIGINT/SIGTERM stop
-// every part's process group and print what the parts logged so far. A `check`
-// of another shape, or with a part or hook this file does not know, runs as
-// plain `npm run check`.
+// printed in the order of `check` with each part's exit code and time, a
+// passing part folded into a `::group::`, any other in view, and the exit code
+// is 1 if any part failed. SIGINT/SIGTERM stop every running part's process
+// group and print what the parts logged so far. A `check` of another shape, or
+// with a part, hook or body this file does not know, runs as plain
+// `npm run check`.
 import { spawn, spawnSync } from 'node:child_process';
 import {
   appendFileSync,
@@ -35,18 +42,32 @@ import { constants, tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
 
-// `after`: the part whose output this one reads; it runs next in that part's
-// lane. `hooks`: the pre/post scripts npm runs inside `npm run <part>`.
-/** @type {Map<string, { after?: string, hooks?: string[] }>} */
+// The files lint and format:check read, as listed in package.json.
+const SOURCES =
+  'src tests/unit tests/api tests/property tests/web tests/cli tests/e2e tests/deploy deploy/*.mjs deploy/drill/*.mjs scripts/gate.mjs scripts/dev.mjs scripts/setup-dev.mjs scripts/preflight.mjs scripts/sandbox.mts scripts/agent-cycle.mts scripts/night-shift scripts/unused-exports.mjs scripts/bench-journal.ts scripts/ci-parallel-check.mjs';
+const CONFIGS =
+  'package.json tsconfig.json vite.config.ts vitest.config.ts tsdown.config.ts';
+
+// `body`: the part's script in package.json, exactly. `after`: the part whose
+// output this one reads; it runs next in that part's lane. `hooks`: the
+// pre/post scripts npm runs inside `npm run <part>`.
+/** @type {Map<string, { body: string, after?: string, hooks?: string[] }>} */
 const PARTS = new Map([
-  ['typecheck', {}],
-  ['lint', {}],
-  ['unused-exports', {}],
-  ['format:check', {}],
-  ['lint:shell', {}],
-  ['build', {}],
-  ['check:skin', { after: 'build' }],
-  ['test', { hooks: ['pretest'] }],
+  ['typecheck', { body: 'tsc --noEmit' }],
+  ['lint', { body: `oxlint ${SOURCES}` }],
+  ['unused-exports', { body: 'node scripts/unused-exports.mjs' }],
+  ['format:check', { body: `oxfmt --check ${SOURCES} ${CONFIGS}` }],
+  ['lint:shell', { body: 'bash deploy/lint-shell.sh' }],
+  ['build', { body: 'vite build && tsdown' }],
+  ['check:skin', { body: 'node scripts/check-skin.mjs', after: 'build' }],
+  ['test', { body: 'vitest run', hooks: ['pretest'] }],
+]);
+
+// The scripts the parts run inside, side by side with the other parts: their
+// hooks and what those `npm run`, exactly.
+const INNER = new Map([
+  ['pretest', 'npm run -s preflight'],
+  ['preflight', 'node scripts/preflight.mjs'],
 ]);
 
 const unknown = (/** @type {string} */ reason) => ({ ok: false, reason });
@@ -76,6 +97,25 @@ export function planCheck(scripts) {
     for (const hook of [`pre${name}`, `post${name}`])
       if (has(hook) && !known.includes(hook))
         return unknown(`хук ${hook} скрипту не знаком`);
+  }
+  // Everything `npm run <part>` runs side by side with the other parts: the
+  // part, its hooks, the scripts their bodies `npm run` and those scripts'
+  // hooks, each with exactly the pinned body.
+  const inside = [...parts];
+  for (const name of inside) {
+    const pinned = PARTS.get(name)?.body ?? INNER.get(name);
+    if (pinned === undefined) return unknown(`хук ${name} скрипту не знаком`);
+    if (!has(name)) return unknown(`скрипта ${name} нет в package.json`);
+    if (scripts[name] !== pinned)
+      return unknown(
+        `тело ${name} не то, на котором проверен скрипт: «${scripts[name]}»`,
+      );
+    const hooks = [`pre${name}`, `post${name}`].filter(has);
+    const called = [...pinned.matchAll(/\bnpm run (?:-s )?([\w:.-]+)/g)].map(
+      (match) => match[1] ?? '',
+    );
+    for (const next of [...hooks, ...called])
+      if (!inside.includes(next)) inside.push(next);
   }
   /** @type {string[][]} */
   const lanes = [];
@@ -124,16 +164,22 @@ function signalGroup(group, signal) {
   }
 }
 
-/** @param {{ before: string[], parts: string[], lanes: string[][] }} plan */
-async function runPlan(plan) {
+/**
+ * Runs the plan of `planCheck` with `npm run` in `cwd`.
+ * @param {{ before: string[], parts: string[], lanes: string[][] }} plan
+ */
+export async function runPlan(plan, cwd = root) {
   const logs = mkdtempSync(
     join(process.env.RUNNER_TEMP ?? tmpdir(), 'taskindex-check-'),
   );
   const order = [...plan.before, ...plan.parts];
   /** @type {Map<string, Result>} */
   const results = new Map();
-  // Process groups of the parts started, kept after a part exits: what it
-  // left running is stopped with the rest.
+  // Process groups of the running parts. A part's group leaves the set when
+  // the part exits: on the shared CI PC all runners run as one user, and the
+  // number of an empty group may go to another job's process, which a stop
+  // would then signal. What a finished part left running ends with the job
+  // (the runner's orphan cleanup).
   /** @type {Set<number>} */
   const groups = new Set();
   /** @type {Signal | undefined} */
@@ -151,7 +197,7 @@ async function runPlan(plan) {
       results.set(name, result);
       const fd = openSync(log, 'w');
       const child = spawn('npm', ['run', name], {
-        cwd: root,
+        cwd,
         stdio: ['ignore', fd, fd],
         detached: true,
       });
@@ -161,6 +207,7 @@ async function runPlan(plan) {
       const finish = (/** @type {number} */ code, message = '') => {
         if (settled) return;
         settled = true;
+        if (child.pid) groups.delete(child.pid);
         if (message) appendFileSync(log, `${message}\n`);
         result.code = code;
         result.ms = Date.now() - (result.started ?? 0);
@@ -193,9 +240,11 @@ async function runPlan(plan) {
         continue;
       }
       const text = readFileSync(result.log, 'utf8');
-      say(`::group::${name}: ${status(result)}`);
+      // A passing part folds into a group; any other stays in view.
+      const fold = result.code === 0;
+      say(`${fold ? '::group::' : ''}${name}: ${status(result)}`);
       if (text) process.stdout.write(text.endsWith('\n') ? text : `${text}\n`);
-      say('::endgroup::');
+      if (fold) say('::endgroup::');
     }
   };
 
@@ -245,7 +294,7 @@ async function runPlan(plan) {
     const failed = order.filter(
       (name) => results.get(name)?.code !== 0 && !results.get(name)?.skipped,
     );
-    say(`::error::check: упали ${failed.join(', ')}; их логи в группах выше`);
+    say(`::error::check: упали ${failed.join(', ')}; их логи выше`);
     process.exitCode = 1;
   }
 }

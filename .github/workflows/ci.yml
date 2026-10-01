@@ -20,11 +20,20 @@ on:
     branches: [main]
     tags: ['v*']
   pull_request:
+# Новый push в PR отменяет прогон прежнего коммита. У push в main и тега своя группа на прогон и без
+# отмены: release.sh выкатывает коммит только с зелёным прогоном на нём, а общая группа ci-<ref> с
+# отменой при двух быстрых слияниях отменяла прогон первого коммита.
 concurrency:
-  group: ci-${{ github.ref }}
-  cancel-in-progress: true
+  group: ci-${{ github.event_name == 'pull_request' && github.ref || github.run_id }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 permissions:
   contents: read
+# Явный shell: bash — это bash -eo pipefail: упавшая команда в начале конвейера роняет шаг. Без него
+# шаг идёт в bash -e, и, например, docker save | gzip с упавшим docker save оставлял обрезанный
+# архив образа в зелёном прогоне.
+defaults:
+  run:
+    shell: bash
 jobs:
   check:
     runs-on: ${{ vars.CI_POOL == 'pc' && github.run_attempt == '1' && fromJSON('["self-hosted","ci-pc"]') || 'ubuntu-24.04' }}
@@ -53,7 +62,8 @@ jobs:
       - if: runner.environment != 'self-hosted'
         run: npm run check
       # ПК: те же части из scripts.check параллельно (precheck первым, build → check:skin цепочкой),
-      # логи частей группами в конце; незнакомый скрипту состав check идёт обычным npm run check.
+      # логи частей в конце, зелёные свёрнуты в группы; незнакомый скрипту состав check или тело
+      # части идёт обычным npm run check.
       # exec: сигнал отмены раннер шлёт только процессу шага — скрипт гасит части и печатает их логи.
       - if: runner.environment == 'self-hosted'
         run: exec node scripts/ci-parallel-check.mjs
@@ -141,6 +151,7 @@ jobs:
           [ "$label" = "$GITHUB_SHA" ] || { echo "label $label != $GITHUB_SHA" >&2; exit 1; }
           docker image inspect --format '{{.Id}}' "taskindex:${GITHUB_SHA}" > image-id.txt
           docker save "taskindex:${GITHUB_SHA}" | gzip -1 > "taskindex-${GITHUB_SHA}.tar.gz"
+          gzip -t "taskindex-${GITHUB_SHA}.tar.gz"
           ls -l "taskindex-${GITHUB_SHA}.tar.gz" image-id.txt
       - uses: actions/upload-artifact@v7
         with:
