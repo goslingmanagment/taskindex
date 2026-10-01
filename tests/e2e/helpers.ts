@@ -80,6 +80,42 @@ export function baseOf(name: BaseName): Base {
 // TI-069: the `static` project's production server (`static-server.ts`).
 export const STATIC_PORT = 4373 + PORT_OFFSET;
 export const STATIC_URL = `http://localhost:${STATIC_PORT}`;
+// Servers per run (TASKINDEX_E2E_PROJECTS): each base and the static server is a
+// process of 0.3–1 GB, and a CI job runs only a few projects. With the variable
+// set to the run's projects (as in its --project), only their servers start and
+// `setup` signs in only on their bases; unset (npm run e2e, the release gate),
+// all of them. A project run without its server fails at once: nothing answers.
+// A new project goes into PROJECT_SERVER.
+const PROJECT_SERVER: Readonly<Record<string, BaseName | 'static' | null>> = {
+  setup: null,
+  functional: 'main',
+  visual: 'visual',
+  static: 'static',
+  dark: 'dark',
+  webkit: 'webkit',
+  'webkit-dark': 'webkit-dark',
+};
+export function e2eServers(raw: string | undefined): {
+  readonly bases: readonly Base[];
+  readonly static: boolean;
+} {
+  const projects = raw?.split(/[\s,]+/).filter(Boolean) ?? [];
+  if (projects.length === 0) return { bases: BASES, static: true };
+  const wanted = new Set(
+    projects.map((project) => {
+      if (!Object.hasOwn(PROJECT_SERVER, project))
+        throw new Error(
+          `TASKINDEX_E2E_PROJECTS: неизвестный проект «${project}», ожидались ${Object.keys(PROJECT_SERVER).join(', ')}.`,
+        );
+      return PROJECT_SERVER[project];
+    }),
+  );
+  return {
+    bases: BASES.filter((item) => wanted.has(item.name)),
+    static: wanted.has('static'),
+  };
+}
+export const SERVERS = e2eServers(process.env.TASKINDEX_E2E_PROJECTS);
 // TI-076: a second author in the fixture, so the activity feed has something to
 // filter. The key is seeded by `server.ts` with this exact value.
 export const AGENT = {

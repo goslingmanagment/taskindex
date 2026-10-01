@@ -1,12 +1,13 @@
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { test, expect } from '@playwright/test';
-import { AUTH_DIR, BASES, OWNER, clientIp } from './helpers';
+import { AUTH_DIR, OWNER, SERVERS, clientIp } from './helpers';
 // TI-070: проект `setup`. Каждая база поднимается пустой, поэтому вход владельца
 // по паролю проходит здесь один раз на базу, а результат сохраняется в
 // `storageState`. Остальные проекты стартуют уже с сессией и не тратят на вход
-// ни времени, ни лимита попыток.
+// ни времени, ни лимита попыток. С TASKINDEX_E2E_PROJECTS вход идёт только на
+// базах выбранных проектов: серверов остальных нет (`e2eServers` в helpers.ts).
 test.beforeAll(() => mkdirSync(AUTH_DIR, { recursive: true }));
-for (const base of BASES)
+for (const base of SERVERS.bases)
   test(`вход владельца на базе «${base.name}»`, async ({
     browser,
   }, testInfo) => {
