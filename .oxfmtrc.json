@@ -9,7 +9,6 @@
     "**/*.md",
     "AGENTS.md",
     "BACKLOG.md",
-    "CLAUDE.md",
     "README.md",
     "bun.lock",
     "bun.lockb",
