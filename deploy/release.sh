@@ -15,7 +15,7 @@
 # idempotent). Needs git, gh (logged in), curl and SSH access to the VPS; reads no secrets.
 set -Eeuo pipefail
 
-host=${TASKINDEX_HOST:-root@45.8.230.111}
+host=${TASKINDEX_HOST:-root@152.53.191.242}
 repo_on_host=${TASKINDEX_REMOTE_REPO:-/opt/taskindex}
 bare_on_host=${TASKINDEX_REMOTE_BARE:-/opt/taskindex.git}
 remote_env=${TASKINDEX_REMOTE_ENV:-/etc/taskindex/taskindex.env}
