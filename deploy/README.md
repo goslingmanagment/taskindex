@@ -298,7 +298,7 @@ merge или SSH; на этом VPS нет `op`, переменные серве
 
 ```sh
 # на маке: коммит в голый репозиторий VPS и подписанная ссылка на артефакт
-git push root@45.8.230.111:/opt/taskindex.git <sha>:refs/heads/main
+git push root@152.53.191.242:/opt/taskindex.git <sha>:refs/heads/main
 # на VPS: скачать taskindex-image-<sha> по ссылке в /var/tmp, распаковать, docker load
 docker load -i /var/tmp/taskindex-<sha>.tar.gz
 cd /opt/taskindex && git fetch && git checkout --detach <sha>

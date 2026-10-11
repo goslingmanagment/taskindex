@@ -3,7 +3,7 @@
 # no S3, no external heartbeat; the Mac keeps dated copies of the DB file and the JSON export).
 #
 #   bash deploy/pull-backup.sh                      # → ~/Backups/taskindex/<UTC>/{taskindex.db,export.json}
-#   TASKINDEX_HOST=root@45.8.230.111 TASKINDEX_BACKUP_DIR=~/Backups/taskindex bash deploy/pull-backup.sh
+#   TASKINDEX_HOST=root@152.53.191.242 TASKINDEX_BACKUP_DIR=~/Backups/taskindex bash deploy/pull-backup.sh
 #
 # Server side: a consistent copy via the SQLite backup API (deploy/database.mjs backup, inside the
 # running app container) and `taskindex-admin export` (logical export the importer accepts).
@@ -14,7 +14,7 @@
 # (deploy/README.md, «Копии на маке»).
 set -Eeuo pipefail
 umask 077
-host=${TASKINDEX_HOST:-root@45.8.230.111}
+host=${TASKINDEX_HOST:-root@152.53.191.242}
 repo_on_host=${TASKINDEX_REMOTE_REPO:-/opt/taskindex}
 keep=${TASKINDEX_BACKUP_KEEP:-30}
 stamp=$(date -u +%Y%m%dT%H%M%SZ)
