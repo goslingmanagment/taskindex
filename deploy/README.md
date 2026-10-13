@@ -2,12 +2,15 @@
 
 Один Linux VPS, Docker Compose v2 и Nginx на хосте. Публичный доступ — обычный
 HTTPS URL. SQLite находится в локальном Docker named volume; macOS не открывает
-тот же файл, который используют Linux-контейнеры. Никакие скрипты здесь не
-отправляют код на VPS автоматически.
+тот же файл, который используют Linux-контейнеры. Прод работает на `agency-de`
+(`root@152.53.191.242`), адрес — `https://tasks.gosling-agency.ru`.
+CI готовит образ; доставку и деплой выполняет запущенный с мака `release.sh`
+(раздел «Следующий релиз»).
 
-Не заданы владельцем: VPS, домен, S3 bucket/prefix, endpoint/region и ссылки на
-секреты в 1Password. `.env.example` перечисляет параметры, не назначает реальные
-ресурсы. Env-файл хранить вне git; запускать команды через `op run --env-file`.
+Параметры действующего развёртывания лежат на сервере в
+`/etc/taskindex/taskindex.env`. `.env.example` перечисляет параметры для нового
+окружения, не назначает реальные ресурсы. Env-файл хранить вне git; команды с
+секретами из 1Password запускать через `op run --env-file`.
 Не выводить `docker compose config`, env или ключи в журнал: для проверки есть
 `docker compose config --quiet`.
 
@@ -246,8 +249,8 @@ dark; `webkit` с webkit и webkit-dark, ему нужен ещё chromium-headl
 из того же `GITHUB_SHA` с `--build-arg BUILD=<sha>` и меткой
 `org.opencontainers.image.revision=<sha>`, проверяет метку и публикует
 `docker save | gzip` как артефакт workflow `taskindex-image-<sha>`
-(`taskindex-<sha>.tar.gz` + `image-id.txt`). Реестра (GHCR) нет, автодеплоя нет:
-образ переносится на VPS вручную.
+(`taskindex-<sha>.tar.gz` + `image-id.txt`). Реестра (GHCR) нет, автодеплоя из CI
+нет: доставкой образа на VPS управляет `release.sh` (раздел «Следующий релиз»).
 
 Артефакт образа живёт 7 дней. `release.sh` сначала ищет `taskindex:<sha>` на VPS и
 артефакт не трогает, если образ там уже есть, поэтому откат на образ, который ещё
