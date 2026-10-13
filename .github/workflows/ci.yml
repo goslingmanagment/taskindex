@@ -20,6 +20,7 @@ on:
     branches: [main]
     tags: ['v*']
   pull_request:
+    types: [opened, synchronize, reopened, ready_for_review, converted_to_draft]
 # Новый push в PR отменяет прогон прежнего коммита. У push в main и тега своя группа на прогон и без
 # отмены: release.sh выкатывает коммит только с зелёным прогоном на нём, а общая группа ci-<ref> с
 # отменой при двух быстрых слияниях отменяла прогон первого коммита.
@@ -36,6 +37,8 @@ defaults:
     shell: bash
 jobs:
   check:
+    # Draft не занимает раннер; Ready запускает проверки, возврат в Draft отменяет старый прогон.
+    if: github.event_name != 'pull_request' || github.event.pull_request.draft == false
     runs-on: ${{ vars.CI_POOL == 'pc' && github.run_attempt == '1' && fromJSON('["self-hosted","ci-pc"]') || 'ubuntu-24.04' }}
     timeout-minutes: 20
     steps:
@@ -68,6 +71,7 @@ jobs:
       - if: runner.environment == 'self-hosted'
         run: exec node scripts/ci-parallel-check.mjs
   e2e:
+    if: github.event_name != 'pull_request' || github.event.pull_request.draft == false
     name: e2e (${{ matrix.name }})
     strategy:
       fail-fast: false

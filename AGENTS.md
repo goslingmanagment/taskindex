@@ -38,8 +38,11 @@
   и в матрицу e2e в `ci.yml` (сверяет `tests/cli/ci-workflow.test.ts`):
   e2e-job в CI поднимает серверы только своих проектов
   (`TASKINDEX_E2E_PROJECTS`).
-- CI (`.github/workflows/ci.yml`) запускается на PR, push в `main` и теги
-  `v*`; ветка без PR не проверяется. Переменная репозитория `CI_POOL=pc`
+- CI (`.github/workflows/ci.yml`): Draft PR пропускает check/e2e, переход
+  в Ready запускает их; возврат в Draft отменяет прежний PR-прогон.
+  Push в `main` и теги `v*` проверяются как обычно; ветка без PR не
+  проверяется. Для релиза нужен зелёный push-прогон, пропущенный Draft
+  его не заменяет. Переменная репозитория `CI_POOL=pc`
   отправляет все jobs на раннеры на ПК владельца (`winpc-taskindex-N`, e2e
   в слоте портов N), иначе и при перезапуске прогона они идут на
   GitHub-hosted `ubuntu-24.04`. На ПК job `check` запускает те же части

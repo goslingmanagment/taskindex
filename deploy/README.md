@@ -261,7 +261,10 @@ id даёт `gh run view <run-id> --json jobs`, его же печатает `re
 перезапуск в течение 30 дней), а не весь прогон с check и e2e; аварийно `deploy.sh --build-here`.
 `release.sh` берёт самый новый неистёкший артефакт прогона.
 
-CI запускается на PR, push в `main` и теги `v*`. При переменной репозитория `CI_POOL=pc` все jobs,
+CI запускается на PR, push в `main` и теги `v*`. В Draft jobs `check` и `e2e`
+пропускаются; переход в Ready запускает проверки, возврат в Draft отменяет
+прежний PR-прогон. Пропущенный Draft не подтверждает готовность релиза.
+При переменной репозитория `CI_POOL=pc` все jobs,
 включая `image`, идут на раннеры на ПК владельца, иначе и при любом перезапуске (в том числе
 только job `image`) — на GitHub-hosted `ubuntu-24.04`. На ПК job `check` выполняет те же части
 `npm run check` параллельно (`scripts/ci-parallel-check.mjs`).
@@ -282,8 +285,8 @@ bash deploy/release.sh <sha>          # по умолчанию origin/main
 bash deploy/release.sh <sha> --plan   # только план сервера, ничего не выкатывает
 ```
 
-`release.sh` требует, чтобы коммит был в `origin/main`, ждёт зелёный job `ci`
-для него (`gh run watch`), берёт у GitHub подписанную ссылку на артефакт
+`release.sh` требует, чтобы коммит был в `origin/main`, ждёт зелёный push-прогон
+workflow `ci` для него (`gh run watch --exit-status`), берёт у GitHub подписанную ссылку на артефакт
 `taskindex-image-<sha>`, и VPS скачивает архив сам (`curl` в `/var/tmp`, `docker
 load`; если `taskindex:<sha>` уже загружен, шаг пропускается), проверяет метку
 `org.opencontainers.image.revision`, пушит коммит в голый репозиторий
