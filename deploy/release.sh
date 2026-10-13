@@ -5,7 +5,7 @@
 #   bash deploy/release.sh [SHA|REF] [--plan]
 #
 # SHA defaults to origin/main and must be merged into origin/main. Steps: the CI workflow
-# run for that commit must be green (an in-progress run is awaited); the image artifact
+# push run for that commit must be green (an in-progress run is awaited); the image artifact
 # taskindex-image-<sha> is downloaded by the VPS itself through a short-lived signed GitHub
 # URL and loaded into Docker (skipped when taskindex:<sha> is already loaded); the commit is
 # pushed to the bare repository the VPS checkout fetches from; an off-site backup is pulled;
@@ -43,8 +43,13 @@ git merge-base --is-ancestor "$sha" origin/main \
 say "release ${sha:0:7}: $(git log -1 --format=%s "$sha")"
 
 say "CI ($workflow)"
-run_id=$(gh run list --workflow "$workflow" --commit "$sha" --limit 1 --json databaseId --jq '.[0].databaseId')
-[[ -n $run_id ]] || { printf 'No %s run for %s yet: push first or wait for GitHub.\n' "$workflow" "$sha" >&2; exit 1; }
+# Draft PR runs skip every job and are not release evidence. Only main/tag pushes build images.
+run_id=$(gh run list --workflow "$workflow" --commit "$sha" --event push \
+  --limit 1 --json databaseId --jq '.[0].databaseId')
+[[ -n $run_id ]] || {
+  printf 'No %s push run for %s yet: push first or wait for GitHub.\n' "$workflow" "$sha" >&2
+  exit 1
+}
 state=$(gh run view "$run_id" --json status,conclusion --jq '.status + "/" + .conclusion')
 if [[ $state != completed/success ]]; then
   say "waiting for run $run_id ($state)"
