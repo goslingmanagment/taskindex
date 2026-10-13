@@ -12,7 +12,7 @@
 # умереть посреди прогона. Раннеры ПК делят один $HOME (кэш npm ~/.npm и браузеры Playwright
 # ~/.cache/ms-playwright живут там между прогонами, кэш actions не нужен), один сетевой стек (e2e
 # раннера N работает в слоте портов N, TASKINDEX_E2E_SLOT в tests/e2e/helpers.ts) и rootless Docker;
-# sudo у них нет: системные пакеты Playwright и прочее ставит root-setup.sh в 1-platform/ci-runners.
+# sudo у них нет: системные пакеты Playwright и прочее ставит root-setup.sh в 6-infra/ci-runners.
 name: ci
 on:
   # Ветки без PR не проверяются: push только в main и теги, остальное через pull_request.

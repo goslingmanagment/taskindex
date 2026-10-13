@@ -1,4 +1,4 @@
-import { readFile, readlink } from 'node:fs/promises';
+import { access, lstat, readFile } from 'node:fs/promises';
 import { describe, expect, it } from 'vitest';
 import { runCli } from '../../src/cli/run.js';
 import { readFlags, renderHelp } from '../../src/cli/help.js';
@@ -36,7 +36,7 @@ function knownFlags(): Set<string> {
 
 // Documentation that agents follow must not drift from the CLI and the pins.
 describe('documentation against the code', () => {
-  it('pins one Node version everywhere and points AGENTS.md at CLAUDE.md', async () => {
+  it('pins one Node version everywhere and keeps AGENTS.md the only instruction file', async () => {
     const nodeVersion = (await readFile('.node-version', 'utf8')).trim();
     expect((await readFile('.nvmrc', 'utf8')).trim()).toBe(nodeVersion);
     const pkg = JSON.parse(await readFile('package.json', 'utf8')) as {
@@ -44,12 +44,13 @@ describe('documentation against the code', () => {
     };
     expect(pkg.engines.node).toBe('>=26.0.0 <27');
     expect(await readFile('README.md', 'utf8')).toContain(nodeVersion);
-    expect(await readlink('AGENTS.md')).toBe('CLAUDE.md');
+    expect((await lstat('AGENTS.md')).isFile()).toBe(true);
+    await expect(access('CLAUDE.md')).rejects.toThrow();
     expect(await readFile('.npmrc', 'utf8')).toContain('engine-strict=true');
   });
 
   it('keeps the acceptance checklist in docs/acceptance, not in tests', async () => {
-    for (const file of ['README.md', 'BACKLOG.md', 'CLAUDE.md'])
+    for (const file of ['README.md', 'BACKLOG.md', 'AGENTS.md'])
       expect(await readFile(file, 'utf8')).not.toContain(
         'tests/e2e/agent-cycle.md',
       );
