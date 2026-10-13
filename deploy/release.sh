@@ -44,8 +44,12 @@ say "release ${sha:0:7}: $(git log -1 --format=%s "$sha")"
 
 say "CI ($workflow)"
 # Draft PR runs skip every job and are not release evidence. Only main/tag pushes build images.
-run_id=$(gh run list --workflow "$workflow" --commit "$sha" --event push --limit 1 --json databaseId --jq '.[0].databaseId')
-[[ -n $run_id ]] || { printf 'No %s push run for %s yet: push first or wait for GitHub.\n' "$workflow" "$sha" >&2; exit 1; }
+run_id=$(gh run list --workflow "$workflow" --commit "$sha" --event push \
+  --limit 1 --json databaseId --jq '.[0].databaseId')
+[[ -n $run_id ]] || {
+  printf 'No %s push run for %s yet: push first or wait for GitHub.\n' "$workflow" "$sha" >&2
+  exit 1
+}
 state=$(gh run view "$run_id" --json status,conclusion --jq '.status + "/" + .conclusion')
 if [[ $state != completed/success ]]; then
   say "waiting for run $run_id ($state)"
