@@ -34,14 +34,20 @@
   Playwright, семь проектов на фиксированных портах; два прогона
   одновременно работают только в разных слотах портов
   (`TASKINDEX_E2E_SLOT=N` сдвигает все порты на N×450, README «Проверки»).
+  Новый проект Playwright вписать в `PROJECT_SERVER` (`tests/e2e/helpers.ts`)
+  и в матрицу e2e в `ci.yml` (сверяет `tests/cli/ci-workflow.test.ts`):
+  e2e-job в CI поднимает серверы только своих проектов
+  (`TASKINDEX_E2E_PROJECTS`).
 - CI (`.github/workflows/ci.yml`) запускается на PR, push в `main` и теги
   `v*`; ветка без PR не проверяется. Переменная репозитория `CI_POOL=pc`
   отправляет все jobs на раннеры на ПК владельца (`winpc-taskindex-N`, e2e
   в слоте портов N), иначе и при перезапуске прогона они идут на
   GitHub-hosted `ubuntu-24.04`. На ПК job `check` запускает те же части
   `npm run check` параллельно (`scripts/ci-parallel-check.mjs`, логи частей
-  группами в конце шага); новую часть или хук `check` вписать в `PARTS`
-  этого скрипта, иначе падает его тест, а на ПК `check` идёт по очереди.
+  в конце шага, упавшие развёрнуты); новую часть или хук `check` и любое
+  новое тело части, её хука (включая списки путей lint и format:check)
+  вписать в `PARTS`/`INNER` этого скрипта, иначе падает его тест, а на ПК
+  `check` идёт по очереди.
   На ПК e2e ставит браузеры без `--with-deps`:
   системные пакеты Playwright там ставит `ci-runners/winpc/root-setup.sh`
   под свою `PLAYWRIGHT_VERSION`; при смене версии `@playwright/test`
