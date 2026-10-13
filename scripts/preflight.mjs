@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // Проверка версии Node до тестов, dev, e2e и sandbox: под другой мажорной
 // версией нативный better-sqlite3 не загружается и падает без слов о версии.
-// Машинно-специфичные пути сюда не зашиваются; способ переключения в CLAUDE.md.
+// Машинно-специфичные пути сюда не зашиваются; способ переключения в AGENTS.md.
 import { readFileSync } from 'node:fs';
 import { pathToFileURL } from 'node:url';
 
