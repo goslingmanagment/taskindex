@@ -100,10 +100,11 @@ describe('night shift entry points', () => {
       { env },
     );
     const lines = stdout.trim().split('\n');
-    expect(lines[0]).toMatch(
+    expect(lines[0]).toBe('⚠️ Поломка · доска задач');
+    expect(lines[1]).toMatch(
       /^Ночная смена не отработала: taskindex snapshot: /,
     );
-    expect(lines[1]).toMatch(/^Предложения не получены: taskindex proposal: /);
-    expect(lines).toHaveLength(2);
+    expect(lines[2]).toMatch(/^Предложения не получены: taskindex proposal: /);
+    expect(lines).toHaveLength(3);
   });
 });
