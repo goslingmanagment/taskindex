@@ -198,7 +198,7 @@ describe('morning message: new tasks and changes', () => {
     // Delivery order is by rank; the message groups by kind, numbers stay.
     expect(morning({ deliver: deliver(shown.toReversed(), 3) })).toBe(
       [
-        'Предложения на 26.09 · 5 из 8',
+        '✅ Задачи · предложения на 26.09 · 5 из 8',
         '',
         'Новые задачи',
         '1. Ответить на 9 вопросов ревью TaskIndex',
@@ -274,7 +274,7 @@ describe('morning message: a new task shows everything «да» creates', () => 
     ];
     expect(morning({ deliver: deliver(shown, 0) })).toBe(
       [
-        'Предложения на 26.09 · 2 из 2',
+        '✅ Задачи · предложения на 26.09 · 2 из 2',
         '',
         'Новые задачи',
         '1. Отправить отчёт по трафику',
@@ -451,7 +451,7 @@ describe('morning message: board changes', () => {
     ];
     expect(morning({ deliver: deliver(shown, 0) })).toBe(
       [
-        'Предложения на 26.09 · 3 из 3',
+        '✅ Задачи · предложения на 26.09 · 3 из 3',
         '',
         'По доске',
         '1. «Сдать отчёт по трафику»: срок 20.09 → 02.10',
@@ -471,9 +471,9 @@ describe('morning message: silence and failures', () => {
     expect(morning({ deliver: deliver([], 4) })).toBe('NO_REPLY');
   });
 
-  it('opens with the failure line, even with nothing to show', () => {
+  it('opens with the rubric, the failure line follows it', () => {
     expect(morning({ deliver: deliver([], 0), lastRun: null })).toBe(
-      'Ночная смена не отработала: отчёта прогона нет',
+      '⚠️ Поломка · доска задач\nНочная смена не отработала: отчёта прогона нет',
     );
     expect(
       morning({
@@ -490,7 +490,7 @@ describe('morning message: silence and failures', () => {
         },
       }),
     ).toBe(
-      'Ночная смена не отработала: taskindex snapshot: Ключ агента не найден',
+      '⚠️ Поломка · доска задач\nНочная смена не отработала: taskindex snapshot: Ключ агента не найден',
     );
     counter = 0;
     const shown = [
@@ -514,9 +514,9 @@ describe('morning message: silence and failures', () => {
       }),
     ).toBe(
       [
-        'Ночная смена не отработала: последний прогон 25.09 в 04:31',
+        '✅ Задачи · предложения на 26.09 · 1 из 1',
         '',
-        'Предложения на 26.09 · 1 из 1',
+        'Ночная смена не отработала: последний прогон 25.09 в 04:31',
         '',
         'По доске',
         '1. «Стрижка в Барской 21.09»: в архив',
@@ -531,7 +531,7 @@ describe('morning message: silence and failures', () => {
         deliverError: 'taskindex proposal: Ключ агента не найден',
       }),
     ).toBe(
-      'Предложения не получены: taskindex proposal: Ключ агента не найден',
+      '⚠️ Поломка · доска задач\nПредложения не получены: taskindex proposal: Ключ агента не найден',
     );
   });
 });

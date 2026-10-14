@@ -258,6 +258,9 @@ function taskChangeLines(
   ];
 }
 
+const RUBRIC_TASKS = '✅ Задачи';
+const RUBRIC_BROKEN = '⚠️ Поломка · доска задач';
+
 export function formatMorning(input: MorningInput): string {
   const timezone = input.timezone ?? DEFAULT_TIMEZONE;
   const blocks: string[] = [];
@@ -266,16 +269,17 @@ export function formatMorning(input: MorningInput): string {
   if (failure) head.push(`Ночная смена не отработала: ${failure}`);
   if (input.deliverError)
     head.push(`Предложения не получены: ${input.deliverError}`);
-  if (head.length) blocks.push(head.join('\n'));
   const shown = (input.deliver?.shown ?? []).toSorted(
     (a, b) => (a.number ?? 0) - (b.number ?? 0),
   );
+  // The first line is the rubric: the owner tells Bobr's messages apart by it.
   if (input.deliver && shown.length) {
     blocks.push(
-      `Предложения на ${dayMonth(input.deliver.date)} · ${shown.length} из ${
-        shown.length + input.deliver.queued
-      }`,
+      `${RUBRIC_TASKS} · предложения на ${dayMonth(input.deliver.date)} · ${
+        shown.length
+      } из ${shown.length + input.deliver.queued}`,
     );
+    if (head.length) blocks.push(head.join('\n'));
     const created = shown.filter((proposal) => proposal.kind === 'new_task');
     const changes = shown.filter((proposal) => proposal.kind === 'task_change');
     if (created.length)
@@ -296,7 +300,7 @@ export function formatMorning(input: MorningInput): string {
           ),
         ].join('\n'),
       );
-  }
+  } else if (head.length) blocks.push([RUBRIC_BROKEN, ...head].join('\n'));
   return blocks.length ? blocks.join('\n\n') : SILENCE;
 }
 
