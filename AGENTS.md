@@ -29,8 +29,8 @@
   окружение»). `setup:dev` в основном чекауте не запускать: там живёт база
   владельца.
 - `npm run check` = typecheck, lint, unused-exports, format:check,
-  lint:shell, build, check:skin, test. Запускать перед каждым сообщением о
-  готовности; вывод ошибок и тестов приводить целиком. `npm run e2e`:
+  lint:shell, build, check:skin, test. Локально — только части, которые
+  задевает правка; полный прогон — в CI. `npm run e2e`:
   Playwright, семь проектов на фиксированных портах; два прогона
   одновременно работают только в разных слотах портов
   (`TASKINDEX_E2E_SLOT=N` сдвигает все порты на N×450, README «Проверки»).
@@ -55,9 +55,8 @@
   системные пакеты Playwright там ставит `ci-runners/winpc/root-setup.sh`
   под свою `PLAYWRIGHT_VERSION`; при смене версии `@playwright/test`
   поменять её там и прогнать `root-setup.sh` на winpc.
-- Каждый баг сначала получает регрессионный тест, который падает на текущем
-  коде; потом исправление. Тесты не мокают модули: реальные SQLite
-  `:memory:`, Hono `app.request`, Better Auth.
+- Баг чинится вместе с тестом, который его ловит. Тесты не мокают модули:
+  реальные SQLite `:memory:`, Hono `app.request`, Better Auth.
 
 ## Не трогать
 
