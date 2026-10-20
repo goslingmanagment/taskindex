@@ -38,7 +38,7 @@
 | FQ:§3, §9 | [TI-070](../../issues.md#ti-070) | `tests/e2e/setup.spec.ts`, `tests/e2e/visual.spec.ts` › «эталонные сцены снимаются на чистой базе и замороженных часах» (два прогона подряд дают равный `screenshots-sha256.json`) | 10, шаг 15 |
 | Astra S-05 | [TI-018](../../issues.md#ti-018) | `tests/e2e/webkit.spec.ts` (проекты `webkit` и `webkit-dark`) › вход и выход, создание, правка с переподключением SSE, черновик после перезагрузки, чеклист, комментарии, индикатор pending, тёмные board/editor/activity | 10, шаг 21; 08, шаг 17 |
 | FS:Q2 | [TI-069](../../issues.md#ti-069) | `tests/e2e/static.spec.ts`, `tests/e2e/static-server.ts` | 10 |
-| FI:A4, A5 | [TI-044](../../issues.md#ti-044) | `tests/cli/help.test.ts`, `tests/cli/docs.test.ts` | 03, 12 |
+| FI:A4, A5 | [TI-044](../../issues.md#ti-044) | `tests/cli/help.test.ts` | 03, 12 |
 | FI:A3, A8, B9 | [TI-046](../../issues.md#ti-046) | `tests/cli/cli.test.ts` › «TI-046…»; `tests/api/contract.test.ts` | 03, 04 |
 | FI:A6 | [TI-047](../../issues.md#ti-047) | `tests/cli/cursor.test.ts` | 03 |
 | FI:A7, A14 | [TI-048](../../issues.md#ti-048) | `tests/cli/cursor.test.ts` › «inbox: the owner comments addressed to this agent (TI-048)» | 03 |
