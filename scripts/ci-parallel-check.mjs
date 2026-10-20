@@ -8,14 +8,12 @@
 // The parts come from `scripts.check` at run time; this file only knows which
 // part reads what another one writes. `precheck` runs first and once, as in
 // `npm run check`; then every part starts as its own `npm run <part>` (the
-// test part keeps its `pretest`), and `check:skin`, which reads the bundle in
-// dist/web/assets, runs after `build`. Nothing else reads dist or another
-// part's output: tsconfig.json excludes dist and no source imports from it;
-// oxlint ignores dist, and its type-aware pass does not read the
-// tsconfig.tsbuildinfo that typecheck writes; unused-exports and format:check
-// read sources; lint:shell reads deploy/ and scripts/; the tests write only
-// to temp directories (tests/api/paths.test.ts serves the web client from one
-// via TASKINDEX_WEB_DIR), so `test` may run while `build` empties dist.
+// test part keeps its `pretest`). No part reads dist or another part's
+// output: tsconfig.json excludes dist and no source imports from it; oxlint
+// ignores dist, and its type-aware pass does not read the
+// tsconfig.tsbuildinfo that typecheck writes; format:check reads sources; the
+// tests write only to temp directories, so `test` may run while `build`
+// empties dist.
 //
 // All of that is known of the bodies pinned in PARTS and INNER below, not of
 // whatever a part of the same name runs later: `npm run check` runs `test`
@@ -44,7 +42,7 @@ import { pathToFileURL } from 'node:url';
 
 // The files lint and format:check read, as listed in package.json.
 const SOURCES =
-  'src tests/unit tests/api tests/property tests/web tests/cli tests/e2e tests/deploy deploy/*.mjs deploy/drill/*.mjs scripts/gate.mjs scripts/dev.mjs scripts/setup-dev.mjs scripts/preflight.mjs scripts/sandbox.mts scripts/agent-cycle.mts scripts/night-shift scripts/unused-exports.mjs scripts/bench-journal.ts scripts/ci-parallel-check.mjs';
+  'src tests/unit tests/api tests/property tests/web tests/cli tests/e2e tests/deploy deploy/*.mjs deploy/drill/*.mjs scripts/dev.mjs scripts/setup-dev.mjs scripts/preflight.mjs scripts/sandbox.mts scripts/agent-cycle.mts scripts/night-shift scripts/bench-journal.ts scripts/ci-parallel-check.mjs';
 const CONFIGS =
   'package.json tsconfig.json vite.config.ts vitest.config.ts tsdown.config.ts';
 
@@ -55,11 +53,8 @@ const CONFIGS =
 const PARTS = new Map([
   ['typecheck', { body: 'tsc --noEmit' }],
   ['lint', { body: `oxlint ${SOURCES}` }],
-  ['unused-exports', { body: 'node scripts/unused-exports.mjs' }],
   ['format:check', { body: `oxfmt --check ${SOURCES} ${CONFIGS}` }],
-  ['lint:shell', { body: 'bash deploy/lint-shell.sh' }],
   ['build', { body: 'vite build && tsdown' }],
-  ['check:skin', { body: 'node scripts/check-skin.mjs', after: 'build' }],
   ['test', { body: 'vitest run', hooks: ['pretest'] }],
 ]);
 

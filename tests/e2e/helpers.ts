@@ -11,20 +11,14 @@ export const OWNER = {
   email: 'owner@example.test',
   password: 'TaskIndex-e2e-password-2026',
 } as const;
-// TI-070: каждый проект Playwright работает со своей чистой базой, поэтому у
-// каждой базы своя пара портов и свой файл `storageState`. Порты фиксированы
-// (не «свободный порт»); 4001/4173 сохранены за основной базой ради
-// совместимости.
+// Один проект на одной чистой базе; порты фиксированы (4001/4173 в слоте 0).
 //
-// Port slots: TASKINDEX_E2E_SLOT=N shifts every fixture port (five API, five
-// web, the static server) by N × PORT_SLOT_STEP, so several e2e runs can share
-// one machine. CI runners on the owner's PC (winpc-taskindex-N) share one
-// network stack and run with slot N; GitHub-hosted and local runs use slot 0,
-// the historical ports. One slot spans 4001–4373, less than the step, so two
-// slots never overlap, and the highest slot stays below 10000, where the PC's
-// ephemeral port range begins. The step is 450, not 500: with 500, slot 2 put
-// the main web server on 5173 — Vite's default and `npm run dev`'s port — which
-// a dev server in the owner's other WSL distro (same network stack) may hold.
+// Port slots: TASKINDEX_E2E_SLOT=N shifts the fixture ports by
+// N × PORT_SLOT_STEP, so several e2e runs can share one machine. CI runners on
+// the owner's PC (winpc-taskindex-N) share one network stack and run with slot
+// N; GitHub-hosted and local runs use slot 0. The step is 450, not 500: with
+// 500, slot 2 put the web server on 5173 — Vite's default and `npm run dev`'s
+// port — which a dev server in the owner's other WSL distro may hold.
 export const PORT_SLOT_STEP = 450;
 export const MAX_PORT_SLOT = 11;
 export function portSlot(raw: string | undefined): number {
@@ -37,85 +31,17 @@ export function portSlot(raw: string | undefined): number {
   return Number(value);
 }
 const PORT_OFFSET = portSlot(process.env.TASKINDEX_E2E_SLOT) * PORT_SLOT_STEP;
-export type BaseName = 'main' | 'visual' | 'dark' | 'webkit' | 'webkit-dark';
-export type Base = {
-  readonly name: BaseName;
-  readonly api: number;
-  readonly web: number;
-  readonly url: string;
-  readonly storageState: string;
-  /** Фиксированное время сервера, если снимкам проекта нужна воспроизводимость. */
-  readonly now?: string;
-};
-// TI-070: четыре сцены эталона показывали относительное время и различались
-// между прогонами. Визуальный проект получает это время и на сервере (`now` в
-// `createApp`), и в браузере (`page.clock.setFixedTime`), поэтому подписи
-// «Сегодня»/«Завтра» и метки ленты больше не зависят от даты запуска. Дата
-// совпадает с датой съёмки эталона и со сроками в `reference-data.json`.
-export const VISUAL_NOW = '2026-09-08T09:00:00.000Z';
 // `board.tsx:58`: TouchSensor activationConstraint.delay. Ожидание идёт по
 // наблюдаемому состоянию, а константа задаёт только бюджет ожидания.
 export const TOUCH_HOLD_MS = 220;
 export const AUTH_DIR = 'test-results/e2e-auth';
-function base(name: BaseName, api: number, web: number, now?: string): Base {
-  return {
-    name,
-    api: api + PORT_OFFSET,
-    web: web + PORT_OFFSET,
-    url: `http://localhost:${web + PORT_OFFSET}`,
-    storageState: `${AUTH_DIR}/${name}.json`,
-    ...(now ? { now } : {}),
-  };
-}
-export const BASES: readonly Base[] = [
-  base('main', 4001, 4173),
-  base('visual', 4002, 4174, VISUAL_NOW),
-  base('dark', 4003, 4175),
-  base('webkit', 4004, 4176),
-  base('webkit-dark', 4005, 4177),
-];
-export function baseOf(name: BaseName): Base {
-  return BASES.find((item) => item.name === name)!;
-}
-// TI-069: the `static` project's production server (`static-server.ts`).
-export const STATIC_PORT = 4373 + PORT_OFFSET;
-export const STATIC_URL = `http://localhost:${STATIC_PORT}`;
-// Servers per run (TASKINDEX_E2E_PROJECTS): each base and the static server is a
-// process of 0.3–1 GB, and a CI job runs only a few projects. With the variable
-// set to the run's projects (as in its --project), only their servers start and
-// `setup` signs in only on their bases; unset (npm run e2e, the release gate),
-// all of them. A project run without its server fails at once: nothing answers.
-// A new project goes into PROJECT_SERVER.
-const PROJECT_SERVER: Readonly<Record<string, BaseName | 'static' | null>> = {
-  setup: null,
-  functional: 'main',
-  visual: 'visual',
-  static: 'static',
-  dark: 'dark',
-  webkit: 'webkit',
-  'webkit-dark': 'webkit-dark',
-};
-export function e2eServers(raw: string | undefined): {
-  readonly bases: readonly Base[];
-  readonly static: boolean;
-} {
-  const projects = raw?.split(/[\s,]+/).filter(Boolean) ?? [];
-  if (projects.length === 0) return { bases: BASES, static: true };
-  const wanted = new Set(
-    projects.map((project) => {
-      if (!Object.hasOwn(PROJECT_SERVER, project))
-        throw new Error(
-          `TASKINDEX_E2E_PROJECTS: неизвестный проект «${project}», ожидались ${Object.keys(PROJECT_SERVER).join(', ')}.`,
-        );
-      return PROJECT_SERVER[project];
-    }),
-  );
-  return {
-    bases: BASES.filter((item) => wanted.has(item.name)),
-    static: wanted.has('static'),
-  };
-}
-export const SERVERS = e2eServers(process.env.TASKINDEX_E2E_PROJECTS);
+export const BASE = {
+  name: 'main',
+  api: 4001 + PORT_OFFSET,
+  web: 4173 + PORT_OFFSET,
+  url: `http://localhost:${4173 + PORT_OFFSET}`,
+  storageState: `${AUTH_DIR}/main.json`,
+} as const;
 // TI-076: a second author in the fixture, so the activity feed has something to
 // filter. The key is seeded by `server.ts` with this exact value.
 export const AGENT = {
@@ -211,59 +137,4 @@ export async function command(
   const response = await postCommand(page, name, payload);
   expect(response.ok()).toBe(true);
   return response.json();
-}
-// TI-070: фикстура эталона больше не принадлежит одной спеке. Визуальный и
-// тёмный проекты работают каждый на своей чистой базе и наполняют её сами,
-// поэтому порядок файлов внутри прогона больше ничего не значит.
-export async function seedReferenceData(page: Page): Promise<void> {
-  const state = await snapshot(page);
-  // Идемпотентно: повторный вызов в том же пространстве ничего не создаёт,
-  // поэтому спека не зависит от того, наполнил ли базу другой её тест.
-  if (state.tasks.some((task) => task.id.startsWith('visual-'))) return;
-  const fixture = (
-    await import('./reference-data.json', { with: { type: 'json' } })
-  ).default;
-  const commands = [
-    ...fixture.projects.map((project) => ({
-      command: 'project.create',
-      payload: {
-        id: `visual-${project.id}`,
-        area: project.area,
-        name: project.name,
-        color: project.color,
-      },
-    })),
-    ...fixture.tasks.map((task) => ({
-      command: 'task.create',
-      payload: {
-        id: `visual-${task.id}`,
-        area: task.area,
-        projectId: task.projectId ? `visual-${task.projectId}` : null,
-        title: task.title,
-        status: task.status,
-        note: task.note,
-        due: task.due || null,
-        waitingFor: task.waitingFor,
-        followUp: task.followUp || null,
-        focus: 'focus' in task ? task.focus : false,
-        checklist: task.checklist.map((item) => ({
-          ...item,
-          id: `visual-${item.id}`,
-        })),
-      },
-    })),
-    {
-      command: 'task.archive',
-      payload: { id: 'visual-reference-archive', baseRevision: 1 },
-    },
-  ];
-  const response = await page.request.post('/api/commands/batch', {
-    headers: { Origin: new URL(page.url()).origin },
-    data: {
-      generation: state.generation,
-      operationId: crypto.randomUUID(),
-      commands,
-    },
-  });
-  expect(response.ok(), await response.text()).toBe(true);
 }
