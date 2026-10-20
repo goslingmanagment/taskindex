@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { fixture, success } from './helpers.js';
 import { openDatabase, migrate, readOperations } from '../../src/server/db.js';
 import { exportWorkspace, importWorkspace } from '../../src/server/admin.js';
+import { LIMITS } from '../../src/shared/limits.js';
 import type { OperationError } from '../../src/shared/model.js';
 type Summary = { id: string; operationSeq: number; lastSeq: number | null };
 type Page = { items: Summary[]; more: boolean; nextCursor: string | null };
@@ -246,7 +247,7 @@ describe('TI-008 operation journal cursor', () => {
   });
 });
 describe('TI-009 domain rejections after the envelope is accepted are stored', () => {
-  const hundred = Array.from({ length: 100 }, (_, i) => ({
+  const hundred = Array.from({ length: LIMITS.checklistItems }, (_, i) => ({
     id: `step-${i}`,
     text: `Step ${i}`,
     done: false,
@@ -269,7 +270,7 @@ describe('TI-009 domain rejections after the envelope is accepted are stored', (
       payload: {
         taskId: 'checklist-limit',
         baseRevision: 1,
-        id: 'step-101',
+        id: 'step-over-limit',
         text: 'Exceeds limit',
       },
     };
@@ -306,7 +307,7 @@ describe('TI-009 domain rejections after the envelope is accepted are stored', (
     );
     expect(reused.status).toBe(409);
     expect((reused.body as OperationError).code).toBe('operation_mismatch');
-    expect(f.state().tasks[0]!.checklist).toHaveLength(100);
+    expect(f.state().tasks[0]!.checklist).toHaveLength(LIMITS.checklistItems);
     expect(f.state().tasks[0]!.title).toBe('Checklist limit');
     f.close();
   });
