@@ -3,77 +3,54 @@
 Личная доска задач одного владельца. Операторы продукта: ИИ-агенты через CLI
 `taskindex` и HTTP API с ключами агентов (scope `read` | `tasks` | `write`);
 владелец работает в браузере. Этот файл для агентов, которые меняют код;
-правила агента-оператора: `skills/taskindex/SKILL.md`.
-
-## Где правда
-
-- `ROADMAP.md`: текущая волна и статусы; спека владельческого сценария:
-  `docs/specs/2026-09-12-owner-workflow.md`. Объём и решения v2:
-  `docs/plans/2026-09-08-taskindex-v2.md`. Отложенное: `BACKLOG.md`.
-- `issues.md`: единственный реестр карточек `TI-NNN` (статус, критерий
-  закрытия, решение владельца; P1 до рабочего запуска, P2 дефекты и риски,
-  P3 улучшения). Карточка нужна только дефекту с воспроизведением или
-  решению владельца, которое надо помнить; мелочь описывает сообщение
-  коммита. Если карточка есть: прочитать целиком до исправления, после
-  обновить статус с revision и названием теста.
-- Планы после ревью: `docs/plans/2026-09-08-v2-review/` (README и
-  ASTRA-INDEX). Расходится план с кодом: верить коду, дописать в план одну
-  датированную строку.
-- `README.md`: стек и карта кода, локальный запуск, sandbox, стили,
-  проверки. `deploy/README.md`: деплой и восстановление.
+правила агента-оператора: `skills/taskindex/SKILL.md`. Стек, карта кода,
+запуск, стили и проверки — `README.md`; деплой и восстановление —
+`deploy/README.md`.
 
 ## Окружение и проверки
 
-- Node 26.7.0 (`.node-version`), `npm ci`. Все проверки CLI и API только в
-  одноразовом sandbox: `eval "$(npm run -s sandbox)"` (README «Одноразовое
-  окружение»). `setup:dev` в основном чекауте не запускать: там живёт база
-  владельца.
-- `npm run check` = typecheck, lint, unused-exports, format:check,
-  lint:shell, build, check:skin, test. Локально — только части, которые
-  задевает правка; полный прогон — в CI. `npm run e2e`:
-  Playwright, семь проектов на фиксированных портах; два прогона
-  одновременно работают только в разных слотах портов
-  (`TASKINDEX_E2E_SLOT=N` сдвигает все порты на N×450, README «Проверки»).
-  Новый проект Playwright вписать в `PROJECT_SERVER` (`tests/e2e/helpers.ts`)
-  и в матрицу e2e в `ci.yml` (сверяет `tests/cli/ci-workflow.test.ts`):
-  e2e-job в CI поднимает серверы только своих проектов
-  (`TASKINDEX_E2E_PROJECTS`).
-- CI (`.github/workflows/ci.yml`): Draft PR пропускает check/e2e, переход
-  в Ready запускает их; возврат в Draft отменяет прежний PR-прогон.
-  Push в `main` и теги `v*` проверяются как обычно; ветка без PR не
-  проверяется. Для релиза нужен зелёный push-прогон, пропущенный Draft
-  его не заменяет. Переменная репозитория `CI_POOL=pc`
-  отправляет все jobs на раннеры на ПК владельца (`winpc-taskindex-N`, e2e
-  в слоте портов N), иначе и при перезапуске прогона они идут на
-  GitHub-hosted `ubuntu-24.04`. На ПК job `check` запускает те же части
-  `npm run check` параллельно (`scripts/ci-parallel-check.mjs`, логи частей
-  в конце шага, упавшие развёрнуты); новую часть или хук `check` и любое
-  новое тело части, её хука (включая списки путей lint и format:check)
-  вписать в `PARTS`/`INNER` этого скрипта, иначе падает его тест, а на ПК
-  `check` идёт по очереди.
-  На ПК e2e ставит браузеры без `--with-deps`:
-  системные пакеты Playwright там ставит `ci-runners/winpc/root-setup.sh`
-  под свою `PLAYWRIGHT_VERSION`; при смене версии `@playwright/test`
-  поменять её там и прогнать `root-setup.sh` на winpc.
-- Баг чинится вместе с тестом, который его ловит. Тесты не мокают модули:
-  реальные SQLite `:memory:`, Hono `app.request`, Better Auth.
+- Node 26.7.0 (`.node-version`; `fnm use` / `nvm use`), `npm ci`. CLI и API
+  проверять только в одноразовом sandbox: `eval "$(npm run -s sandbox)"`.
+  `setup:dev` в основном чекауте не запускать: там живёт база владельца.
+- Локально — typecheck, lint и тесты затронутого. Полный `npm run check`
+  (typecheck, lint, unused-exports, format:check, lint:shell, build,
+  check:skin, test) и e2e гоняет CI на Ready PR, push в `main` и теги `v*`.
+- `npm run e2e` — Playwright на фиксированных портах; два прогона
+  одновременно — только в разных слотах (`TASKINDEX_E2E_SLOT=N`). Новый
+  проект Playwright вписать в `PROJECT_SERVER` (`tests/e2e/helpers.ts`) и в
+  матрицу e2e в `ci.yml`.
+- `CI_POOL=pc` отправляет jobs на раннеры ПК владельца
+  (`winpc-taskindex-N`); там `check` идёт по частям через
+  `scripts/ci-parallel-check.mjs`. При смене версии `@playwright/test`
+  поменять `PLAYWRIGHT_VERSION` в `ci-runners/winpc/root-setup.sh` и
+  прогнать его на winpc.
+- Тесты не мокают модули: реальные SQLite `:memory:`, Hono `app.request`,
+  Better Auth.
+
+## Деплой
+
+`bash deploy/release.sh COMMIT` из основного чекаута (коммит в
+`origin/main` и зелёный push-прогон CI; пропущенный Draft его не заменяет).
+Агент деплоит сам после слияния своей работы; откат, восстановление и
+любые действия с данными прода — только по поручению владельца.
 
 ## Не трогать
 
 - `data/` (база владельца), `.env`, `deploy/.runtime/`, `dist/`,
   `test-results/`, `playwright-report/`.
 - Применённые миграции `drizzle/v2/*.sql`: сервер сверяет контрольные
-  суммы, новая схема это новая миграция; `drizzle/v2/meta/*` генерирует
-  `npm run db:generate`. Приложение миграции при старте не выполняет.
-- `docs/reference/**` и `docs/audits/**`: только чтение.
-- `issues.md` правит только тот, кто закрывает карточку, и только статусы.
+  суммы; новая схема — новая миграция (`src/server/schema.ts` →
+  `npm run db:generate` → прочитать SQL → тест
+  `tests/api/migrations.test.ts`). Приложение миграции при старте не
+  выполняет.
+- `docs/reference/**`, `docs/audits/**` и замороженный `issues.md` (реестр
+  TI-NNN): только чтение. Трекер — сама доска.
 - Никаких вызовов `op` из тестов и скриптов проверки.
 
-## Соглашения
+## Соглашения и подводные камни
 
 - Идентификаторы, комментарии и названия тестов на английском; UI, ошибки,
-  `.describe()`, документация и коммиты на русском. Первая строка коммита
-  говорит, что изменилось; `TI-NNN` в начале только когда карточка есть.
+  `.describe()`, документация и коммиты на русском.
 - Ошибки только через `fail()`/`DomainError`; конверт
   `{ok:false, code, message, retryable}`. Все записи домена через
   `executeOperation`; admin пишет в базу только при остановленном
@@ -82,24 +59,12 @@
   обязателен и повторяется без изменений; конверт удаляется только после
   подтверждённого исхода (`src/cli/acknowledge.ts`).
 - Границы: `src/shared` без `node:` и DOM; `src/cli/client.ts` не
-  импортирует сервер; `src/cli/admin-run.ts` единственный файл CLI с
+  импортирует сервер; `src/cli/admin-run.ts` — единственный файл CLI с
   импортами из `src/server`.
-- Стили: три слоя (токены `src/web/tokens.css`, примитивы `src/web/ui`,
-  скин `src/web/skin/*.css` только через `var(--…)`, без `!important`);
-  гейт `npm run check:skin`; правила в README «Стили».
+- Стили: токены `src/web/tokens.css`, примитивы `src/web/ui`, скин
+  `src/web/skin/*.css` только через `var(--…)`, без `!important`; гейт
+  `npm run check:skin`.
 - Новая команда: payload в `src/shared/schemas.ts` → ветка `applyCommand` →
-  `WRITE_COMMANDS` в `src/cli/spec.ts` → SKILL.md → тесты; полный чек-лист:
-  `docs/plans/2026-09-08-v2-review/04-api-contract-and-schemas.md` §3.8.
-  Новый GET-маршрут: `src/server/routes/*.ts`, схема ответа в
-  `src/shared/domain-schemas.ts`, запись в `READS` в `src/cli/spec.ts`.
-  Новая миграция: `src/server/schema.ts` → `npm run db:generate` →
-  прочитать SQL → тест `tests/api/migrations.test.ts`.
-
-## Деплой
-
-`bash deploy/release.sh COMMIT` из основного чекаута (нужны коммит в
-`origin/main` и зелёный CI); подробности в `deploy/README.md` «Следующий
-релиз». По слову владельца 2026-09-15 агент запускает деплой сам после
-слияния в `main` и зелёного CI; откат, восстановление и любые действия с
-данными прода только по явному поручению. Это постоянное поручение не
-действует в задачах, где владелец запретил деплой или изменения прода.
+  `WRITE_COMMANDS` в `src/cli/spec.ts` → SKILL.md → тесты. Новый GET:
+  `src/server/routes/*.ts`, схема ответа в `src/shared/domain-schemas.ts`,
+  запись в `READS` в `src/cli/spec.ts`.
