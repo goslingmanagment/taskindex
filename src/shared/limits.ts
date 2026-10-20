@@ -3,18 +3,18 @@
 // retries) are not domain limits and stay where they are used.
 export const LIMITS = {
   id: 80,
-  taskTitle: 240,
-  taskNote: 16000,
-  taskLabels: 8,
-  // The label catalogue (0007): a cap keeps it a set the owner can hold in
-  // mind; archived labels do not count.
-  labels: 24,
+  taskTitle: 2400,
+  taskNote: 160000,
+  taskLabels: 100,
+  // The label catalogue (0007): only a runaway-agent guard; archived labels
+  // do not count.
+  labels: 500,
   labelName: 30,
   labelDescription: 200,
   closes: 80,
   waitingFor: 240,
   checklistText: 500,
-  checklistItems: 100,
+  checklistItems: 1000,
   // The outcome of a step (TI-095): what came out, a link to a PR or a file.
   stepResult: 1000,
   originSystem: 40,
@@ -23,7 +23,7 @@ export const LIMITS = {
   originVersion: 120,
   projectName: 60,
   projectDescription: 500,
-  commentText: 4000,
+  commentText: 40000,
   agentLabel: 100,
   batchCommands: 100,
   pageSize: 500,
