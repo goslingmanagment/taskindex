@@ -5,17 +5,9 @@
 # scripts/ci-parallel-check.mjs), e2e (смоук основных сценариев на chromium) и image после check.
 # release.sh ждёт зелёный прогон целиком.
 #
-# Пул машин: целевой — GitHub-hosted ubuntu-24.04 (4 vCPU, бесплатно для публичной репы).
-# Переменная репозитория CI_POOL=pc отправляет первую попытку на self-hosted раннеры на ПК
-# владельца (winpc-taskindex-N, метка ci-pc), любое другое значение или её отсутствие — на
-# GitHub-hosted. Повторный запуск (run_attempt > 1) всегда идёт на GitHub: ПК мог умереть посреди
-# прогона. PR из форка на ПК не идёт никогда, что бы ни стояло в CI_POOL: чужой код не должен
-# исполняться на машине владельца. Это только первая защита (форк может поправить этот файл в своём
-# PR); настоящая — ни одного self-hosted раннера у публичной репы.
-# Раннеры ПК делят один $HOME (кэш npm ~/.npm и браузеры Playwright ~/.cache/ms-playwright живут
-# там между прогонами, кэш actions не нужен), один сетевой стек (e2e раннера N работает в слоте
-# портов N, TASKINDEX_E2E_SLOT в tests/e2e/helpers.ts) и rootless Docker; sudo у них нет:
-# системные пакеты Playwright ставит root-setup.sh в 6-infra/ci-runners.
+# Раннеры: только GitHub-hosted ubuntu-24.04 (владелец, 2026-10-21) — репа публичная, раннеры
+# бесплатны, а публичная репа никогда не должна попадать на ПК владельца: ни одна job не называет
+# self-hosted метку, и ни один self-hosted раннер у репы не зарегистрирован.
 #
 # PR, который меняет только документы (*.md где угодно, docs/**), ничего не проверяет: каждая job
 # видит это вторым шагом и завершается зелёной за секунды, обязательные проверки отчитываются
@@ -48,7 +40,7 @@ jobs:
   check:
     # Draft не занимает раннер; Ready запускает проверки, возврат в Draft отменяет старый прогон.
     if: github.event_name != 'pull_request' || github.event.pull_request.draft == false
-    runs-on: ${{ vars.CI_POOL == 'pc' && github.run_attempt == '1' && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository) && fromJSON('["self-hosted","ci-pc"]') || 'ubuntu-24.04' }}
+    runs-on: ubuntu-24.04
     timeout-minutes: 20
     steps:
       # Два коммита: у PR — merge-коммит GitHub и его первый родитель, вершина базы.
@@ -77,20 +69,19 @@ jobs:
         if: steps.scope.outputs.run != 'false'
         with:
           node-version-file: .node-version
-          # Кэш npm из actions только на GitHub-hosted: на ПК ~/.npm общий и постоянный.
-          cache: ${{ runner.environment == 'github-hosted' && 'npm' || '' }}
+          cache: npm
       - if: steps.scope.outputs.run != 'false'
         run: npm ci
-      # check = typecheck + lint + format:check + build + vitest; части идут параллельно
+      # check = typecheck + lint + format:check + build + vitest; части идут параллельно на 4 vCPU
       # (precheck первым), логи частей в конце, зелёные свёрнуты в группы; незнакомый скрипту
-      # состав check или тело части идёт обычным npm run check. На ПК и на 4 vCPU GitHub одинаково.
+      # состав check или тело части идёт обычным npm run check.
       # exec: сигнал отмены раннер шлёт только процессу шага — скрипт гасит части и печатает их логи.
       - if: steps.scope.outputs.run != 'false'
         run: exec node scripts/ci-parallel-check.mjs
   e2e:
     if: github.event_name != 'pull_request' || github.event.pull_request.draft == false
     name: e2e (functional-1)
-    runs-on: ${{ vars.CI_POOL == 'pc' && github.run_attempt == '1' && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository) && fromJSON('["self-hosted","ci-pc"]') || 'ubuntu-24.04' }}
+    runs-on: ubuntu-24.04
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v5
@@ -117,30 +108,23 @@ jobs:
         if: steps.scope.outputs.run != 'false'
         with:
           node-version-file: .node-version
-          cache: ${{ runner.environment == 'github-hosted' && 'npm' || '' }}
+          cache: npm
       - if: steps.scope.outputs.run != 'false'
         run: npm ci
-      # GitHub-hosted: браузер кэшируется по версии Playwright, системные пакеты ставит --with-deps.
+      # Браузер кэшируется по версии Playwright, системные пакеты ставит --with-deps.
       - id: playwright
-        if: steps.scope.outputs.run != 'false' && runner.environment == 'github-hosted'
+        if: steps.scope.outputs.run != 'false'
         run: echo "version=$(node -p "require('@playwright/test/package.json').version")" >> "$GITHUB_OUTPUT"
       - uses: actions/cache@v4
-        if: steps.scope.outputs.run != 'false' && runner.environment == 'github-hosted'
+        if: steps.scope.outputs.run != 'false'
         with:
           path: ~/.cache/ms-playwright
           key: playwright-${{ runner.os }}-${{ steps.playwright.outputs.version }}-chromium
-      - if: steps.scope.outputs.run != 'false' && runner.environment == 'github-hosted'
-        run: npx playwright install --with-deps chromium
-      # ПК: системные пакеты уже стоят (sudo нет), браузеры лежат в общем ~/.cache/ms-playwright;
-      # одновременные установки Playwright сериализует блокировкой __dirlock в этом каталоге.
-      - if: steps.scope.outputs.run != 'false' && runner.environment == 'self-hosted'
-        run: npx playwright install chromium
-      # Раннер winpc-taskindex-N берёт слот портов N; GitHub-hosted — слот 0, исходные порты.
       - if: steps.scope.outputs.run != 'false'
-        run: |
-          if [ "$RUNNER_ENVIRONMENT" = self-hosted ]; then export TASKINDEX_E2E_SLOT="${RUNNER_NAME##*-}"; fi
-          echo "$RUNNER_NAME: TASKINDEX_E2E_SLOT=${TASKINDEX_E2E_SLOT:-0}"
-          npm run e2e
+        run: npx playwright install --with-deps chromium
+      # Свой раннер на job: слот портов 0, исходные порты (TASKINDEX_E2E_SLOT в tests/e2e/helpers.ts).
+      - if: steps.scope.outputs.run != 'false'
+        run: npm run e2e
       - uses: actions/upload-artifact@v7
         if: always() && steps.scope.outputs.run != 'false'
         with:
@@ -153,7 +137,7 @@ jobs:
   image:
     needs: check
     if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/'))
-    runs-on: ${{ vars.CI_POOL == 'pc' && github.run_attempt == '1' && fromJSON('["self-hosted","ci-pc"]') || 'ubuntu-24.04' }}
+    runs-on: ubuntu-24.04
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v5
@@ -179,7 +163,3 @@ jobs:
           overwrite: true
           # release.sh сначала берёт образ, уже загруженный на VPS; архив нужен только для новых релизов.
           retention-days: 7
-      # ПК: образ уже в архиве, в общем rootless Docker остаются только слои кэша сборки.
-      - name: Remove the image from the shared Docker
-        if: always() && runner.environment == 'self-hosted'
-        run: docker image rm "taskindex:${GITHUB_SHA}" >/dev/null 2>&1 || true
