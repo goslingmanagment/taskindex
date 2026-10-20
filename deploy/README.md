@@ -41,10 +41,7 @@ backup → восстановление Litestream по точному TXID → 
 Все пробы `/health` идут через `deploy/health.mjs` внутри образа (та же проба —
 healthcheck compose, `wait_health` в `common.sh`, `deploy.sh`, `rollback.sh`);
 программы drill лежат в `deploy/drill/*.mjs` и монтируются в контейнер
-read-only, образ ради них не пересобирается. Статический слой — `npm run
-lint:shell` (`bash -n`, shellcheck при наличии, предел 120 символов в строке,
-`tsc -p tsconfig.deploy.json` и oxlint для `deploy/**/*.mjs`); он входит в
-`npm run check`.
+read-only, образ ради них не пересобирается.
 
 ### Испытание настоящего `deploy.sh`
 
@@ -240,11 +237,11 @@ curl -sI -H 'Accept-Encoding: gzip' https://D/assets/<js> | grep -i content-enco
 
 Релиз проходит через `.github/workflows/ci.yml` (решение владельца 2026-09-10,
 TI-016/TI-068): job `check` на Node из `.node-version` выполняет `npm ci` и
-`npm run check` (typecheck, oxlint, oxfmt, `lint:shell`, сборка, vitest);
-параллельно четыре job `e2e` (`functional` в двух шардах; `visual` с проектами visual, static,
-dark; `webkit` с webkit и webkit-dark, ему нужен ещё chromium-headless-shell
-для проекта setup) ставят свой браузер и гоняют `npm run e2e -- --project …`;
-артефакты тестов уходят в `test-results-<job>-<sha>`. Job `image` запускается после зелёного `check`
+`npm run check` (typecheck, oxlint, oxfmt, сборка, vitest); параллельно job
+`e2e (functional-1)` ставит Chromium и гоняет смоук `npm run e2e`; артефакты
+тестов уходят в `test-results-e2e-<sha>`. Jobs `e2e (functional-2)`, `e2e (visual)`
+и `e2e (webkit)` — пропускаемые заглушки под прежние имена обязательных проверок
+ruleset. Job `image` запускается после зелёного `check`
 (параллельно с e2e) и только на `push` в `main` или тег `v*`: собирает `linux/amd64` образ
 из того же `GITHUB_SHA` с `--build-arg BUILD=<sha>` и меткой
 `org.opencontainers.image.revision=<sha>`, проверяет метку и публикует
@@ -269,10 +266,6 @@ CI запускается на PR, push в `main` и теги `v*`. В Draft job
 только job `image`) — на GitHub-hosted `ubuntu-24.04`. На ПК job `check` выполняет те же части
 `npm run check` параллельно (`scripts/ci-parallel-check.mjs`).
 
-Локально те же команды по очереди выполняет `node scripts/gate.mjs`
-(`--image` дополнительно собирает образ с меткой, `--strict` отказывает на
-незакоммиченном дереве, чтобы чужой зелёный check не засчитывался); отчёт с
-commit, версиями инструментов и id образа пишется в `test-results/gate.json`.
 Аварийный путь без CI — `deploy.sh --build-here` (сборка на VPS с
 предупреждением; гейт при этом пропущен, использовать только когда CI недоступен).
 

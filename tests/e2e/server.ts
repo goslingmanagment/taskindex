@@ -11,15 +11,10 @@ import * as schema from '../../src/server/schema';
 import { AGENT } from './helpers';
 import { createApp } from '../../src/server/app';
 // This fixture is a separate real SQLite database and uses real owner auth.
-// TI-070: ports, the fixture name and the frozen clock come from the
-// environment, so `playwright.config.ts` can start one such server per project
-// and no project ever sees another project's records.
+// Ports and the fixture name come from the environment (`playwright.config.ts`).
 const name = process.env.TASKINDEX_E2E_BASE ?? 'main';
 const apiPort = Number(process.env.TASKINDEX_E2E_API_PORT ?? 4001);
 const webPort = Number(process.env.TASKINDEX_E2E_WEB_PORT ?? 4173);
-// An ISO instant here freezes every `createdAt` the domain writes, so scenes
-// with a time label render the same on two runs in a row.
-const frozen = process.env.TASKINDEX_E2E_NOW?.trim();
 const dir = mkdtempSync(join(tmpdir(), `taskindex-e2e-${name}-`));
 const db = openDatabase(join(dir, 'workspace.db'));
 migrate(db);
@@ -54,7 +49,6 @@ const app = createApp({
   baseURL: origin,
   trustedOrigins: [origin],
   build: 'isolated-e2e',
-  ...(frozen ? { now: () => frozen } : {}),
 });
 const server = serve({
   fetch: app.fetch,
@@ -79,8 +73,7 @@ const vite = await createServer({
 });
 await vite.listen();
 console.log(
-  `E2E fixture «${name}» ready at ${origin}; isolated database ${dir}` +
-    (frozen ? `; frozen clock ${frozen}` : ''),
+  `E2E fixture «${name}» ready at ${origin}; isolated database ${dir}`,
 );
 let stopping = false;
 async function stop() {

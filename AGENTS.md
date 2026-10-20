@@ -13,12 +13,14 @@
   проверять только в одноразовом sandbox: `eval "$(npm run -s sandbox)"`.
   `setup:dev` в основном чекауте не запускать: там живёт база владельца.
 - Локально — typecheck, lint и тесты затронутого. Полный `npm run check`
-  (typecheck, lint, unused-exports, format:check, lint:shell, build,
-  check:skin, test) и e2e гоняет CI на Ready PR, push в `main` и теги `v*`.
-- `npm run e2e` — Playwright на фиксированных портах; два прогона
-  одновременно — только в разных слотах (`TASKINDEX_E2E_SLOT=N`). Новый
-  проект Playwright вписать в `PROJECT_SERVER` (`tests/e2e/helpers.ts`) и в
-  матрицу e2e в `ci.yml`.
+  (typecheck, lint, format:check, build, test) и e2e гоняет CI на Ready PR,
+  push в `main` и теги `v*`.
+- Тесты — только там, где ошибка стоит данных владельца или доступа:
+  команды и инварианты домена, вход и ключи агентов, миграции и бэкапы,
+  идемпотентность CLI, черновики и порядок записей в браузере. Тестов на
+  UI, тексты и проводку не писать.
+- `npm run e2e` — смоук основных сценариев на Chromium, фиксированные порты;
+  два прогона одновременно — только в разных слотах (`TASKINDEX_E2E_SLOT=N`).
 - `CI_POOL=pc` отправляет jobs на раннеры ПК владельца
   (`winpc-taskindex-N`); там `check` идёт по частям через
   `scripts/ci-parallel-check.mjs`. При смене версии `@playwright/test`
@@ -63,8 +65,7 @@
   импортирует сервер; `src/cli/admin-run.ts` — единственный файл CLI с
   импортами из `src/server`.
 - Стили: токены `src/web/tokens.css`, примитивы `src/web/ui`, скин
-  `src/web/skin/*.css` только через `var(--…)`, без `!important`; гейт
-  `npm run check:skin`.
+  `src/web/skin/*.css` через `var(--…)`.
 - Новая команда: payload в `src/shared/schemas.ts` → ветка `applyCommand` →
   `WRITE_COMMANDS` в `src/cli/spec.ts` → SKILL.md → тесты. Новый GET:
   `src/server/routes/*.ts`, схема ответа в `src/shared/domain-schemas.ts`,

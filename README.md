@@ -208,16 +208,8 @@ CLI сохраняет конверт до отправки в
 Новый экран — новый файл и новая строка импорта; цвета только токенами, при
 нехватке роли токен добавляется в `tokens.css`.
 
-Гейт скина — `npm run check:skin` (`scripts/check-skin.mjs`), он входит в
-`npm run check` и запускается отдельно, пока правится CSS: ни одного литерала
-цвета вне `tokens.css`, ни одного `!important`, ни одного селектора внутрь
-примитива мимо `data-slot`/`data-sidebar`, контраст пар токенов по WCAG 2.2 в
-светлой и тёмной теме. Обновление примитива: `npx shadcn@latest add <компонент>`,
-затем проверить, что `data-slot`, на которые опирается скин, не изменились, и
-прогнать e2e-проекты `static` и `dark`.
-
-Тёмная тема и скины проверяются не только в Chromium: движок WebKit ставится
-отдельно (`npx playwright install webkit`), физическая приёмка на телефоне
+Обновление примитива: `npx shadcn@latest add <компонент>`, затем проверить, что
+`data-slot`, на которые опирается скин, не изменились. Приёмка на телефоне
 описана в [docs/acceptance/phone.md](docs/acceptance/phone.md) (TI-018, TI-034).
 
 ## Проверки
@@ -226,52 +218,29 @@ CLI сохраняет конверт до отправки в
 npm run check
 npm run build
 npx playwright install chromium
-npx playwright install webkit
 npm run e2e
-node scripts/gate.mjs
 bash deploy/local-drill.sh
 bash deploy/drill/deploy-drill.sh
 ```
 
-`check` проверяет активное дерево v2: типы, lint, формат, скрипты развёртывания
-(`npm run lint:shell`: `bash -n` и, если установлен, `shellcheck -S warning` по
-`deploy/*.sh`) и unit/API/property/store/CLI тесты. `scripts/gate.mjs` — локальный
-гейт релиза теми же командами, что jobs `check` и `e2e` в CI (по очереди), с отчётом
-`test-results/gate.json`. Приёмка агентского цикла: `npm run agent-cycle` поверх sandbox
-выполняет автоматизируемые шаги, ручные описаны в
-[docs/acceptance/agent-cycle.md](docs/acceptance/agent-cycle.md). E2E запускает изолированные настоящие SQLite и Better Auth в `/tmp`
-и пишет артефакты в `test-results/e2e-artifacts/`; эталон в
-`docs/reference/v2-validation/` обновляется только отдельной командой
-`npm run e2e:publish-reference`.
+`check` — типы, lint, формат, сборка и unit/API/property/store/CLI тесты. Тесты
+остаются только там, где ошибка стоит данных или доступа: команды и инварианты
+домена, вход и ключи агентов, миграции и резервные копии, идемпотентность CLI,
+черновики и порядок записей в браузере. Приёмка агентского цикла: `npm run
+agent-cycle` поверх sandbox выполняет автоматизируемые шаги, ручные описаны в
+[docs/acceptance/agent-cycle.md](docs/acceptance/agent-cycle.md).
 
-Проекты Playwright (`tests/e2e/playwright.config.ts`), у каждого своя чистая
-база и своя пара портов:
+E2E (`tests/e2e/playwright.config.ts`) — смоук основных сценариев на Chromium с
+изолированными настоящими SQLite и Better Auth в `/tmp`: проект `setup` входит
+владельцем и кладёт сессию в `storageState`, проект `functional` гоняет
+`workspace.spec.ts` (вход, сохранение, конфликт, повтор без дубля, перенос
+задачи, passkey) и `regressions.spec.ts` (черновики вкладок, конфликт проекта).
+Порты 4173/4001 в слоте 0; `TASKINDEX_E2E_SLOT=N` (0–11) сдвигает их на N×450,
+так что прогоны в разных слотах идут на одной машине одновременно; в CI раннер
+ПК `winpc-taskindex-N` работает в слоте N. Любую спеку можно запустить одну:
+`npm run e2e -- tests/e2e/regressions.spec.ts`.
 
-| Проект | Что проверяет | Порты (web/API) |
-|---|---|---|
-| `setup` | вход владельца по паролю на каждой базе, сессия в `storageState` | все |
-| `functional` | основной набор спек | 4173 / 4001 |
-| `visual` | восемь эталонных снимков на замороженных часах | 4174 / 4002 |
-| `static` | production-сборка через `src/server/index.ts` | 4373 |
-| `dark` | те же сцены при `prefers-color-scheme: dark` | 4175 / 4003 |
-| `webkit` | критический путь на `devices['Desktop Safari']` | 4176 / 4004 |
-| `webkit-dark` | доска, редактор и лента WebKit в тёмной теме | 4177 / 4005 |
-
-Порты в таблице — слот 0. `TASKINDEX_E2E_SLOT=N` (0–11) сдвигает все порты фикстур на
-N×450, так что прогоны в разных слотах идут на одной машине одновременно; в CI раннер ПК
-`winpc-taskindex-N` работает в слоте N, GitHub-hosted и локальный запуск — в слоте 0.
-`TASKINDEX_E2E_PROJECTS` (проекты как в `--project`) поднимает серверы только этих
-проектов, и `setup` входит только на их базах; так идёт каждый e2e-job в CI, без
-переменной поднимаются все. Новый проект вписать в `PROJECT_SERVER`
-(`tests/e2e/helpers.ts`).
-
-Проекты не делят состояние: `setup` — зависимость остальных, порядок спек и
-порядок проектов ни на что не влияет, любую спеку можно запустить одну
-(`npm run e2e -- tests/e2e/regressions.spec.ts`) или проект целиком
-(`npm run e2e -- --project webkit`). Проект `visual` — единственный, который
-снимает эталон: у него заморожены и часы сервера, и часы браузера, поэтому два
-прогона подряд дают одинаковый `screenshots-sha256.json`. Последняя команда создаёт отдельный Docker
-project/volume и локальную реплику, проверяет восстановление и сохраняет
+`deploy/local-drill.sh` создаёт отдельный Docker project/volume и локальную реплику, проверяет восстановление и сохраняет
 артефакты. `deploy/drill/deploy-drill.sh` идёт дальше: ставит релиз через
 `deploy/bootstrap.sh` и прогоняет поверх него настоящий `deploy.sh` (~6–8 минут,
 на macOS сам заворачивается в Linux-контейнер). Ни одна из них не подключается к
