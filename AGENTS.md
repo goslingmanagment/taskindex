@@ -21,11 +21,12 @@
   UI, тексты и проводку не писать.
 - `npm run e2e` — смоук основных сценариев на Chromium, фиксированные порты;
   два прогона одновременно — только в разных слотах (`TASKINDEX_E2E_SLOT=N`).
-- `CI_POOL=pc` отправляет jobs на раннеры ПК владельца
-  (`winpc-taskindex-N`); там `check` идёт по частям через
-  `scripts/ci-parallel-check.mjs`. При смене версии `@playwright/test`
-  поменять `PLAYWRIGHT_VERSION` в `ci-runners/winpc/root-setup.sh` и
-  прогнать его на winpc.
+- CI — на GitHub-hosted раннерах; `CI_POOL=pc` отправляет jobs на раннеры ПК
+  владельца (`winpc-taskindex-N`), PR из форка — никогда. `check` идёт по частям
+  через `scripts/ci-parallel-check.mjs`; PR только с документами (`*.md`,
+  `docs/**`) зеленеет за секунды. Пока жив пул ПК: при смене версии
+  `@playwright/test` поменять `PLAYWRIGHT_VERSION` в
+  `ci-runners/winpc/root-setup.sh` и прогнать его на winpc.
 - Тесты не мокают модули: реальные SQLite `:memory:`, Hono `app.request`,
   Better Auth.
 

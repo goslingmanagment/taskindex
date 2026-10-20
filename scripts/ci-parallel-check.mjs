@@ -1,7 +1,7 @@
 #!/usr/bin/env node
-// CI on the PC runners: the parts of `npm run check` side by side instead of
-// one after another (CI speed-up plan 2026-09-30, step B6). GitHub-hosted
-// runners keep plain `npm run check`.
+// CI: the parts of `npm run check` side by side instead of one after another
+// (CI speed-up plan 2026-09-30, step B6), on the PC runners and on the 4-vCPU
+// GitHub-hosted ones alike.
 //
 //   node scripts/ci-parallel-check.mjs
 //
