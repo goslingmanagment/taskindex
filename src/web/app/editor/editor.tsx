@@ -48,7 +48,7 @@ import {
 import { TaskDiscussion } from '../activity';
 import { ConflictPanel } from '../conflict-panel';
 import { ChecklistEditor } from './checklist-editor';
-import { DiscardDialog } from './discard-dialog';
+import { DiscardDialog, ResetDraftDialog } from './discard-dialog';
 import { TASK_STATES as STATUSES, visibleStatus } from '../board-columns';
 import { useTaskDraft } from './use-task-draft';
 import { useSaveIntent } from './use-save-intent';
@@ -115,6 +115,10 @@ export function TaskEditor({
         toast.add({ title: error.message, type: 'error' }),
       );
   const [discard, setDiscard] = useState(false);
+  const [resetting, setResetting] = useState(false);
+  // A save that went out and is not settled keeps its draft: the owner first
+  // learns its fate (TI-023).
+  const canReset = !form.submission;
   // The due date and the problem slug show up as chips once asked for; the
   // note, the steps and the labels are always in place.
   const [sections, setSections] = useState({
@@ -291,6 +295,24 @@ export function TaskEditor({
                 <p>Перенесите нужный текст вручную.</p>
                 <pre>{JSON.stringify(form.restored.fields, null, 2)}</pre>
               </details>
+            )}
+            {form.stale && dirty && (
+              <div className="conflict-box" role="status">
+                <p>
+                  Карточку меняли на сервере после твоего черновика. Твои правки
+                  показаны поверх свежей версии.
+                </p>
+                {canReset && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setResetting(true)}
+                  >
+                    Сбросить черновик
+                  </Button>
+                )}
+              </div>
             )}
             <textarea
               ref={titleRef}
@@ -590,10 +612,25 @@ export function TaskEditor({
         busy={intent.busy}
         error={intent.error}
         canSave={draft.title.trim().length > 0}
+        canDiscard={canReset}
         onSave={() => void intent.save(true)}
         onClose={() => {
           setDiscard(false);
           onClose();
+        }}
+        onDiscard={() => {
+          form.reset();
+          setDiscard(false);
+          onClose();
+        }}
+      />
+      <ResetDraftDialog
+        open={resetting}
+        onOpenChange={setResetting}
+        onReset={() => {
+          form.reset();
+          intent.setError('');
+          setResetting(false);
         }}
       />
     </>
