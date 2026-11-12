@@ -9,6 +9,18 @@ import type { Deps, Env } from './deps.js';
 
 const safeMethods = ['GET', 'HEAD', 'OPTIONS'];
 
+// Better Auth's routes that act on no existing session: signing in (password,
+// passkey) and out, its two static pages. Every other /api/auth/* route acts
+// on the cookie's session (the profile, the password, passkeys, sessions) and
+// is checked first like any other request (src/server/hub-signin.ts).
+const SESSIONLESS_AUTH = [
+  /^\/api\/auth\/sign-in\//,
+  /^\/api\/auth\/sign-up\//,
+  /^\/api\/auth\/sign-out$/,
+  /^\/api\/auth\/passkey\/(generate-authenticate-options|verify-authentication)$/,
+  /^\/api\/auth\/(ok|error)$/,
+];
+
 // One gate for every /api/* request: who is asking, whether writes are open
 // and whether the Origin of an owner write is trusted.
 export const createAuthMiddleware = (deps: Deps) =>
@@ -23,17 +35,27 @@ export const createAuthMiddleware = (deps: Deps) =>
           'Ключи агентов выдаются только командой taskindex-admin.',
         );
       // A session from the hub that does not hold there is no session here
-      // either (src/server/hub-signin.ts); a password session passes
-      // untouched.
+      // either (src/server/hub-signin.ts), on every auth route that acts on
+      // it: signed out or revoked at the hub, its cookie changes neither the
+      // profile nor the password nor a passkey. A password session passes
+      // untouched; signing in and out need no session.
+      const inspects =
+        c.req.path === '/api/auth/get-session' &&
+        ['GET', 'HEAD'].includes(c.req.method);
       if (
         options.auth &&
-        c.req.path === '/api/auth/get-session' &&
-        ['GET', 'HEAD'].includes(c.req.method) &&
+        (inspects ||
+          !SESSIONLESS_AUTH.some((route) => route.test(c.req.path))) &&
         (await hubSessionRefused(db, options.auth, c.req.raw.headers, {
           readOnly: !opened(),
         }))
-      )
-        return c.json(null);
+      ) {
+        if (inspects) return c.json(null);
+        fail(
+          'unauthorized',
+          'Вход через хаб больше не действует: войдите в TaskIndex снова.',
+        );
+      }
       if (!opened()) {
         // Auth GETs are not generally read-only: passkey options persist a
         // challenge. Only session inspection is available while writes are held.
