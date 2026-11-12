@@ -22,12 +22,12 @@ export function WorkspaceOverview({
       <Empty className="main-empty">
         <span className="empty-icon">{searching ? <Search /> : <Star />}</span>
         <EmptyTitle>
-          {searching ? 'Ничего не нашлось' : 'Что возьмёшь в фокус?'}
+          {searching ? 'Ничего не нашлось' : 'Что возьмёте в фокус?'}
         </EmptyTitle>
         <EmptyDescription>
           {searching
-            ? 'Поиск проверяет названия, заметки, чеклисты и направления во всех областях. Попробуй другое слово или переключись на архив.'
-            : 'В меню нужной карточки выбери «В фокус». Выбранные задачи будут доступны на одном экране.'}
+            ? 'Поиск проверяет названия, заметки, чеклисты и направления во всех областях. Попробуйте другое слово или переключитесь на архив.'
+            : 'В меню нужной карточки выберите «В фокус». Выбранные задачи будут доступны на одном экране.'}
         </EmptyDescription>
         {!searching && (
           <Button variant="outline" onClick={onBrowse}>
@@ -40,7 +40,7 @@ export function WorkspaceOverview({
     <div className="workspace-overview" data-large={total > 200 || undefined}>
       {!searching && !groups[0]?.tasks.length && (
         <p className="focus-hint">
-          Для своего короткого списка выбери «В фокус» в меню карточки.
+          Для своего короткого списка выберите «В фокус» в меню карточки.
         </p>
       )}
       {groups

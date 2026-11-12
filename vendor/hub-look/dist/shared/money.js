@@ -1,0 +1,250 @@
+// The single money codec. Platform money is MILLS (bigint, 1/1000 USD,
+// Fansly-native); AI cost is MICRO-USD (integer column, JS number). The 1000× footgun class dies by
+// construction: every constructor names its SOURCE unit, there is no
+// bare-number path, and the two units never mix without an explicit,
+// direction-honest converter. Brands are compile-time only — zero runtime
+// or stored-value change.
+const COMMISSION_RATE_SCALE = 10000n;
+// ─── Source-named constructors (no bare-number path) ─────────────────────
+/**
+ * A value that is ALREADY mills — a DB column read (bigint / numeric-string)
+ * or a mills-native platform integer (Fansly amounts are mills on the wire).
+ * Numbers are truncated, strings parsed as integers — byte-identical to the
+ * deleted `toMills`. (The spec sketched `millsFromDbBigint(bigint)`; pg
+ * returns numeric columns as strings and adapters hand numbers, so ONE
+ * honest already-mills constructor beats three near-duplicates.)
+ */
+export function millsFromInteger(value) {
+    if (typeof value === "bigint") {
+        return value;
+    }
+    if (typeof value === "number") {
+        return BigInt(Math.trunc(value));
+    }
+    return BigInt(value);
+}
+/**
+ * Dollars (number or decimal string) → mills. Inherits `dollarsToMills`'s
+ * parsing semantics byte-for-byte (fixed 3-place truncation of the fraction).
+ */
+export function millsFromDollars(value) {
+    const normalized = typeof value === "number"
+        ? value.toFixed(3)
+        : value.trim();
+    const match = normalized.match(/^(-)?(\d+)(?:\.(\d+))?$/);
+    if (!match) {
+        throw new Error(`Invalid dollar amount "${value}"`);
+    }
+    const sign = match[1] ? -1n : 1n;
+    const whole = BigInt(match[2] ?? "0");
+    const fraction = (match[3] ?? "").padEnd(3, "0").slice(0, 3);
+    return sign * ((whole * 1000n) + BigInt(fraction));
+}
+/** Whole cents → mills (the `total_tip_amount_cents` bridge: ×10 exactly). */
+export function millsFromCents(value) {
+    const cents = typeof value === "bigint" ? value : BigInt(Math.trunc(value));
+    return cents * 10n;
+}
+/**
+ * Mills → whole cents, the way back over the same bridge (a reader of
+ * `message_archive.tip_amount_mills` serving a `…Cents` field). Exact on
+ * whole cents (the inverse of `millsFromCents`); a sub-cent rest rounds half
+ * away from zero, as the legacy Fansly cents write rounds a mills amount.
+ */
+export function millsToWholeCents(value) {
+    const mills = millsFromInteger(value);
+    const magnitude = mills < 0n ? -mills : mills;
+    const cents = (magnitude + 5n) / 10n;
+    return Number(mills < 0n ? -cents : cents);
+}
+/** Dollars → micro-USD (AI plane). Rounded to the nearest integer micro-USD. */
+export function microUsdFromDollars(value) {
+    if (!Number.isFinite(value)) {
+        throw new Error(`Invalid dollar amount "${value}"`);
+    }
+    return Math.round(value * 1_000_000);
+}
+/**
+ * Cents as Anthropic's cost report writes them (decimal strings,
+ * `"123.78912"` is $1.2378912) → micro-USD (1 cent = 10 000 micro-USD). The
+ * amounts are added exactly and the total is rounded ONCE, half away from
+ * zero, so a day of many fractional lines carries no per-line rounding.
+ */
+export function microUsdFromCents(amounts) {
+    const { units, scale } = sumDecimalUnits(amounts);
+    const scaled = units * 10000n;
+    const magnitude = scaled < 0n ? -scaled : scaled;
+    const rounded = (magnitude + scale / 2n) / scale;
+    return Number(scaled < 0n ? -rounded : rounded);
+}
+/** Dollars as the console's Cost CSV writes them ("6.10") → the same amount
+ * in cents, a decimal string ("610"): the point moves, nothing is rounded. */
+export function centsFromDollarsDecimal(value) {
+    const match = value.trim().match(/^(-)?(\d+)(?:\.(\d+))?$/);
+    if (!match) {
+        throw new Error(`Invalid dollar amount "${value}"`);
+    }
+    const fraction = match[3] ?? "";
+    const whole = `${match[2]}${fraction.padEnd(2, "0").slice(0, 2)}`.replace(/^0+(?=\d)/, "");
+    const rest = fraction.slice(2);
+    const cents = rest ? `${whole}.${rest}` : whole;
+    return match[1] && /[1-9]/.test(cents) ? `-${cents}` : cents;
+}
+/** The exact sum of decimal cent strings, as a decimal string (several cost
+ * lines that land on one stored line). */
+export function sumCentsDecimals(amounts) {
+    const { units, scale, digits } = sumDecimalUnits(amounts);
+    const magnitude = units < 0n ? -units : units;
+    const whole = (magnitude / scale).toString();
+    const fraction = digits > 0 ? `.${(magnitude % scale).toString().padStart(digits, "0")}` : "";
+    return `${units < 0n ? "-" : ""}${whole}${fraction}`;
+}
+function sumDecimalUnits(amounts) {
+    const parsed = amounts.map((amount) => {
+        const match = amount.trim().match(/^(-)?(\d+)(?:\.(\d+))?$/);
+        if (!match) {
+            throw new Error(`Invalid cents amount "${amount}"`);
+        }
+        return { negative: match[1] === "-", whole: match[2], fraction: match[3] ?? "" };
+    });
+    const digits = Math.max(0, ...parsed.map((value) => value.fraction.length));
+    const scale = 10n ** BigInt(digits);
+    let units = 0n;
+    for (const value of parsed) {
+        const magnitude = BigInt(value.whole + value.fraction.padEnd(digits, "0"));
+        units += value.negative ? -magnitude : magnitude;
+    }
+    return { units, scale, digits };
+}
+/** An integer micro-USD value as stored (int column, number in JS). */
+export function microUsdFromDbInt(value) {
+    return Math.trunc(value);
+}
+// ─── Unit converters (the ONLY sanctioned mixing points) ─────────────────
+/** Mills → micro-USD. Exact (×1000). */
+export function millsToMicroUsd(value) {
+    return Number(millsFromInteger(value) * 1000n);
+}
+/** Micro-USD → mills. LOSSY (truncates toward zero below the mill). */
+export function microUsdToMills(value) {
+    return BigInt(Math.trunc(value / 1000));
+}
+/**
+ * Micro-USD → a display string for the AI plane (the chatter's
+ * own spend in `/account`). The AI ledger's unit is micro-USD, so the cabinet
+ * must not divide by 1_000_000 by hand — it asks here, exactly as the platform
+ * plane asks `formatUsdFromMills`. Sub-cent amounts round DOWN to `< $0.01`
+ * rather than to `$0.00`, so a person who spent something never reads zero;
+ * `approximate` prefixes the house `~` used by the owner's usage report.
+ */
+export function formatUsdFromMicroUsd(value, options = {}) {
+    const micro = microUsdFromDbInt(value);
+    const prefix = options.approximate ? "~" : "";
+    if (micro <= 0)
+        return "$0";
+    if (micro < 10_000)
+        return `${prefix}< $0.01`;
+    return prefix + new Intl.NumberFormat("en-US", {
+        style: "currency",
+        currency: "USD",
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+    }).format(micro / 1_000_000);
+}
+// ─── Display / aggregation over mills (names preserved) ──────────────────
+export function millsToDecimalString(value) {
+    const mills = millsFromInteger(value);
+    const sign = mills < 0n ? "-" : "";
+    const absolute = mills < 0n ? -mills : mills;
+    const whole = absolute / 1000n;
+    const remainder = absolute % 1000n;
+    return `${sign}${whole}.${remainder.toString().padStart(3, "0")}`;
+}
+export function formatUsdFromMills(value) {
+    const mills = millsFromInteger(value);
+    const cents = Number(mills / 10n) / 100;
+    return new Intl.NumberFormat("en-US", {
+        style: "currency",
+        currency: "USD",
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+    }).format(cents);
+}
+export function millsToNumber(value) {
+    return Number(millsFromInteger(value));
+}
+/** Mills → float dollars (wire fields that carry dollars, e.g. snapshot prices). */
+export function millsToDollarsNumber(value) {
+    return Number(millsFromInteger(value)) / 1000;
+}
+/** Mills → whole dollars, rounded (telegram digest lines). */
+export function millsToRoundedDollars(value) {
+    return Math.round(Number(millsFromInteger(value)) / 1000);
+}
+/** A whole percent of an amount, rounded half away from zero (a chatter's part of a shared sale). */
+export function millsPercentOf(value, percent) {
+    if (!Number.isInteger(percent) || percent < 0 || percent > 100) {
+        throw new Error(`Invalid percent "${percent}"`);
+    }
+    return roundDiv(millsFromInteger(value) * BigInt(percent), 100n);
+}
+/** An amount rounded half away from zero to whole cents or whole dollars (a payout-sheet cell). */
+export function millsRoundedTo(value, unit) {
+    const step = unit === "cent" ? 10n : 1000n;
+    return roundDiv(millsFromInteger(value), step) * step;
+}
+export function sumMills(values) {
+    let total = 0n;
+    for (const value of values) {
+        total += millsFromInteger(value);
+    }
+    return total;
+}
+/**
+ * Legacy name for the dollars constructor — same function, kept because the
+ * name is honest (its ~80 call sites predate the codec). New code should
+ * prefer `millsFromDollars`.
+ */
+export const dollarsToMills = millsFromDollars;
+// ─── Commission math (typed over mills) ───────────────────────────────────
+function commissionRateToScaledInt(value) {
+    if (!Number.isFinite(value) || value < 0 || value > 1) {
+        throw new Error(`Invalid commission rate "${value}"`);
+    }
+    const normalized = value.toFixed(4);
+    const match = normalized.match(/^(\d+)\.(\d{4})$/);
+    if (!match) {
+        throw new Error(`Invalid commission rate "${value}"`);
+    }
+    return (BigInt(match[1] ?? "0") * COMMISSION_RATE_SCALE) + BigInt(match[2] ?? "0");
+}
+function roundDiv(value, divisor) {
+    if (value === 0n) {
+        return 0n;
+    }
+    const sign = value < 0n ? -1n : 1n;
+    const absolute = value < 0n ? -value : value;
+    return sign * ((absolute + (divisor / 2n)) / divisor);
+}
+export function calculateNetMillsFromGross(grossMills, commissionRate) {
+    const gross = millsFromInteger(grossMills);
+    const commissionRateScaled = commissionRateToScaledInt(commissionRate);
+    if (commissionRateScaled === 0n) {
+        return gross;
+    }
+    // OnlyFans rounds the platform fee to whole cents before subtracting it.
+    const commissionFeeCents = roundDiv(gross * commissionRateScaled, COMMISSION_RATE_SCALE * 10n);
+    return gross - (commissionFeeCents * 10n);
+}
+export function calculateGrossMillsFromNet(netMills, commissionRate) {
+    const net = millsFromInteger(netMills);
+    const commissionRateScaled = commissionRateToScaledInt(commissionRate);
+    if (commissionRateScaled === 0n) {
+        return net;
+    }
+    const creatorShareScaled = COMMISSION_RATE_SCALE - commissionRateScaled;
+    if (creatorShareScaled <= 0n) {
+        throw new Error(`Invalid commission rate "${commissionRate}"`);
+    }
+    return roundDiv(net * COMMISSION_RATE_SCALE, creatorShareScaled);
+}

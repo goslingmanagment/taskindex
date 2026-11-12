@@ -298,8 +298,8 @@
   background: transparent;
   border-bottom: 2px solid var(--accent-strong);
   box-shadow: none;
-  color: var(--primary);
-  border-color: var(--primary);
+  color: var(--current-foreground);
+  border-color: var(--current-foreground);
 }
 .toolbar-actions {
   display: flex;

@@ -1,0 +1,32 @@
+{
+  "lookVersion": "1.0.0",
+  "sha256": "9e0f5be2af2fbac9cd1e6df0640ee8603795a6ff45b649c6b4a2e1859a288df0",
+  "sourceCommit": "212abda1004589bc96d9f97b2fb6c1a92db78aa3",
+  "source": "hub scripts/vendor-look.mjs",
+  "files": {
+    "css/ui-tokens.css": "62dfd25d3075b0d4c00828f6e6bb1ae8714788d2ebd8cfbeea35316dbba6140c",
+    "dist/css.d.ts": "b79621df29eeafcadfc5b07df4c9fc72399a2827950f615f95636e542cc5c908",
+    "dist/css.js": "26de567d8e6a7d8db0c8b763a40317fa19b8b3475661fab9dca72e3c25f57c55",
+    "dist/format.d.ts": "b57c7c64d8c54417ec42e3225d25ffb4e424b22a48434ba954c65a8329f7dedf",
+    "dist/format.js": "d705154dae1f08e60766e7da67757688c3d1e9a4d7229a72d8783378f0e23e4f",
+    "dist/index.d.ts": "558ff7e73ec6e292d4dd51795c6b0776a8f8f991e3c82b6371abf31e89b54660",
+    "dist/index.js": "56870ccf0e90bdf6be8b36f5faf8732dae9fa8c75edd4012679d8ac398218a03",
+    "dist/moscow.d.ts": "3afaf66cd3f8898a04ec9e611a1fa1f74c59c79b540211e4a1cf5b3bd7a0e62c",
+    "dist/moscow.js": "abe557edcd94c74a2144b0b14ff17fb2177dfdaf66810a5a2d01e21e4364fec3",
+    "dist/plural.d.ts": "3f4ecb8da25629c4cac5d8f7a2f9686b360864a8da82f4015f250ab77fd11f22",
+    "dist/plural.js": "b0d40073b44cda0d8e174d1a4eb124addf968d4582522b007ca63927ed427dfa",
+    "dist/shared/index.d.ts": "016c67c1da7d44b072b9c4e40f02e33d0f5782bb467f33b87e45dc0898651a1c",
+    "dist/shared/index.js": "016c67c1da7d44b072b9c4e40f02e33d0f5782bb467f33b87e45dc0898651a1c",
+    "dist/shared/money.d.ts": "2ee9cd5e586829fc7e481a89a65ef1082f27749ada7d201b6a911014f85ebc67",
+    "dist/shared/money.js": "5b6cec517e8569b532b6697a7905e375a79877a0cea061930dff5a5e4e5df67f",
+    "dist/shared/time.d.ts": "0628ff3e58b9049137f5efcaaa7207e6b857af673439589eab1884ff44f94c0a",
+    "dist/shared/time.js": "55a1a2c64e987512df194cf20813b9038caea3a09b04e144b40202877320562f",
+    "dist/shared/types.d.ts": "a3ec4abceb08d5a02ea06f2b43e60e85db04671c41ef70dd716fc59aa1cb4313",
+    "dist/shared/types.js": "c016a0fd3f3466a56742748ec7896a341db28304969a2a72e6038d311e4c9d10",
+    "dist/tokens.d.ts": "cc46454c9d6a21399938fd2d917a3448f2e561cbe4b9257ca8a2ba7a909e4045",
+    "dist/tokens.js": "e6a4c8f73c1f4a5dccd32fd066d40cbba66e0a2b4c8bf4db1dd9020182b24d96",
+    "dist/words.d.ts": "bb92db99460f8e0749234385ac92abbbec9e493a0628ed8c419d5c748bfaba82",
+    "dist/words.js": "047fdc0ebf836fd4b96bbc45fa6321722f29d6c4b10de0e7ea1f9fc390d111f0",
+    "tokens.json": "671e7d29ae486f86375ca1ad18544fac943070b4861d31cded8f4f65df1341db"
+  }
+}

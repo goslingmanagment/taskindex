@@ -5,6 +5,8 @@ Thumbs.db
 # Dependencies and generated output
 node_modules/
 dist/
+# The vendored copy of Hub's look (hub scripts/vendor-look.mjs) ships compiled.
+!vendor/hub-look/dist/
 build/
 coverage/
 *.log

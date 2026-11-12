@@ -9,6 +9,8 @@ import type {
 import { LIMITS } from './limits.js';
 import type { Priority } from './labels.js';
 import { isAgentActor, projectFilterToId } from './constants.js';
+// Hub's look, vendored (vendor/hub-look): the date as every product writes it.
+import { formatDay } from '../../vendor/hub-look/dist/index.js';
 export const compareStrings = (a: string, b: string) => {
   if (a < b) return -1;
   return a > b ? 1 : 0;
@@ -32,20 +34,16 @@ export function todayInTimezone(
   const pick = (type: string) => parts.find((x) => x.type === type)?.value;
   return `${pick('year')}-${pick('month')}-${pick('day')}`;
 }
-// Labels share one immutable formatter; constructing Intl for every visible
-// card made navigation and drag renders expensive on large boards (TI-085).
-const taskDateFormat = new Intl.DateTimeFormat('ru-RU', {
-  day: 'numeric',
-  month: 'short',
-  timeZone: 'UTC',
-});
+// «14 нояб.», as the hub writes a day (@hub/look formatDay). Its formatter is
+// built once per module: constructing Intl for every visible card made
+// navigation and drag renders expensive on large boards (TI-085).
 export function dateLabel(value: string | null, today: string): string {
   if (!value) return '';
   if (value === today) return 'Сегодня';
   const next = new Date(`${today}T12:00:00Z`);
   next.setUTCDate(next.getUTCDate() + 1);
   if (value === next.toISOString().slice(0, 10)) return 'Завтра';
-  return taskDateFormat.format(new Date(`${value}T12:00:00Z`)).replace('.', '');
+  return formatDay(value);
 }
 export function searchTasks(
   tasks: Task[],

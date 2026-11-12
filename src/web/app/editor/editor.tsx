@@ -299,7 +299,7 @@ export function TaskEditor({
             {form.stale && dirty && (
               <div className="conflict-box" role="status">
                 <p>
-                  Карточку меняли на сервере после твоего черновика. Твои правки
+                  Карточку меняли на сервере после вашего черновика. Ваши правки
                   показаны поверх свежей версии.
                 </p>
                 {canReset && (
@@ -580,7 +580,7 @@ export function TaskEditor({
                     <pre>{JSON.stringify(intent.conflict, null, 2)}</pre>
                   </details>
                 }
-                note="Совместим версии: оставим изменённые тобой поля, остальные возьмём из последней версии."
+                note="Совместим версии: оставим изменённые вами поля, остальные возьмём из последней версии."
                 onMerge={() => intent.merge()}
               />
             )}

@@ -2,17 +2,86 @@
    скина (src/web/skin/**) читают только токены, поэтому замена этого файла
    перекрашивает и примитивы, и ручной CSS.
 
-   Текущая палитра называется «classic» и объявлена без селектора скина.
+   Основная палитра «classic» объявлена без селектора скина и берёт значения
+   хаба: каждый токен ссылается на `--ui-*` копии `vendor/hub-look` (hub
+   `packages/look`, `scripts/vendor-look.mjs`), как ContentOps. Цвет хаба
+   записан парой light-dark(), сторону выбирает `color-scheme` (skin/base.css:
+   выбор владельца через data-theme или системная тема), поэтому отдельных
+   тёмных блоков у classic нет. Шрифт — Inter, как в хабе, свой woff2.
+
    Дополнительный скин добавляется парой блоков :root[data-skin='<id>'] и его
    тёмным вариантом — по одному блоку на пару (скин, режим); других мест с
    определениями токенов в проекте нет.
-   Вариант dark не зависит от data-skin. TI-025, план 08, шаги 2 и 15.
 
    Каталог: «classic» (блоки без селектора скина) и «focus» (TI-026, план 08
    доп. шаг 15, план 13 шаг 11): бумага, тёмно-зелёные чернила, один
-   терракотовый акцент и засечки в заголовке текущей задачи. Блок скина
-   переопределяет только роли; числовые оттенки ролей ссылаются на базовую
-   роль через var() до фазы B (план 08, шаг 11). */
+   терракотовый акцент и засечки в заголовке текущей задачи. Скин «focus»
+   задаёт все свои значения сам, хаб его не меняет. */
+
+/* Inter, как в хабе: только кириллица и латиница, только woff2, веса 400/500/600. */
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-display: swap;
+  font-weight: 400;
+  src: url('@fontsource/inter/files/inter-cyrillic-400-normal.woff2')
+    format('woff2');
+  unicode-range: U+0301, U+0400-045F, U+0490-0491, U+04B0-04B1, U+2116;
+}
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-display: swap;
+  font-weight: 400;
+  src: url('@fontsource/inter/files/inter-latin-400-normal.woff2')
+    format('woff2');
+  unicode-range:
+    U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC,
+    U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212,
+    U+2215, U+FEFF, U+FFFD;
+}
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-display: swap;
+  font-weight: 500;
+  src: url('@fontsource/inter/files/inter-cyrillic-500-normal.woff2')
+    format('woff2');
+  unicode-range: U+0301, U+0400-045F, U+0490-0491, U+04B0-04B1, U+2116;
+}
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-display: swap;
+  font-weight: 500;
+  src: url('@fontsource/inter/files/inter-latin-500-normal.woff2')
+    format('woff2');
+  unicode-range:
+    U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC,
+    U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212,
+    U+2215, U+FEFF, U+FFFD;
+}
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-display: swap;
+  font-weight: 600;
+  src: url('@fontsource/inter/files/inter-cyrillic-600-normal.woff2')
+    format('woff2');
+  unicode-range: U+0301, U+0400-045F, U+0490-0491, U+04B0-04B1, U+2116;
+}
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-display: swap;
+  font-weight: 600;
+  src: url('@fontsource/inter/files/inter-latin-600-normal.woff2')
+    format('woff2');
+  unicode-range:
+    U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC,
+    U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212,
+    U+2215, U+FEFF, U+FFFD;
+}
 
 @theme static {
   /* Брейкпоинты скина. static — чтобы Tailwind вывел переменные в :root и их мог
@@ -68,39 +137,44 @@
   --radius-4xl: calc(var(--radius) * 2.6);
 }
 
-/* Светлая палитра: действующие значения сведены из двух исторических блоков
-   styles.css (базового и «Minimal»); значения не менялись. */
+/* Палитра classic — значения хаба (vendor/hub-look), светлые и тёмные сразу.
+   Имя хаба у каждого токена — его роль в хабе: bg земля, raised лист и меню,
+   hover наведение, accent-fill главная кнопка, accent текущее место и ссылка,
+   accent-soft выбранное, warn/good/bad состояния. */
 :root {
-  --background: #f7f8fa;
-  --surface-grouped: #eef0f4;
-  --foreground: #24292f;
-  --card: #fff;
-  --card-foreground: #24292f;
-  --popover: #fff;
-  --popover-foreground: #24292f;
-  --muted: #f0f2f5;
-  --muted-foreground: #667085;
-  --primary: #3b5ccc;
-  --primary-foreground: #fff;
-  --accent: #edf1fb;
-  --accent-foreground: #3554ba;
-  --secondary: #f0f2f5;
-  --secondary-foreground: #424b59;
-  --border: #e4e7ec;
-  --input: #d5dae1;
-  --ring: #3b5ccc;
-  --sidebar: #fafbfc;
-  --sidebar-foreground: #424b59;
-  --sidebar-accent: #edf1fb;
-  --sidebar-accent-foreground: #3554ba;
-  --sidebar-border: #e4e7ec;
-  --sidebar-primary: #3b5ccc;
+  --background: var(--ui-bg);
+  /* Колонка доски: чуть темнее земли, карточка на ней — лист. */
+  --surface-grouped: var(--ui-hover);
+  --foreground: var(--ui-text);
+  --card: var(--ui-raised);
+  --card-foreground: var(--ui-text);
+  --popover: var(--ui-raised);
+  --popover-foreground: var(--ui-text);
+  --muted: var(--ui-hover);
+  --muted-foreground: var(--ui-text-2);
+  --primary: var(--ui-accent-fill);
+  --primary-foreground: var(--ui-on-fill);
+  --accent: var(--ui-accent-soft);
+  --accent-foreground: var(--ui-accent);
+  --secondary: var(--ui-hover);
+  --secondary-foreground: var(--ui-text-2);
+  --border: var(--ui-line);
+  /* Рамка поля и галочки. Светлая — рамка поля хаба (line-strong); тёмная —
+     его серый series-compare: line-strong на тёмном листе бледнее прежних
+     1,8 : 1, и пустая галочка теряется. */
+  --input: light-dark(#d3cec7, #6f685f);
+  --ring: var(--ui-accent);
+  --sidebar: var(--ui-bg);
+  --sidebar-foreground: var(--ui-text-2);
+  --sidebar-accent: var(--ui-active);
+  --sidebar-accent-foreground: var(--ui-accent);
+  --sidebar-border: var(--ui-line);
+  --sidebar-primary: var(--ui-accent-fill);
   --radius: 0.5rem;
-  --destructive: #bc3c45;
-  --sidebar-primary-foreground: #fff;
-  --sidebar-ring: #3763df;
-  --font-sans-stack:
-    -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;
+  --destructive: var(--ui-bad);
+  --sidebar-primary-foreground: var(--ui-on-fill);
+  --sidebar-ring: var(--ui-accent);
+  --font-sans-stack: var(--ui-font);
   --font-mono-stack: ui-monospace, monospace;
   /* Заголовок текущей задачи стола: в classic тот же гротеск, скин «Фокус»
      подставляет засечки. */
@@ -108,162 +182,44 @@
 
   /* Обводка цветной точки: в светлой теме её не видно (фон и так светлый), в
      тёмной она отделяет тёмный цвет направления от подложки. Доп. шаг 16. */
-  --surface-ring: transparent;
+  --surface-ring: light-dark(transparent, #ffffff33);
 
-  /* Роли скина (план 08, шаг 7). Фаза B (шаг 11, TI-025) сводит числовые
-     оттенки одной роли к одному токену; серые сведены: --muted-foreground для
-     подписей, --text-faint для более светлого вторичного текста; линии
-     сведены: --line-soft для внутренних разделителей, --input для рамок
-     элементов управления, --accent-border-hover для рамки при наведении. */
-  --text-faint: #7d899e;
-  --accent-strong: #3763df;
-  --accent-on-primary: #d8e3ff;
-  --accent-border-soft: #c4d2ea;
-  --accent-border-hover: #bbcbea;
-  --accent-underline: #bdcdf1;
-  --primary-shadow: #213b6410;
-  --ring-soft: #8ea9f0;
-  --ring-medium: #7a9be9;
-  --drop-outline: #7898e8;
-  --warning-foreground: #896a36;
-  --warning-soft: #fff8e9;
-  --warning-border: #dcc492;
-  --success-foreground: #258169;
-  --success-soft: #f2f6f2;
-  --success-border: #799a86;
-  --destructive-text: #b44b53;
-  --destructive-soft: #fff2f2;
-  --surface-hover: #fbfcff;
-  --surface-shadow: #1d253a12;
-  --surface-shadow-soft: #1d253a0b;
-  --marker-neutral: #c2cbda;
-  --line-soft: #e3e8ef;
-  --line-dashed: #ced8e6;
-  --line-dashed-strong: #d5dce6;
-  --line-on-primary: #ffffff44;
+  /* Роли скина (план 08, шаг 7): --muted-foreground для подписей,
+     --text-faint для более светлого вторичного текста; --line-soft для
+     внутренних разделителей, --input для рамок элементов управления. */
+  --text-faint: var(--ui-text-3);
+  --accent-strong: var(--ui-accent);
+  /* Текст и черта текущего места (вкладка вида): чернила хаба, а не заливка
+     главной кнопки — в тёмной теме заливка как текст слишком тёмная. */
+  --current-foreground: var(--ui-accent);
+  --accent-on-primary: var(--ui-on-fill);
+  --accent-border-soft: var(--ui-accent-line);
+  --accent-border-hover: var(--ui-accent-line);
+  --accent-underline: var(--ui-accent-line);
+  --primary-shadow: var(--ui-veil);
+  --ring-soft: var(--ui-accent-line);
+  --ring-medium: var(--ui-accent);
+  --drop-outline: var(--ui-accent);
+  --warning-foreground: var(--ui-warn-text);
+  --warning-soft: var(--ui-warn-soft);
+  --warning-border: var(--ui-warn-line);
+  --success-foreground: var(--ui-good-text);
+  --success-soft: var(--ui-good-soft);
+  --success-border: var(--ui-good-line);
+  --destructive-text: var(--ui-bad-text);
+  --destructive-soft: var(--ui-bad-soft);
+  --surface-hover: var(--ui-hover-soft);
+  /* Тени — цвета теней хаба (packages/look SHADOW): тёплая чернильная в
+     светлой теме, чёрная в тёмной. */
+  --surface-shadow: var(--ui-veil);
+  --surface-shadow-soft: light-dark(rgb(28 25 23 / 0.04), rgb(0 0 0 / 0.25));
+  --marker-neutral: var(--ui-line-strong);
+  --line-soft: var(--ui-line-soft);
+  --line-dashed: var(--ui-line-strong);
+  --line-dashed-strong: var(--ui-line-strong);
+  --line-on-primary: light-dark(#ffffff44, #ffffff33);
   /* Тень панели, показанной поверх доски по наведению (2026-09-18). */
-  --overlay-shadow: #1d253a2e;
-}
-
-/* Тёмная палитра. Два блока с одинаковым содержимым: явный выбор владельца
-   (data-theme) и системное предпочтение, когда выбора нет; они должны
-   совпадать. Роли скина здесь по одному оттенку на роль
-   — светлая палитра придёт к тому же после фазы B. План 08, шаг 10. */
-:root[data-theme='dark'] {
-  --background: #191d24;
-  --surface-grouped: #1d222a;
-  --foreground: #e6e9ee;
-  --card: #22272f;
-  --card-foreground: #e6e9ee;
-  --popover: #22272f;
-  --popover-foreground: #e6e9ee;
-  --muted: #2c323c;
-  --muted-foreground: #a9b2c0;
-  --primary: #8ea7f1;
-  --primary-foreground: #19264a;
-  --accent: #2d3b5c;
-  --accent-foreground: #c3d3ff;
-  --secondary: #2c323c;
-  --secondary-foreground: #e6e9ee;
-  --border: #3a424e;
-  --input: #454f5e;
-  --ring: #8ea7f1;
-  --sidebar: #1f242c;
-  --sidebar-foreground: #d0d7e2;
-  --sidebar-accent: #2d3b5c;
-  --sidebar-accent-foreground: #c3d3ff;
-  --sidebar-border: #3a424e;
-  --destructive: #ff9297;
-  --sidebar-primary: #82a4ff;
-  --sidebar-primary-foreground: #102044;
-  --sidebar-ring: #82a4ff;
-  --text-faint: #9aa4b5;
-  --accent-strong: #8ea7f1;
-  --accent-on-primary: #dce6ff;
-  --accent-border-soft: #3d4c74;
-  --accent-border-hover: #4a5c8c;
-  --accent-underline: #3f5486;
-  --primary-shadow: #00000066;
-  --ring-soft: #7f9bea;
-  --ring-medium: #7f9bea;
-  --drop-outline: #7f9bea;
-  --warning-foreground: #e3bd7a;
-  --warning-soft: #2e2a20;
-  --warning-border: #55482f;
-  --success-foreground: #7fd0b1;
-  --success-soft: #1f2a26;
-  --success-border: #46705f;
-  --destructive-text: #ff9297;
-  --destructive-soft: #33222a;
-  --surface-hover: #262c35;
-  --surface-shadow: #00000059;
-  --surface-shadow-soft: #00000040;
-  --marker-neutral: #4a5361;
-  --line-soft: #3a424e;
-  --line-dashed: #3f4756;
-  --line-dashed-strong: #454e5d;
-  --line-on-primary: #ffffff33;
-  --surface-ring: #ffffff33;
-  --overlay-shadow: #00000099;
-}
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme='light']) {
-    --background: #191d24;
-    --surface-grouped: #1d222a;
-    --foreground: #e6e9ee;
-    --card: #22272f;
-    --card-foreground: #e6e9ee;
-    --popover: #22272f;
-    --popover-foreground: #e6e9ee;
-    --muted: #2c323c;
-    --muted-foreground: #a9b2c0;
-    --primary: #8ea7f1;
-    --primary-foreground: #19264a;
-    --accent: #2d3b5c;
-    --accent-foreground: #c3d3ff;
-    --secondary: #2c323c;
-    --secondary-foreground: #e6e9ee;
-    --border: #3a424e;
-    --input: #454f5e;
-    --ring: #8ea7f1;
-    --sidebar: #1f242c;
-    --sidebar-foreground: #d0d7e2;
-    --sidebar-accent: #2d3b5c;
-    --sidebar-accent-foreground: #c3d3ff;
-    --sidebar-border: #3a424e;
-    --destructive: #ff9297;
-    --sidebar-primary: #82a4ff;
-    --sidebar-primary-foreground: #102044;
-    --sidebar-ring: #82a4ff;
-    --text-faint: #9aa4b5;
-    --accent-strong: #8ea7f1;
-    --accent-on-primary: #dce6ff;
-    --accent-border-soft: #3d4c74;
-    --accent-border-hover: #4a5c8c;
-    --accent-underline: #3f5486;
-    --primary-shadow: #00000066;
-    --ring-soft: #7f9bea;
-    --ring-medium: #7f9bea;
-    --drop-outline: #7f9bea;
-    --warning-foreground: #e3bd7a;
-    --warning-soft: #2e2a20;
-    --warning-border: #55482f;
-    --success-foreground: #7fd0b1;
-    --success-soft: #1f2a26;
-    --success-border: #46705f;
-    --destructive-text: #ff9297;
-    --destructive-soft: #33222a;
-    --surface-hover: #262c35;
-    --surface-shadow: #00000059;
-    --surface-shadow-soft: #00000040;
-    --marker-neutral: #4a5361;
-    --line-soft: #3a424e;
-    --line-dashed: #3f4756;
-    --line-dashed-strong: #454e5d;
-    --line-on-primary: #ffffff33;
-    --surface-ring: #ffffff33;
-    --overlay-shadow: #00000099;
-  }
+  --overlay-shadow: light-dark(rgb(28 25 23 / 0.12), rgb(0 0 0 / 0.5));
 }
 
 /* Скин «Фокус» (TI-026): светлая палитра. Значения из макета
@@ -297,6 +253,11 @@
   --sidebar-primary-foreground: #fffef9;
   --sidebar-ring: #ac5738;
   --destructive: #a8403c;
+  /* Текущее место в «Фокусе» — его чернила, как было. */
+  --current-foreground: var(--primary);
+  /* Шрифт «Фокуса» остаётся системным: Inter хаба — только у classic. */
+  --font-sans-stack:
+    -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;
   --font-heading-stack: Georgia, 'Times New Roman', serif;
   --surface-ring: transparent;
   --text-faint: #7f867b;

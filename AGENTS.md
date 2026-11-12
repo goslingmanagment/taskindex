@@ -7,6 +7,17 @@
 запуск, стили и проверки — `README.md`; деплой и восстановление —
 `deploy/README.md`.
 
+## Where this project stands in the system
+
+TaskIndex is the home of the owner's tasks (areas, projects, steps, the Focus desk) and of
+nothing else. It never keeps a second copy of what lives elsewhere: people and sign-in,
+sales, custom orders and matters (what waits for a person) live in Agency Hub, accounting
+in the ledger; a task links to them, it does not mirror them. The owner signs in with the
+hub's one-time code («Войти через хаб», `deploy/README.md`, `src/server/hub-signin.ts`).
+The classic skin takes Hub's look from `vendor/hub-look` (re-vendor from a clean hub commit
+with `node scripts/vendor-look.mjs`); the «focus» skin keeps its own values. The one map of
+the system is `~/code/SYSTEM.md` on the owner's machine.
+
 ## Окружение и проверки
 
 - Node 26.7.0 (`.node-version`; `fnm use` / `nvm use`), `npm ci`. CLI и API
