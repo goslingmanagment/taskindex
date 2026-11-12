@@ -383,20 +383,52 @@ it('never asks the hub for an agent key, a stream, health or the page', async ()
   expect(f.hub.calls).toHaveLength(before);
 });
 
+// The same table in hub, TaskIndex, the monitor and ContentOps (ecosystem R9):
+// what is redirected to stays a path of this origin after normalisation.
 it('lands only on a path of TaskIndex', () => {
   for (const raw of [
     undefined,
     '',
     'https://evil.example/',
     '//evil.example/',
+    '/.//evil.example/x',
+    '/%2F/evil.example/x',
+    '/%2f%2fevil.example',
     '/\\evil.example',
+    '/%5Cevil.example',
+    '/./x',
+    '/../x',
+    '/x/../../evil',
+    '/%2e%2e/x',
     '/\tx',
     '/api/me',
+    '/%61pi/me',
     '/auth/hub',
     'javascript:alert(1)',
   ])
-    expect(safeNext(raw)).toBe('/');
+    expect(safeNext(raw), String(raw)).toBe('/');
   expect(safeNext('/area/dev?q=1')).toBe('/area/dev?q=1');
+  expect(safeNext('/area/dev?q=1#top')).toBe('/area/dev?q=1#top');
+  expect(safeNext('/area/dev?u=https://x.example//y')).toBe(
+    '/area/dev?u=https://x.example//y',
+  );
+});
+
+it('never redirects off TaskIndex, whatever the hub echoes as next', async () => {
+  const f = await setup();
+  for (const next of [
+    '/.//evil.example/x',
+    '/%2F/evil.example/x',
+    '//evil.example/x',
+    '/\\evil.example',
+  ]) {
+    const back = await f.callback({ error: 'none', next });
+    expect(back.headers.get('location'), next).toBe('/?hub_signin=none');
+  }
+  const kept = await f.callback({ error: 'none', next: '/area/dev?q=1#top' });
+  expect(kept.headers.get('location')).toBe(
+    '/area/dev?q=1&hub_signin=none#top',
+  );
 });
 
 // The silent try (package B5): a browser's page load without a session.

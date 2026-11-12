@@ -243,20 +243,47 @@ export function createHubSignin(
   };
 }
 
+/** The origin `safeNext` parses against: never a real host. */
+const NEXT_BASE = 'http://taskindex.invalid';
+
 /** A path of TaskIndex to land on after the sign-in; anything else is `/`. */
 export function safeNext(raw: string | undefined): string {
+  // What is redirected to is always a path of this origin AFTER the URL
+  // parser's own normalisation (`/.//host` folds into `//host`, a
+  // protocol-relative address): the value is parsed against this origin and
+  // must stay on it, and its path — as written and decoded — has no
+  // backslash, control character or whitespace, no empty segment (`//`,
+  // `/%2F/`) and no dot segment (`/./`, `/../`).
   if (
     !raw ||
     raw.length > 2048 ||
     !raw.startsWith('/') ||
-    raw.startsWith('//') ||
-    // Backslashes, control characters and whitespace: browsers read some of
-    // them as another host.
-    /[\\\s\p{Cc}]/u.test(raw) ||
-    /^\/(api|auth)(\/|\?|#|$)/i.test(raw)
+    /[\\\s\p{Cc}]/u.test(raw)
   )
     return '/';
-  return raw;
+  const path = raw.split(/[?#]/, 1)[0]!;
+  let decoded: string;
+  try {
+    decoded = decodeURIComponent(path);
+  } catch {
+    return '/';
+  }
+  for (const form of [path, decoded])
+    if (
+      /[\\\s\p{Cc}]/u.test(form) ||
+      form.includes('//') ||
+      /(^|\/)\.{1,2}(\/|$)/.test(form) ||
+      /^\/(api|auth)(\/|$)/i.test(form)
+    )
+      return '/';
+  let url: URL;
+  try {
+    url = new URL(raw, NEXT_BASE);
+  } catch {
+    return '/';
+  }
+  const next = `${url.pathname}${url.search}${url.hash}`;
+  return url.origin !== NEXT_BASE || next.startsWith('//') ? '/' : next;
 }
 
 // What the sign-in screen says after a failed attempt (src/web/app/auth.tsx);
@@ -296,7 +323,7 @@ const notice = (c: Context<Env>, reason: HubNotice) =>
   leave(c, `/?hub_signin=${reason}`);
 /** `path` (already `safeNext`) with the notice: the page asked, not `/`. */
 const withNotice = (path: string, reason: HubNotice) => {
-  const url = new URL(path, 'http://taskindex.invalid');
+  const url = new URL(safeNext(path), NEXT_BASE);
   url.searchParams.set('hub_signin', reason);
   return `${url.pathname}${url.search}${url.hash}`;
 };
