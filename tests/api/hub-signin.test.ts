@@ -54,6 +54,7 @@ function fakeHub() {
       expiresAt: '2026-12-31T00:00:00.000Z',
     });
   });
+  hub.get('/api/v1/health', (c) => c.json({ status: 'ok' }));
   hub.post('/api/v1/auth/sso/check', async (c) => {
     if (!keyed(c.req.header('authorization')))
       return c.json({ error: 'unauthorized' }, 401);
@@ -396,4 +397,153 @@ it('lands only on a path of TaskIndex', () => {
   ])
     expect(safeNext(raw)).toBe('/');
   expect(safeNext('/area/dev?q=1')).toBe('/area/dev?q=1');
+});
+
+// The silent try (package B5): a browser's page load without a session.
+const page = (
+  f: Awaited<ReturnType<typeof setup>>,
+  path = '/area/dev',
+  cookie?: string,
+  headers: Record<string, string> = {},
+) =>
+  f.app.request(path, {
+    headers: {
+      'sec-fetch-dest': 'document',
+      accept: 'text/html',
+      ...(cookie ? { cookie } : {}),
+      ...headers,
+    },
+  });
+const cookiesOf = (response: Response) =>
+  response.headers.getSetCookie().map((c) => c.split(';')[0]!);
+const sessionOf = (response: Response) =>
+  cookiesOf(response).find((c) => c.startsWith('better-auth.session_token='));
+
+it('tries the hub once, silently, and with nobody there shows the sign-in screen', async () => {
+  const f = await setup();
+  const first = await page(f, '/area/dev?q=1');
+  expect(first.status).toBe(302);
+  const location = new URL(first.headers.get('location')!);
+  expect(location.origin + location.pathname).toBe(`${HUB}/api/v1/auth/sso`);
+  expect(location.searchParams.get('to')).toBe('taskindex');
+  expect(location.searchParams.get('silent')).toBe('1');
+  expect(location.searchParams.get('next')).toBe('/area/dev?q=1');
+  const state = location.searchParams.get('state')!;
+  // The try is marked before the browser leaves.
+  expect(cookiesOf(first)).toEqual([`ti_hub_state=${state}`, 'ti_hub_try=1']);
+  const back = await f.callback(
+    { error: 'none', state, next: '/area/dev?q=1' },
+    cookiesOf(first).join('; '),
+  );
+  expect(back.headers.get('location')).toBe('/area/dev?q=1&hub_signin=none');
+  expect(sessionOf(back)).toBeUndefined();
+  // No second try: neither by the cookie nor, where cookies are refused, by the address.
+  expect(
+    (await page(f, '/area/dev?q=1', 'ti_hub_try=1')).headers.get('location'),
+  ).toBeNull();
+  expect(
+    (await page(f, '/area/dev?q=1&hub_signin=none')).headers.get('location'),
+  ).toBeNull();
+  // Nothing was redeemed; the hub was only asked whether it answers.
+  expect(f.hub.calls).toEqual(['/api/v1/health']);
+  expect(f.sessions()).toEqual([]);
+});
+
+it('signs the owner in on the page asked when the hub has a session', async () => {
+  const f = await setup();
+  const first = await page(f, '/area/dev');
+  const location = new URL(first.headers.get('location')!);
+  const back = await f.callback(
+    {
+      code: f.hub.mint(true),
+      state: location.searchParams.get('state')!,
+      next: location.searchParams.get('next')!,
+    },
+    cookiesOf(first).join('; '),
+  );
+  expect(back.headers.get('location')).toBe('/area/dev');
+  const session = sessionOf(back)!;
+  expect(f.sessions()).toEqual([{ grant: 'grant-1' }]);
+  // Signed in: the page is served, no other try.
+  expect(
+    (await page(f, '/area/dev', session)).headers.get('location'),
+  ).toBeNull();
+});
+
+it('never tries for an API call, a key, a file, health, a fetch, a session or with writes held', async () => {
+  const f = await setup();
+  createAgent(f.db, { id: 'worker', label: 'Worker' });
+  const key = createAgentKey(f.db, { agentId: 'worker', scope: 'write' });
+  const bearer = { authorization: `Bearer ${key.key}` };
+  for (const [path, headers] of [
+    ['/api/me', {}],
+    ['/api/snapshot', bearer],
+    ['/area/dev', bearer],
+    ['/area/dev', { 'x-api-key': key.key }],
+    ['/health', {}],
+    ['/assets/index-abc123.js', {}],
+    ['/favicon.svg', {}],
+    ['/auth/hub/available', {}],
+    // A fetch of the page, not a navigation.
+    ['/area/dev', { 'sec-fetch-dest': 'empty' }],
+  ] as const)
+    expect(
+      (await page(f, path, undefined, headers)).headers.get('location'),
+      `${path} ${JSON.stringify(headers)}`,
+    ).toBeNull();
+  // curl with nothing said about HTML.
+  expect((await f.app.request('/area/dev')).headers.get('location')).toBeNull();
+  const login = await f.signInWithPassword();
+  const password = login.headers.get('set-cookie')!.split(';')[0]!;
+  expect(
+    (await page(f, '/area/dev', password)).headers.get('location'),
+  ).toBeNull();
+  expect(f.hub.calls).toEqual([]);
+  const held = await setup('held');
+  expect((await page(held)).headers.get('location')).toBeNull();
+  expect(held.hub.calls).toEqual([]);
+});
+
+it('shows the sign-in screen at once when the hub does not answer', async () => {
+  const f = await setup();
+  f.hub.setDown(true);
+  const first = await page(f);
+  expect(first.headers.get('location')).toBeNull();
+  expect(cookiesOf(first)).toEqual(['ti_hub_try=1']);
+  expect(f.hub.calls).toEqual(['/api/v1/health']);
+});
+
+it('after «Выйти» the next page load does not sign back in, until «Войти через хаб»', async () => {
+  const f = await setup();
+  const login = await f.signInWithPassword();
+  const session = login.headers.get('set-cookie')!.split(';')[0]!;
+  const out = await f.app.request('/api/auth/sign-out', {
+    method: 'POST',
+    headers: {
+      cookie: session,
+      origin: 'http://localhost:5173',
+      'content-type': 'application/json',
+    },
+    body: '{}',
+  });
+  expect(out.status).toBe(200);
+  const mark = out.headers
+    .getSetCookie()
+    .find((c) => c.startsWith('ti_hub_out='))!;
+  // Until the browser session ends: no lifetime of its own.
+  expect(mark).not.toMatch(/Max-Age|Expires/i);
+  expect(mark.split(';')[0]).toBe('ti_hub_out=1');
+  expect(
+    (await page(f, '/area/dev', 'ti_hub_out=1')).headers.get('location'),
+  ).toBeNull();
+  // Pressing «Войти через хаб» ends the mark.
+  const pressed = await f.app.request('/auth/hub?next=/', {
+    headers: { cookie: 'ti_hub_out=1' },
+  });
+  expect(
+    pressed.headers
+      .getSetCookie()
+      .some((c) => /^ti_hub_out=;.*Max-Age=0/.test(c)),
+  ).toBe(true);
+  expect(f.hub.calls).toEqual([]);
 });
