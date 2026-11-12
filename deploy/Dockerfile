@@ -5,6 +5,7 @@ COPY package.json package-lock.json ./
 RUN npm ci --include=dev
 COPY tsconfig.json tsdown.config.ts vite.config.ts index.html ./
 COPY src ./src
+COPY vendor/hub-look ./vendor/hub-look
 COPY public/favicon.svg ./public/favicon.svg
 # --omit=optional намеренно нет: платформенные реализации пакетов живут в optional (TI-068).
 RUN npm run build && npm prune --omit=dev

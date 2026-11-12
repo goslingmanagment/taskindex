@@ -361,7 +361,7 @@ export function Board({
                     <Empty className="column-empty">
                       <EmptyDescription>
                         {definition.id === 'doing'
-                          ? 'Начни с одной задачи'
+                          ? 'Начните с одной задачи'
                           : definition.id === 'done'
                             ? 'Здесь будут маленькие победы'
                             : definition.hint}

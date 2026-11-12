@@ -31,7 +31,7 @@ function emptyContent(archive: boolean, todayOnly: boolean, hiddenP3: number) {
   return {
     Icon: PanelsTopLeft,
     title: 'Здесь пока нет задач',
-    description: 'Добавь первое дело. Достаточно названия.',
+    description: 'Добавьте первое дело. Достаточно названия.',
   };
 }
 export function WorkspaceEmpty({

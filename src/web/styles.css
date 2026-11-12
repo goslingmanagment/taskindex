@@ -6,6 +6,8 @@
 @import 'tailwindcss' source('./');
 @import 'tw-animate-css';
 @import './vendor/shadcn-base.css';
+/* Значения вида хаба (`--ui-*`): копия hub `packages/look`, см. tokens.css. */
+@import '../../vendor/hub-look/css/ui-tokens.css' layer(theme);
 @import './tokens.css';
 @import './skin/base.css' layer(skin);
 @import './skin/sidebar.css' layer(skin);

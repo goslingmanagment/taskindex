@@ -1,5 +1,6 @@
 import { AREAS, STATUSES } from '@shared/model';
 import { PRIORITIES } from '@shared/labels';
+import { formatDate } from '../../../vendor/hub-look/dist/index.js';
 import type {
   Agent,
   Changes,
@@ -110,17 +111,14 @@ function statusName(id: unknown): string | null {
   return STATUSES.find((s) => s.id === id)?.name ?? null;
 }
 function day(raw: string): string {
-  // A date field is a plain calendar day; read it as UTC so the workspace time
-  // zone cannot move it to the previous one.
-  const date = new Date(`${raw}T00:00:00Z`);
-  return Number.isNaN(date.getTime())
-    ? raw
-    : date.toLocaleDateString('ru-RU', {
-        timeZone: 'UTC',
-        day: 'numeric',
-        month: 'long',
-        year: 'numeric',
-      });
+  // A date field is a plain calendar day: «14 нояб.», another year «14 нояб.
+  // 2025 г.», as the hub writes it (@hub/look formatDate, Moscow days).
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(raw)) return raw;
+  const year = new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'Europe/Moscow',
+    year: 'numeric',
+  }).format(new Date());
+  return formatDate(raw, { includeYear: raw.slice(0, 4) !== year });
 }
 type Item = { id: string; text: string; done: boolean };
 function items(raw: unknown): Item[] | null {

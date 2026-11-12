@@ -186,7 +186,7 @@ CLI сохраняет конверт до отправки в
 
 | Слой | Где | Правило |
 |---|---|---|
-| Токены | `src/web/tokens.css` | единственное место с литералами цветов; имена семантические (`--muted-foreground`, `--surface-raised`), а не по компонентам |
+| Токены | `src/web/tokens.css` | единственное место с цветами; classic ссылается на значения хаба `--ui-*` (`vendor/hub-look`, копия hub `packages/look`), «Фокус» держит свои; имена семантические (`--muted-foreground`, `--surface-raised`), а не по компонентам |
 | Примитивы | `src/web/ui/*`, `src/web/vendor/shadcn-base.css`, Tailwind, `tw-animate-css` | руками не редактируются, обновляются генератором и читают только токены |
 | Скин | `@layer skin` в `src/web/styles.css` | композиция экранов; только `var(--…)`, без `!important` и без литералов цвета |
 
