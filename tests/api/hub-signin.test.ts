@@ -547,3 +547,107 @@ it('after «Выйти» the next page load does not sign back in, until «Во�
   ).toBe(true);
   expect(f.hub.calls).toEqual([]);
 });
+
+// R1-a: the auth routes themselves, called straight after the hub has ended
+// the sign-in (no other request first to notice it): a revoked device must not
+// change how the owner signs in.
+it('refuses every auth route that acts on a hub session once the hub has ended it', async () => {
+  const f = await setup();
+  const { session } = await signInThroughHubWithPasskey(f);
+  f.hub.revoke('grant-1');
+  f.advance(HUB_CHECK_CACHE_MS);
+  const before = {
+    user: f.db.sqlite.prepare('SELECT name, email FROM user').all(),
+    passkeys: f.db.sqlite.prepare('SELECT id, name FROM passkey').all(),
+    verifications: f.db.sqlite
+      .prepare('SELECT count(*) AS n FROM verification')
+      .get(),
+    passwords: f.db.sqlite.prepare('SELECT password FROM account').all(),
+  };
+  const call = (method: 'GET' | 'POST', path: string, body?: unknown) =>
+    f.app.request(`/api/auth/${path}`, {
+      method,
+      headers: {
+        cookie: session!,
+        origin: 'http://localhost:5173',
+        'content-type': 'application/json',
+      },
+      ...(body === undefined ? {} : { body: JSON.stringify(body) }),
+    });
+  for (const [method, path, body] of [
+    ['POST', 'update-user', { name: 'Someone else' }],
+    ['GET', 'passkey/generate-register-options'],
+    ['POST', 'passkey/delete-passkey', { id: 'pk-1' }],
+    ['POST', 'passkey/update-passkey', { id: 'pk-1', name: 'renamed' }],
+    ['GET', 'passkey/list-user-passkeys'],
+    [
+      'POST',
+      'change-password',
+      { currentPassword: 'x', newPassword: 'another-long-password' },
+    ],
+    ['POST', 'change-email', { newEmail: 'someone@example.test' }],
+    ['GET', 'list-sessions'],
+    ['POST', 'revoke-other-sessions', {}],
+    ['POST', 'update-session', {}],
+  ] as const) {
+    const answer = await call(method, path, body);
+    expect(answer.status, `${method} ${path}`).toBe(401);
+  }
+  expect({
+    user: f.db.sqlite.prepare('SELECT name, email FROM user').all(),
+    passkeys: f.db.sqlite.prepare('SELECT id, name FROM passkey').all(),
+    verifications: f.db.sqlite
+      .prepare('SELECT count(*) AS n FROM verification')
+      .get(),
+    passwords: f.db.sqlite.prepare('SELECT password FROM account').all(),
+  }).toEqual(before);
+  // Ended at the hub: ended here too.
+  expect(f.sessions()).toEqual([]);
+  // Signing in again needs no session: the stale cookie does not stand in the way.
+  const password = await f.app.request('/api/auth/sign-in/email', {
+    method: 'POST',
+    headers: {
+      cookie: session!,
+      origin: 'http://localhost:5173',
+      'content-type': 'application/json',
+      'x-real-ip': '203.0.113.9',
+    },
+    body: JSON.stringify({
+      email: 'owner@example.test',
+      password: 'a-test-password-with-entropy',
+    }),
+  });
+  expect(password.status).toBe(200);
+});
+
+it('leaves the auth routes of a password session and of a living hub session as they were', async () => {
+  const f = await setup();
+  const login = await f.signInWithPassword();
+  const password = login.headers.get('set-cookie')!.split(';')[0]!;
+  const { session } = await f.signInThroughHub();
+  f.hub.setDown(true);
+  for (const cookie of [password, session!]) {
+    const answer = await f.app.request('/api/auth/update-user', {
+      method: 'POST',
+      headers: {
+        cookie,
+        origin: 'http://localhost:5173',
+        'content-type': 'application/json',
+      },
+      body: JSON.stringify({ name: 'Владелец' }),
+    });
+    expect(answer.status).toBe(200);
+  }
+});
+
+/** The hub sign-in of the owner, who also has a passkey (what a revoked device would like to remove). */
+async function signInThroughHubWithPasskey(
+  f: Awaited<ReturnType<typeof setup>>,
+) {
+  f.db.sqlite
+    .prepare(
+      "INSERT INTO passkey (id, name, public_key, user_id, credential_id, counter, device_type, backed_up, transports, created_at) VALUES ('pk-1', 'Mac', 'key', 'owner', 'cred-1', 0, 'singleDevice', 0, 'internal', ?)",
+    )
+    .run(Date.now());
+  return f.signInThroughHub();
+}
