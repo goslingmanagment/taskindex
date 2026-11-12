@@ -30,15 +30,87 @@ import {
 import { toast } from '../ui/toast';
 import { authErrorMessage } from './auth-errors';
 const authClient = createAuthClient({ plugins: [passkeyClient()] });
+// «Войти через хаб» (src/server/hub-signin.ts): after a failed attempt the
+// server comes back to `/?hub_signin=<reason>`. Read once per page load and
+// taken out of the address, so a reload does not repeat it.
+const HUB_NOTICES: Record<string, string> = {
+  expired:
+    'Вход через хаб не завершён: ссылка устарела или уже использована. Попробуйте ещё раз.',
+  state: 'Вход через хаб начат в другом окне или устарел. Начните заново.',
+  unavailable: 'Хаб сейчас не отвечает. Попробуйте позже или войдите паролем.',
+  held: 'TaskIndex обновляется. Попробуйте войти через минуту.',
+  error: 'Не удалось открыть сессию. Попробуйте ещё раз.',
+};
+const hubNoticeAtLoad = (() => {
+  const params = new URLSearchParams(location.search);
+  const reason = params.get('hub_signin');
+  if (reason === null) return null;
+  params.delete('hub_signin');
+  const rest = params.toString();
+  history.replaceState(
+    history.state,
+    '',
+    `${location.pathname}${rest ? `?${rest}` : ''}${location.hash}`,
+  );
+  return reason;
+})();
+function useHubSignin() {
+  const [available, setAvailable] = useState(false);
+  useEffect(() => {
+    let alive = true;
+    void (async () => {
+      try {
+        const r = await fetch('/auth/hub/available', { cache: 'no-store' });
+        const body: { available?: boolean } = r.ok ? await r.json() : {};
+        if (alive) setAvailable(body.available === true);
+      } catch {
+        // No answer: the password sign-in alone, as before.
+      }
+    })();
+    return () => {
+      alive = false;
+    };
+  }, []);
+  return available;
+}
+const goToHub = () =>
+  location.assign(
+    `/auth/hub?next=${encodeURIComponent(location.pathname + location.search)}`,
+  );
+function OwnerOnly({ onBack }: { onBack: () => void }) {
+  return (
+    <main className="auth-screen">
+      <section className="auth-card">
+        <div className="auth-brand">
+          <PanelsTopLeft />
+          <strong>TaskIndex</strong>
+        </div>
+        <h1>Это место владельца</h1>
+        <p>
+          В хабе вы вошли не как владелец агентства. TaskIndex открывается
+          только владельцу.
+        </p>
+        <Button variant="outline" onClick={onBack}>
+          Ко входу
+        </Button>
+      </section>
+    </main>
+  );
+}
 export function AuthGate({ children }: { children: ReactNode }) {
   const session = authClient.useSession();
+  const hub = useHubSignin();
   const [email, setEmail] = useState(''),
     [password, setPassword] = useState(''),
     [busy, setBusy] = useState(false),
-    [error, setError] = useState('');
+    [error, setError] = useState(
+      hubNoticeAtLoad ? (HUB_NOTICES[hubNoticeAtLoad] ?? '') : '',
+    ),
+    [ownerOnly, setOwnerOnly] = useState(hubNoticeAtLoad === 'not_owner');
   if (session.isPending)
     return <output className="auth-screen">Открываем TaskIndex…</output>;
   if (session.data) return children;
+  if (ownerOnly) return <OwnerOnly onBack={() => setOwnerOnly(false)} />;
   async function signIn(passkey = false) {
     setBusy(true);
     setError('');
@@ -68,6 +140,14 @@ export function AuthGate({ children }: { children: ReactNode }) {
         </div>
         <h1>Войти в пространство</h1>
         <p>Агентство, разработка и личное.</p>
+        {hub && (
+          <>
+            <Button disabled={busy} onClick={goToHub}>
+              Войти через хаб
+            </Button>
+            <p className="auth-divider">или паролем</p>
+          </>
+        )}
         <form
           onSubmit={(e) => {
             e.preventDefault();
@@ -103,7 +183,11 @@ export function AuthGate({ children }: { children: ReactNode }) {
               {error || 'Не удалось проверить сессию. Попробуйте ещё раз.'}
             </p>
           )}
-          <Button type="submit" disabled={busy}>
+          <Button
+            type="submit"
+            variant={hub ? 'outline' : 'default'}
+            disabled={busy}
+          >
             {busy ? 'Входим…' : 'Войти'}
           </Button>
         </form>

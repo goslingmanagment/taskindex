@@ -28,6 +28,7 @@ import { registerDigestRoutes } from './routes/digest.js';
 import { registerFocusRoutes } from './routes/focus.js';
 import { registerProposalRoutes } from './routes/proposals.js';
 import { describeApi } from './http/document.js';
+import { registerHubSigninRoutes } from './hub-signin.js';
 
 /** @internal for tests */
 export type { AppOptions };
@@ -90,6 +91,8 @@ export function createApp(options: AppOptions) {
   const app = new OpenAPIHono<Env>({ defaultHook });
   registerErrorHandler(app, logger);
   app.use('*', headers);
+  // «Войти через хаб»: browser steps outside /api/ (hub-signin.ts).
+  registerHubSigninRoutes(app, deps, baseURL);
   app.use('/api/*', createRequestLog(logger));
   app.use('/api/*', createAuthMiddleware(deps));
   app.use(

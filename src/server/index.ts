@@ -3,6 +3,7 @@ import { createApp } from './app.js';
 import { serveWeb } from './static.js';
 import { checkGenerationSidecar, openDatabase } from './db.js';
 import { createAuth } from './auth.js';
+import { createHubSignin } from './hub-signin.js';
 import { ConfigError, loadServerConfig, webDirectory } from './config.js';
 import { createLogger } from './log.js';
 import { errorBody } from '../shared/errors.js';
@@ -21,7 +22,12 @@ checkGenerationSidecar(db, logger);
 const trustedOrigins = config.production
   ? [baseURL]
   : [baseURL, 'http://localhost:5173'];
-const auth = createAuth(db, { baseURL, secret: config.secret, trustedOrigins });
+const auth = createAuth(db, {
+  baseURL,
+  secret: config.secret,
+  trustedOrigins,
+  hub: config.hub ? createHubSignin(config.hub) : undefined,
+});
 const app = createApp({
   db,
   auth,

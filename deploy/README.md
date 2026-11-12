@@ -186,6 +186,16 @@ docker compose -f deploy/compose.yml run --rm --no-deps -T app taskindex-admin a
 читает: она нужна только `taskindex-admin migrate` при первой инициализации,
 действующий пояс хранится в `settings`.
 
+«Войти через хаб» (`src/server/hub-signin.ts`) включают `HUB_SIGNIN_URL`
+(имя хаба для браузера) и `HUB_SIGNIN_KEY` (свой ключ агента хаба с правом
+`signin:taskindex`), только вместе; `HUB_SIGNIN_API_URL` — куда сервер ходит
+за `sso/redeem` и `sso/check` (по умолчанию `HUB_SIGNIN_URL`),
+`HUB_SIGNIN_CLIENT` — имя клиента в `WEB_SIGNIN_CLIENTS` хаба (`taskindex`).
+Обратный адрес в хабе — `<BASE_URL>/auth/hub/callback`. Сессию получает только
+владелец агентства; ответ хаба о ней живёт 60 с, без ответа хаба последнее «да»
+держится 30 минут, дальше сессия не пускает, пока хаб не ответит. Ключи агентов
+TaskIndex и вход по паролю этим не затронуты.
+
 `LOG_LEVEL` принимает `debug|info|warn|error` (по умолчанию `info`). Журнал —
 по одной JSON-строке на событие: первыми идут `level` и `time`, затем `event`
 (`request`, `internal_error`, `post_commit_error`, …), `requestId` (значение

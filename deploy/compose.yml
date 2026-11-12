@@ -17,6 +17,11 @@ services:
       PORT: '3000'
       TASKINDEX_WRITES: held
       TASKINDEX_DEPLOYMENT: ${TASKINDEX_DEPLOYMENT:?Set a unique deployment attempt ID}
+      # «Войти через хаб» (src/server/hub-signin.ts): пусто — выключен, остаётся вход по паролю.
+      HUB_SIGNIN_URL: ${HUB_SIGNIN_URL:-}
+      HUB_SIGNIN_API_URL: ${HUB_SIGNIN_API_URL:-}
+      HUB_SIGNIN_CLIENT: ${HUB_SIGNIN_CLIENT:-}
+      HUB_SIGNIN_KEY: ${HUB_SIGNIN_KEY:-}
     ports:
       - '127.0.0.1:3100:3000'
     volumes:
