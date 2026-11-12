@@ -3,6 +3,7 @@ import { fileURLToPath } from 'node:url';
 import { z } from 'zod';
 import type { LogLevel } from './log.js';
 import type { HubSigninConfig } from './hub-signin.js';
+import { type HubAgentKeysConfig, parseHubAgents } from './hub-agent-keys.js';
 // The built client ships next to the server: <root>/dist/web both from
 // src/server and from dist/server, whatever the working directory is.
 export function webDirectory(override?: string): string {
@@ -35,6 +36,13 @@ const serverSchema = z.object({
     .regex(/^[a-z0-9-]{1,40}$/, 'латиница в нижнем регистре, цифры и -')
     .default('taskindex'),
   HUB_SIGNIN_KEY: z.string().min(16, 'не меньше 16 символов').optional(),
+  // An agent's hub key (src/server/hub-agent-keys.ts): off unless the key is
+  // set. TaskIndex's own hub key with `introspect:agent_keys`; where to ask
+  // (HUB_SIGNIN_API_URL, then HUB_SIGNIN_URL by default); the owner's table
+  // `код_агента_хаба=id_агента:право,…`.
+  HUB_INTROSPECT_KEY: z.string().min(16, 'не меньше 16 символов').optional(),
+  HUB_INTROSPECT_URL: z.url().optional(),
+  HUB_AGENTS: z.string().optional(),
 });
 const adminSchema = z.object({
   DATABASE_PATH: path,
@@ -88,6 +96,7 @@ type ServerConfig = {
   migrationsDir?: string;
   logLevel: LogLevel;
   hub?: HubSigninConfig;
+  hubAgentKeys?: HubAgentKeysConfig;
 };
 // Dev binds to loopback; only the container (NODE_ENV=production) or an
 // explicit HOST listens on all interfaces.
@@ -101,6 +110,26 @@ export function loadServerConfig(env: Environment = process.env): ServerConfig {
     ]);
   if (production && c.HUB_SIGNIN_URL && !c.HUB_SIGNIN_URL.startsWith('https:'))
     throw new ConfigError(['HUB_SIGNIN_URL: в рабочем окружении только https']);
+  let hubAgents: HubAgentKeysConfig['agents'] = {};
+  try {
+    hubAgents = parseHubAgents(c.HUB_AGENTS ?? '');
+  } catch (error) {
+    throw new ConfigError([`HUB_AGENTS: ${(error as Error).message}`]);
+  }
+  const introspectUrl =
+    c.HUB_INTROSPECT_URL ?? c.HUB_SIGNIN_API_URL ?? c.HUB_SIGNIN_URL;
+  if (c.HUB_INTROSPECT_KEY && !introspectUrl)
+    throw new ConfigError([
+      'HUB_INTROSPECT_KEY: нужен адрес хаба — HUB_INTROSPECT_URL или HUB_SIGNIN_URL',
+    ]);
+  if (
+    production &&
+    c.HUB_INTROSPECT_KEY &&
+    !introspectUrl?.startsWith('https:')
+  )
+    throw new ConfigError([
+      'HUB_INTROSPECT_URL: в рабочем окружении только https',
+    ]);
   return {
     production,
     port,
@@ -122,6 +151,10 @@ export function loadServerConfig(env: Environment = process.env): ServerConfig {
             client: c.HUB_SIGNIN_CLIENT,
             key: c.HUB_SIGNIN_KEY,
           }
+        : undefined,
+    hubAgentKeys:
+      c.HUB_INTROSPECT_KEY && introspectUrl
+        ? { url: introspectUrl, key: c.HUB_INTROSPECT_KEY, agents: hubAgents }
         : undefined,
   };
 }

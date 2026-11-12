@@ -4,6 +4,7 @@ import { serveWeb } from './static.js';
 import { checkGenerationSidecar, openDatabase } from './db.js';
 import { createAuth } from './auth.js';
 import { createHubSignin } from './hub-signin.js';
+import { createHubAgentKeys } from './hub-agent-keys.js';
 import { ConfigError, loadServerConfig, webDirectory } from './config.js';
 import { createLogger } from './log.js';
 import { errorBody } from '../shared/errors.js';
@@ -27,7 +28,15 @@ const auth = createAuth(db, {
   secret: config.secret,
   trustedOrigins,
   hub: config.hub ? createHubSignin(config.hub) : undefined,
+  hubAgentKeys: config.hubAgentKeys
+    ? createHubAgentKeys(config.hubAgentKeys)
+    : undefined,
 });
+if (config.hubAgentKeys)
+  logger.info({
+    event: 'hub_agent_keys',
+    agents: Object.keys(config.hubAgentKeys.agents),
+  });
 const app = createApp({
   db,
   auth,

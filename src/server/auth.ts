@@ -15,6 +15,8 @@ import type { Actor } from '../shared/model.js';
 import { agentKeyIsActive, verifyAgentKey } from './agent-keys.js';
 import type { AgentKeyCredential } from './agent-keys.js';
 import type { HubSignin } from './hub-signin.js';
+import { HUB_AGENT_KEY_PREFIX, type HubAgentKeys } from './hub-agent-keys.js';
+import { fail } from '../shared/errors.js';
 // «Войти через хаб»: the owner's session, opened by the server itself once the
 // hub has said the person is the owner (src/server/hub-signin.ts). Not an
 // HTTP route (SERVER_ONLY): only the callback calls it. The grant goes into
@@ -67,6 +69,9 @@ export function createAuth(
     secret: string;
     trustedOrigins?: string[];
     hub?: HubSignin;
+    /** An agent's hub key (src/server/hub-agent-keys.ts); absent — such
+     *  keys are unknown keys, as before. */
+    hubAgentKeys?: HubAgentKeys;
   },
 ) {
   const config = {
@@ -96,12 +101,18 @@ export function createAuth(
     ...config,
     session: { deferSessionRefresh: true, cookieCache: { enabled: false } },
   });
-  return { ...auth, readSession: readOnly.api.getSession, hub: options.hub };
+  return {
+    ...auth,
+    readSession: readOnly.api.getSession,
+    hub: options.hub,
+    hubAgentKeys: options.hubAgentKeys,
+  };
 }
 export type Auth = ReturnType<typeof createAuth>;
 // Private identity of a connection: never part of domain events or responses.
 export type Credential =
   | AgentKeyCredential
+  | { kind: 'hub-key'; hubAgent: string; agentId: string }
   | { kind: 'session'; sessionId: string }
   | { kind: 'static' };
 export type Authorized = {
@@ -164,16 +175,93 @@ export async function hubSessionRefused(
     !(await hubSessionHolds(db, auth, s.session, grant, readOnly))
   );
 }
+/** What an agent's hub key did, for the request log: under the agent's code. */
+export type HubKeyAudit = (fields: {
+  hubAgent: string;
+  outcome: 'ok' | 'not_linked' | 'agent_disabled';
+  held: boolean;
+  actor?: string;
+}) => void;
+const activeAgent = (db: DatabaseHandle, agentId: string) => {
+  const row = db.orm
+    .select({
+      label: schema.agents.label,
+      disabledAt: schema.agents.disabledAt,
+    })
+    .from(schema.agents)
+    .where(eq(schema.agents.id, agentId))
+    .get();
+  return row && !row.disabledAt ? row : undefined;
+};
+// An agent's hub key: the hub says whose it is, `HUB_AGENTS` which TaskIndex
+// agent it works as and with what scope. A code not in the table, or one
+// whose agent is gone or disabled, gets nothing. Reads only, like a key.
+async function authorizeHubKey(
+  db: DatabaseHandle,
+  keys: HubAgentKeys,
+  token: string,
+  audit: HubKeyAudit | undefined,
+): Promise<Authorized> {
+  const verdict = await keys.who(token);
+  if (verdict.kind === 'unreachable')
+    fail(
+      'unavailable',
+      'Ключ хаба не проверить: хаб не отвечает, а последнего ответа о ключе нет или ему больше часа.',
+    );
+  if (verdict.kind === 'refused')
+    fail(
+      'unavailable',
+      'Ключ хаба не проверить: хаб отказал TaskIndex в ответе.',
+    );
+  if (verdict.kind === 'inactive')
+    fail(
+      'forbidden',
+      'Ключ хаба не действует: отозван, истёк или не принадлежит агенту.',
+    );
+  const { code, held } = verdict;
+  const link = Object.hasOwn(keys.agents, code) ? keys.agents[code] : undefined;
+  if (!link) {
+    audit?.({ hubAgent: code, outcome: 'not_linked', held });
+    fail('forbidden', `Агенту хаба ${code} TaskIndex не открыт.`);
+  }
+  const agent = activeAgent(db, link.agentId);
+  if (!agent) {
+    audit?.({ hubAgent: code, outcome: 'agent_disabled', held });
+    fail('forbidden', 'Агент отключён.');
+  }
+  const actor: Actor = {
+    id: `agent:${link.agentId}`,
+    agentId: link.agentId,
+    label: agent.label,
+    kind: 'agent',
+    scope: link.scope,
+  };
+  audit?.({ hubAgent: code, outcome: 'ok', held, actor: actor.id });
+  return {
+    actor,
+    credential: { kind: 'hub-key', hubAgent: code, agentId: link.agentId },
+    check: async () => {
+      const now = await keys.who(token).catch(() => null);
+      return (
+        now?.kind === 'active' &&
+        now.code === code &&
+        Boolean(activeAgent(db, link.agentId))
+      );
+    },
+  };
+}
 export async function authorizeRequest(
   db: DatabaseHandle,
   auth: Auth,
   request: Request,
-  { readOnly = false }: { readOnly?: boolean } = {},
+  { readOnly = false, audit }: { readOnly?: boolean; audit?: HubKeyAudit } = {},
 ): Promise<Authorized | null> {
   const bearer = request.headers.get('authorization');
   const token =
     bearer?.match(/^Bearer\s+(.+)$/i)?.[1] ?? request.headers.get('x-api-key');
   if (token) {
+    if (auth.hubAgentKeys && token.startsWith(HUB_AGENT_KEY_PREFIX))
+      return authorizeHubKey(db, auth.hubAgentKeys, token, audit);
     const { actor, credential } = verifyAgentKey(db, token);
     return {
       actor,
