@@ -58,6 +58,15 @@ export const createAuthMiddleware = (deps: Deps) =>
       : options.auth
         ? await authorizeRequest(db, options.auth, c.req.raw, {
             readOnly: !opened(),
+            // Every call of an agent's hub key, under the agent's code.
+            audit: (fields) =>
+              deps.logger.info({
+                event: 'hub_agent_call',
+                requestId: c.get('requestId'),
+                method: c.req.method,
+                path: c.req.path,
+                ...fields,
+              }),
           })
         : null;
     if (!authorized)

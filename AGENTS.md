@@ -75,6 +75,12 @@ the system is `~/code/SYSTEM.md` on the owner's machine.
   импортами из `src/server`.
 - Стили: токены `src/web/tokens.css`, примитивы `src/web/ui`, скин
   `src/web/skin/*.css` через `var(--…)`.
+- Ключ хаба агента (`agency_hub_agent_…`, `src/server/hub-agent-keys.ts`):
+  проверяется в хабе только по sha256 своим ключом TaskIndex
+  (`HUB_INTROSPECT_KEY`, право `introspect:agent_keys`) и работает как
+  агент из таблицы владельца `HUB_AGENTS` с её правом; кода нет — 403, без
+  ключа — не принимается. Проверка ключа в базу не пишет: аудит — строка
+  журнала `hub_agent_call`. Права — `tests/api/hub-agent-keys.test.ts`.
 - Новая команда: payload в `src/shared/schemas.ts` → ветка `applyCommand` →
   `WRITE_COMMANDS` в `src/cli/spec.ts` → SKILL.md → тесты. Новый GET:
   `src/server/routes/*.ts`, схема ответа в `src/shared/domain-schemas.ts`,

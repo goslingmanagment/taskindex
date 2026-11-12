@@ -196,6 +196,18 @@ docker compose -f deploy/compose.yml run --rm --no-deps -T app taskindex-admin a
 держится 30 минут, дальше сессия не пускает, пока хаб не ответит. Ключи агентов
 TaskIndex и вход по паролю этим не затронуты.
 
+Ключ хаба агента (`src/server/hub-agent-keys.ts`) включает `HUB_INTROSPECT_KEY` —
+свой ключ хаба TaskIndex с правом `introspect:agent_keys` (может быть ключ
+`HUB_SIGNIN_KEY`, если ему в хабе дано и это право); адрес — `HUB_INTROSPECT_URL`,
+по умолчанию `HUB_SIGNIN_API_URL`, затем `HUB_SIGNIN_URL`. `HUB_AGENTS` — таблица
+владельца `код_агента_хаба=id_агента:право,…` (`gengar=openclaw:tasks`): ключ хаба
+этого агента работает как существующий агент TaskIndex с этим правом; кода нет в
+таблице или агент отключён — 403. Хабу уходит только sha256 ключа; ответ живёт
+60 с, без ответа хаба последний «действует» держится до часа, «не действует» не
+продлевается, отказ хаба (4xx) — сразу 503. Каждый вызов — строка журнала
+`hub_agent_call` с кодом агента. Без `HUB_INTROSPECT_KEY` ключи хаба не
+принимаются.
+
 `LOG_LEVEL` принимает `debug|info|warn|error` (по умолчанию `info`). Журнал —
 по одной JSON-строке на событие: первыми идут `level` и `time`, затем `event`
 (`request`, `internal_error`, `post_commit_error`, …), `requestId` (значение
