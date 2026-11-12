@@ -71,6 +71,13 @@
       "when": 1790304088971,
       "tag": "0009_proposals",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "6",
+      "when": 1794474289452,
+      "tag": "0010_hub_signin",
+      "breakpoints": true
     }
   ]
 }

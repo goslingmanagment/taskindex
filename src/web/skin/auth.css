@@ -38,3 +38,16 @@
 .auth-card [data-slot='input'] {
   width: 100%;
 }
+/* «Войти через хаб» сверху, пароль — запасной путь под чертой. */
+.auth-card .auth-divider {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 13px;
+}
+.auth-card .auth-divider::before,
+.auth-card .auth-divider::after {
+  content: '';
+  flex: 1;
+  border-top: 1px solid var(--border);
+}

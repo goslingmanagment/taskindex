@@ -1,6 +1,10 @@
 import { createMiddleware } from 'hono/factory';
 import { fail } from '../../shared/errors.js';
-import { authorizeRequest, staticAuthorization } from '../auth.js';
+import {
+  authorizeRequest,
+  hubSessionRefused,
+  staticAuthorization,
+} from '../auth.js';
 import type { Deps, Env } from './deps.js';
 
 const safeMethods = ['GET', 'HEAD', 'OPTIONS'];
@@ -18,6 +22,18 @@ export const createAuthMiddleware = (deps: Deps) =>
           'not_found',
           'Ключи агентов выдаются только командой taskindex-admin.',
         );
+      // A session from the hub that does not hold there is no session here
+      // either (src/server/hub-signin.ts); a password session passes
+      // untouched.
+      if (
+        options.auth &&
+        c.req.path === '/api/auth/get-session' &&
+        ['GET', 'HEAD'].includes(c.req.method) &&
+        (await hubSessionRefused(db, options.auth, c.req.raw.headers, {
+          readOnly: !opened(),
+        }))
+      )
+        return c.json(null);
       if (!opened()) {
         // Auth GETs are not generally read-only: passkey options persist a
         // challenge. Only session inspection is available while writes are held.

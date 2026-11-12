@@ -71,6 +71,7 @@ export default defineConfig({
     proxy: {
       '/api': { target: 'http://127.0.0.1:3001', changeOrigin: false },
       '/health': { target: 'http://127.0.0.1:3001', changeOrigin: false },
+      '/auth/hub': { target: 'http://127.0.0.1:3001', changeOrigin: false },
     },
   },
   build: {

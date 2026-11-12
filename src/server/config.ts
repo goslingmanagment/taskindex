@@ -2,6 +2,7 @@ import { resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { z } from 'zod';
 import type { LogLevel } from './log.js';
+import type { HubSigninConfig } from './hub-signin.js';
 // The built client ships next to the server: <root>/dist/web both from
 // src/server and from dist/server, whatever the working directory is.
 export function webDirectory(override?: string): string {
@@ -26,6 +27,14 @@ const serverSchema = z.object({
   TASKINDEX_WEB_DIR: path.optional(),
   TASKINDEX_MIGRATIONS_DIR: path.optional(),
   LOG_LEVEL: level.default('info'),
+  // «Войти через хаб» (src/server/hub-signin.ts): off unless URL and key are set.
+  HUB_SIGNIN_URL: z.url().optional(),
+  HUB_SIGNIN_API_URL: z.url().optional(),
+  HUB_SIGNIN_CLIENT: z
+    .string()
+    .regex(/^[a-z0-9-]{1,40}$/, 'латиница в нижнем регистре, цифры и -')
+    .default('taskindex'),
+  HUB_SIGNIN_KEY: z.string().min(16, 'не меньше 16 символов').optional(),
 });
 const adminSchema = z.object({
   DATABASE_PATH: path,
@@ -78,6 +87,7 @@ type ServerConfig = {
   webDir?: string;
   migrationsDir?: string;
   logLevel: LogLevel;
+  hub?: HubSigninConfig;
 };
 // Dev binds to loopback; only the container (NODE_ENV=production) or an
 // explicit HOST listens on all interfaces.
@@ -85,6 +95,12 @@ export function loadServerConfig(env: Environment = process.env): ServerConfig {
   const c = parse(serverSchema, env);
   const production = c.NODE_ENV === 'production';
   const port = c.PORT ?? (production ? 3000 : 3001);
+  if (Boolean(c.HUB_SIGNIN_URL) !== Boolean(c.HUB_SIGNIN_KEY))
+    throw new ConfigError([
+      'HUB_SIGNIN_URL и HUB_SIGNIN_KEY: задаются вместе (вход через хаб) или не задаются оба',
+    ]);
+  if (production && c.HUB_SIGNIN_URL && !c.HUB_SIGNIN_URL.startsWith('https:'))
+    throw new ConfigError(['HUB_SIGNIN_URL: в рабочем окружении только https']);
   return {
     production,
     port,
@@ -98,6 +114,15 @@ export function loadServerConfig(env: Environment = process.env): ServerConfig {
     webDir: c.TASKINDEX_WEB_DIR,
     migrationsDir: c.TASKINDEX_MIGRATIONS_DIR,
     logLevel: c.LOG_LEVEL,
+    hub:
+      c.HUB_SIGNIN_URL && c.HUB_SIGNIN_KEY
+        ? {
+            url: c.HUB_SIGNIN_URL.replace(/\/+$/, ''),
+            apiUrl: c.HUB_SIGNIN_API_URL,
+            client: c.HUB_SIGNIN_CLIENT,
+            key: c.HUB_SIGNIN_KEY,
+          }
+        : undefined,
   };
 }
 type AdminConfig = {

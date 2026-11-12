@@ -301,6 +301,10 @@ export const session = sqliteTable('session', {
   userId: text('user_id')
     .notNull()
     .references(() => user.id, { onDelete: 'cascade' }),
+  // A session opened by «Войти через хаб» (src/server/hub-signin.ts): the
+  // hub's handle to re-check that sign-in. Null for password and passkey
+  // sessions. Written in the same INSERT as the session itself.
+  hubGrant: text('hub_grant'),
 });
 export const account = sqliteTable('account', {
   id: text('id').primaryKey(),
