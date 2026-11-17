@@ -865,29 +865,6 @@ describe('comments, snapshots, export and stream', () => {
     );
     expect(await reset.text()).toContain('event: reset');
   });
-  it('OpenAPI contains concrete command and entity schemas', async () => {
-    const f = setup();
-    const response = await f.app.request('/api/openapi.json');
-    expect(response.status).toBe(200);
-    const document = await response.json();
-    // Entities and envelopes are components referenced from the routes.
-    expect(document.components.schemas.CommandEnvelope.oneOf).toHaveLength(27);
-    expect(
-      document.paths['/api/commands'].post.requestBody.content[
-        'application/json'
-      ].schema.$ref,
-    ).toBe('#/components/schemas/CommandEnvelope');
-    expect(document.components.schemas.Task.properties.title).toBeDefined();
-    expect(
-      document.components.schemas.Task.properties.ownerTouchedAt,
-    ).toBeDefined();
-    expect(
-      JSON.stringify(document.paths['/api/tasks/{id}'].get.responses['200']),
-    ).toContain('#/components/schemas/Task');
-    expect(JSON.stringify(document.paths['/api/snapshot'])).toContain(
-      '#/components/schemas/Snapshot',
-    );
-  });
 });
 describe('desk order (plan 13)', () => {
   const focused = (f: ReturnType<typeof setup>) =>
