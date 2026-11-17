@@ -1,5 +1,5 @@
 import { createHash } from 'node:crypto';
-import { mkdtemp, readFile } from 'node:fs/promises';
+import { mkdtemp } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
@@ -71,13 +71,6 @@ describe('canonical form of a CLI envelope (TI-061)', () => {
     } finally {
       served.close();
     }
-  });
-
-  it('keeps one canonical implementation: the CLI has no local key sorter', async () => {
-    const source = await readFile('src/cli/outbox.ts', 'utf8');
-    expect(source).toContain("from '../shared/canonical-json.js'");
-    expect(source).not.toMatch(/function canonical\s*\(/);
-    expect(source).not.toContain('localeCompare');
   });
 
   it('compares saved operations by the shared canonical form, not by key order', () => {

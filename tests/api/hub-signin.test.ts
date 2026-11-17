@@ -237,9 +237,11 @@ it("refuses a callback whose state is not this browser's, without redeeming", as
   const { location, cookie } = await f.start();
   const code = f.hub.mint(true);
   const state = location.searchParams.get('state')!;
+  // A different last character: the real one is 'A' one time in sixteen.
+  const tampered = `${state.slice(0, -1)}${state.endsWith('A') ? 'B' : 'A'}`;
   const tries = [
     f.callback({ code, state }),
-    f.callback({ code, state: `${state.slice(0, -1)}A` }, cookie),
+    f.callback({ code, state: tampered }, cookie),
     f.callback({ code }, cookie),
     f.callback(
       { code, state: 'a'.repeat(43) },

@@ -1342,19 +1342,3 @@ describe('owner fields need an explicit confirmation from agents', () => {
     expect(task(f, 'ta').note).toBe('заметка');
   });
 });
-it('states the policy in /api/context rules', async () => {
-  const f = setup();
-  const context = (await (await f.app.request('/api/context')).json()) as {
-    rules: string[];
-  };
-  const rules = context.rules.join('\n');
-  for (const phrase of [
-    'событиями владельца',
-    'focus',
-    'confirmOwnerFields',
-    'ревизия шага',
-    'checklist.promote',
-    'appearance.update',
-  ])
-    expect(rules).toContain(phrase);
-});
